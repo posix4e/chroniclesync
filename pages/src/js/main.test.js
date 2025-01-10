@@ -47,6 +47,13 @@ document.body.innerHTML = `
 // Mock fetch
 global.fetch = jest.fn();
 
+// Mock window.location
+delete window.location;
+window.location = {
+  hostname: 'localhost',
+  origin: 'http://localhost:5173'
+};
+
 // Mock alert
 global.alert = jest.fn();
 
@@ -162,7 +169,7 @@ describe('Main', () => {
       await syncData();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev?clientId=test123',
+        'http://localhost:8787?clientId=test123',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify(mockData),
@@ -273,7 +280,7 @@ describe('Main', () => {
       await deleteClient('test123');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev/admin/client?clientId=test123',
+        'http://localhost:8787/admin/client?clientId=test123',
         expect.objectContaining({
           method: 'DELETE',
           headers: {
@@ -373,7 +380,7 @@ describe('Main', () => {
       await triggerWorkflow('create-resources', 'production');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev/admin/workflow',
+        'http://localhost:8787/admin/workflow',
         expect.objectContaining({
           method: 'POST',
           headers: {

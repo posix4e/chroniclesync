@@ -62,4 +62,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm ci
-          npm run deploy ${{ github.event_name != 'push' && '-- --project-name chroniclesync-pages-staging' || '' }}
+          npm run deploy

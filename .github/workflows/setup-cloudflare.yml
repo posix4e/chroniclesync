@@ -34,9 +34,9 @@ jobs:
         if: github.event.inputs.action == 'create-resources'
         run: |
           # Create D1 database
-          wrangler d1 create chroniclesync_db
+          wrangler d1 create sync_db
           # Create R2 bucket
-          wrangler r2 bucket create chroniclesync-storage
+          wrangler r2 bucket create sync-storage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -53,7 +53,7 @@ jobs:
             data_size INTEGER
           );
           " > schema.sql
-          wrangler d1 execute chroniclesync_db --file=schema.sql
+          wrangler d1 execute sync_db --file=schema.sql --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -70,7 +70,7 @@ jobs:
             data_size INTEGER
           );
           " > schema.sql
-          wrangler d1 execute chroniclesync_db --file=schema.sql
+          wrangler d1 execute sync_db --file=schema.sql --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -2,6 +2,29 @@
 
 A simple application that demonstrates synchronization between IndexedDB and Cloudflare's D1/R2 storage using Cloudflare Workers and Pages.
 
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm (v7 or higher)
+- Wrangler CLI (`npm install -g wrangler`)
+- Cloudflare account with:
+  - Workers subscription
+  - Access to D1 and R2 services
+  - A registered domain (optional, for custom domains)
+
+## Project Structure
+
+```
+.
+├── .github/workflows/    # CI/CD pipeline configurations
+├── pages/               # Frontend application
+│   ├── src/            # Source code
+│   └── public/         # Static assets
+├── worker/             # Cloudflare Worker backend
+│   ├── src/           # Worker source code
+│   └── wrangler.toml  # Worker configuration
+```
+
 ## Components
 
 ### Worker
@@ -51,19 +74,86 @@ To set up these secrets:
 
 ## Development
 
-### Worker
+### Local Environment Setup
+
+1. Clone the repository
+2. Install dependencies for both worker and pages:
+```bash
+# Install worker dependencies
+cd worker
+npm install
+
+# Install pages dependencies
+cd ../pages
+npm install
+```
+
+3. Create a `.dev.vars` file in the worker directory with required environment variables:
+```
+# worker/.dev.vars
+ENVIRONMENT=development
+```
+
+### Worker Development
 ```bash
 cd worker
 npm install
 npm run dev
 ```
 
-### Pages
+### Pages Development
 ```bash
 cd pages
 npm install
 npm run dev
 ```
+
+The pages application will be available at `http://localhost:5173` by default.
+
+## Testing
+
+The project includes automated tests to ensure functionality:
+
+```bash
+# Run worker tests
+cd worker
+npm test
+
+# Run pages tests
+cd pages
+npm test
+```
+
+Tests are automatically run in GitHub Actions on pull requests and pushes to the main branch.
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Worker deployment fails**
+   - Verify your Cloudflare API token has the correct permissions
+   - Check that D1 database and R2 bucket exist
+   - Ensure wrangler.toml is properly configured
+
+2. **Local development issues**
+   - Clear browser IndexedDB data if sync issues occur
+   - Verify environment variables are set correctly
+   - Check browser console for error messages
+
+3. **Sync not working**
+   - Verify API_URL is correctly set in pages configuration
+   - Check network connectivity and CORS settings
+   - Ensure IndexedDB is supported and enabled in your browser
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please ensure tests pass and add new tests for new features.
 
 ## Deployment
 

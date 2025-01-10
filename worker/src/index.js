@@ -1,13 +1,32 @@
 export default {
+  corsHeaders(origin = '*') {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    };
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const clientId = url.searchParams.get('clientId');
+
+    // Handle CORS preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: this.corsHeaders(),
+      });
+    }
 
     // Admin endpoints
     if (url.pathname.startsWith('/admin')) {
       const authHeader = request.headers.get('Authorization');
       if (authHeader !== 'Bearer francesisthebest') {
-        return new Response('Unauthorized', { status: 401 });
+        return new Response('Unauthorized', { 
+          status: 401,
+          headers: this.corsHeaders()
+        });
       }
 
       // Admin routes
@@ -30,7 +49,10 @@ export default {
 
     // Client endpoints
     if (!clientId) {
-      return new Response('Client ID required', { status: 400 });
+      return new Response('Client ID required', { 
+        status: 400,
+        headers: this.corsHeaders()
+      });
     }
 
     if (request.method === 'GET') {
@@ -41,7 +63,10 @@ export default {
       return await this.handleClientPost(request, env, clientId);
     }
 
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { 
+      status: 405,
+      headers: this.corsHeaders()
+    });
   },
 
   async handleAdminClients(request, env) {
@@ -71,7 +96,7 @@ export default {
         }
       }
 
-      return Response.json(stats);
+      return Response.json(stats, { headers: this.corsHeaders() });
     } catch (e) {
       console.error('Error getting client list:', e);
       return new Response('Internal server error', { status: 500 });
@@ -96,7 +121,10 @@ export default {
           .bind(clientId)
           .run();
 
-        return new Response('Client deleted', { status: 200 });
+        return new Response('Client deleted', { 
+          status: 200,
+          headers: this.corsHeaders()
+        });
       } catch (e) {
         console.error('Error deleting client:', e);
         return new Response('Internal server error', { status: 500 });
@@ -136,7 +164,7 @@ export default {
       console.error('Storage check failed:', e);
     }
 
-    return Response.json(status);
+    return Response.json(status, { headers: this.corsHeaders() });
   },
 
   async handleAdminWorkflow(request, _env) {
@@ -161,7 +189,7 @@ export default {
     return Response.json({
       message: `Triggered ${action} workflow for ${environment} environment`,
       status: 'pending',
-    });
+    }, { headers: this.corsHeaders() });
   },
 
   async handleClientGet(request, env, clientId) {
@@ -174,6 +202,7 @@ export default {
       headers: {
         'Content-Type': 'application/json',
         'Last-Modified': data.uploaded.toISOString(),
+        ...this.corsHeaders()
       },
     });
   },
@@ -190,6 +219,9 @@ export default {
        VALUES (?, datetime('now'), ?)`
     ).bind(clientId, JSON.stringify(data).length).run();
 
-    return new Response('Sync successful', { status: 200 });
+    return new Response('Sync successful', { 
+      status: 200,
+      headers: this.corsHeaders()
+    });
   },
 };

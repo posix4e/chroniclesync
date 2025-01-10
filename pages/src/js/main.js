@@ -69,10 +69,8 @@ async function saveData() {
 
 async function syncData() {
   try {
-    // Use `this.db` in tests, fall back to global `db` in production
-    const currentDb = this?.db || db;
-    const data = await currentDb.getData();
-    const response = await fetch(`${API_URL}?clientId=${currentDb.clientId}`, {
+    const data = await db.getData();
+    const response = await fetch(`${API_URL}?clientId=${db.clientId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

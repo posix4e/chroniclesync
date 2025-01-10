@@ -108,15 +108,27 @@ describe('Main', () => {
     });
 
     const testApiUrl = async (hostname, expectedUrl) => {
+      // Mock window.location
       delete window.location;
       window.location = { hostname };
 
+      // Mock DB and fetch
       mockDB.getData.mockResolvedValue({});
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
-      const { syncData } = require('./main');
-      await syncData.call({ db: mockDB });
+      // Import the module in isolation
+      jest.isolateModules(() => {
+        // Mock the DB module first
+        jest.mock('./db', () => ({
+          DB: jest.fn().mockImplementation(() => mockDB)
+        }));
 
+        // Now require the main module
+        const { syncData } = require('./main');
+        syncData();
+      });
+
+      // Verify the API call
       expect(fetch).toHaveBeenCalledWith(
         `${expectedUrl}?clientId=test123`,
         expect.objectContaining({

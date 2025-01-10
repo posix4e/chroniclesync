@@ -8,7 +8,7 @@ describe('ChronicleSync E2E Tests', () => {
     // Reset storage and database state
     env = {
       DB: {
-        prepare: jest.fn().mockImplementation((query) => ({
+        prepare: jest.fn().mockImplementation((_query) => ({
           all: jest.fn().mockResolvedValue({ results: [] }),
           run: jest.fn().mockResolvedValue(true),
           bind: jest.fn().mockReturnThis(),

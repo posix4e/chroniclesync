@@ -19,6 +19,6 @@
     "eslint": "^8.51.0",
     "jest": "^29.7.0",
     "jest-environment-miniflare": "^2.14.1",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.101.0"
   }
 }

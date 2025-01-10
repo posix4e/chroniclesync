@@ -62,8 +62,11 @@ global.confirm = jest.fn();
 
 describe('Main', () => {
   let mockDB;
+  let originalLocation;
 
   beforeEach(() => {
+    // Store original location
+    originalLocation = window.location;
     // Reset mocks
     fetch.mockReset();
     alert.mockReset();
@@ -83,6 +86,109 @@ describe('Main', () => {
     document.getElementById('dataSection').classList.add('hidden');
     document.getElementById('adminPanel').classList.add('hidden');
     document.getElementById('adminLogin').classList.remove('hidden');
+  });
+
+  afterEach(() => {
+    // Restore original location
+    window.location = originalLocation;
+  });
+
+  describe('API_URL determination', () => {
+    it('uses production API URL for chroniclesync.xyz', () => {
+      delete window.location;
+      window.location = { hostname: 'chroniclesync.xyz' };
+      
+      // Re-import to trigger API_URL determination
+      jest.isolateModules(() => {
+        const { syncData } = require('./main');
+        mockDB.getData.mockResolvedValue({});
+        mockDB.clientId = 'test123';
+        fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        
+        syncData();
+        
+        expect(fetch).toHaveBeenCalledWith(
+          'https://api.chroniclesync.xyz?clientId=test123',
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('uses staging API URL for pages.dev domain', () => {
+      delete window.location;
+      window.location = { hostname: 'branch.chroniclesync.pages.dev' };
+      
+      jest.isolateModules(() => {
+        const { syncData } = require('./main');
+        mockDB.getData.mockResolvedValue({});
+        mockDB.clientId = 'test123';
+        fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        
+        syncData();
+        
+        expect(fetch).toHaveBeenCalledWith(
+          'https://api-staging.chroniclesync.xyz?clientId=test123',
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('uses localhost API URL for local development', () => {
+      delete window.location;
+      window.location = { hostname: 'localhost' };
+      
+      jest.isolateModules(() => {
+        const { syncData } = require('./main');
+        mockDB.getData.mockResolvedValue({});
+        mockDB.clientId = 'test123';
+        fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        
+        syncData();
+        
+        expect(fetch).toHaveBeenCalledWith(
+          'http://localhost:8787?clientId=test123',
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('uses localhost API URL for 127.0.0.1', () => {
+      delete window.location;
+      window.location = { hostname: '127.0.0.1' };
+      
+      jest.isolateModules(() => {
+        const { syncData } = require('./main');
+        mockDB.getData.mockResolvedValue({});
+        mockDB.clientId = 'test123';
+        fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        
+        syncData();
+        
+        expect(fetch).toHaveBeenCalledWith(
+          'http://localhost:8787?clientId=test123',
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('defaults to production API URL for unknown domains', () => {
+      delete window.location;
+      window.location = { hostname: 'unknown-domain.com' };
+      
+      jest.isolateModules(() => {
+        const { syncData } = require('./main');
+        mockDB.getData.mockResolvedValue({});
+        mockDB.clientId = 'test123';
+        fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        
+        syncData();
+        
+        expect(fetch).toHaveBeenCalledWith(
+          'https://api.chroniclesync.xyz?clientId=test123',
+          expect.any(Object)
+        );
+      });
+    });
   });
 
   describe('initializeClient', () => {

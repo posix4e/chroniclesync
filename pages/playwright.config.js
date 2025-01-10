@@ -17,13 +17,9 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8788',
-    reuseExistingServer: !process.env.CI,
-    env: {
-      WORKER_URL: 'http://localhost:8787',
-    },
+  use: {
+    baseURL: 'http://localhost:8788',
+    trace: 'on-first-retry',
   },
 
   globalSetup: require.resolve('./e2e/setup.js'),

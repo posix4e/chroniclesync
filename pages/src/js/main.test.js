@@ -5,7 +5,6 @@
 import {
   initializeClient,
   saveData,
-  syncData,
   loginAdmin,
   refreshStats,
   deleteClient,

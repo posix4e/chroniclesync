@@ -2,21 +2,13 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      cloudflare_action:
-        description: 'Cloudflare setup action'
-        required: false
-        type: choice
-        options:
-          - none
-          - create-resources
-          - update-schema
-          - reset-database
-        default: 'none'
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
   test:
@@ -27,133 +19,79 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            **/package-lock.json
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
           
-      - name: Install dependencies
-        run: npm ci
+      - name: Install and Test
         working-directory: ${{ matrix.project }}
-        
-      - name: Run linter
-        run: npm run lint
-        working-directory: ${{ matrix.project }}
-        
-      - name: Run tests
-        run: npm run test:coverage
-        working-directory: ${{ matrix.project }}
+        run: |
+          npm ci
+          npm run lint
+          npm run test:coverage
 
-  deploy-staging:
+  deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: staging
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: |
-            **/package-lock.json
-      
-      - name: Deploy worker to staging
-        run: |
-          cd worker
-          npm ci
-          npm run deploy -- --env staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Deploy pages to staging
-        run: |
-          cd pages
-          npm ci
-          npm run deploy -- --project-name chroniclesync-pages-staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-  deploy-production:
-    needs: [test, deploy-staging]
-    runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
             **/package-lock.json
 
-      - name: Deploy worker to production
-        if: contains(github.event.head_commit.modified, 'worker/') || github.event_name == 'workflow_dispatch'
-        run: |
-          cd worker
-          npm ci
-          npm run deploy
+      - name: Deploy Worker
+        working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Deploy pages to production
-        if: contains(github.event.head_commit.modified, 'pages/') || github.event_name == 'workflow_dispatch'
         run: |
-          cd pages
           npm ci
-          npm run deploy
+          npm run deploy ${{ github.event_name != 'workflow_dispatch' && '-- --env staging' || '' }}
+
+      - name: Deploy Pages
+        working-directory: pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npm ci
+          npm run deploy ${{ github.event_name != 'workflow_dispatch' && '-- --project-name chroniclesync-pages-staging' || '' }}
 
-  cloudflare-setup:
-    needs: test
+  setup:
     runs-on: ubuntu-latest
-    if: github.event.inputs.cloudflare_action != 'none'
+    if: github.event_name == 'workflow_dispatch'
     environment: production
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Dependencies
+      - name: Setup Cloudflare Resources
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          cd worker
           npm install
           npm install -g wrangler
-
-      - name: Create Resources
-        if: github.event.inputs.cloudflare_action == 'create-resources'
-        run: |
-          # Create D1 database
-          wrangler d1 create sync_db
-          # Create R2 bucket
-          wrangler r2 bucket create sync-storage
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Update or Reset Schema
-        if: |
-          github.event.inputs.cloudflare_action == 'update-schema' ||
-          github.event.inputs.cloudflare_action == 'reset-database'
-        run: |
+          
+          # Create D1 database if it doesn't exist
+          wrangler d1 list | grep -q sync_db || wrangler d1 create sync_db
+          
+          # Create R2 bucket if it doesn't exist
+          wrangler r2 bucket list | grep -q sync-storage || wrangler r2 bucket create sync-storage
+          
+          # Update schema
           echo "
           DROP TABLE IF EXISTS clients;
           CREATE TABLE clients (
@@ -163,6 +101,3 @@ jobs:
           );
           " > schema.sql
           wrangler d1 execute sync_db --file=schema.sql --remote
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

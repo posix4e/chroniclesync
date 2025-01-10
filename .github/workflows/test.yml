@@ -60,22 +60,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
         
-      - name: Deploy worker to staging
+      - name: Start local worker
         run: |
           cd ../worker
           npm ci
-          npm run deploy -- --env staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          
-      - name: Wait for worker to be ready
-        run: |
+          npm run dev > worker.log 2>&1 &
           # Wait for worker to be ready (up to 30 seconds)
           max_attempts=30
           attempt=0
           while [ $attempt -lt $max_attempts ]; do
-            if curl -s https://api-staging.chroniclesync.xyz/health > /dev/null; then
+            if curl -s http://localhost:8787/health > /dev/null; then
               echo "Worker is ready!"
               break
             fi
@@ -84,6 +78,7 @@ jobs:
             echo "Waiting for worker to start (attempt $attempt/$max_attempts)..."
             if [ $attempt -eq $max_attempts ]; then
               echo "Worker failed to start"
+              cat worker.log
               exit 1
             fi
           done
@@ -91,7 +86,7 @@ jobs:
       - name: Run API tests
         run: npm run test:api
         env:
-          TEST_BASE_URL: https://api-staging.chroniclesync.xyz
+          TEST_BASE_URL: http://localhost:8787
           
       - name: Run UI tests
         if: success()

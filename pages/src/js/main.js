@@ -1,4 +1,4 @@
-const API_URL = 'https://api.chroniclesync.xyz';
+const API_URL = 'https://chroniclesync-worker.posix4e.workers.dev';
 const db = new DB();
 
 async function initializeClient() {

@@ -1,5 +1,5 @@
 {
-  "name": "sync-worker",
+  "name": "chroniclesync-worker",
   "version": "1.0.0",
   "private": true,
   "scripts": {

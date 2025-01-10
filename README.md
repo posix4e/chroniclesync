@@ -1,4 +1,4 @@
-# Cloudflare Sync Application
+# ChronicleSync
 
 A simple application that demonstrates synchronization between IndexedDB and Cloudflare's D1/R2 storage using Cloudflare Workers and Pages.
 

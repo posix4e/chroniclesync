@@ -61,7 +61,9 @@ async function syncData() {
       throw new Error('Sync failed');
     }
 
-    alert('Sync successful');
+    const successMessage = document.querySelector('.success-message');
+    successMessage.classList.remove('hidden');
+    setTimeout(() => successMessage.classList.add('hidden'), 3000);
   } catch (error) {
     alert(`Sync error: ${error.message}`);
   }

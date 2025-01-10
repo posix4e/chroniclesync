@@ -46,6 +46,7 @@
             <br>
             <button onclick="saveData()">Save Data</button>
             <button onclick="syncData()">Sync with Server</button>
+            <div class="success-message hidden">Data synced successfully!</div>
         </div>
     </div>
 
@@ -137,7 +138,19 @@
         </style>
     </div>
 
-    <script src="js/db.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module">
+        import { initializeClient, saveData, syncData, loginAdmin, refreshStats, deleteClient, viewClientData, triggerWorkflow, checkSystemStatus } from './js/main.js';
+        
+        // Expose functions to window for onclick handlers
+        window.initializeClient = initializeClient;
+        window.saveData = saveData;
+        window.syncData = syncData;
+        window.loginAdmin = loginAdmin;
+        window.refreshStats = refreshStats;
+        window.deleteClient = deleteClient;
+        window.viewClientData = viewClientData;
+        window.triggerWorkflow = triggerWorkflow;
+        window.checkSystemStatus = checkSystemStatus;
+    </script>
 </body>
 </html>

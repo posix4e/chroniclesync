@@ -9,11 +9,13 @@ name = "chroniclesync-worker-dev"
 [[env.development.d1_databases]]
 binding = "DB"
 database_name = "sync_db_dev"
-database_id = "dev"
+database_id = "sync_db_dev"
+preview_database_id = "sync_db_dev"
 
 [[env.development.r2_buckets]]
 binding = "STORAGE"
 bucket_name = "sync-storage-dev"
+preview_bucket_name = "sync-storage-dev"
 
 [env.production]
 routes = [

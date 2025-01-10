@@ -64,7 +64,19 @@ jobs:
         run: |
           cd ../worker
           npm ci
-          npm run dev > worker.log 2>&1 &
+          # Create test D1 database
+          npx wrangler d1 create sync_db_dev || true
+          # Initialize database schema
+          echo "CREATE TABLE IF NOT EXISTS clients (
+            client_id TEXT PRIMARY KEY,
+            last_sync DATETIME,
+            data_size INTEGER
+          );" > schema.sql
+          npx wrangler d1 execute sync_db_dev --local --file=schema.sql
+          # Create test R2 bucket
+          npx wrangler r2 bucket create sync-storage-dev || true
+          # Start worker in dev mode
+          npx wrangler dev --env development --local > worker.log 2>&1 &
           # Wait for worker to be ready (up to 30 seconds)
           max_attempts=30
           attempt=0

@@ -1,121 +1,192 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('ChronicleSync App', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate with shorter timeout
-    await page.goto('/', { timeout: 5000 });
+  let page;
+  let context;
+  
+  test.beforeEach(async ({ browser }) => {
+    // Create a new context for isolation
+    context = await browser.newContext();
+    page = await context.newPage();
     
-    // Wait for app to be ready
-    await expect(page.locator('body')).toBeVisible({ timeout: 5000 });
+    // Navigate and wait for app load
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    
+    // Wait for app container
+    await page.waitForSelector('#app', { state: 'visible' });
+  });
+  
+  test.afterEach(async () => {
+    // Clean up after each test
+    await context?.close();
   });
 
   test.describe('Client Operations', () => {
-    test('initializes new client successfully', async ({ page }) => {
+    test('initializes new client successfully', async () => {
       const clientId = `test-${Date.now()}`;
-      await page.fill('[data-testid="client-id-input"]', clientId);
-      await page.click('[data-testid="initialize-button"]');
       
-      await expect(page.locator('[data-testid="sync-status"]')).toBeVisible();
-      await expect(page.locator('[data-testid="sync-status"]')).toHaveText('Connected');
+      // Wait for and fill client ID input
+      const input = await page.waitForSelector('#clientId');
+      await input.fill(clientId);
+      
+      // Click initialize and wait for response
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/client')),
+        page.click('#initialize')
+      ]);
+      
+      // Check status
+      const status = await page.waitForSelector('#status');
+      await expect(status).toHaveText('Connected');
     });
 
-    test('handles offline mode gracefully', async ({ page, context }) => {
-      // Set up client first
+    test('handles offline mode gracefully', async () => {
       const clientId = `test-${Date.now()}`;
-      await page.fill('[data-testid="client-id-input"]', clientId);
-      await page.click('[data-testid="initialize-button"]');
+      
+      // Initialize client
+      const input = await page.waitForSelector('#clientId');
+      await input.fill(clientId);
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/client')),
+        page.click('#initialize')
+      ]);
 
       // Go offline
       await context.setOffline(true);
       
-      // Try to sync
-      await page.click('[data-testid="sync-button"]');
+      // Try to sync and check status
+      await page.click('#sync');
+      const status = await page.waitForSelector('#status');
+      await expect(status).toHaveText('Offline');
       
-      // Should show offline status
-      await expect(page.locator('[data-testid="sync-status"]')).toHaveText('Offline');
+      // Verify data can still be edited
+      const editor = await page.waitForSelector('#editor');
+      await editor.fill(JSON.stringify({ test: 'offline' }));
+      await page.click('#save');
       
-      // Data should still be editable
-      await page.fill('[data-testid="data-input"]', JSON.stringify({ test: 'offline' }));
-      await page.click('[data-testid="save-button"]');
-      
-      // Should show pending changes
-      await expect(page.locator('[data-testid="pending-changes"]')).toBeVisible();
+      // Check for pending changes indicator
+      await page.waitForSelector('#pending-changes');
     });
 
-    test('syncs data with server', async ({ page }) => {
-      // Set up client
+    test('syncs data with server', async () => {
       const clientId = `test-${Date.now()}`;
-      await page.fill('[data-testid="client-id-input"]', clientId);
-      await page.click('[data-testid="initialize-button"]');
       
-      // Add data
+      // Initialize client
+      const input = await page.waitForSelector('#clientId');
+      await input.fill(clientId);
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/client')),
+        page.click('#initialize')
+      ]);
+      
+      // Add and save data
       const testData = { test: 'sync-test', timestamp: Date.now() };
-      await page.fill('[data-testid="data-input"]', JSON.stringify(testData, null, 2));
-      await page.click('[data-testid="save-button"]');
+      const editor = await page.waitForSelector('#editor');
+      await editor.fill(JSON.stringify(testData, null, 2));
       
-      // Sync
-      await page.click('[data-testid="sync-button"]');
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/data')),
+        page.click('#save')
+      ]);
       
-      // Verify sync success
-      await expect(page.locator('[data-testid="sync-status"]')).toHaveText('Synced');
-      await expect(page.locator('[data-testid="last-sync"]')).toBeVisible();
+      // Sync and verify
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/sync')),
+        page.click('#sync')
+      ]);
+      
+      const status = await page.waitForSelector('#status');
+      await expect(status).toHaveText('Synced');
+      await page.waitForSelector('#last-sync');
     });
 
-    test('handles invalid JSON input', async ({ page }) => {
-      // Set up client
+    test('handles invalid JSON input', async () => {
       const clientId = `test-${Date.now()}`;
-      await page.fill('[data-testid="client-id-input"]', clientId);
-      await page.click('[data-testid="initialize-button"]');
+      
+      // Initialize client
+      const input = await page.waitForSelector('#clientId');
+      await input.fill(clientId);
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/client')),
+        page.click('#initialize')
+      ]);
       
       // Try to save invalid JSON
-      await page.fill('[data-testid="data-input"]', '{ invalid: json }');
-      await page.click('[data-testid="save-button"]');
+      const editor = await page.waitForSelector('#editor');
+      await editor.fill('{ invalid: json }');
+      await page.click('#save');
       
-      // Should show error
-      await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
-      await expect(page.locator('[data-testid="error-message"]')).toContainText('Invalid JSON');
+      // Check for error message
+      const error = await page.waitForSelector('#error');
+      await expect(error).toContainText('Invalid JSON');
     });
   });
 
   test.describe('Admin Interface', () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async () => {
       // Login as admin
-      await page.fill('[data-testid="admin-password"]', process.env.ADMIN_KEY);
-      await page.click('[data-testid="admin-login"]');
+      const adminInput = await page.waitForSelector('#admin-password');
+      await adminInput.fill(process.env.ADMIN_KEY);
+      
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/admin/login')),
+        page.click('#admin-login')
+      ]);
+      
+      // Wait for admin panel
+      await page.waitForSelector('#admin-panel');
     });
 
-    test('shows system status', async ({ page }) => {
-      await page.click('[data-testid="status-tab"]');
+    test('shows system status', async () => {
+      await page.click('#status-tab');
+      
+      // Wait for status response
+      await page.waitForResponse(res => res.url().includes('/api/admin/status'));
       
       // Check status indicators
-      await expect(page.locator('[data-testid="database-status"]')).toHaveText('Connected');
-      await expect(page.locator('[data-testid="storage-status"]')).toHaveText('Connected');
-      await expect(page.locator('[data-testid="worker-status"]')).toHaveText('Connected');
+      const dbStatus = await page.waitForSelector('#db-status');
+      const storageStatus = await page.waitForSelector('#storage-status');
+      const workerStatus = await page.waitForSelector('#worker-status');
+      
+      await expect(dbStatus).toHaveText('Connected');
+      await expect(storageStatus).toHaveText('Connected');
+      await expect(workerStatus).toHaveText('Connected');
     });
 
-    test('lists active clients', async ({ page }) => {
-      await page.click('[data-testid="clients-tab"]');
+    test('lists active clients', async () => {
+      await page.click('#clients-tab');
       
-      // Should show clients table
-      await expect(page.locator('[data-testid="clients-table"]')).toBeVisible();
+      // Wait for clients table
+      const table = await page.waitForSelector('#clients-table');
       
-      // Refresh client list
-      await page.click('[data-testid="refresh-clients"]');
+      // Refresh and wait for response
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/admin/clients')),
+        page.click('#refresh-clients')
+      ]);
       
-      // Should have at least one row (from previous tests)
-      const rows = await page.locator('[data-testid="client-row"]').count();
-      expect(rows).toBeGreaterThan(0);
+      // Check for client rows
+      const rows = await page.$$('#client-row');
+      expect(rows.length).toBeGreaterThan(0);
     });
 
-    test('can view client details', async ({ page }) => {
-      await page.click('[data-testid="clients-tab"]');
+    test('can view client details', async () => {
+      await page.click('#clients-tab');
       
-      // Click on first client
-      await page.click('[data-testid="client-row"]');
+      // Wait for clients to load
+      await page.waitForResponse(res => res.url().includes('/api/admin/clients'));
       
-      // Should show client details
-      await expect(page.locator('[data-testid="client-details"]')).toBeVisible();
-      await expect(page.locator('[data-testid="client-data"]')).toBeVisible();
+      // Click first client and wait for details
+      const firstClient = await page.waitForSelector('#client-row');
+      await Promise.all([
+        page.waitForResponse(res => res.url().includes('/api/admin/client/')),
+        firstClient.click()
+      ]);
+      
+      // Verify details are shown
+      await page.waitForSelector('#client-details');
+      const data = await page.waitForSelector('#client-data');
+      expect(await data.textContent()).toBeTruthy();
     });
   });
 });

@@ -20,15 +20,20 @@ module.exports = defineConfig({
   use: {
     baseURL: 'http://localhost:8788',
     trace: 'on-first-retry',
-    // Shorter timeouts for faster feedback
-    actionTimeout: 5000,
-    navigationTimeout: 5000,
+    // Fast but reasonable timeouts
+    actionTimeout: 2000,
+    navigationTimeout: 2000,
     // Wait for page load
-    waitForNavigation: 'networkidle',
+    waitForNavigation: 'domcontentloaded',
   },
   
-  // Shorter test timeout
-  timeout: 10000,
+  // Fast test timeout
+  timeout: 5000,
+  
+  // Expect faster assertions
+  expect: {
+    timeout: 2000,
+  },
 
   globalSetup: require.resolve('./e2e/setup.js'),
   globalTeardown: require.resolve('./e2e/teardown.js'),

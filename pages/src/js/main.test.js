@@ -72,13 +72,17 @@ describe('Main', () => {
     alert.mockReset();
     confirm.mockReset();
 
-    // Get the mock DB instance
-    const { DB } = require('./db');
-    mockDB = DB.mock.results[0].value;
-    mockDB.init.mockReset();
-    mockDB.getData.mockReset();
-    mockDB.setData.mockReset();
-    mockDB.clientId = null;
+    // Reset DB mock
+    jest.resetModules();
+    mockDB = {
+      init: jest.fn(),
+      getData: jest.fn(),
+      setData: jest.fn(),
+      clientId: null
+    };
+    jest.mock('./db', () => ({
+      DB: jest.fn().mockImplementation(() => mockDB)
+    }));
     
     // Reset DOM elements
     document.getElementById('clientId').value = '';
@@ -94,39 +98,33 @@ describe('Main', () => {
   });
 
   describe('API_URL determination', () => {
-    let mockDB;
-    let fetch;
-
-    beforeEach(() => {
-      jest.resetModules();
-      fetch = jest.fn();
-      global.fetch = fetch;
-      mockDB = {
-        getData: jest.fn(),
-        clientId: 'test123'
-      };
-    });
-
     const testApiUrl = async (hostname, expectedUrl) => {
       // Mock window.location
       delete window.location;
       window.location = { hostname };
 
-      // Mock DB and fetch
-      mockDB.getData.mockResolvedValue({});
+      // Reset modules and mocks
+      jest.resetModules();
+      const fetch = jest.fn();
+      global.fetch = fetch;
+
+      // Create a fresh DB mock
+      const mockDB = {
+        getData: jest.fn().mockResolvedValue({}),
+        clientId: 'test123'
+      };
+
+      // Mock the DB module
+      jest.mock('./db', () => ({
+        DB: jest.fn().mockImplementation(() => mockDB)
+      }));
+
+      // Mock fetch response
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
-      // Import the module in isolation
-      jest.isolateModules(() => {
-        // Mock the DB module first
-        jest.mock('./db', () => ({
-          DB: jest.fn().mockImplementation(() => mockDB)
-        }));
-
-        // Now require the main module
-        const { syncData } = require('./main');
-        syncData();
-      });
+      // Import and run the module
+      const { syncData } = require('./main');
+      await syncData();
 
       // Verify the API call
       expect(fetch).toHaveBeenCalledWith(
@@ -171,10 +169,9 @@ describe('Main', () => {
       mockDB.getData.mockResolvedValue(mockData);
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
-      mockDB.init.mockImplementation((clientId) => {
-        mockDB.clientId = clientId;
-        return Promise.resolve();
-      });
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
 
       await initializeClient();
 
@@ -187,6 +184,10 @@ describe('Main', () => {
       document.getElementById('clientId').value = 'test123';
       mockDB.init.mockRejectedValue(new Error('DB error'));
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
+
       await initializeClient();
 
       expect(alert).toHaveBeenCalledWith('Error initializing client: DB error');
@@ -196,6 +197,10 @@ describe('Main', () => {
       document.getElementById('clientId').value = 'test123';
       mockDB.init.mockResolvedValue();
       mockDB.getData.mockRejectedValue(new Error('DB error'));
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
 
       await initializeClient();
 
@@ -208,6 +213,10 @@ describe('Main', () => {
       const mockData = { key: 'value' };
       document.getElementById('dataInput').value = JSON.stringify(mockData);
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
+
       await saveData();
 
       expect(mockDB.setData).toHaveBeenCalledWith(mockData);
@@ -216,6 +225,10 @@ describe('Main', () => {
 
     it('handles invalid JSON data', async () => {
       document.getElementById('dataInput').value = 'invalid json';
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
 
       await saveData();
 
@@ -226,6 +239,10 @@ describe('Main', () => {
       const mockData = { key: 'value' };
       document.getElementById('dataInput').value = JSON.stringify(mockData);
       mockDB.setData.mockRejectedValue(new Error('DB error'));
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
 
       await saveData();
 
@@ -240,6 +257,10 @@ describe('Main', () => {
       mockDB.clientId = 'test123';
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
+
       await syncData();
 
       expect(fetch).toHaveBeenCalledWith(
@@ -247,6 +268,7 @@ describe('Main', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify(mockData),
+          headers: { 'Content-Type': 'application/json' }
         })
       );
       expect(alert).toHaveBeenCalledWith('Sync successful');
@@ -256,6 +278,10 @@ describe('Main', () => {
       mockDB.getData.mockResolvedValue({});
       mockDB.clientId = 'test123';
       fetch.mockResolvedValue({ ok: false });
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
 
       await syncData();
 
@@ -267,6 +293,10 @@ describe('Main', () => {
       mockDB.clientId = 'test123';
       fetch.mockRejectedValue(new Error('Network error'));
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
+
       await syncData();
 
       expect(alert).toHaveBeenCalledWith('Sync error: Network error');
@@ -275,6 +305,10 @@ describe('Main', () => {
     it('handles getData error', async () => {
       mockDB.getData.mockRejectedValue(new Error('DB error'));
       mockDB.clientId = 'test123';
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
 
       await syncData();
 

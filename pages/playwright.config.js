@@ -1,8 +1,4 @@
 const { defineConfig, devices } = require('@playwright/test');
-const { MockWorkerServer } = require('./e2e/mockServer');
-
-// Create mock server instance
-const mockServer = new MockWorkerServer(8787);
 
 module.exports = defineConfig({
   testDir: './e2e',
@@ -30,17 +26,6 @@ module.exports = defineConfig({
     },
   },
 
-  globalSetup: async () => {
-    await mockServer.start();
-    // Run the original global setup
-    const originalSetup = require('./e2e/global-setup');
-    await originalSetup();
-  },
-
-  globalTeardown: async () => {
-    await mockServer.stop();
-    // Run the original global teardown
-    const originalTeardown = require('./e2e/global-teardown');
-    await originalTeardown();
-  },
+  globalSetup: require.resolve('./e2e/setup.js'),
+  globalTeardown: require.resolve('./e2e/teardown.js'),
 });

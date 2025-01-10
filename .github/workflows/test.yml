@@ -60,10 +60,44 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
         
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Deploy worker to staging
+        run: |
+          cd ../worker
+          npm ci
+          npm run deploy -- --env staging
         env:
-          TEST_BASE_URL: http://localhost:8788
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          
+      - name: Wait for worker to be ready
+        run: |
+          # Wait for worker to be ready (up to 30 seconds)
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -s https://api-staging.chroniclesync.xyz/health > /dev/null; then
+              echo "Worker is ready!"
+              break
+            fi
+            attempt=$((attempt + 1))
+            sleep 1
+            echo "Waiting for worker to start (attempt $attempt/$max_attempts)..."
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Worker failed to start"
+              exit 1
+            fi
+          done
+          
+      - name: Run API tests
+        run: npm run test:api
+        env:
+          TEST_BASE_URL: https://api-staging.chroniclesync.xyz
+          
+      - name: Run UI tests
+        if: success()
+        run: npm run test:ui
+        env:
+          TEST_BASE_URL: https://api-staging.chroniclesync.xyz
 
   test-staging:
     needs: [test-worker, test-frontend]
@@ -102,9 +136,17 @@ jobs:
           npm ci
           npx playwright install --with-deps
       
-      - name: Run E2E tests against staging
+      - name: Run API tests against staging
         run: |
           cd pages
-          npm run test:e2e
+          npm run test:api
+        env:
+          TEST_BASE_URL: https://staging.chroniclesync.xyz
+          
+      - name: Run UI tests against staging
+        if: success()
+        run: |
+          cd pages
+          npm run test:ui
         env:
           TEST_BASE_URL: https://staging.chroniclesync.xyz

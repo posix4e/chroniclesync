@@ -1,7 +1,73 @@
+// Mock storage for development
+const mockStorage = {
+  async get(key) {
+    const stored = localStorage.getItem(key);
+    return stored ? {
+      body: stored,
+      uploaded: new Date()
+    } : null;
+  },
+  async put(key, value) {
+    localStorage.setItem(key, value);
+  },
+  async list({ prefix }) {
+    const objects = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(prefix)) {
+        objects.push({
+          key,
+          size: localStorage.getItem(key).length
+        });
+      }
+    }
+    return { objects };
+  },
+  async delete(key) {
+    localStorage.removeItem(key);
+  },
+  async head() {
+    return true;
+  }
+};
+
+// Mock database for development
+const mockDb = {
+  async prepare(_query) {
+    const tables = {};
+    return {
+      async all() {
+        return { results: Object.values(tables.clients || {}) };
+      },
+      async run() {
+        return true;
+      },
+      bind(..._args) {
+        return this;
+      }
+    };
+  }
+};
+
+// Export mock implementations for testing
+export { mockDb, mockStorage };
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const clientId = url.searchParams.get('clientId');
+    
+    // Use mock implementations in development
+    env = {
+      ...env,
+      STORAGE: env.STORAGE || mockStorage,
+      DB: env.DB || mockDb
+    };
+
+    // Health check endpoint
+    if (url.pathname === '/health') {
+      return Response.json({ status: 'ok' });
+    }
 
     // Admin endpoints
     if (url.pathname.startsWith('/admin')) {
@@ -44,16 +110,17 @@ export default {
     return new Response('Method not allowed', { status: 405 });
   },
 
-  async handleAdminClients(request, env) {
+  async handleAdminClients(_request, env) {
+    const { DB: db, STORAGE: storage } = env;
     try {
-      const clients = await env.DB.prepare(
+      const clients = await db.prepare(
         'SELECT client_id, last_sync, data_size FROM clients'
       ).all();
 
       const stats = [];
       for (const client of clients.results) {
         try {
-          const objects = await env.STORAGE.list({ prefix: `${client.client_id}/` });
+          const objects = await storage.list({ prefix: `${client.client_id}/` });
           const totalSize = objects.objects.reduce((acc, obj) => acc + obj.size, 0);
           stats.push({
             clientId: client.client_id,
@@ -79,6 +146,7 @@ export default {
   },
 
   async handleAdminClient(request, env, clientId) {
+    const { DB: db, STORAGE: storage } = env;
     if (!clientId) {
       return new Response('Client ID required', { status: 400 });
     }
@@ -86,13 +154,13 @@ export default {
     if (request.method === 'DELETE') {
       try {
         // Delete client data
-        const objects = await env.STORAGE.list({ prefix: `${clientId}/` });
+        const objects = await storage.list({ prefix: `${clientId}/` });
         for (const obj of objects.objects) {
-          await env.STORAGE.delete(obj.key);
+          await storage.delete(obj.key);
         }
 
         // Delete from database
-        await env.DB.prepare('DELETE FROM clients WHERE client_id = ?')
+        await db.prepare('DELETE FROM clients WHERE client_id = ?')
           .bind(clientId)
           .run();
 
@@ -106,7 +174,8 @@ export default {
     return new Response('Method not allowed', { status: 405 });
   },
 
-  async handleAdminStatus(request, env) {
+  async handleAdminStatus(_request, env) {
+    const { DB: db, STORAGE: storage } = env;
     const status = {
       production: {
         worker: true,
@@ -122,7 +191,7 @@ export default {
 
     try {
       // Check database
-      await env.DB.prepare('SELECT 1').run();
+      await db.prepare('SELECT 1').run();
       status.production.database = true;
     } catch (e) {
       console.error('Database check failed:', e);
@@ -130,7 +199,7 @@ export default {
 
     try {
       // Check storage
-      await env.STORAGE.head('test-key');
+      await storage.head('test-key');
       status.production.storage = true;
     } catch (e) {
       console.error('Storage check failed:', e);
@@ -164,8 +233,9 @@ export default {
     });
   },
 
-  async handleClientGet(request, env, clientId) {
-    const data = await env.STORAGE.get(`${clientId}/data`);
+  async handleClientGet(_request, env, clientId) {
+    const { STORAGE: storage } = env;
+    const data = await storage.get(`${clientId}/data`);
     if (!data) {
       return new Response('No data found', { status: 404 });
     }
@@ -179,17 +249,23 @@ export default {
   },
 
   async handleClientPost(request, env, clientId) {
+    const { DB: db, STORAGE: storage } = env;
     const data = await request.json();
     
-    // Store in R2
-    await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
+    try {
+      // Store in R2
+      await storage.put(`${clientId}/data`, JSON.stringify(data));
 
-    // Update client info in D1
-    await env.DB.prepare(
-      `INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) 
-       VALUES (?, datetime('now'), ?)`
-    ).bind(clientId, JSON.stringify(data).length).run();
+      // Update client info in D1
+      await db.prepare(
+        `INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) 
+         VALUES (?, datetime('now'), ?)`
+      ).bind(clientId, JSON.stringify(data).length).run();
 
-    return new Response('Sync successful', { status: 200 });
+      return new Response('Sync successful', { status: 200 });
+    } catch (e) {
+      console.error('Error storing client data:', e);
+      return new Response('Internal server error', { status: 500 });
+    }
   },
 };

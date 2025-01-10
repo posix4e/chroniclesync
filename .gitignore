@@ -10,6 +10,11 @@ node_modules/
 dist/
 build/
 
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
 # Logs
 *.log
 npm-debug.log*
@@ -28,3 +33,7 @@ npm-debug.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+worker/.wrangler
+pages/.wrangler
+pages/playwright-report/
+pages/test-results/

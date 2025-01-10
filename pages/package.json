@@ -10,7 +10,9 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "test:e2e": "playwright test"
+    "test:api": "playwright test e2e/api.spec.js",
+    "test:ui": "playwright test e2e/ui.spec.js",
+    "test:e2e": "npm run test:api && npm run test:ui"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

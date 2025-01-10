@@ -2,6 +2,19 @@ name = "chroniclesync-worker"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
+# Development environment
+[env.development]
+name = "chroniclesync-worker-dev"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "sync_db_dev"
+database_id = "dev"
+
+[[env.development.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "sync-storage-dev"
+
 [env.production]
 routes = [
   { pattern = "api.chroniclesync.xyz", custom_domain = true }
@@ -25,7 +38,7 @@ routes = [
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "sync_db_staging"
-database_id = "your-staging-d1-database-id"
+database_id = "7cfdcb13-18ba-4a6d-85c3-0c75466debfc"
 
 [[env.staging.r2_buckets]]
 binding = "STORAGE"

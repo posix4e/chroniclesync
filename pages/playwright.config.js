@@ -2,14 +2,21 @@ const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false, // Disable parallel execution to prevent data conflicts
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  retries: process.env.CI ? 2 : 1, // Add retry for local testing too
+  workers: 1, // Force single worker
+  reporter: [
+    ['html'],
+    ['list'] // Add list reporter for better console output
+  ],
+  timeout: 45000, // 45 second timeout for each test
   use: {
-    baseURL: process.env.TEST_BASE_URL || 'http://localhost:8788',
-    trace: 'on-first-retry',
+    baseURL: process.env.TEST_BASE_URL || 'https://api-staging.chroniclesync.xyz',
+    trace: 'retain-on-failure', // Keep traces for failed tests
+    actionTimeout: 15000, // 15 second timeout for actions
+    video: 'retain-on-failure', // Record video for failed tests
+    screenshot: 'only-on-failure', // Take screenshots only on failure
   },
   projects: [
     {
@@ -25,9 +32,5 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8788',
-    reuseExistingServer: !process.env.CI,
-  },
+
 });

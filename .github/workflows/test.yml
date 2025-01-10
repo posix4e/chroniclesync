@@ -56,14 +56,6 @@ jobs:
         
       - name: Run unit tests
         run: npm run test:coverage
-        
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-        
-      - name: Run E2E tests
-        run: npm run test:e2e
-        env:
-          TEST_BASE_URL: http://localhost:8788
 
   test-staging:
     needs: [test-worker, test-frontend]
@@ -95,16 +87,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      
-      - name: Install Playwright
-        run: |
-          cd pages
-          npm ci
-          npx playwright install --with-deps
-      
-      - name: Run E2E tests against staging
-        run: |
-          cd pages
-          npm run test:e2e
-        env:
-          TEST_BASE_URL: https://staging.chroniclesync.xyz

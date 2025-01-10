@@ -43,7 +43,7 @@ async function retryRequest(request, url, options = {}, maxRetries = 3) {
 }
 
 test.describe('ChronicleSync API Tests', () => {
-  const baseUrl = process.env.TEST_BASE_URL || 'https://api-staging.chroniclesync.xyz';
+  const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:8787';
   const workerUrl = `${baseUrl}/api`;
 
   test('worker health check', async ({ request }) => {

@@ -51,6 +51,11 @@ To set up these secrets:
 
 ## Development
 
+### Prerequisites
+- Node.js 16 or higher
+- npm 7 or higher
+- Wrangler CLI (`npm install -g wrangler`)
+
 ### Worker
 ```bash
 cd worker

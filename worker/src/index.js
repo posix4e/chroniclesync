@@ -1,30 +1,30 @@
 // Mock storage for development
+const storage = new Map();
 const mockStorage = {
   async get(key) {
-    const stored = localStorage.getItem(key);
+    const stored = storage.get(key);
     return stored ? {
       body: stored,
       uploaded: new Date()
     } : null;
   },
   async put(key, value) {
-    localStorage.setItem(key, value);
+    storage.set(key, value);
   },
   async list({ prefix }) {
     const objects = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (const [key, value] of storage.entries()) {
       if (key.startsWith(prefix)) {
         objects.push({
           key,
-          size: localStorage.getItem(key).length
+          size: value.length
         });
       }
     }
     return { objects };
   },
   async delete(key) {
-    localStorage.removeItem(key);
+    storage.delete(key);
   },
   async head() {
     return true;

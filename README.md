@@ -25,6 +25,22 @@ A simple application that demonstrates synchronization between IndexedDB and Clo
 │   └── wrangler.toml  # Worker configuration
 ```
 
+## Environments
+
+The application supports two environments:
+
+### Production
+- Frontend: https://chroniclesync.xyz
+- API: https://api.chroniclesync.xyz
+- Uses production D1 database and R2 bucket
+- Deployed when changes are merged to main branch
+
+### Staging
+- Frontend: https://staging.chroniclesync.xyz
+- API: https://api-staging.chroniclesync.xyz
+- Uses separate staging D1 database and R2 bucket
+- Used for testing changes before production deployment
+
 ## Components
 
 ### Worker
@@ -53,7 +69,11 @@ npx wrangler r2 bucket create sync-storage
 
 3. Update the `worker/wrangler.toml` with your D1 database ID
 
-4. Update the `API_URL` in `pages/src/js/main.js` with your worker's URL
+4. Configure custom domains in your DNS settings:
+   - Production API: `api.chroniclesync.xyz`
+   - Staging API: `api-staging.chroniclesync.xyz`
+   - Frontend Production: `chroniclesync.xyz`
+   - Frontend Staging: `staging.chroniclesync.xyz`
 
 ## Repository Secrets
 

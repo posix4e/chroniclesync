@@ -1,9 +1,27 @@
 import { DB } from './db';
 
-// Use environment-specific API URLs
-const API_URL = window.location.hostname === 'staging.chroniclesync.xyz'
-  ? 'https://api-staging.chroniclesync.xyz'
-  : 'https://api.chroniclesync.xyz';
+// Determine API URL based on the current hostname
+const API_URL = (() => {
+  const hostname = window.location.hostname;
+  
+  // Production domain
+  if (hostname === 'chroniclesync.xyz') {
+    return 'https://api.chroniclesync.xyz';
+  }
+  
+  // Cloudflare Pages preview deployments
+  if (hostname.includes('.pages.dev')) {
+    return 'https://api-staging.chroniclesync.xyz';
+  }
+  
+  // Local development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8787';
+  }
+  
+  // Default to production API
+  return 'https://api.chroniclesync.xyz';
+})();
 const db = new DB();
 
 async function initializeClient() {

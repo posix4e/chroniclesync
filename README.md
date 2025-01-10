@@ -35,10 +35,11 @@ The application supports two environments:
 - Uses production D1 database and R2 bucket
 - Deployed when changes are merged to main branch
 
-### Staging
-- Frontend: https://staging.chroniclesync.xyz
+### Staging/Preview
+- Frontend: Automatically deployed to `*.pages.dev` by Cloudflare Pages
 - API: https://api-staging.chroniclesync.xyz
 - Uses separate staging D1 database and R2 bucket
+- Preview deployments created automatically for each branch
 - Used for testing changes before production deployment
 
 ## Components

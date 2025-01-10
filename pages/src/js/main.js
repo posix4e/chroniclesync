@@ -1,3 +1,5 @@
+import { DB } from './db';
+
 const API_URL = 'https://chroniclesync-worker.posix4e.workers.dev';
 const db = new DB();
 
@@ -8,22 +10,39 @@ async function initializeClient() {
     return;
   }
 
-  await db.init(clientId);
-  const data = await db.getData();
-  document.getElementById('dataInput').value = JSON.stringify(data, null, 2);
-  document.getElementById('dataSection').classList.remove('hidden');
+  try {
+    await db.init(clientId);
+  } catch (error) {
+    alert(`Error initializing client: ${error.message}`);
+    return;
+  }
 
-  // Try to sync with server
-  await syncData();
+  try {
+    const data = await db.getData();
+    document.getElementById('dataInput').value = JSON.stringify(data, null, 2);
+    document.getElementById('dataSection').classList.remove('hidden');
+
+    // Try to sync with server
+    await syncData();
+  } catch (error) {
+    alert(`Error loading data: ${error.message}`);
+  }
 }
 
 async function saveData() {
+  let data;
   try {
-    const data = JSON.parse(document.getElementById('dataInput').value);
+    data = JSON.parse(document.getElementById('dataInput').value);
+  } catch (error) {
+    alert('Invalid JSON data');
+    return;
+  }
+
+  try {
     await db.setData(data);
     alert('Data saved locally');
   } catch (error) {
-    alert('Invalid JSON data');
+    alert(`Error saving data: ${error.message}`);
   }
 }
 
@@ -110,6 +129,7 @@ async function deleteClient(clientId) {
       throw new Error('Failed to delete client');
     }
 
+    await response.json(); // Ensure response is valid JSON
     alert('Client deleted successfully');
     refreshStats();
   } catch (error) {
@@ -155,8 +175,12 @@ async function triggerWorkflow(action, environment) {
       throw new Error('Failed to trigger workflow');
     }
 
-    const result = await response.json();
-    alert(`Workflow triggered: ${result.message}`);
+    try {
+      const result = await response.json();
+      alert(`Workflow triggered: ${result.message}`);
+    } catch (error) {
+      throw new Error('Invalid JSON');
+    }
   } catch (error) {
     alert(`Error triggering workflow: ${error.message}`);
   }
@@ -197,3 +221,16 @@ function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+export {
+  initializeClient,
+  saveData,
+  syncData,
+  loginAdmin,
+  refreshStats,
+  deleteClient,
+  viewClientData,
+  triggerWorkflow,
+  checkSystemStatus,
+  formatBytes,
+};

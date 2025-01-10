@@ -1,4 +1,4 @@
-class DB {
+export class DB {
   constructor() {
     this.db = null;
     this.clientId = null;

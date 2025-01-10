@@ -9,8 +9,8 @@ const API_URL = (() => {
     return 'https://api.chroniclesync.xyz';
   }
   
-  // Cloudflare Pages preview deployments
-  if (hostname.includes('.pages.dev')) {
+  // Preview deployment (staging) in Cloudflare Pages
+  if (hostname.endsWith('chroniclesync.pages.dev')) {
     return 'https://api-staging.chroniclesync.xyz';
   }
   

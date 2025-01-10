@@ -1,4 +1,16 @@
 name = "chroniclesync-pages"
 compatibility_date = "2024-01-01"
 
+[env.production]
+name = "chroniclesync-pages"
+routes = [
+  { pattern = "chroniclesync.xyz", custom_domain = true }
+]
+
+[env.staging]
+name = "chroniclesync-pages-staging"
+routes = [
+  { pattern = "staging.chroniclesync.xyz", custom_domain = true }
+]
+
 pages_build_output_dir = "src"

@@ -1,6 +1,6 @@
 import { DB } from './db';
 
-const API_URL = 'https://chroniclesync-worker.posix4e.workers.dev';
+import { config } from './config.js';
 const db = new DB();
 
 async function initializeClient() {
@@ -49,7 +49,7 @@ async function saveData() {
 async function syncData() {
   try {
     const data = await db.getData();
-    const response = await fetch(`${API_URL}?clientId=${db.clientId}`, {
+    const response = await fetch(`${config.API_URL}?clientId=${db.clientId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -82,7 +82,7 @@ async function loginAdmin() {
 
 async function refreshStats() {
   try {
-    const response = await fetch(`${API_URL}/admin/clients`, {
+    const response = await fetch(`${config.API_URL}/admin/clients`, {
       headers: {
         'Authorization': 'Bearer francesisthebest'
       }
@@ -120,7 +120,7 @@ async function deleteClient(clientId) {
   }
 
   try {
-    const response = await fetch(`${API_URL}/admin/client?clientId=${clientId}`, {
+    const response = await fetch(`${config.API_URL}/admin/client?clientId=${clientId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': 'Bearer francesisthebest'
@@ -141,7 +141,7 @@ async function deleteClient(clientId) {
 
 async function viewClientData(clientId) {
   try {
-    const response = await fetch(`${API_URL}?clientId=${clientId}`, {
+    const response = await fetch(`${config.API_URL}?clientId=${clientId}`, {
       headers: {
         'Authorization': 'Bearer francesisthebest'
       }
@@ -164,7 +164,7 @@ async function triggerWorkflow(action, environment) {
   }
 
   try {
-    const response = await fetch(`${API_URL}/admin/workflow`, {
+    const response = await fetch(`${config.API_URL}/admin/workflow`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer francesisthebest',
@@ -190,7 +190,7 @@ async function triggerWorkflow(action, environment) {
 
 async function checkSystemStatus() {
   try {
-    const response = await fetch(`${API_URL}/admin/status`, {
+    const response = await fetch(`${config.API_URL}/admin/status`, {
       headers: {
         'Authorization': 'Bearer francesisthebest'
       }

@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env production",
+    "dev:staging": "wrangler dev --env staging",
+    "dev:prod": "wrangler dev --env production",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

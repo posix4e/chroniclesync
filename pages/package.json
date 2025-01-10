@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler pages dev src",
-    "deploy": "wrangler pages deploy src",
+    "deploy:staging": "wrangler pages deploy src --env staging",
+    "deploy:prod": "wrangler pages deploy src --env production",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

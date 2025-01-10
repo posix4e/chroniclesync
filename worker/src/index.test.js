@@ -81,4 +81,154 @@ describe('Worker API', () => {
     const data = await res.json();
     expect(Array.isArray(data)).toBe(true);
   });
+
+  it('handles unsupported methods', async () => {
+    const req = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
+      method: 'PUT',
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(405);
+    expect(await res.text()).toBe('Method not allowed');
+  });
+
+  it('handles admin client operations with errors', async () => {
+    // Mock Storage.list to throw error
+    env.STORAGE.list = jest.fn().mockImplementation(() => {
+      throw new Error('Storage error');
+    });
+
+    const deleteReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const deleteRes = await worker.fetch(deleteReq, env);
+    expect(deleteRes.status).toBe(500);
+  });
+
+  it('handles admin client operations', async () => {
+    // Test client deletion
+    const deleteReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const deleteRes = await worker.fetch(deleteReq, env);
+    expect(deleteRes.status).toBe(200);
+    expect(await deleteRes.text()).toBe('Client deleted');
+
+    // Test invalid method
+    const putReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const putRes = await worker.fetch(putReq, env);
+    expect(putRes.status).toBe(405);
+
+    // Test missing client ID
+    const noClientReq = new Request('https://api.chroniclesync.xyz/admin/client', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const noClientRes = await worker.fetch(noClientReq, env);
+    expect(noClientRes.status).toBe(400);
+  });
+
+  it('handles admin status check with errors', async () => {
+    // Mock DB and Storage to throw errors
+    env.DB.prepare = jest.fn().mockImplementation(() => {
+      throw new Error('DB error');
+    });
+    env.STORAGE.head = jest.fn().mockImplementation(() => {
+      throw new Error('Storage error');
+    });
+
+    const req = new Request('https://api.chroniclesync.xyz/admin/status', {
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.production.database).toBe(false);
+    expect(data.production.storage).toBe(false);
+  });
+
+  it('handles admin status check', async () => {
+    const req = new Request('https://api.chroniclesync.xyz/admin/status', {
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveProperty('production');
+    expect(data).toHaveProperty('staging');
+    expect(data.production).toHaveProperty('worker', true);
+    expect(data.production).toHaveProperty('database', true);
+    expect(data.production).toHaveProperty('storage', true);
+  });
+
+  it('handles admin workflow triggers', async () => {
+    const req = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+      body: JSON.stringify({
+        action: 'create-resources',
+        environment: 'production',
+      }),
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveProperty('message');
+    expect(data).toHaveProperty('status', 'pending');
+
+    // Test invalid method
+    const getReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+    });
+    const getRes = await worker.fetch(getReq, env);
+    expect(getRes.status).toBe(405);
+
+    // Test invalid action
+    const invalidActionReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+      body: JSON.stringify({
+        action: 'invalid-action',
+        environment: 'production',
+      }),
+    });
+    const invalidActionRes = await worker.fetch(invalidActionReq, env);
+    expect(invalidActionRes.status).toBe(400);
+
+    // Test invalid environment
+    const invalidEnvReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer francesisthebest',
+      },
+      body: JSON.stringify({
+        action: 'create-resources',
+        environment: 'invalid',
+      }),
+    });
+    const invalidEnvRes = await worker.fetch(invalidEnvReq, env);
+    expect(invalidEnvRes.status).toBe(400);
+  });
 });

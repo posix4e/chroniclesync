@@ -45,22 +45,37 @@ export default {
   },
 
   async handleAdminClients(request, env) {
-    const clients = await env.DB.prepare(
-      'SELECT client_id, last_sync, data_size FROM clients'
-    ).all();
+    try {
+      const clients = await env.DB.prepare(
+        'SELECT client_id, last_sync, data_size FROM clients'
+      ).all();
 
-    const stats = [];
-    for (const client of clients.results) {
-      const objects = await env.STORAGE.list({ prefix: `${client.client_id}/` });
-      const totalSize = objects.objects.reduce((acc, obj) => acc + obj.size, 0);
-      stats.push({
-        clientId: client.client_id,
-        lastSync: client.last_sync,
-        dataSize: totalSize,
-      });
+      const stats = [];
+      for (const client of clients.results) {
+        try {
+          const objects = await env.STORAGE.list({ prefix: `${client.client_id}/` });
+          const totalSize = objects.objects.reduce((acc, obj) => acc + obj.size, 0);
+          stats.push({
+            clientId: client.client_id,
+            lastSync: client.last_sync,
+            dataSize: totalSize,
+          });
+        } catch (e) {
+          console.error(`Error getting storage info for client ${client.client_id}:`, e);
+          stats.push({
+            clientId: client.client_id,
+            lastSync: client.last_sync,
+            dataSize: 0,
+            error: 'Storage error',
+          });
+        }
+      }
+
+      return Response.json(stats);
+    } catch (e) {
+      console.error('Error getting client list:', e);
+      return new Response('Internal server error', { status: 500 });
     }
-
-    return Response.json(stats);
   },
 
   async handleAdminClient(request, env, clientId) {
@@ -69,18 +84,23 @@ export default {
     }
 
     if (request.method === 'DELETE') {
-      // Delete client data
-      const objects = await env.STORAGE.list({ prefix: `${clientId}/` });
-      for (const obj of objects.objects) {
-        await env.STORAGE.delete(obj.key);
+      try {
+        // Delete client data
+        const objects = await env.STORAGE.list({ prefix: `${clientId}/` });
+        for (const obj of objects.objects) {
+          await env.STORAGE.delete(obj.key);
+        }
+
+        // Delete from database
+        await env.DB.prepare('DELETE FROM clients WHERE client_id = ?')
+          .bind(clientId)
+          .run();
+
+        return new Response('Client deleted', { status: 200 });
+      } catch (e) {
+        console.error('Error deleting client:', e);
+        return new Response('Internal server error', { status: 500 });
       }
-
-      // Delete from database
-      await env.DB.prepare('DELETE FROM clients WHERE client_id = ?')
-        .bind(clientId)
-        .run();
-
-      return new Response('Client deleted', { status: 200 });
     }
 
     return new Response('Method not allowed', { status: 405 });

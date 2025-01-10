@@ -21,26 +21,26 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: [
-    {
-      command: 'npm run dev',
-      url: 'http://localhost:8788',
-      reuseExistingServer: !process.env.CI,
-      env: {
-        WORKER_URL: 'http://localhost:8787',
-      },
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:8788',
+    reuseExistingServer: !process.env.CI,
+    env: {
+      WORKER_URL: 'http://localhost:8787',
     },
-    {
-      command: async () => {
-        await mockServer.start();
-        return async () => {
-          await mockServer.stop();
-        };
-      },
-      url: 'http://localhost:8787',
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
-  globalSetup: require.resolve('./e2e/global-setup'),
-  globalTeardown: require.resolve('./e2e/global-teardown'),
+  },
+
+  globalSetup: async () => {
+    await mockServer.start();
+    // Run the original global setup
+    const originalSetup = require('./e2e/global-setup');
+    await originalSetup();
+  },
+
+  globalTeardown: async () => {
+    await mockServer.stop();
+    // Run the original global teardown
+    const originalTeardown = require('./e2e/global-teardown');
+    await originalTeardown();
+  },
 });

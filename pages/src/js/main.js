@@ -1,6 +1,9 @@
 import { DB } from './db';
 
-const API_URL = 'https://chroniclesync-worker.posix4e.workers.dev';
+// Use the worker URL directly since DNS is not yet configured
+const API_URL = window.location.hostname === 'chroniclesync.xyz' 
+  ? 'https://chroniclesync-worker.posix4e.workers.dev'
+  : window.location.origin;
 const db = new DB();
 
 async function initializeClient() {

@@ -17,17 +17,17 @@ test.describe('ChronicleSync API Tests', () => {
   test('API endpoints should be accessible', async ({ request }) => {
     // Test health endpoint
     const healthResponse = await request.fetch(`${baseUrl}/health`);
-    expect(healthResponse.status).toBe(200);
+    expect(await healthResponse.status()).toBe(200);
     expect(await healthResponse.json()).toEqual({ status: 'ok' });
 
     // Test invalid client ID
     const invalidClientResponse = await request.fetch(`${baseUrl}?clientId=invalid`);
-    expect(invalidClientResponse.status).toBe(404);
+    expect(await invalidClientResponse.status()).toBe(404);
     expect(await invalidClientResponse.text()).toBe('No data found');
 
     // Test unauthorized admin access
     const adminResponse = await request.fetch(`${baseUrl}/admin/clients`);
-    expect(adminResponse.status).toBe(401);
+    expect(await adminResponse.status()).toBe(401);
     expect(await adminResponse.text()).toBe('Unauthorized');
   });
 
@@ -38,16 +38,17 @@ test.describe('ChronicleSync API Tests', () => {
       body: JSON.stringify(testData),
       headers: { 'Content-Type': 'application/json' }
     });
-    expect(storeResponse.status).toBe(200);
+    expect(await storeResponse.status()).toBe(200);
     expect(await storeResponse.text()).toBe('Sync successful');
 
     // Get data (should be immediately available in dev/test environment)
     const getResponse = await request.fetch(`${baseUrl}?clientId=${clientId}`);
-    expect(getResponse.status).toBe(200);
+    expect(await getResponse.status()).toBe(200);
     const responseData = await getResponse.json();
     expect(responseData).toEqual(testData);
-    expect(getResponse.headers().get('Content-Type')).toBe('application/json');
-    expect(getResponse.headers().get('Last-Modified')).toBeDefined();
+    const headers = await getResponse.allHeaders();
+    expect(headers['content-type']).toBe('application/json');
+    expect(headers['last-modified']).toBeDefined();
 
     // Update data
     const updatedData = { ...testData, updated: true };
@@ -56,11 +57,11 @@ test.describe('ChronicleSync API Tests', () => {
       body: JSON.stringify(updatedData),
       headers: { 'Content-Type': 'application/json' }
     });
-    expect(updateResponse.status).toBe(200);
+    expect(await updateResponse.status()).toBe(200);
 
     // Verify update
     const verifyResponse = await request.fetch(`${baseUrl}?clientId=${clientId}`);
-    expect(verifyResponse.status).toBe(200);
+    expect(await verifyResponse.status()).toBe(200);
     expect(await verifyResponse.json()).toEqual(updatedData);
 
     // Test unsupported method
@@ -69,7 +70,7 @@ test.describe('ChronicleSync API Tests', () => {
       body: JSON.stringify(testData),
       headers: { 'Content-Type': 'application/json' }
     });
-    expect(unsupportedResponse.status).toBe(405);
+    expect(await unsupportedResponse.status()).toBe(405);
     expect(await unsupportedResponse.text()).toBe('Method not allowed');
   });
 
@@ -81,7 +82,7 @@ test.describe('ChronicleSync API Tests', () => {
     const clientsResponse = await request.fetch(`${baseUrl}/admin/clients`, {
       headers: authHeader
     });
-    expect(clientsResponse.status).toBe(200);
+    expect(await clientsResponse.status()).toBe(200);
     const clientsList = await clientsResponse.json();
     expect(Array.isArray(clientsList)).toBeTruthy();
     const testClient = clientsList.find(c => c.clientId === clientId);
@@ -92,7 +93,7 @@ test.describe('ChronicleSync API Tests', () => {
     const statusResponse = await request.fetch(`${baseUrl}/admin/status`, {
       headers: authHeader
     });
-    expect(statusResponse.status).toBe(200);
+    expect(await statusResponse.status()).toBe(200);
     const status = await statusResponse.json();
     expect(status).toHaveProperty('production');
     expect(status).toHaveProperty('staging');
@@ -112,7 +113,7 @@ test.describe('ChronicleSync API Tests', () => {
         environment: 'production'
       })
     });
-    expect(workflowResponse.status).toBe(200);
+    expect(await workflowResponse.status()).toBe(200);
     const workflow = await workflowResponse.json();
     expect(workflow).toEqual({
       message: 'Triggered create-resources workflow for production environment',
@@ -124,12 +125,12 @@ test.describe('ChronicleSync API Tests', () => {
       method: 'DELETE',
       headers: authHeader
     });
-    expect(deleteResponse.status).toBe(200);
+    expect(await deleteResponse.status()).toBe(200);
     expect(await deleteResponse.text()).toBe('Client deleted');
 
     // Verify client is deleted
     const verifyDeleteResponse = await request.fetch(`${baseUrl}?clientId=${clientId}`);
-    expect(verifyDeleteResponse.status).toBe(404);
+    expect(await verifyDeleteResponse.status()).toBe(404);
     expect(await verifyDeleteResponse.text()).toBe('No data found');
   });
 });

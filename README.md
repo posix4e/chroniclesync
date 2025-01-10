@@ -36,8 +36,18 @@ npx wrangler r2 bucket create sync-storage
 
 The following secrets need to be set in the GitHub repository:
 
-- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token with Workers and Pages permissions
+- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token with the following permissions:
+  - Account.Workers Scripts:Edit
+  - Account.Workers Routes:Edit
+  - Account.Pages:Edit
+  - Zone.DNS:Edit (if using custom domains)
 - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+
+To set up these secrets:
+1. Go to your Cloudflare dashboard (https://dash.cloudflare.com)
+2. Get your Account ID from the dashboard URL or Account Home
+3. Create an API token at "My Profile" > "API Tokens" with the required permissions
+4. Add both secrets in your GitHub repository under "Settings" > "Secrets and variables" > "Actions"
 
 ## Development
 

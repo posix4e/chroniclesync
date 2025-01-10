@@ -2,7 +2,11 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('ChronicleSync App', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Navigate with shorter timeout
+    await page.goto('/', { timeout: 5000 });
+    
+    // Wait for app to be ready
+    await expect(page.locator('body')).toBeVisible({ timeout: 5000 });
   });
 
   test.describe('Client Operations', () => {

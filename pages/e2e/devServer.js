@@ -1,24 +1,20 @@
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
 const path = require('path');
 
 function createDevServer(port) {
-  const server = http.createServer((req, res) => {
-    // Serve index.html for all routes
-    const filePath = path.join(__dirname, '../src/index.html');
-    fs.readFile(filePath, (err, content) => {
-      if (err) {
-        res.writeHead(500);
-        res.end('Error loading index.html');
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(content);
-    });
+  const app = express();
+  const srcPath = path.join(__dirname, '../src');
+
+  // Serve static files from src directory
+  app.use(express.static(srcPath));
+
+  // Serve index.html for all routes (SPA support)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(srcPath, 'index.html'));
   });
 
   return new Promise((resolve, reject) => {
-    server.listen(port, (err) => {
+    const server = app.listen(port, (err) => {
       if (err) reject(err);
       else resolve(server);
     });

@@ -119,7 +119,7 @@ export default {
     return Response.json(status);
   },
 
-  async handleAdminWorkflow(request, env) {
+  async handleAdminWorkflow(request, _env) {
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
@@ -172,4 +172,4 @@ export default {
 
     return new Response('Sync successful', { status: 200 });
   },
-}
+};

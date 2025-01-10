@@ -1,8 +1,23 @@
+import worker from './index.js';
+
 describe('Worker API', () => {
   let env;
 
   beforeEach(() => {
-    env = getMiniflareBindings();
+    env = {
+      DB: {
+        prepare: jest.fn().mockReturnThis(),
+        bind: jest.fn().mockReturnThis(),
+        run: jest.fn().mockResolvedValue({}),
+        all: jest.fn().mockResolvedValue({ results: [] }),
+      },
+      STORAGE: {
+        get: jest.fn().mockResolvedValue(null),
+        put: jest.fn().mockResolvedValue({}),
+        list: jest.fn().mockResolvedValue({ objects: [] }),
+        head: jest.fn().mockResolvedValue({}),
+      },
+    };
   });
 
   it('requires client ID', async () => {
@@ -21,6 +36,17 @@ describe('Worker API', () => {
 
   it('stores and retrieves client data', async () => {
     const testData = { key: 'value' };
+    
+    // Mock storage.get to return data after it's stored
+    env.STORAGE.get.mockImplementation((key) => {
+      if (key === 'test123/data') {
+        return {
+          body: JSON.stringify(testData),
+          uploaded: new Date(),
+        };
+      }
+      return null;
+    });
     
     // Store data
     const postReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
@@ -45,7 +71,7 @@ describe('Worker API', () => {
   });
 
   it('allows admin access with correct password', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/admin', {
+    const req = new Request('https://api.chroniclesync.xyz/admin/clients', {
       headers: {
         'Authorization': 'Bearer francesisthebest',
       },

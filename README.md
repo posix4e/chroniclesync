@@ -57,25 +57,73 @@ The application supports two environments:
 - Uses IndexedDB for local storage
 - Automatic synchronization with worker
 
-## Setup
+## Initial Setup
 
-1. Create a D1 database:
-```bash
-npx wrangler d1 create sync_db
-```
+### Cloudflare Resources Setup
 
-2. Create an R2 bucket:
-```bash
-npx wrangler r2 bucket create sync-storage
-```
+Before deploying the application, you need to manually set up the required Cloudflare resources. This is a one-time setup process that needs to be done for each environment (staging and production).
 
-3. Update the `worker/wrangler.toml` with your D1 database ID
+1. **Create D1 Databases**:
+   ```bash
+   # Production database
+   npx wrangler d1 create sync_db
+   
+   # Staging database
+   npx wrangler d1 create sync_db_staging
+   ```
 
-4. Configure custom domains in your DNS settings:
+2. **Create R2 Buckets**:
+   ```bash
+   # Production bucket
+   npx wrangler r2 bucket create sync-storage
+   
+   # Staging bucket
+   npx wrangler r2 bucket create sync-storage-staging
+   ```
+
+3. **Initialize Database Schema**:
+   ```bash
+   # Create schema file
+   echo "
+   DROP TABLE IF EXISTS clients;
+   CREATE TABLE clients (
+     client_id TEXT PRIMARY KEY,
+     last_sync DATETIME,
+     data_size INTEGER
+   );
+   " > schema.sql
+
+   # Apply to production
+   npx wrangler d1 execute sync_db --file=schema.sql
+
+   # Apply to staging
+   npx wrangler d1 execute sync_db_staging --file=schema.sql
+   ```
+
+4. **Update Configuration**:
+   - Copy the database IDs from the creation output
+   - Update `worker/wrangler.toml` with both database IDs:
+     ```toml
+     # Production database binding
+     [[d1_databases]]
+     binding = "DB"
+     database_name = "sync_db"
+     database_id = "your-prod-db-id"
+
+     # Staging database binding (in [env.staging])
+     [[env.staging.d1_databases]]
+     binding = "DB"
+     database_name = "sync_db_staging"
+     database_id = "your-staging-db-id"
+     ```
+
+5. **Configure Custom Domains** in your DNS settings:
    - Production API: `api.chroniclesync.xyz`
    - Staging API: `api-staging.chroniclesync.xyz`
    - Frontend Production: `chroniclesync.xyz`
    - Frontend Staging: `staging.chroniclesync.xyz`
+
+> **Note**: The Cloudflare resource setup is a manual process and is not part of the automated CI/CD pipeline. This ensures better control over infrastructure changes and prevents accidental modifications to production resources.
 
 ## Repository Secrets
 
@@ -154,18 +202,27 @@ Common issues and solutions:
 
 1. **Worker deployment fails**
    - Verify your Cloudflare API token has the correct permissions
-   - Check that D1 database and R2 bucket exist
-   - Ensure wrangler.toml is properly configured
+   - Check that D1 database and R2 bucket exist (see [Cloudflare Resources Setup](#cloudflare-resources-setup))
+   - Ensure wrangler.toml is properly configured with correct database IDs
+   - Verify you're using the correct environment (staging vs production)
 
-2. **Local development issues**
+2. **Cloudflare Resource Issues**
+   - Run `wrangler d1 list` to verify database existence and IDs
+   - Run `wrangler r2 bucket list` to check bucket existence
+   - Use `wrangler d1 execute sync_db --command="SELECT * FROM clients"` to verify schema
+   - Check that both staging and production resources are properly set up
+
+3. **Local development issues**
    - Clear browser IndexedDB data if sync issues occur
    - Verify environment variables are set correctly
    - Check browser console for error messages
+   - Ensure wrangler is logged in (`wrangler login`)
 
-3. **Sync not working**
+4. **Sync not working**
    - Verify API_URL is correctly set in pages configuration
    - Check network connectivity and CORS settings
    - Ensure IndexedDB is supported and enabled in your browser
+   - Verify D1 database permissions and schema
 
 ## Contributing
 

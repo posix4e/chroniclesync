@@ -5,7 +5,6 @@
 import {
   initializeClient,
   saveData,
-  syncData,
   loginAdmin,
   refreshStats,
   deleteClient,
@@ -47,6 +46,13 @@ document.body.innerHTML = `
 // Mock fetch
 global.fetch = jest.fn();
 
+// Mock window.location
+delete window.location;
+window.location = {
+  hostname: 'localhost',
+  origin: 'http://localhost:5173'
+};
+
 // Mock alert
 global.alert = jest.fn();
 
@@ -55,20 +61,27 @@ global.confirm = jest.fn();
 
 describe('Main', () => {
   let mockDB;
+  let originalLocation;
 
   beforeEach(() => {
+    // Store original location
+    originalLocation = window.location;
     // Reset mocks
     fetch.mockReset();
     alert.mockReset();
     confirm.mockReset();
 
-    // Get the mock DB instance
-    const { DB } = require('./db');
-    mockDB = DB.mock.results[0].value;
-    mockDB.init.mockReset();
-    mockDB.getData.mockReset();
-    mockDB.setData.mockReset();
-    mockDB.clientId = null;
+    // Reset DB mock
+    jest.resetModules();
+    mockDB = {
+      init: jest.fn(),
+      getData: jest.fn(),
+      setData: jest.fn(),
+      clientId: null
+    };
+    jest.mock('./db', () => ({
+      DB: jest.fn().mockImplementation(() => mockDB)
+    }));
     
     // Reset DOM elements
     document.getElementById('clientId').value = '';
@@ -76,6 +89,71 @@ describe('Main', () => {
     document.getElementById('dataSection').classList.add('hidden');
     document.getElementById('adminPanel').classList.add('hidden');
     document.getElementById('adminLogin').classList.remove('hidden');
+  });
+
+  afterEach(() => {
+    // Restore original location
+    window.location = originalLocation;
+  });
+
+  describe('API_URL determination', () => {
+    const testApiUrl = async (hostname, expectedUrl) => {
+      // Mock window.location
+      delete window.location;
+      window.location = { hostname };
+
+      // Reset modules and mocks
+      jest.resetModules();
+      const fetch = jest.fn();
+      global.fetch = fetch;
+
+      // Create a fresh DB mock
+      const mockDB = {
+        getData: jest.fn().mockResolvedValue({}),
+        clientId: 'test123'
+      };
+
+      // Mock the DB module
+      jest.mock('./db', () => ({
+        DB: jest.fn().mockImplementation(() => mockDB)
+      }));
+
+      // Mock fetch response
+      fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+
+      // Import and run the module
+      const { syncData } = require('./main');
+      await syncData();
+
+      // Verify the API call
+      expect(fetch).toHaveBeenCalledWith(
+        `${expectedUrl}?clientId=test123`,
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+    };
+
+    it('uses production API URL for chroniclesync.xyz', async () => {
+      await testApiUrl('chroniclesync.xyz', 'https://api.chroniclesync.xyz');
+    });
+
+    it('uses staging API URL for pages.dev domain', async () => {
+      await testApiUrl('branch.chroniclesync.pages.dev', 'https://api-staging.chroniclesync.xyz');
+    });
+
+    it('uses localhost API URL for local development', async () => {
+      await testApiUrl('localhost', 'http://localhost:8787');
+    });
+
+    it('uses localhost API URL for 127.0.0.1', async () => {
+      await testApiUrl('127.0.0.1', 'http://localhost:8787');
+    });
+
+    it('defaults to production API URL for unknown domains', async () => {
+      await testApiUrl('unknown-domain.com', 'https://api.chroniclesync.xyz');
+    });
   });
 
   describe('initializeClient', () => {
@@ -90,10 +168,9 @@ describe('Main', () => {
       mockDB.getData.mockResolvedValue(mockData);
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
-      mockDB.init.mockImplementation((clientId) => {
-        mockDB.clientId = clientId;
-        return Promise.resolve();
-      });
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
 
       await initializeClient();
 
@@ -106,6 +183,10 @@ describe('Main', () => {
       document.getElementById('clientId').value = 'test123';
       mockDB.init.mockRejectedValue(new Error('DB error'));
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
+
       await initializeClient();
 
       expect(alert).toHaveBeenCalledWith('Error initializing client: DB error');
@@ -115,6 +196,10 @@ describe('Main', () => {
       document.getElementById('clientId').value = 'test123';
       mockDB.init.mockResolvedValue();
       mockDB.getData.mockRejectedValue(new Error('DB error'));
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { initializeClient } = require('./main');
 
       await initializeClient();
 
@@ -127,6 +212,10 @@ describe('Main', () => {
       const mockData = { key: 'value' };
       document.getElementById('dataInput').value = JSON.stringify(mockData);
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
+
       await saveData();
 
       expect(mockDB.setData).toHaveBeenCalledWith(mockData);
@@ -135,6 +224,10 @@ describe('Main', () => {
 
     it('handles invalid JSON data', async () => {
       document.getElementById('dataInput').value = 'invalid json';
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
 
       await saveData();
 
@@ -145,6 +238,10 @@ describe('Main', () => {
       const mockData = { key: 'value' };
       document.getElementById('dataInput').value = JSON.stringify(mockData);
       mockDB.setData.mockRejectedValue(new Error('DB error'));
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { saveData } = require('./main');
 
       await saveData();
 
@@ -159,13 +256,18 @@ describe('Main', () => {
       mockDB.clientId = 'test123';
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
+
       await syncData();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev?clientId=test123',
+        'http://localhost:8787?clientId=test123',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify(mockData),
+          headers: { 'Content-Type': 'application/json' }
         })
       );
       expect(alert).toHaveBeenCalledWith('Sync successful');
@@ -175,6 +277,10 @@ describe('Main', () => {
       mockDB.getData.mockResolvedValue({});
       mockDB.clientId = 'test123';
       fetch.mockResolvedValue({ ok: false });
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
 
       await syncData();
 
@@ -186,6 +292,10 @@ describe('Main', () => {
       mockDB.clientId = 'test123';
       fetch.mockRejectedValue(new Error('Network error'));
 
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
+
       await syncData();
 
       expect(alert).toHaveBeenCalledWith('Sync error: Network error');
@@ -194,6 +304,10 @@ describe('Main', () => {
     it('handles getData error', async () => {
       mockDB.getData.mockRejectedValue(new Error('DB error'));
       mockDB.clientId = 'test123';
+
+      // Reset modules to get a fresh copy of the functions
+      jest.resetModules();
+      const { syncData } = require('./main');
 
       await syncData();
 
@@ -273,7 +387,7 @@ describe('Main', () => {
       await deleteClient('test123');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev/admin/client?clientId=test123',
+        'http://localhost:8787/admin/client?clientId=test123',
         expect.objectContaining({
           method: 'DELETE',
           headers: {
@@ -373,7 +487,7 @@ describe('Main', () => {
       await triggerWorkflow('create-resources', 'production');
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://chroniclesync-worker.posix4e.workers.dev/admin/workflow',
+        'http://localhost:8787/admin/workflow',
         expect.objectContaining({
           method: 'POST',
           headers: {

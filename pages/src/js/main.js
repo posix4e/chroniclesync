@@ -1,6 +1,27 @@
 import { DB } from './db';
 
-const API_URL = 'https://chroniclesync-worker.posix4e.workers.dev';
+// Determine API URL based on the current hostname
+const API_URL = (() => {
+  const hostname = window.location.hostname;
+  
+  // Production domain
+  if (hostname === 'chroniclesync.xyz') {
+    return 'https://api.chroniclesync.xyz';
+  }
+  
+  // Preview deployment (staging) in Cloudflare Pages
+  if (hostname.endsWith('chroniclesync.pages.dev')) {
+    return 'https://api-staging.chroniclesync.xyz';
+  }
+  
+  // Local development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8787';
+  }
+  
+  // Default to production API
+  return 'https://api.chroniclesync.xyz';
+})();
 const db = new DB();
 
 async function initializeClient() {

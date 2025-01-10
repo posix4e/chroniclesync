@@ -76,15 +76,23 @@ jobs:
         with:
           node-version: '18'
       
-      - name: Deploy to staging
+      - name: Deploy worker to staging
         run: |
           cd worker
           npm ci
-          npm run deploy
+          npm run deploy -- --env staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_ENVIRONMENT: staging
+
+      - name: Deploy pages to staging
+        run: |
+          cd pages
+          npm ci
+          npm run deploy -- --project-name chroniclesync-pages-staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       
       - name: Install Playwright
         run: |

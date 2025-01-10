@@ -24,7 +24,7 @@ jobs:
         working-directory: pages
 
       - name: Deploy to Cloudflare Pages
-        run: npm run deploy
+        run: npm run deploy -- --project-name chroniclesync-pages
         working-directory: pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

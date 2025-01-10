@@ -8,7 +8,7 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: process.env.TEST_BASE_URL || 'http://localhost:8788',
+    baseURL: process.env.TEST_BASE_URL || 'https://staging.chroniclesync.xyz',
     trace: 'on-first-retry',
   },
   projects: [
@@ -25,9 +25,5 @@ module.exports = defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8788',
-    reuseExistingServer: !process.env.CI,
-  },
+  // Using staging environment for all tests
 });

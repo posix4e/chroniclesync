@@ -65,6 +65,17 @@ npm install
 npm run dev
 ```
 
+### Testing
+The project uses Playwright for end-to-end testing. All tests are run against the staging environment to ensure consistent behavior between local development and CI:
+
+```bash
+cd pages
+npm install
+npm run test:e2e
+```
+
+Note: The tests require access to the staging environment. Make sure you have the necessary Cloudflare credentials set up.
+
 ## Deployment
 
 Deployment is handled automatically by GitHub Actions when changes are pushed to the main branch:

@@ -5,7 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 env:
   NODE_VERSION: '18'
@@ -36,7 +35,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+    environment: ${{ github.event_name == 'push' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
       
@@ -54,7 +53,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm ci
-          npm run deploy ${{ github.event_name != 'workflow_dispatch' && '-- --env staging' || '' }}
+          npm run deploy ${{ github.event_name != 'push' && '-- --env staging' || '' }}
 
       - name: Deploy Pages
         working-directory: pages
@@ -63,41 +62,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm ci
-          npm run deploy ${{ github.event_name != 'workflow_dispatch' && '-- --project-name chroniclesync-pages-staging' || '' }}
-
-  setup:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Cloudflare Resources
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          npm install
-          npm install -g wrangler
-          
-          # Create D1 database if it doesn't exist
-          wrangler d1 list | grep -q sync_db || wrangler d1 create sync_db
-          
-          # Create R2 bucket if it doesn't exist
-          wrangler r2 bucket list | grep -q sync-storage || wrangler r2 bucket create sync-storage
-          
-          # Update schema
-          echo "
-          DROP TABLE IF EXISTS clients;
-          CREATE TABLE clients (
-            client_id TEXT PRIMARY KEY,
-            last_sync DATETIME,
-            data_size INTEGER
-          );
-          " > schema.sql
-          wrangler d1 execute sync_db --file=schema.sql --remote
+          npm run deploy ${{ github.event_name != 'push' && '-- --project-name chroniclesync-pages-staging' || '' }}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "include": [
+    "/*"
+  ],
+  "exclude": [],
+  "headers": {
+    "/*.js": {
+      "Content-Type": "application/javascript; charset=utf-8"
+    },
+    "/js/*.js": {
+      "Content-Type": "application/javascript; charset=utf-8"
+    }
+  }
+}

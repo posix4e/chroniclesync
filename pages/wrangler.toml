@@ -2,3 +2,12 @@ name = "chroniclesync-pages"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "src"
 
+[[headers]]
+for = "/*.js"
+[headers.values]
+Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+for = "/js/*.js"
+[headers.values]
+Content-Type = "application/javascript; charset=utf-8"

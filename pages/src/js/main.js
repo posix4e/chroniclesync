@@ -1,5 +1,5 @@
-import { DB } from './db';
-import { HealthCheck } from './healthcheck';
+import { DB } from './db.js';
+import { HealthCheck } from './healthcheck.js';
 
 // Determine API URL based on the current hostname
 const API_URL = (() => {

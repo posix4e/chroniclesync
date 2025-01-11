@@ -45,41 +45,89 @@ The application supports two environments:
 
 ## Frontend Architecture
 
-The frontend application is built with a modular JavaScript architecture:
+The frontend application is built with a secure, modular JavaScript architecture:
 
 ### Core Components
 - **Database Layer** (`db.js`): Handles all IndexedDB operations
 - **Main Application** (`main.js`): Contains business logic and UI interactions
 - **Environment-aware API**: Automatically selects the correct API endpoint based on the deployment environment
+- **Security Layer**: Implements CSP and SRI protections
+
+### Module Architecture
+1. **ES Modules**
+   - Structured using native ES modules
+   - Explicit imports and exports
+   - Proper module encapsulation
+   - SRI (Subresource Integrity) validation
+
+2. **Build Process**
+   - Automated SRI hash generation
+   - Module integrity verification
+   - Development and production builds
+   - Environment-specific optimizations
 
 ### Key Features
 1. **Client Management**
    - Unique client identification
    - Local data persistence using IndexedDB
    - Automatic data synchronization with backend
+   - Secure data handling
 
 2. **Admin Interface**
    - Client statistics and monitoring
    - Data size tracking
    - Client deletion capabilities
    - Secure access control
+   - Role-based permissions
 
 3. **Health Monitoring**
    - System health checks
    - Real-time status updates
    - Error reporting and tracking
+   - Performance monitoring
 
 ### API Integration
 - Automatic endpoint selection based on hostname:
   - Production: api.chroniclesync.xyz
   - Staging: api-staging.chroniclesync.xyz
   - Local: localhost:8787
+- Secure cross-origin communication
+- Environment-specific CORS policies
 
-### Security Considerations
-- Admin access is password-protected
-- All API requests use proper headers
-- Sensitive operations require authentication
-- Environment-specific API endpoints prevent cross-environment data leaks
+### Security Architecture
+1. **Content Security Policy (CSP)**
+   - Strict script source validation
+   - Inline script protection
+   - Style source restrictions
+   - Frame protection
+   - Resource loading controls
+
+2. **Cross-Origin Security**
+   - Strict CORS configuration
+   - Origin validation
+   - Method restrictions
+   - Header controls
+   - Preflight handling
+
+3. **Resource Integrity**
+   - SRI hash validation
+   - Automated integrity checks
+   - Build-time verification
+   - Runtime integrity monitoring
+
+4. **Access Control**
+   - Admin access protection
+   - API authentication
+   - Role-based permissions
+   - Environment isolation
+   - Secure token handling
+
+5. **Additional Protections**
+   - XSS prevention headers
+   - HSTS implementation
+   - Frame protection
+   - Content type enforcement
+   - Referrer policy controls
 
 ### Worker
 - Handles data synchronization
@@ -184,12 +232,32 @@ Common issues and solutions:
    - Ensure IndexedDB is supported and enabled in your browser
    - Verify R2 bucket permissions and access
    - Check browser console for JavaScript errors
+   - Validate CORS headers in network responses
+   - Verify CSP allows necessary connections
 
-5. **JavaScript functionality issues**
-   - Ensure script tags have `type="module"` when using ES modules
-   - Check that all required functions are properly exported/imported
-   - Verify global functions are explicitly assigned to window object
-   - Clear browser cache if changes aren't reflecting
+5. **Module System Issues**
+   - Ensure script tags have `type="module"` attribute
+   - Verify all imports/exports are properly declared
+   - Check module path resolution
+   - Validate SRI hashes after code changes
+   - Run `npm run dev` to regenerate SRI hashes
+   - Clear browser cache after module updates
+
+6. **Security-Related Issues**
+   - Check CSP violations in browser console
+   - Verify SRI hashes match deployed files
+   - Ensure CORS headers match your environment
+   - Validate security headers in responses
+   - Check for mixed content warnings
+   - Verify HTTPS configuration
+
+7. **Build and Deployment Issues**
+   - Run SRI hash generation before deployment
+   - Verify environment-specific configurations
+   - Check CSP compatibility with your environment
+   - Validate CORS settings for your domain
+   - Ensure proper module bundling
+   - Clear CDN cache after updates
 
 ## Contributing
 
@@ -200,6 +268,59 @@ Common issues and solutions:
 5. Open a Pull Request
 
 Please ensure tests pass and add new tests for new features.
+
+## Security Best Practices
+
+### Module Security
+1. **ES Module Loading**
+   - Always use `type="module"` for JavaScript modules
+   - Implement SRI for all external scripts
+   - Keep modules properly encapsulated
+   - Use explicit imports/exports
+   - Avoid dynamic imports when possible
+
+2. **Content Security Policy**
+   - Maintain strict CSP headers
+   - Use nonces for inline scripts when necessary
+   - Configure frame-ancestors appropriately
+   - Enable strict dynamic for scripts
+   - Regularly audit CSP reports
+
+3. **Cross-Origin Security**
+   - Implement proper CORS headers
+   - Validate origins strictly
+   - Use appropriate credentials mode
+   - Handle preflight requests correctly
+   - Maintain allowed origins list
+
+4. **Build Security**
+   - Generate SRI hashes during build
+   - Validate integrity checksums
+   - Implement secure module bundling
+   - Configure environment-specific security
+   - Maintain secure dependencies
+
+### Development Guidelines
+1. **Module Development**
+   - Keep modules focused and small
+   - Use explicit dependencies
+   - Maintain proper encapsulation
+   - Document security requirements
+   - Test module boundaries
+
+2. **Security Implementation**
+   - Follow least privilege principle
+   - Implement proper error handling
+   - Use secure defaults
+   - Validate all inputs
+   - Log security events
+
+3. **Testing Security**
+   - Test CSP configurations
+   - Verify CORS behavior
+   - Validate SRI implementation
+   - Check security headers
+   - Test error scenarios
 
 ## CI/CD Pipeline
 

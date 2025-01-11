@@ -108,6 +108,11 @@ export default {
       }
     }
 
+    // Public health check endpoint
+    if (url.pathname === '/health') {
+      return await this.handleHealthCheck(request, env);
+    }
+
     // Client endpoints
     if (!clientId) {
       return new Response('Client ID required', { 
@@ -432,6 +437,36 @@ export default {
         }
       });
     }
+  },
+
+  async handleHealthCheck(request, env) {
+    const origin = request.headers.get('Origin') || '*';
+    const response = {
+      healthy: true,
+      error: null,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      // Test KV Store connection
+      const metadataService = new MetadataService(env);
+      await metadataService.list({ limit: 1 });
+
+      // Test R2 Storage connection
+      await env.STORAGE.list({ limit: 1 });
+    } catch (error) {
+      response.healthy = false;
+      response.error = 'Storage connectivity issue';
+      log('error', 'Health check failed', { error: error.message });
+    }
+
+    return new Response(JSON.stringify(response), {
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.corsHeaders(origin)
+      },
+      status: response.healthy ? 200 : 503
+    });
   },
 
   async handleClientGet(request, env, clientId) {

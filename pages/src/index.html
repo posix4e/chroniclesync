@@ -74,41 +74,6 @@
             </table>
         </div>
 
-        <div class="admin-section">
-            <h3>Environment Management</h3>
-            <div class="action-group">
-                <h4>Production</h4>
-                <button onclick="triggerWorkflow('create-resources', 'production')">Create Resources</button>
-                <button onclick="triggerWorkflow('update-schema', 'production')">Update Schema</button>
-                <button onclick="triggerWorkflow('reset-database', 'production')">Reset Database</button>
-            </div>
-            <div class="action-group">
-                <h4>Staging</h4>
-                <button onclick="triggerWorkflow('create-resources', 'staging')">Create Resources</button>
-                <button onclick="triggerWorkflow('update-schema', 'staging')">Update Schema</button>
-                <button onclick="triggerWorkflow('reset-database', 'staging')">Reset Database</button>
-            </div>
-        </div>
-
-        <div class="admin-section">
-            <h3>System Status</h3>
-            <div id="systemStatus">
-                <div class="status-group">
-                    <h4>Production</h4>
-                    <div>Worker: <span id="prodWorkerStatus">Checking...</span></div>
-                    <div>Database: <span id="prodDbStatus">Checking...</span></div>
-                    <div>Storage: <span id="prodStorageStatus">Checking...</span></div>
-                </div>
-                <div class="status-group">
-                    <h4>Staging</h4>
-                    <div>Worker: <span id="stagingWorkerStatus">Checking...</span></div>
-                    <div>Database: <span id="stagingDbStatus">Checking...</span></div>
-                    <div>Storage: <span id="stagingStorageStatus">Checking...</span></div>
-                </div>
-            </div>
-            <button onclick="checkSystemStatus()">Check Status</button>
-        </div>
-
         <style>
             .admin-section {
                 margin: 20px 0;
@@ -116,24 +81,45 @@
                 border: 1px solid #ccc;
                 border-radius: 4px;
             }
-            .action-group {
-                margin: 10px 0;
-            }
-            .status-group {
-                margin: 10px 0;
-            }
-            .success { color: green; }
-            .error { color: red; }
-            .warning { color: orange; }
             button {
                 margin: 5px;
-                padding: 5px 10px;
+                padding: 8px 16px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                cursor: pointer;
             }
-            #systemStatus {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
+            button:hover {
+                background-color: #e0e0e0;
             }
+        </style>
+    </div>
+
+    <div id="healthCheck">
+        <h2>System Health</h2>
+        <div class="health-status">
+            <div>Status: <span id="healthStatus">Checking...</span></div>
+            <div>Last Check: <span id="lastCheck">Never</span></div>
+            <button onclick="checkHealth()">Check Health</button>
+        </div>
+        <style>
+            #healthCheck {
+                margin-top: 20px;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+            .health-status {
+                margin: 10px 0;
+                padding: 10px;
+                background-color: #f8f8f8;
+                border-radius: 4px;
+            }
+            .health-status div {
+                margin: 5px 0;
+            }
+            .health-ok { color: #2ecc71; }
+            .health-error { color: #e74c3c; }
         </style>
     </div>
 

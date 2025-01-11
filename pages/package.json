@@ -10,8 +10,7 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "test:e2e": "playwright test",
-    "test:csp": "jest csp.test.js"
+    "test:e2e": "playwright test"
   },
   "jest": {
     "testEnvironment": "miniflare",
@@ -21,7 +20,11 @@
       "bindings": {
         "CSP_HEADER": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.chroniclesync.xyz https://api-staging.chroniclesync.xyz http://localhost:8787; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
       }
-    }
+    },
+    "testMatch": [
+      "**/src/__tests__/**/*.test.js"
+    ],
+    "setupFiles": ["<rootDir>/src/__tests__/setup.js"]
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

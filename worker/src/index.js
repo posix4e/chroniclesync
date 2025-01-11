@@ -11,11 +11,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const clientId = url.searchParams.get('clientId');
+    const origin = request.headers.get('Origin') || '*';
 
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
-        headers: this.corsHeaders(),
+        headers: this.corsHeaders(origin),
       });
     }
 
@@ -128,8 +129,12 @@ export default {
   },
 
   async handleAdminClient(request, env, clientId) {
+    const origin = request.headers.get('Origin') || '*';
     if (!clientId) {
-      return new Response('Client ID required', { status: 400 });
+      return new Response('Client ID required', { 
+        status: 400,
+        headers: this.corsHeaders(origin)
+      });
     }
 
     if (request.method === 'DELETE') {
@@ -147,21 +152,25 @@ export default {
 
         return new Response('Client deleted', { 
           status: 200,
-          headers: this.corsHeaders()
+          headers: this.corsHeaders(origin)
         });
       } catch (e) {
         console.error('Error deleting client:', e);
         return new Response('Internal server error', { 
           status: 500,
-          headers: this.corsHeaders()
+          headers: this.corsHeaders(origin)
         });
       }
     }
 
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { 
+      status: 405,
+      headers: this.corsHeaders(origin)
+    });
   },
 
   async handleAdminStatus(request, env) {
+    const origin = request.headers.get('Origin') || '*';
     const status = {
       production: {
         worker: true,
@@ -191,12 +200,16 @@ export default {
       console.error('Storage check failed:', e);
     }
 
-    return Response.json(status, { headers: this.corsHeaders() });
+    return Response.json(status, { headers: this.corsHeaders(origin) });
   },
 
   async handleAdminWorkflow(request, _env) {
+    const origin = request.headers.get('Origin') || '*';
     if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 });
+      return new Response('Method not allowed', { 
+        status: 405,
+        headers: this.corsHeaders(origin)
+      });
     }
 
     const { action, environment } = await request.json();
@@ -204,11 +217,17 @@ export default {
     // These actions are now handled by GitHub Actions
     const validActions = ['create-resources', 'update-schema', 'reset-database'];
     if (!validActions.includes(action)) {
-      return new Response('Invalid action', { status: 400 });
+      return new Response('Invalid action', { 
+        status: 400,
+        headers: this.corsHeaders(origin)
+      });
     }
 
     if (!['production', 'staging'].includes(environment)) {
-      return new Response('Invalid environment', { status: 400 });
+      return new Response('Invalid environment', { 
+        status: 400,
+        headers: this.corsHeaders(origin)
+      });
     }
 
     // In a real implementation, this would trigger the GitHub workflow
@@ -216,25 +235,30 @@ export default {
     return Response.json({
       message: `Triggered ${action} workflow for ${environment} environment`,
       status: 'pending',
-    }, { headers: this.corsHeaders() });
+    }, { headers: this.corsHeaders(origin) });
   },
 
   async handleClientGet(request, env, clientId) {
+    const origin = request.headers.get('Origin') || '*';
     const data = await env.STORAGE.get(`${clientId}/data`);
     if (!data) {
-      return new Response('No data found', { status: 404 });
+      return new Response('No data found', { 
+        status: 404,
+        headers: this.corsHeaders(origin)
+      });
     }
 
     return new Response(data.body, {
       headers: {
         'Content-Type': 'application/json',
         'Last-Modified': data.uploaded.toISOString(),
-        ...this.corsHeaders()
+        ...this.corsHeaders(origin)
       },
     });
   },
 
   async handleClientPost(request, env, clientId) {
+    const origin = request.headers.get('Origin') || '*';
     const data = await request.json();
     
     // Store in R2
@@ -248,7 +272,7 @@ export default {
 
     return new Response('Sync successful', { 
       status: 200,
-      headers: this.corsHeaders()
+      headers: this.corsHeaders(origin)
     });
   },
 };

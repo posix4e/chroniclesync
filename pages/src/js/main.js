@@ -243,15 +243,84 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export {
-  initializeClient,
-  saveData,
-  syncData,
-  loginAdmin,
-  refreshStats,
-  deleteClient,
-  viewClientData,
-  triggerWorkflow,
-  checkSystemStatus,
-  formatBytes,
-};
+// Add event listeners when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Client section
+  document.getElementById('initButton')?.addEventListener('click', initializeClient);
+  document.getElementById('saveButton')?.addEventListener('click', saveData);
+  document.getElementById('syncButton')?.addEventListener('click', syncData);
+  
+  // Admin section
+  document.getElementById('loginButton')?.addEventListener('click', loginAdmin);
+  document.getElementById('refreshButton')?.addEventListener('click', refreshStats);
+  document.getElementById('checkStatusButton')?.addEventListener('click', checkSystemStatus);
+
+  // Add event listeners for workflow buttons
+  document.querySelectorAll('button[data-action]').forEach(button => {
+    button.addEventListener('click', () => {
+      const action = button.getAttribute('data-action');
+      const environment = button.getAttribute('data-env');
+      triggerWorkflow(action, environment);
+    });
+  });
+
+  // Initial status check
+  checkSystemStatus();
+});
+
+// Update the client actions rendering function
+function renderClientActions(clientId) {
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.addEventListener('click', () => deleteClient(clientId));
+
+  const viewBtn = document.createElement('button');
+  viewBtn.textContent = 'View Data';
+  viewBtn.addEventListener('click', () => viewClientData(clientId));
+
+  const container = document.createElement('div');
+  container.appendChild(deleteBtn);
+  container.appendChild(viewBtn);
+  return container;
+}
+
+// Modify the refreshStats function to use the new renderClientActions
+async function refreshStats() {
+  try {
+    const response = await fetch(`${API_URL}/admin/clients`, {
+      headers: {
+        'Authorization': 'Bearer francesisthebest'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch stats');
+    }
+
+    const stats = await response.json();
+    const tbody = document.querySelector('#statsTable tbody');
+    tbody.innerHTML = '';
+
+    stats.forEach(client => {
+      const row = document.createElement('tr');
+      const cells = [
+        client.clientId,
+        new Date(client.lastSync).toLocaleString(),
+        formatBytes(client.dataSize)
+      ].map(text => {
+        const td = document.createElement('td');
+        td.textContent = text;
+        return td;
+      });
+
+      const actionCell = document.createElement('td');
+      actionCell.appendChild(renderClientActions(client.clientId));
+      
+      cells.forEach(cell => row.appendChild(cell));
+      row.appendChild(actionCell);
+      tbody.appendChild(row);
+    });
+  } catch (error) {
+    alert(`Error fetching stats: ${error.message}`);
+  }
+}

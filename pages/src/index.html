@@ -38,21 +38,21 @@
         <div>
             <label for="clientId">Client ID:</label>
             <input type="text" id="clientId" placeholder="Enter client ID">
-            <button onclick="initializeClient()">Initialize</button>
+            <button id="initButton">Initialize</button>
         </div>
         <div id="dataSection" class="hidden">
             <h3>Data</h3>
             <textarea id="dataInput" rows="10" cols="50"></textarea>
             <br>
-            <button onclick="saveData()">Save Data</button>
-            <button onclick="syncData()">Sync with Server</button>
+            <button id="saveButton">Save Data</button>
+            <button id="syncButton">Sync with Server</button>
         </div>
     </div>
 
     <div id="adminLogin">
         <h2>Admin Login</h2>
         <input type="password" id="adminPassword" placeholder="Enter admin password">
-        <button onclick="loginAdmin()">Login</button>
+        <button id="loginButton">Login</button>
     </div>
 
     <div id="adminPanel" class="hidden">
@@ -60,7 +60,7 @@
         
         <div class="admin-section">
             <h3>Client Data Management</h3>
-            <button onclick="refreshStats()">Refresh Stats</button>
+            <button id="refreshButton">Refresh Stats</button>
             <table id="statsTable">
                 <thead>
                     <tr>
@@ -78,15 +78,15 @@
             <h3>Environment Management</h3>
             <div class="action-group">
                 <h4>Production</h4>
-                <button onclick="triggerWorkflow('create-resources', 'production')">Create Resources</button>
-                <button onclick="triggerWorkflow('update-schema', 'production')">Update Schema</button>
-                <button onclick="triggerWorkflow('reset-database', 'production')">Reset Database</button>
+                <button data-action="create-resources" data-env="production">Create Resources</button>
+                <button data-action="update-schema" data-env="production">Update Schema</button>
+                <button data-action="reset-database" data-env="production">Reset Database</button>
             </div>
             <div class="action-group">
                 <h4>Staging</h4>
-                <button onclick="triggerWorkflow('create-resources', 'staging')">Create Resources</button>
-                <button onclick="triggerWorkflow('update-schema', 'staging')">Update Schema</button>
-                <button onclick="triggerWorkflow('reset-database', 'staging')">Reset Database</button>
+                <button data-action="create-resources" data-env="staging">Create Resources</button>
+                <button data-action="update-schema" data-env="staging">Update Schema</button>
+                <button data-action="reset-database" data-env="staging">Reset Database</button>
             </div>
         </div>
 
@@ -106,7 +106,7 @@
                     <div>Storage: <span id="stagingStorageStatus">Checking...</span></div>
                 </div>
             </div>
-            <button onclick="checkSystemStatus()">Check Status</button>
+            <button id="checkStatusButton">Check Status</button>
         </div>
 
         <style>
@@ -137,7 +137,6 @@
         </style>
     </div>
 
-    <script src="js/db.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

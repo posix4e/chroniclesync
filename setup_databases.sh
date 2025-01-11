@@ -10,10 +10,10 @@ sed -e "s/{{STAGING_DB_ID}}/$STAGING_DB_ID/g" \
     -e "s/{{PRODUCTION_DB_ID}}/$PRODUCTION_DB_ID/g" \
     wrangler.template.toml > worker/wrangler.toml
 
-echo "Setting up tables in staging database..." 
-npx wrangler d1 execute staging --config wrangler.setup.toml --file=setup_tables.sql --remote
+echo "Setting up tables in staging environment..." 
+npx wrangler d1 execute chronicle-db --config wrangler.setup.toml --file=setup_tables.sql --remote --env staging
 
-echo "Setting up tables in production database..."
-npx wrangler d1 execute production --config wrangler.setup.toml --file=setup_tables.sql --remote
+echo "Setting up tables in production environment..."
+npx wrangler d1 execute chronicle-db --config wrangler.setup.toml --file=setup_tables.sql --remote --env production
 
-echo "Done! Tables have been created in both databases and wrangler.toml has been generated."
+echo "Done! Tables have been created in both environments and wrangler.toml has been generated."

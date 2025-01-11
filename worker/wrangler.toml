@@ -12,7 +12,7 @@ routes = [
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "production"
+database_name = "chronicle-db"
 database_id = "00e393b1-4339-4fcf-9612-8ae11274ff3d"
 
 [[env.production.r2_buckets]]
@@ -28,7 +28,7 @@ routes = [
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "staging"
+database_name = "chronicle-db"
 database_id = "c353cc76-f5cd-41d0-bd9a-9b4629ab4d14"
 
 [[env.staging.r2_buckets]]

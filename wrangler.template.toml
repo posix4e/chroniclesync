@@ -12,7 +12,7 @@ routes = [
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "production"
+database_name = "chronicle-db"
 database_id = "{{PRODUCTION_DB_ID}}"
 
 [[env.production.r2_buckets]]
@@ -28,7 +28,7 @@ routes = [
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "staging"
+database_name = "chronicle-db"
 database_id = "{{STAGING_DB_ID}}"
 
 [[env.staging.r2_buckets]]

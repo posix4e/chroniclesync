@@ -6,10 +6,16 @@ describe('Worker API', () => {
   beforeEach(() => {
     env = {
       DB: {
-        prepare: jest.fn().mockReturnThis(),
-        bind: jest.fn().mockReturnThis(),
-        run: jest.fn().mockResolvedValue({}),
-        all: jest.fn().mockResolvedValue({ results: [] }),
+        prepare: jest.fn().mockImplementation((query) => ({
+          bind: jest.fn().mockReturnThis(),
+          run: jest.fn().mockResolvedValue({}),
+          all: jest.fn().mockImplementation(() => {
+            if (query.includes('sqlite_master')) {
+              return Promise.resolve({ results: [{ name: 'clients' }] });
+            }
+            return Promise.resolve({ results: [] });
+          }),
+        })),
       },
       STORAGE: {
         get: jest.fn().mockResolvedValue(null),

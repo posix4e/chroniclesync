@@ -1,4 +1,5 @@
 import { DB } from './db';
+import { HealthCheck } from './healthcheck';
 
 // Determine API URL based on the current hostname
 const API_URL = (() => {
@@ -188,29 +189,25 @@ async function viewClientData(clientId) {
 
 
 
+const healthCheck = new HealthCheck(API_URL);
+
 async function checkHealth() {
   const healthStatus = document.getElementById('healthStatus');
   const lastCheck = document.getElementById('lastCheck');
   
   try {
-    const response = await fetch(`${API_URL}/health?clientId=${db.clientId || 'system'}`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await response.json();
+    if (db.clientId) {
+      healthCheck.setClientId(db.clientId);
+    }
     
-    healthStatus.textContent = data.healthy ? '✅ Healthy' : '❌ Unhealthy';
-    healthStatus.className = data.healthy ? 'health-ok' : 'health-error';
-    lastCheck.textContent = new Date().toLocaleString();
+    await healthCheck.check();
+    const status = healthCheck.updateUI(healthStatus, lastCheck);
     
-    if (!data.healthy && data.error) {
-      alert(`Health check failed: ${data.error}`);
+    if (!status.healthy && status.error) {
+      alert(`Health check failed: ${status.error}`);
     }
   } catch (error) {
-    healthStatus.textContent = '❌ Error';
-    healthStatus.className = 'health-error';
-    lastCheck.textContent = new Date().toLocaleString();
+    healthCheck.updateUI(healthStatus, lastCheck);
     alert(`Health check error: ${error.message}`);
   }
 }

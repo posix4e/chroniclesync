@@ -17,8 +17,20 @@ function formatDate(date) {
 
 export default {
   corsHeaders(origin = '*') {
+    // Only allow requests from our known domains
+    const allowedOrigins = [
+      'https://chroniclesync.xyz',
+      'https://chroniclesync.pages.dev',
+      'http://localhost:8787',
+      'http://localhost:8788',
+      'http://127.0.0.1:8787',
+      'http://127.0.0.1:8788'
+    ];
+    
+    const finalOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    
     return {
-      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Origin': finalOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
@@ -294,20 +306,35 @@ export default {
 
   async handleClientPost(request, env, clientId) {
     const origin = request.headers.get('Origin') || '*';
-    const data = await request.json();
     
-    // Store in R2
-    await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
+    try {
+      const data = await request.json();
+      
+      // Store in R2
+      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
 
-    // Update client info in D1
-    await env.DB.prepare(
-      `INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) 
-       VALUES (?, datetime('now'), ?)`
-    ).bind(clientId, JSON.stringify(data).length).run();
+      // Update client info in D1
+      await env.DB.prepare(
+        `INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) 
+         VALUES (?, datetime('now'), ?)`
+      ).bind(clientId, JSON.stringify(data).length).run();
 
-    return new Response('Sync successful', { 
-      status: 200,
-      headers: this.corsHeaders(origin)
-    });
+      return new Response(JSON.stringify({ message: 'Sync successful' }), { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    } catch (error) {
+      console.error('Error in handleClientPost:', error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    }
   },
 };

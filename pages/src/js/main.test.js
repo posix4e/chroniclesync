@@ -9,8 +9,7 @@ import {
   refreshStats,
   deleteClient,
   viewClientData,
-  triggerWorkflow,
-  checkSystemStatus,
+  checkHealth,
   formatBytes,
 } from './main';
 
@@ -35,12 +34,8 @@ document.body.innerHTML = `
   <div id="adminPanel" class="hidden"></div>
   <div id="adminLogin"></div>
   <table id="statsTable"><tbody></tbody></table>
-  <div id="prodWorkerStatus"></div>
-  <div id="prodDbStatus"></div>
-  <div id="prodStorageStatus"></div>
-  <div id="stagingWorkerStatus"></div>
-  <div id="stagingDbStatus"></div>
-  <div id="stagingStorageStatus"></div>
+  <div id="healthStatus"></div>
+  <div id="lastCheck"></div>
 `;
 
 // Mock fetch
@@ -82,13 +77,19 @@ describe('Main', () => {
     jest.mock('./db', () => ({
       DB: jest.fn().mockImplementation(() => mockDB)
     }));
-    
+
     // Reset DOM elements
-    document.getElementById('clientId').value = '';
-    document.getElementById('dataInput').value = '';
-    document.getElementById('dataSection').classList.add('hidden');
-    document.getElementById('adminPanel').classList.add('hidden');
-    document.getElementById('adminLogin').classList.remove('hidden');
+    document.body.innerHTML = `
+      <input id="clientId" />
+      <textarea id="dataInput"></textarea>
+      <div id="dataSection" class="hidden"></div>
+      <input id="adminPassword" />
+      <div id="adminPanel" class="hidden"></div>
+      <div id="adminLogin"></div>
+      <table id="statsTable"><tbody></tbody></table>
+      <div id="healthStatus"></div>
+      <div id="lastCheck"></div>
+    `;
   });
 
   afterEach(() => {
@@ -478,124 +479,70 @@ describe('Main', () => {
     });
   });
 
-  describe('triggerWorkflow', () => {
-    it('triggers workflow after confirmation', async () => {
-      confirm.mockReturnValue(true);
-      const mockResponse = { message: 'Workflow started' };
-      fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(mockResponse) });
-
-      await triggerWorkflow('create-resources', 'production');
-
-      expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8787/admin/workflow',
-        expect.objectContaining({
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer francesisthebest',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'create-resources',
-            environment: 'production',
-          }),
-        })
-      );
-      expect(alert).toHaveBeenCalledWith('Workflow triggered: Workflow started');
+  describe('checkHealth', () => {
+    beforeEach(() => {
+      fetch.mockClear();
+      alert.mockClear();
+      document.body.innerHTML = `
+        <div id="healthStatus"></div>
+        <div id="lastCheck"></div>
+      `;
     });
 
-    it('cancels workflow when not confirmed', async () => {
-      confirm.mockReturnValue(false);
-
-      await triggerWorkflow('create-resources', 'production');
-
-      expect(fetch).not.toHaveBeenCalled();
-    });
-
-    it('handles network error', async () => {
-      confirm.mockReturnValue(true);
-      fetch.mockRejectedValue(new Error('Network error'));
-
-      await triggerWorkflow('create-resources', 'production');
-
-      expect(alert).toHaveBeenCalledWith('Error triggering workflow: Network error');
-    });
-
-    it('handles JSON parse error', async () => {
-      confirm.mockReturnValue(true);
-      fetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.reject(new Error('Invalid JSON')),
-      });
-
-      await triggerWorkflow('create-resources', 'production');
-
-      expect(alert).toHaveBeenCalledWith('Error triggering workflow: Invalid JSON');
-    });
-
-    it('handles trigger failure', async () => {
-      confirm.mockReturnValue(true);
-      fetch.mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({}),
-      });
-
-      await triggerWorkflow('create-resources', 'production');
-
-      expect(alert).toHaveBeenCalledWith('Error triggering workflow: Failed to trigger workflow');
-    });
-  });
-
-  describe('checkSystemStatus', () => {
-    it('updates status indicators', async () => {
+    it('updates status indicators when healthy', async () => {
       const mockStatus = {
-        production: {
-          worker: true,
-          database: true,
-          storage: false,
-        },
-        staging: {
-          worker: true,
-          database: false,
-          storage: true,
-        },
+        healthy: true,
+        error: null,
+        timestamp: '2025-01-11T19:44:00.000Z'
       };
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(mockStatus) });
 
-      await checkSystemStatus();
+      await checkHealth();
 
-      expect(document.getElementById('prodWorkerStatus').textContent).toBe('✅ Online');
-      expect(document.getElementById('prodDbStatus').textContent).toBe('✅ Connected');
-      expect(document.getElementById('prodStorageStatus').textContent).toBe('❌ Error');
-      expect(document.getElementById('stagingWorkerStatus').textContent).toBe('✅ Online');
-      expect(document.getElementById('stagingDbStatus').textContent).toBe('❌ Error');
-      expect(document.getElementById('stagingStorageStatus').textContent).toBe('✅ Available');
+      expect(document.getElementById('healthStatus').textContent).toBe('✅ Healthy');
+      expect(document.getElementById('healthStatus').className).toBe('health-ok');
+      expect(document.getElementById('lastCheck').textContent).toBeTruthy();
     });
 
-    it('handles status check failure', async () => {
-      fetch.mockResolvedValue({ ok: false });
+    it('updates status indicators when unhealthy', async () => {
+      const mockStatus = {
+        healthy: false,
+        error: 'Storage connectivity issue',
+        timestamp: '2025-01-11T19:44:00.000Z'
+      };
+      fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(mockStatus) });
 
-      await checkSystemStatus();
+      await checkHealth();
 
-      expect(alert).toHaveBeenCalledWith('Error checking status: Failed to check status');
+      expect(document.getElementById('healthStatus').textContent).toBe('❌ Unhealthy');
+      expect(document.getElementById('healthStatus').className).toBe('health-error');
+      expect(document.getElementById('lastCheck').textContent).toBeTruthy();
+      expect(alert).toHaveBeenCalledWith('Health check failed: Storage connectivity issue');
     });
 
     it('handles network error', async () => {
       fetch.mockRejectedValue(new Error('Network error'));
 
-      await checkSystemStatus();
+      await checkHealth();
 
-      expect(alert).toHaveBeenCalledWith('Error checking status: Network error');
+      expect(document.getElementById('healthStatus').textContent).toBe('❌ Error');
+      expect(document.getElementById('healthStatus').className).toBe('health-error');
+      expect(document.getElementById('lastCheck').textContent).toBeTruthy();
+      expect(alert).toHaveBeenCalledWith('Health check error: Network error');
     });
 
     it('handles JSON parse error', async () => {
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.reject(new Error('Invalid JSON')),
+        json: () => Promise.reject(new Error('Invalid JSON'))
       });
 
-      await checkSystemStatus();
+      await checkHealth();
 
-      expect(alert).toHaveBeenCalledWith('Error checking status: Invalid JSON');
+      expect(document.getElementById('healthStatus').textContent).toBe('❌ Error');
+      expect(document.getElementById('healthStatus').className).toBe('health-error');
+      expect(document.getElementById('lastCheck').textContent).toBeTruthy();
+      expect(alert).toHaveBeenCalledWith('Health check error: Invalid JSON');
     });
   });
 

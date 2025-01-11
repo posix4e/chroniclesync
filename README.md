@@ -1,6 +1,6 @@
 # ChronicleSync
 
-A simple application that demonstrates synchronization between IndexedDB and Cloudflare's D1/R2 storage using Cloudflare Workers and Pages.
+A simple application that demonstrates synchronization between IndexedDB and Cloudflare's R2 storage using Cloudflare Workers and Pages.
 
 ## Prerequisites
 
@@ -30,13 +30,13 @@ The application supports two environments:
 ### Production
 - Frontend: https://chroniclesync.xyz
 - API: https://api.chroniclesync.xyz
-- Uses production D1 database and R2 bucket
+- Uses production R2 bucket
 - Deployed when changes are merged to main branch
 
 ### Preview (Staging)
 - Frontend: Automatically deployed to `chroniclesync.pages.dev` by Cloudflare Pages
 - API: https://api-staging.chroniclesync.xyz
-- Uses separate staging D1 database and R2 bucket
+- Uses separate staging R2 bucket
 - Preview deployments are created automatically for each branch
 - Branch previews are available at `[branch-name].chroniclesync.pages.dev`
 - The preview deployment serves as the staging environment
@@ -137,7 +137,7 @@ Common issues and solutions:
    - Verify API_URL is correctly set in pages configuration
    - Check network connectivity and CORS settings
    - Ensure IndexedDB is supported and enabled in your browser
-   - Verify D1 database permissions and schema
+   - Verify R2 bucket permissions and access
 
 ## Contributing
 
@@ -149,8 +149,39 @@ Common issues and solutions:
 
 Please ensure tests pass and add new tests for new features.
 
-## Deployment
+## CI/CD Pipeline
 
+The project uses GitHub Actions for continuous integration and deployment. The pipeline consists of three main jobs:
+
+### Test Job
+- Runs for both pull requests and pushes to main
+- Tests both worker and pages projects in parallel
+- Performs:
+  - npm dependency installation
+  - Code linting
+  - Test coverage reporting
+
+### Deploy Jobs
 Deployment is handled automatically by GitHub Actions when changes are pushed to the main branch:
-- Changes in the `worker/` directory trigger worker deployment
-- Changes in the `pages/` directory trigger pages deployment
+
+#### Pages Deployment
+- Deploys the frontend application to Cloudflare Pages
+- Requires successful test job completion
+- Uses Cloudflare API token for authentication
+- Deploys to:
+  - Production: chroniclesync.xyz (on main branch push)
+  - Staging: staging.chroniclesync.xyz (on pull requests)
+
+#### Worker Deployment
+- Deploys the backend worker to Cloudflare Workers
+- Requires successful test job completion
+- Uses Cloudflare API token for authentication
+- Deploys to:
+  - Production: api.chroniclesync.xyz (on main branch push)
+  - Staging: api-staging.chroniclesync.xyz (on pull requests)
+
+### Environment Protection
+- Deployments only run on the main branch
+- Environment-specific variables and secrets are scoped appropriately
+- Staging deployments are created for pull requests
+- Production deployments only occur after merging to main

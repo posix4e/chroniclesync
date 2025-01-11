@@ -219,32 +219,102 @@ export default {
   async handleAdminStatus(request, env) {
     const origin = request.headers.get('Origin') || '*';
     const status = {
-      production: {
-        worker: true,
-        database: false,
-        storage: false,
+      worker: {
+        status: true,
+        version: '1.0.0',
+        timestamp: new Date().toISOString()
       },
-      staging: {
-        worker: true,
-        database: false,
-        storage: false,
+      database: {
+        status: false,
+        details: null,
+        error: null,
+        tests: {
+          connection: false,
+          table_exists: false,
+          write_test: false,
+          read_test: false
+        }
       },
+      storage: {
+        status: false,
+        details: null,
+        error: null,
+        tests: {
+          connection: false,
+          write_test: false,
+          read_test: false,
+          delete_test: false
+        }
+      }
     };
 
+    // Test Database
     try {
-      // Check database
-      await env.DB.prepare('SELECT 1').run();
-      status.production.database = true;
+      // Test 1: Basic Connection
+      const connTest = await env.DB.prepare('SELECT 1 as test').first();
+      status.database.tests.connection = connTest.test === 1;
+
+      // Test 2: Check if clients table exists
+      const tableCheck = await env.DB.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='clients'"
+      ).first();
+      status.database.tests.table_exists = tableCheck !== null;
+
+      // Test 3: Write Test
+      const testClientId = '_test_status_check_' + Date.now();
+      await env.DB.prepare(
+        'INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) VALUES (?, datetime("now"), ?)'
+      ).bind(testClientId, 0).run();
+      status.database.tests.write_test = true;
+
+      // Test 4: Read Test
+      const readTest = await env.DB.prepare(
+        'SELECT client_id FROM clients WHERE client_id = ?'
+      ).bind(testClientId).first();
+      status.database.tests.read_test = readTest.client_id === testClientId;
+
+      // Cleanup
+      await env.DB.prepare('DELETE FROM clients WHERE client_id = ?').bind(testClientId).run();
+
+      // Overall database status
+      status.database.status = Object.values(status.database.tests).every(test => test === true);
+      status.database.details = 'All database tests passed';
     } catch (e) {
       console.error('Database check failed:', e);
+      status.database.error = e.message;
+      status.database.details = 'Database tests failed';
     }
 
+    // Test Storage
     try {
-      // Check storage
-      await env.STORAGE.head('test-key');
-      status.production.storage = true;
+      const testKey = '_test_status_check_' + Date.now();
+      const testData = JSON.stringify({ test: 'data' });
+
+      // Test 1: Connection (List operation)
+      await env.STORAGE.list({ limit: 1 });
+      status.storage.tests.connection = true;
+
+      // Test 2: Write Test
+      await env.STORAGE.put(testKey, testData);
+      status.storage.tests.write_test = true;
+
+      // Test 3: Read Test
+      const readResult = await env.STORAGE.get(testKey);
+      const readData = await readResult.text();
+      status.storage.tests.read_test = readData === testData;
+
+      // Test 4: Delete Test
+      await env.STORAGE.delete(testKey);
+      const checkDelete = await env.STORAGE.get(testKey);
+      status.storage.tests.delete_test = checkDelete === null;
+
+      // Overall storage status
+      status.storage.status = Object.values(status.storage.tests).every(test => test === true);
+      status.storage.details = 'All storage tests passed';
     } catch (e) {
       console.error('Storage check failed:', e);
+      status.storage.error = e.message;
+      status.storage.details = 'Storage tests failed';
     }
 
     return new Response(JSON.stringify(status), { 
@@ -255,7 +325,7 @@ export default {
     });
   },
 
-  async handleAdminWorkflow(request, _env) {
+  async handleAdminWorkflow(request, env) {
     const origin = request.headers.get('Origin') || '*';
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { 
@@ -264,10 +334,9 @@ export default {
       });
     }
 
-    const { action, environment } = await request.json();
+    const { action } = await request.json();
     
-    // These actions are now handled by GitHub Actions
-    const validActions = ['create-resources', 'update-schema', 'reset-database'];
+    const validActions = ['init-database', 'check-tables', 'repair-tables'];
     if (!validActions.includes(action)) {
       return new Response('Invalid action', { 
         status: 400,
@@ -275,24 +344,92 @@ export default {
       });
     }
 
-    if (!['production', 'staging'].includes(environment)) {
-      return new Response('Invalid environment', { 
-        status: 400,
-        headers: this.corsHeaders(origin)
+    try {
+      if (action === 'init-database') {
+        // Create the clients table if it doesn't exist
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS clients (
+            client_id TEXT PRIMARY KEY,
+            last_sync DATETIME,
+            data_size INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run();
+
+        // Create indexes for better performance
+        await env.DB.batch([
+          env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_last_sync ON clients(last_sync)'),
+          env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_created_at ON clients(created_at)')
+        ]);
+
+        return new Response(JSON.stringify({
+          message: 'Database initialized successfully',
+          status: 'completed'
+        }), { 
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.corsHeaders(origin)
+          }
+        });
+      }
+
+      if (action === 'check-tables') {
+        // Check table structure and indexes
+        const tables = await env.DB.prepare(`
+          SELECT name, sql FROM sqlite_master 
+          WHERE type='table' AND name='clients'
+        `).all();
+
+        const indexes = await env.DB.prepare(`
+          SELECT name, sql FROM sqlite_master 
+          WHERE type='index' AND tbl_name='clients'
+        `).all();
+
+        return new Response(JSON.stringify({
+          message: 'Database check completed',
+          status: 'completed',
+          tables: tables.results,
+          indexes: indexes.results
+        }), { 
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.corsHeaders(origin)
+          }
+        });
+      }
+
+      if (action === 'repair-tables') {
+        // Analyze and repair tables
+        await env.DB.prepare('ANALYZE clients').run();
+        await env.DB.prepare('VACUUM').run();
+        
+        // Verify table integrity
+        const integrityCheck = await env.DB.prepare('PRAGMA integrity_check').all();
+        
+        return new Response(JSON.stringify({
+          message: 'Database repair completed',
+          status: 'completed',
+          integrityCheck: integrityCheck.results
+        }), { 
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.corsHeaders(origin)
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      return new Response(JSON.stringify({
+        error: 'Database operation failed',
+        details: error.message
+      }), { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
       });
     }
-
-    // In a real implementation, this would trigger the GitHub workflow
-    // For now, we'll just return success
-    return new Response(JSON.stringify({
-      message: `Triggered ${action} workflow for ${environment} environment`,
-      status: 'pending',
-    }), { 
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.corsHeaders(origin)
-      }
-    });
   },
 
   async handleClientGet(request, env, clientId) {

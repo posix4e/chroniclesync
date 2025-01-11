@@ -43,6 +43,44 @@ The application supports two environments:
 
 ## Components
 
+## Frontend Architecture
+
+The frontend application is built with a modular JavaScript architecture:
+
+### Core Components
+- **Database Layer** (`db.js`): Handles all IndexedDB operations
+- **Main Application** (`main.js`): Contains business logic and UI interactions
+- **Environment-aware API**: Automatically selects the correct API endpoint based on the deployment environment
+
+### Key Features
+1. **Client Management**
+   - Unique client identification
+   - Local data persistence using IndexedDB
+   - Automatic data synchronization with backend
+
+2. **Admin Interface**
+   - Client statistics and monitoring
+   - Data size tracking
+   - Client deletion capabilities
+   - Secure access control
+
+3. **Health Monitoring**
+   - System health checks
+   - Real-time status updates
+   - Error reporting and tracking
+
+### API Integration
+- Automatic endpoint selection based on hostname:
+  - Production: api.chroniclesync.xyz
+  - Staging: api-staging.chroniclesync.xyz
+  - Local: localhost:8787
+
+### Security Considerations
+- Admin access is password-protected
+- All API requests use proper headers
+- Sensitive operations require authentication
+- Environment-specific API endpoints prevent cross-environment data leaks
+
 ### Worker
 - Handles data synchronization
 - Provides admin interface for monitoring
@@ -52,6 +90,13 @@ The application supports two environments:
 - Admin interface for monitoring
 - Uses IndexedDB for local storage
 - Automatic synchronization with worker
+- Built with ES modules for better code organization
+- Features:
+  - Client data management with unique client IDs
+  - Admin panel with client statistics
+  - System health monitoring
+  - Automatic API endpoint selection based on environment
+  - Secure admin access with password protection
 
 ## Initial Setup
 
@@ -138,6 +183,13 @@ Common issues and solutions:
    - Check network connectivity and CORS settings
    - Ensure IndexedDB is supported and enabled in your browser
    - Verify R2 bucket permissions and access
+   - Check browser console for JavaScript errors
+
+5. **JavaScript functionality issues**
+   - Ensure script tags have `type="module"` when using ES modules
+   - Check that all required functions are properly exported/imported
+   - Verify global functions are explicitly assigned to window object
+   - Clear browser cache if changes aren't reflecting
 
 ## Contributing
 

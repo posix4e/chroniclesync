@@ -16,7 +16,7 @@ bucket_name = "sync-storage"
 
 [[env.production.kv_namespaces]]
 binding = "METADATA"
-id = "metadata-kv"
+id = "885fc6a560ab45e7bfd3b89252f89f2d"
 
 [env.staging]
 name = "chroniclesync-worker-staging"
@@ -30,4 +30,4 @@ bucket_name = "sync-storage-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "METADATA"
-id = "metadata-kv-staging"
+id = "6af335e197d04907ae89366c50ada619"

@@ -111,9 +111,9 @@ await deleteClient('client-123');
 
 ## Support
 
-- Documentation: https://docs.chroniclesync.xyz
-- Issues: https://github.com/posix4e/chroniclesync/issues
-- Email: support@chroniclesync.xyz
+For help and bug reports, please:
+- Open an issue: https://github.com/posix4e/chroniclesync/issues
+- See the [DEVELOPMENT.md](DEVELOPMENT.md) file for technical details
 
 ## License
 

@@ -5,7 +5,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
 
 /*.js
-  Content-Type: application/javascript
+  Content-Type: text/javascript;charset=UTF-8
 
 /js/*.js
-  Content-Type: application/javascript
+  Content-Type: text/javascript;charset=UTF-8

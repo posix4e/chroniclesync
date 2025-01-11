@@ -26,6 +26,8 @@ function log(level, message, data = null) {
   console.log(JSON.stringify(logEntry));
 }
 
+import MetadataService from './services/metadata.js';
+
 export default {
   corsHeaders(origin = '*') {
     const allowedDomains = [
@@ -130,13 +132,13 @@ export default {
 
   async handleAdminClients(request, env) {
     try {
-      // List all clients from KV
-      const { keys } = await env.METADATA.list();
+      const metadataService = new MetadataService(env);
+      const { keys } = await metadataService.list();
       
       const stats = [];
       for (const key of keys) {
         try {
-          const metadata = await env.METADATA.get(key.name, 'json');
+          const metadata = await metadataService.get(key.name);
           if (!metadata) continue;
 
           const objects = await env.STORAGE.list({ prefix: `${key.name}/` });
@@ -193,7 +195,8 @@ export default {
         }
 
         // Delete metadata from KV
-        await env.METADATA.delete(clientId);
+        const metadataService = new MetadataService(env);
+        await metadataService.delete(clientId);
 
         log('info', 'Client deleted successfully', { clientId });
         return new Response('Client deleted', { 
@@ -251,24 +254,25 @@ export default {
     // Test KV Store
     log('info', 'Starting KV status check');
     try {
+      const metadataService = new MetadataService(env);
       const testKey = '_test_status_check_' + Date.now();
       const testData = { lastSync: new Date().toISOString(), dataSize: 0 };
 
       // Test 1: List operation (connection test)
-      await env.METADATA.list({ limit: 1 });
+      await metadataService.list({ limit: 1 });
       status.metadata.tests.connection = true;
       status.metadata.tests.list_test = true;
 
       // Test 2: Write Test
-      await env.METADATA.put(testKey, JSON.stringify(testData));
+      await metadataService.put(testKey, testData);
       status.metadata.tests.write_test = true;
 
       // Test 3: Read Test
-      const readData = await env.METADATA.get(testKey, 'json');
+      const readData = await metadataService.get(testKey);
       status.metadata.tests.read_test = readData && readData.lastSync === testData.lastSync;
 
       // Test 4: Delete Test
-      await env.METADATA.delete(testKey);
+      await metadataService.delete(testKey);
       status.metadata.tests.delete_test = true;
 
       // Overall metadata status
@@ -343,15 +347,15 @@ export default {
 
     try {
       if (action === 'check-metadata') {
-        // List all metadata entries and verify their integrity
-        const { keys } = await env.METADATA.list();
+        const metadataService = new MetadataService(env);
+        const { keys } = await metadataService.list();
         const results = [];
         
         for (const key of keys) {
-          const metadata = await env.METADATA.get(key.name, 'json');
+          const metadata = await metadataService.get(key.name);
           results.push({
             clientId: key.name,
-            valid: metadata && metadata.lastSync && !isNaN(new Date(metadata.lastSync).getTime()),
+            valid: await metadataService.validateMetadata(metadata),
             metadata
           });
         }
@@ -370,8 +374,8 @@ export default {
       }
 
       if (action === 'cleanup-metadata') {
-        // Remove invalid or orphaned metadata entries
-        const { keys } = await env.METADATA.list();
+        const metadataService = new MetadataService(env);
+        const { keys } = await metadataService.list();
         const results = {
           processed: 0,
           cleaned: 0,
@@ -381,18 +385,18 @@ export default {
         for (const key of keys) {
           try {
             results.processed++;
-            const metadata = await env.METADATA.get(key.name, 'json');
+            const metadata = await metadataService.get(key.name);
             
             // Check if metadata is invalid or if the client has no data in R2
-            if (!metadata || !metadata.lastSync || isNaN(new Date(metadata.lastSync).getTime())) {
-              await env.METADATA.delete(key.name);
+            if (!await metadataService.validateMetadata(metadata)) {
+              await metadataService.delete(key.name);
               results.cleaned++;
               continue;
             }
 
             const objects = await env.STORAGE.list({ prefix: `${key.name}/` });
             if (!objects.objects.length) {
-              await env.METADATA.delete(key.name);
+              await metadataService.delete(key.name);
               results.cleaned++;
             }
           } catch (e) {
@@ -456,10 +460,8 @@ export default {
       await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
 
       // Update client metadata in KV
-      await env.METADATA.put(clientId, JSON.stringify({
-        lastSync: new Date().toISOString(),
-        dataSize: JSON.stringify(data).length
-      }));
+      const metadataService = new MetadataService(env);
+      await metadataService.updateClientMetadata(clientId, JSON.stringify(data).length);
 
       log('info', 'Client data synced successfully', { clientId });
       return new Response(JSON.stringify({ message: 'Sync successful' }), { 

@@ -10,7 +10,7 @@ routes = [
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "sync_db"
-database_id = "your-d1-database-id"
+database_id = "2249bfac71db40ad8b7de370021d14fc"
 
 [[env.production.r2_buckets]]
 binding = "STORAGE"
@@ -26,7 +26,7 @@ routes = [
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "sync_db_staging"
-database_id = "7cfdcb13-18ba-4a6d-85c3-0c75466debfc"
+database_id = "3eb2f396c7e749d7a993ce86d90875b2"
 
 [[env.staging.r2_buckets]]
 binding = "STORAGE"

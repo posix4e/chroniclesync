@@ -71,6 +71,27 @@ export default {
 
   async handleAdminClients(request, env) {
     try {
+      // Check if table exists
+      try {
+        const tableCheck = await env.DB.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='clients'"
+        ).all();
+        console.log('Table check result:', tableCheck);
+        
+        if (!tableCheck.results || tableCheck.results.length === 0) {
+          return new Response('Database table not found', { 
+            status: 500,
+            headers: this.corsHeaders()
+          });
+        }
+      } catch (dbError) {
+        console.error('Error checking table:', dbError);
+        return new Response('Database error: ' + dbError.message, { 
+          status: 500,
+          headers: this.corsHeaders()
+        });
+      }
+      
       const clients = await env.DB.prepare(
         'SELECT client_id, last_sync, data_size FROM clients'
       ).all();
@@ -99,7 +120,10 @@ export default {
       return Response.json(stats, { headers: this.corsHeaders() });
     } catch (e) {
       console.error('Error getting client list:', e);
-      return new Response('Internal server error', { status: 500 });
+      return new Response('Internal server error', { 
+        status: 500,
+        headers: this.corsHeaders()
+      });
     }
   },
 
@@ -127,7 +151,10 @@ export default {
         });
       } catch (e) {
         console.error('Error deleting client:', e);
-        return new Response('Internal server error', { status: 500 });
+        return new Response('Internal server error', { 
+          status: 500,
+          headers: this.corsHeaders()
+        });
       }
     }
 

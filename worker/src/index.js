@@ -26,6 +26,8 @@ function log(level, message, data = null) {
   console.log(JSON.stringify(logEntry));
 }
 
+import MetadataService from './services/metadata.js';
+
 export default {
   corsHeaders(origin = '*') {
     const allowedDomains = [
@@ -130,51 +132,35 @@ export default {
 
   async handleAdminClients(request, env) {
     try {
-      // Check if table exists
-      try {
-        const tableCheck = await env.DB.prepare(
-          'SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'clients\''
-        ).all();
-        console.log('Table check result:', tableCheck);
-        
-        if (!tableCheck.results || tableCheck.results.length === 0) {
-          return new Response('Database table not found', { 
-            status: 500,
-            headers: this.corsHeaders()
-          });
-        }
-      } catch (dbError) {
-        log('error', 'Error checking table', { error: dbError.message });
-        return new Response('Database error: ' + dbError.message, { 
-          status: 500,
-          headers: this.corsHeaders()
-        });
-      }
+      const metadataService = new MetadataService(env);
+      const { keys } = await metadataService.list();
       
-      const clients = await env.DB.prepare(
-        'SELECT client_id, last_sync, data_size FROM clients'
-      ).all();
-
       const stats = [];
-      for (const client of clients.results) {
+      for (const key of keys) {
         try {
-          const objects = await env.STORAGE.list({ prefix: `${client.client_id}/` });
+          const metadata = await metadataService.get(key.name);
+          if (!metadata) continue;
+
+          const objects = await env.STORAGE.list({ prefix: `${key.name}/` });
           let totalSize = 0;
           for (const obj of objects.objects) {
             totalSize += obj.size;
           }
           stats.push({
-            clientId: client.client_id,
-            lastSync: client.last_sync,
+            clientId: key.name,
+            lastSync: metadata.lastSync,
             dataSize: totalSize,
           });
         } catch (e) {
-          log('error', 'Error getting storage info for client', { clientId: client.client_id, error: e.message });
+          log('error', 'Error getting client info', { clientId: key.name, error: e.message });
+          if (e.message === 'Storage error') {
+            throw e;
+          }
           stats.push({
-            clientId: client.client_id,
-            lastSync: client.last_sync,
+            clientId: key.name,
+            lastSync: null,
             dataSize: 0,
-            error: 'Storage error',
+            error: 'Error fetching client data',
           });
         }
       }
@@ -205,16 +191,15 @@ export default {
 
     if (request.method === 'DELETE') {
       try {
-        // Delete client data
+        // Delete client data from R2
         const objects = await env.STORAGE.list({ prefix: `${clientId}/` });
         for (const obj of objects.objects) {
           await env.STORAGE.delete(obj.key);
         }
 
-        // Delete from database
-        await env.DB.prepare('DELETE FROM clients WHERE client_id = ?')
-          .bind(clientId)
-          .run();
+        // Delete metadata from KV
+        const metadataService = new MetadataService(env);
+        await metadataService.delete(clientId);
 
         log('info', 'Client deleted successfully', { clientId });
         return new Response('Client deleted', { 
@@ -244,15 +229,16 @@ export default {
         version: '1.0.0',
         timestamp: new Date().toISOString()
       },
-      database: {
+      metadata: {
         status: false,
         details: null,
         error: null,
         tests: {
           connection: false,
-          table_exists: false,
           write_test: false,
-          read_test: false
+          read_test: false,
+          delete_test: false,
+          list_test: false
         }
       },
       storage: {
@@ -268,43 +254,38 @@ export default {
       }
     };
 
-    // Test Database
-    log('info', 'Starting database status check');
+    // Test KV Store
+    log('info', 'Starting KV status check');
     try {
-      // Test 1: Basic Connection
-      const connTest = await env.DB.prepare('SELECT 1 as test').first();
-      status.database.tests.connection = connTest.test === 1;
+      const metadataService = new MetadataService(env);
+      const testKey = '_test_status_check_' + Date.now();
+      const testData = { lastSync: new Date().toISOString(), dataSize: 0 };
 
-      // Test 2: Check if clients table exists
-      const tableCheck = await env.DB.prepare(
-        'SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'clients\''
-      ).first();
-      status.database.tests.table_exists = tableCheck !== null;
+      // Test 1: List operation (connection test)
+      await metadataService.list({ limit: 1 });
+      status.metadata.tests.connection = true;
+      status.metadata.tests.list_test = true;
 
-      // Test 3: Write Test
-      const testClientId = '_test_status_check_' + Date.now();
-      await env.DB.prepare(
-        'INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) VALUES (?, datetime("now"), ?)'
-      ).bind(testClientId, 0).run();
-      status.database.tests.write_test = true;
+      // Test 2: Write Test
+      await metadataService.put(testKey, testData);
+      status.metadata.tests.write_test = true;
 
-      // Test 4: Read Test
-      const readTest = await env.DB.prepare(
-        'SELECT client_id FROM clients WHERE client_id = ?'
-      ).bind(testClientId).first();
-      status.database.tests.read_test = readTest.client_id === testClientId;
+      // Test 3: Read Test
+      const readData = await metadataService.get(testKey);
+      status.metadata.tests.read_test = readData && readData.lastSync === testData.lastSync;
 
-      // Cleanup
-      await env.DB.prepare('DELETE FROM clients WHERE client_id = ?').bind(testClientId).run();
+      // Test 4: Delete Test
+      await metadataService.delete(testKey);
+      status.metadata.tests.delete_test = true;
 
-      // Overall database status
-      status.database.status = true;
-      status.database.details = 'All database tests passed';
-      log('info', 'Database status check completed successfully', status.database);
+      // Overall metadata status
+      status.metadata.status = true;
+      status.metadata.details = 'All KV tests passed';
+      log('info', 'KV status check completed successfully', status.metadata);
     } catch (e) {
-      log('error', 'Database check failed', { error: e.message });
-      status.database.error = e.message;
-      status.database.details = 'Database tests failed';
+      log('error', 'KV check failed', { error: e.message });
+      status.metadata.error = e.message;
+      status.metadata.details = 'KV tests failed';
     }
 
     // Test Storage
@@ -359,7 +340,7 @@ export default {
 
     const { action } = await request.json();
     
-    const validActions = ['init-database', 'check-tables', 'repair-tables'];
+    const validActions = ['check-metadata', 'cleanup-metadata'];
     if (!validActions.includes(action)) {
       return new Response('Invalid action', { 
         status: 400,
@@ -368,27 +349,25 @@ export default {
     }
 
     try {
-      if (action === 'init-database') {
-        // Create the clients table if it doesn't exist
-        await env.DB.prepare(`
-          CREATE TABLE IF NOT EXISTS clients (
-            client_id TEXT PRIMARY KEY,
-            last_sync DATETIME,
-            data_size INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          )
-        `).run();
+      if (action === 'check-metadata') {
+        const metadataService = new MetadataService(env);
+        const { keys } = await metadataService.list();
+        const results = [];
+        
+        for (const key of keys) {
+          const metadata = await metadataService.get(key.name);
+          results.push({
+            clientId: key.name,
+            valid: await metadataService.validateMetadata(metadata),
+            metadata
+          });
+        }
 
-        // Create indexes for better performance
-        await env.DB.batch([
-          env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_last_sync ON clients(last_sync)'),
-          env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_created_at ON clients(created_at)')
-        ]);
-
-        log('info', 'Database initialized successfully');
+        log('info', 'Metadata check completed', { results });
         return new Response(JSON.stringify({
-          message: 'Database initialized successfully',
-          status: 'completed'
+          message: 'Metadata check completed',
+          status: 'completed',
+          results
         }), { 
           headers: {
             'Content-Type': 'application/json',
@@ -397,45 +376,42 @@ export default {
         });
       }
 
-      if (action === 'check-tables') {
-        // Check table structure and indexes
-        const tables = await env.DB.prepare(`
-          SELECT name, sql FROM sqlite_master 
-          WHERE type='table' AND name='clients'
-        `).all();
+      if (action === 'cleanup-metadata') {
+        const metadataService = new MetadataService(env);
+        const { keys } = await metadataService.list();
+        const results = {
+          processed: 0,
+          cleaned: 0,
+          errors: []
+        };
+        
+        for (const key of keys) {
+          try {
+            results.processed++;
+            const metadata = await metadataService.get(key.name);
+            
+            // Check if metadata is invalid or if the client has no data in R2
+            if (!await metadataService.validateMetadata(metadata)) {
+              await metadataService.delete(key.name);
+              results.cleaned++;
+              continue;
+            }
 
-        const indexes = await env.DB.prepare(`
-          SELECT name, sql FROM sqlite_master 
-          WHERE type='index' AND tbl_name='clients'
-        `).all();
-
-        log('info', 'Database check completed', { tables: tables.results, indexes: indexes.results });
-        return new Response(JSON.stringify({
-          message: 'Database check completed',
-          status: 'completed',
-          tables: tables.results,
-          indexes: indexes.results
-        }), { 
-          headers: {
-            'Content-Type': 'application/json',
-            ...this.corsHeaders(origin)
+            const objects = await env.STORAGE.list({ prefix: `${key.name}/` });
+            if (!objects.objects.length) {
+              await metadataService.delete(key.name);
+              results.cleaned++;
+            }
+          } catch (e) {
+            results.errors.push({ clientId: key.name, error: e.message });
           }
-        });
-      }
-
-      if (action === 'repair-tables') {
-        // Analyze and repair tables
-        await env.DB.prepare('ANALYZE clients').run();
-        await env.DB.prepare('VACUUM').run();
+        }
         
-        // Verify table integrity
-        const integrityCheck = await env.DB.prepare('PRAGMA integrity_check').all();
-        
-        log('info', 'Database repair completed', { integrityCheck: integrityCheck.results });
+        log('info', 'Metadata cleanup completed', results);
         return new Response(JSON.stringify({
-          message: 'Database repair completed',
+          message: 'Metadata cleanup completed',
           status: 'completed',
-          integrityCheck: integrityCheck.results
+          results
         }), { 
           headers: {
             'Content-Type': 'application/json',
@@ -444,9 +420,9 @@ export default {
         });
       }
     } catch (error) {
-      log('error', 'Database operation failed', { error: error.message });
+      log('error', 'Metadata operation failed', { error: error.message });
       return new Response(JSON.stringify({
-        error: 'Database operation failed',
+        error: 'Metadata operation failed',
         details: error.message
       }), { 
         status: 500,
@@ -480,17 +456,23 @@ export default {
   async handleClientPost(request, env, clientId) {
     const origin = request.headers.get('Origin') || '*';
     
+    // Validate client ID format
+    if (!/^[a-zA-Z0-9_-]+$/.test(clientId)) {
+      return new Response('Invalid client ID', { 
+        status: 400,
+        headers: this.corsHeaders(origin)
+      });
+    }
+    
     try {
       const data = await request.json();
       
       // Store in R2
       await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
 
-      // Update client info in D1
-      await env.DB.prepare(
-        `INSERT OR REPLACE INTO clients (client_id, last_sync, data_size) 
-         VALUES (?, datetime('now'), ?)`
-      ).bind(clientId, JSON.stringify(data).length).run();
+      // Update client metadata in KV
+      const metadataService = new MetadataService(env);
+      await metadataService.updateClientMetadata(clientId, JSON.stringify(data).length);
 
       log('info', 'Client data synced successfully', { clientId });
       return new Response(JSON.stringify({ message: 'Sync successful' }), { 

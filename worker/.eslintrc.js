@@ -1,4 +1,9 @@
 module.exports = {
+  globals: {
+    getMiniflareBindings: 'readonly',
+    getMiniflareKVNamespace: 'readonly',
+    getMiniflareR2Bucket: 'readonly'
+  },
   env: {
     browser: true,
     es2021: true,

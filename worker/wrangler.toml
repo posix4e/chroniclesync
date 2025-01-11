@@ -1,7 +1,6 @@
 name = "chroniclesync-worker"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
-
 [observability.logs]
 enabled = true
 
@@ -10,10 +9,6 @@ routes = [
   { pattern = "api.chroniclesync.xyz", custom_domain = true }
 ]
 
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "production"
-database_id = "00e393b1-4339-4fcf-9612-8ae11274ff3d"
 
 [[env.production.r2_buckets]]
 binding = "STORAGE"
@@ -21,15 +16,9 @@ bucket_name = "sync-storage"
 
 [env.staging]
 name = "chroniclesync-worker-staging"
-zone_id = "ef68ebac5221773b48c1e308c7f599ac"
 routes = [
   { pattern = "api-staging.chroniclesync.xyz", custom_domain = true }
 ]
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "staging"
-database_id = "c353cc76-f5cd-41d0-bd9a-9b4629ab4d14"
 
 [[env.staging.r2_buckets]]
 binding = "STORAGE"

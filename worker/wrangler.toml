@@ -5,6 +5,17 @@ compatibility_date = "2024-01-01"
 [observability.logs]
 enabled = true
 
+# Setup mode database bindings
+[[d1_databases]]
+binding = "staging"
+database_name = "staging"
+database_id = "c353cc76-f5cd-41d0-bd9a-9b4629ab4d14"
+
+[[d1_databases]]
+binding = "production"
+database_name = "production"
+database_id = "00e393b1-4339-4fcf-9612-8ae11274ff3d"
+
 [env.production]
 routes = [
   { pattern = "api.chroniclesync.xyz", custom_domain = true }

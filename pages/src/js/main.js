@@ -193,11 +193,7 @@ async function checkHealth() {
   const lastCheck = document.getElementById('lastCheck');
   
   try {
-    const response = await fetch(`${API_URL}/health?clientId=${db.clientId || 'system'}`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await fetch(`${API_URL}/health`);
     const data = await response.json();
     
     healthStatus.textContent = data.healthy ? '✅ Healthy' : '❌ Unhealthy';
@@ -214,13 +210,6 @@ async function checkHealth() {
     alert(`Health check error: ${error.message}`);
   }
 }
-
-// Make functions available globally for onclick handlers
-window.checkHealth = checkHealth;
-window.initializeClient = initializeClient;
-window.saveData = saveData;
-window.syncData = syncData;
-window.loginAdmin = loginAdmin;
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';

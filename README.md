@@ -1,187 +1,120 @@
 # ChronicleSync
 
-A simple application that demonstrates synchronization between IndexedDB and Cloudflare's R2 storage using Cloudflare Workers and Pages.
+IndexedDB synchronization service using Cloudflare Workers and Pages. Sync your client-side data across browsers and devices.
 
-## Prerequisites
+## Quick Start
 
-- Node.js (v16 or higher)
-- npm (v7 or higher)
-- Wrangler CLI (`npm install -g wrangler`)
-- Cloudflare account with:
-  - Workers subscription
+1. **Initialize Client**
+   ```javascript
+   // Initialize with your unique client ID
+   await initializeClient('your-client-id');
+   ```
 
-## Project Structure
+2. **Save Data**
+   ```javascript
+   // Save data locally
+   await saveData({ key: 'value' });
+   ```
 
-```
-.
-├── .github/workflows/    # CI/CD pipeline configurations
-├── pages/               # Frontend application
-│   ├── src/            # Source code
-│   └── public/         # Static assets
-├── worker/             # Cloudflare Worker backend
-│   ├── src/           # Worker source code
-│   └── wrangler.toml  # Worker configuration
-```
+3. **Sync with Server**
+   ```javascript
+   // Sync local data with cloud
+   await syncData();
+   ```
 
-## Environments
+## Features
 
-The application supports two environments:
+- 📱 **Offline-First**: Work offline, sync when online
+- 🔄 **Manual Sync**: Explicit sync when needed
+- 🔒 **Basic Security**: HTTPS and access controls
+- 📊 **Admin Panel**: Monitor and manage client data
+- ❤️ **Health Checks**: Real-time system monitoring
 
-### Production
-- Frontend: https://chroniclesync.xyz
-- API: https://api.chroniclesync.xyz
-- Uses production R2 bucket
-- Deployed when changes are merged to main branch
-
-### Preview (Staging)
-- Frontend: Automatically deployed to `chroniclesync.pages.dev` by Cloudflare Pages
-- API: https://api-staging.chroniclesync.xyz
-- Uses separate staging R2 bucket
-- Preview deployments are created automatically for each branch
-- Branch previews are available at `[branch-name].chroniclesync.pages.dev`
-- The preview deployment serves as the staging environment
-
-## Components
-
-### Worker
-- Handles data synchronization
-- Provides admin interface for monitoring
-
-### Pages
-- Client interface for data management
-- Admin interface for monitoring
-- Uses IndexedDB for local storage
-- Automatic synchronization with worker
-
-## Initial Setup
-
-### Cloudflare Resources Setup
-
-Before deploying the application, you need to manually set up the required Cloudflare resources. This is a one-time setup process that needs to be done for each environment (staging and production).
-
-5. **Configure Custom Domains** in your DNS settings:
-   - Production API: `api.chroniclesync.xyz`
-   - Staging API: `api-staging.chroniclesync.xyz`
-   - Frontend Production: `chroniclesync.xyz`
-   - Frontend Staging: `staging.chroniclesync.xyz`
-
-> **Note**: The Cloudflare resource setup is a manual process and is not part of the automated CI/CD pipeline. This ensures better control over infrastructure changes and prevents accidental modifications to production resources.
-
-## Repository Secrets
-
-The following secrets need to be set in the GitHub repository:
-
-- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token with the following permissions:
-  - Account.Workers Scripts:Edit
-  - Account.Workers Routes:Edit
-  - Account.Pages:Edit
-  - Zone.DNS:Edit (if using custom domains)
-- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
-
-To set up these secrets:
-1. Go to your Cloudflare dashboard (https://dash.cloudflare.com)
-2. Get your Account ID from the dashboard URL or Account Home
-3. Create an API token at "My Profile" > "API Tokens" with the required permissions
-4. Add both secrets in your GitHub repository under "Settings" > "Secrets and variables" > "Actions"
-
-## Development
-
-### Worker Development
-```bash
-cd worker
-npm install
-npm run dev
-```
-
-### Pages Development
-```bash
-cd pages
-npm install
-npm run dev
-```
-
-The pages application will be available at `http://localhost:5173` by default.
-
-## Testing
-
-The project includes automated tests to ensure functionality:
+## Installation
 
 ```bash
-# Run worker tests
-cd worker
-npm test
-
-# Run pages tests
-cd pages
-npm test
+npm install chroniclesync
 ```
 
-Tests are automatically run in GitHub Actions on pull requests and pushes to the main branch.
+## Basic Usage
 
-## Troubleshooting
+```html
+<script type="module">
+  import { initializeClient } from 'chroniclesync';
 
-Common issues and solutions:
+  // Initialize with your client ID
+  await initializeClient('your-client-id');
 
-1. **Worker deployment fails**
-   - Verify your Cloudflare API token has the correct permissions
-   - Ensure wrangler.toml is properly configured with correct database IDs
-   - Verify you're using the correct environment (staging vs production)
+  // Save data locally
+  await saveData({
+    notes: 'Meeting notes',
+    timestamp: new Date()
+  });
 
-3. **Local development issues**
-   - Clear browser IndexedDB data if sync issues occur
-   - Verify environment variables are set correctly
-   - Check browser console for error messages
-   - Ensure wrangler is logged in (`wrangler login`)
+  // Manually sync when needed
+  document.getElementById('syncButton').onclick = async () => {
+    await syncData();
+  };
+</script>
+```
 
-4. **Sync not working**
-   - Verify API_URL is correctly set in pages configuration
-   - Check network connectivity and CORS settings
-   - Ensure IndexedDB is supported and enabled in your browser
-   - Verify R2 bucket permissions and access
+## API Reference
 
-## Contributing
+### Client Operations
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```javascript
+// Initialize client
+await initializeClient('client-123');
 
-Please ensure tests pass and add new tests for new features.
+// Save data
+await saveData({
+  title: 'Note 1',
+  content: 'Content here'
+});
 
-## CI/CD Pipeline
+// Sync with server
+await syncData();
 
-The project uses GitHub Actions for continuous integration and deployment. The pipeline consists of three main jobs:
+// Check system health
+await checkHealth();
+```
 
-### Test Job
-- Runs for both pull requests and pushes to main
-- Tests both worker and pages projects in parallel
-- Performs:
-  - npm dependency installation
-  - Code linting
-  - Test coverage reporting
+### Admin Operations
 
-### Deploy Jobs
-Deployment is handled automatically by GitHub Actions when changes are pushed to the main branch:
+```javascript
+// Login as admin
+await loginAdmin('your-admin-password');
 
-#### Pages Deployment
-- Deploys the frontend application to Cloudflare Pages
-- Requires successful test job completion
-- Uses Cloudflare API token for authentication
-- Deploys to:
-  - Production: chroniclesync.xyz (on main branch push)
-  - Staging: staging.chroniclesync.xyz (on pull requests)
+// Get client statistics
+await refreshStats();
 
-#### Worker Deployment
-- Deploys the backend worker to Cloudflare Workers
-- Requires successful test job completion
-- Uses Cloudflare API token for authentication
-- Deploys to:
-  - Production: api.chroniclesync.xyz (on main branch push)
-  - Staging: api-staging.chroniclesync.xyz (on pull requests)
+// Delete client data
+await deleteClient('client-123');
+```
 
-### Environment Protection
-- Deployments only run on the main branch
-- Environment-specific variables and secrets are scoped appropriately
-- Staging deployments are created for pull requests
-- Production deployments only occur after merging to main
+## Common Issues
+
+1. **Sync Failed**
+   - Check your internet connection
+   - Verify client ID is correct
+   - Ensure data is valid JSON
+
+2. **Access Denied**
+   - Verify admin credentials
+   - Check your permissions
+   - Ensure you're using HTTPS
+
+3. **Data Not Saving**
+   - Check browser storage permissions
+   - Verify data format
+   - Clear browser cache if needed
+
+## Support
+
+- Documentation: https://docs.chroniclesync.xyz
+- Issues: https://github.com/posix4e/chroniclesync/issues
+- Email: support@chroniclesync.xyz
+
+## License
+
+MIT © [OpenHands]

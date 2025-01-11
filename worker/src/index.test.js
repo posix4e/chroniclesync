@@ -9,19 +9,53 @@ describe('Worker API', () => {
         prepare: jest.fn().mockImplementation((query) => ({
           bind: jest.fn().mockReturnThis(),
           run: jest.fn().mockResolvedValue({}),
+          first: jest.fn().mockImplementation(() => {
+            if (query.includes('SELECT 1')) {
+              return Promise.resolve({ test: 1 });
+            }
+            if (query.includes('sqlite_master')) {
+              return Promise.resolve({ name: 'clients' });
+            }
+            if (query.includes('client_id')) {
+              return Promise.resolve({ client_id: '_test_status_check_123' });
+            }
+            return Promise.resolve({});
+          }),
           all: jest.fn().mockImplementation(() => {
             if (query.includes('sqlite_master')) {
-              return Promise.resolve({ results: [{ name: 'clients' }] });
+              return Promise.resolve({ 
+                results: [
+                  { name: 'clients', sql: 'CREATE TABLE clients...' },
+                  { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
+                ] 
+              });
+            }
+            if (query.includes('integrity_check')) {
+              return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
             }
             return Promise.resolve({ results: [] });
           }),
         })),
+        batch: jest.fn().mockResolvedValue([]),
       },
       STORAGE: {
-        get: jest.fn().mockResolvedValue(null),
+        get: jest.fn().mockImplementation((key) => {
+          if (key === '_test_status_check_123/data') {
+            return Promise.resolve({
+              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
+              uploaded: new Date(),
+            });
+          }
+          if (key === '_test_status_check_123') {
+            return Promise.resolve({
+              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
+            });
+          }
+          return Promise.resolve(null);
+        }),
         put: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
         list: jest.fn().mockResolvedValue({ objects: [] }),
-        head: jest.fn().mockResolvedValue({}),
       },
     };
   });
@@ -151,7 +185,7 @@ describe('Worker API', () => {
     env.DB.prepare = jest.fn().mockImplementation(() => {
       throw new Error('DB error');
     });
-    env.STORAGE.head = jest.fn().mockImplementation(() => {
+    env.STORAGE.list = jest.fn().mockImplementation(() => {
       throw new Error('Storage error');
     });
 
@@ -163,11 +197,64 @@ describe('Worker API', () => {
     const res = await worker.fetch(req, env);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.production.database).toBe(false);
-    expect(data.production.storage).toBe(false);
+    expect(data.worker.status).toBe(true);
+    expect(data.database.status).toBe(false);
+    expect(data.storage.status).toBe(false);
+    expect(data.database.error).toBe('DB error');
+    expect(data.storage.error).toBe('Storage error');
   });
 
   it('handles admin status check', async () => {
+    // Set up successful mocks
+    env.DB.prepare = jest.fn().mockImplementation((query) => ({
+      bind: jest.fn().mockReturnThis(),
+      run: jest.fn().mockResolvedValue({}),
+      first: jest.fn().mockImplementation(() => {
+        if (query.includes('SELECT 1')) {
+          return Promise.resolve({ test: 1 });
+        }
+        if (query.includes('sqlite_master')) {
+          return Promise.resolve({ name: 'clients' });
+        }
+        if (query.includes('client_id')) {
+          const testClientId = '_test_status_check_' + Date.now();
+          return Promise.resolve({ client_id: testClientId });
+        }
+        return Promise.resolve({});
+      }),
+      all: jest.fn().mockImplementation(() => {
+        if (query.includes('sqlite_master')) {
+          return Promise.resolve({ 
+            results: [
+              { name: 'clients', sql: 'CREATE TABLE clients...' },
+              { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
+            ] 
+          });
+        }
+        if (query.includes('integrity_check')) {
+          return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
+        }
+        return Promise.resolve({ results: [] });
+      }),
+    }));
+
+    const testData = JSON.stringify({ test: 'data' });
+    env.STORAGE = {
+      get: jest.fn().mockImplementation((key) => {
+        if (key.includes('_test_status_check_')) {
+          return Promise.resolve({
+            text: () => Promise.resolve(testData),
+            body: testData,
+            uploaded: new Date(),
+          });
+        }
+        return Promise.resolve(null);
+      }),
+      put: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+      list: jest.fn().mockResolvedValue({ objects: [] }),
+    };
+
     const req = new Request('https://api.chroniclesync.xyz/admin/status', {
       headers: {
         'Authorization': 'Bearer francesisthebest',
@@ -176,11 +263,17 @@ describe('Worker API', () => {
     const res = await worker.fetch(req, env);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toHaveProperty('production');
-    expect(data).toHaveProperty('staging');
-    expect(data.production).toHaveProperty('worker', true);
-    expect(data.production).toHaveProperty('database', true);
-    expect(data.production).toHaveProperty('storage', true);
+    expect(data.worker.status).toBe(true);
+    expect(data.database.status).toBe(true);
+    expect(data.storage.status).toBe(true);
+    expect(data.database.tests.connection).toBe(true);
+    expect(data.database.tests.table_exists).toBe(true);
+    expect(data.database.tests.write_test).toBe(true);
+    expect(data.database.tests.read_test).toBe(true);
+    expect(data.storage.tests.connection).toBe(true);
+    expect(data.storage.tests.write_test).toBe(true);
+    expect(data.storage.tests.read_test).toBe(true);
+    expect(data.storage.tests.delete_test).toBe(true);
   });
 
   it('handles CORS headers correctly', async () => {
@@ -247,58 +340,261 @@ describe('Worker API', () => {
     expect(storageErrorData.error).toBe('Storage error');
   });
 
-  it('handles admin workflow triggers', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+  describe('admin workflow', () => {
+    const makeRequest = (action) => new Request('https://api.chroniclesync.xyz/admin/workflow', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer francesisthebest',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        action: 'create-resources',
-        environment: 'production',
-      }),
+      body: JSON.stringify({ action }),
     });
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data).toHaveProperty('message');
-    expect(data).toHaveProperty('status', 'pending');
 
-    // Test invalid method
-    const getReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const getRes = await worker.fetch(getReq, env);
-    expect(getRes.status).toBe(405);
+    beforeEach(() => {
+      // Reset DB mock for database tests
+      env.DB = {
+        prepare: jest.fn().mockImplementation((query) => ({
+          bind: jest.fn().mockReturnThis(),
+          run: jest.fn().mockResolvedValue({}),
+          first: jest.fn().mockImplementation(() => {
+            if (query.includes('SELECT 1')) {
+              return Promise.resolve({ test: 1 });
+            }
+            if (query.includes('sqlite_master')) {
+              return Promise.resolve({ name: 'clients' });
+            }
+            if (query.includes('client_id')) {
+              return Promise.resolve({ client_id: '_test_status_check_123' });
+            }
+            return Promise.resolve({});
+          }),
+          all: jest.fn().mockImplementation(() => {
+            if (query.includes('sqlite_master')) {
+              return Promise.resolve({ 
+                results: [
+                  { name: 'clients', sql: 'CREATE TABLE clients...' },
+                  { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
+                ] 
+              });
+            }
+            if (query.includes('integrity_check')) {
+              return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
+            }
+            return Promise.resolve({ results: [] });
+          }),
+        })),
+        batch: jest.fn().mockResolvedValue([]),
+      };
 
-    // Test invalid action
-    const invalidActionReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-      body: JSON.stringify({
-        action: 'invalid-action',
-        environment: 'production',
-      }),
+      // Reset Storage mock for storage tests
+      env.STORAGE = {
+        get: jest.fn().mockImplementation((key) => {
+          if (key.includes('_test_status_check_')) {
+            return Promise.resolve({
+              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
+              body: JSON.stringify({ test: 'data' }),
+              uploaded: new Date(),
+            });
+          }
+          return Promise.resolve(null);
+        }),
+        put: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
+        list: jest.fn().mockResolvedValue({ objects: [] }),
+      };
     });
-    const invalidActionRes = await worker.fetch(invalidActionReq, env);
-    expect(invalidActionRes.status).toBe(400);
 
-    // Test invalid environment
-    const invalidEnvReq = new Request('https://api.chroniclesync.xyz/admin/workflow', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-      body: JSON.stringify({
-        action: 'create-resources',
-        environment: 'invalid',
-      }),
+    it('should initialize database', async () => {
+      const request = makeRequest('init-database');
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.message).toBe('Database initialized successfully');
+      expect(data.status).toBe('completed');
+
+      // Verify DB calls
+      expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS clients'));
+      expect(env.DB.batch).toHaveBeenCalled();
     });
-    const invalidEnvRes = await worker.fetch(invalidEnvReq, env);
-    expect(invalidEnvRes.status).toBe(400);
+
+    it('should check tables', async () => {
+      const request = makeRequest('check-tables');
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.message).toBe('Database check completed');
+      expect(data.status).toBe('completed');
+      expect(data.tables).toBeInstanceOf(Array);
+      expect(data.indexes).toBeInstanceOf(Array);
+    });
+
+    it('should repair tables', async () => {
+      const request = makeRequest('repair-tables');
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.message).toBe('Database repair completed');
+      expect(data.status).toBe('completed');
+      expect(data.integrityCheck).toBeInstanceOf(Array);
+
+      // Verify DB calls
+      expect(env.DB.prepare).toHaveBeenCalledWith('ANALYZE clients');
+      expect(env.DB.prepare).toHaveBeenCalledWith('VACUUM');
+      expect(env.DB.prepare).toHaveBeenCalledWith('PRAGMA integrity_check');
+    });
+
+    it('should reject invalid actions', async () => {
+      const request = makeRequest('invalid-action');
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(400);
+    });
+
+    it('should handle database errors', async () => {
+      env.DB.prepare.mockImplementation(() => {
+        throw new Error('Database error');
+      });
+
+      const request = makeRequest('init-database');
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(500);
+
+      const data = await response.json();
+      expect(data.error).toBe('Database operation failed');
+      expect(data.details).toBe('Database error');
+    });
+
+    it('should handle invalid method', async () => {
+      const request = new Request('https://api.chroniclesync.xyz/admin/workflow', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+        },
+      });
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(405);
+    });
+  });
+
+  describe('admin status', () => {
+    it('should check all components with success', async () => {
+      // Set up successful mocks
+      env.DB.prepare = jest.fn().mockImplementation((query) => ({
+        bind: jest.fn().mockReturnThis(),
+        run: jest.fn().mockResolvedValue({}),
+        first: jest.fn().mockImplementation(() => {
+          if (query.includes('SELECT 1')) {
+            return Promise.resolve({ test: 1 });
+          }
+          if (query.includes('sqlite_master')) {
+            return Promise.resolve({ name: 'clients' });
+          }
+          if (query.includes('client_id')) {
+            const testClientId = '_test_status_check_' + Date.now();
+            return Promise.resolve({ client_id: testClientId });
+          }
+          return Promise.resolve({});
+        }),
+        all: jest.fn().mockImplementation(() => {
+          if (query.includes('sqlite_master')) {
+            return Promise.resolve({ 
+              results: [
+                { name: 'clients', sql: 'CREATE TABLE clients...' },
+                { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
+              ] 
+            });
+          }
+          if (query.includes('integrity_check')) {
+            return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
+          }
+          return Promise.resolve({ results: [] });
+        }),
+      }));
+
+      const testData = JSON.stringify({ test: 'data' });
+      env.STORAGE = {
+        get: jest.fn().mockImplementation((key) => {
+          if (key.includes('_test_status_check_')) {
+            return Promise.resolve({
+              text: () => Promise.resolve(testData),
+              body: testData,
+              uploaded: new Date(),
+            });
+          }
+          return Promise.resolve(null);
+        }),
+        put: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
+        list: jest.fn().mockResolvedValue({ objects: [] }),
+      };
+
+      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+        },
+      });
+
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.worker.status).toBe(true);
+      expect(data.database.status).toBe(true);
+      expect(data.storage.status).toBe(true);
+
+      expect(data.database.tests.connection).toBe(true);
+      expect(data.database.tests.table_exists).toBe(true);
+      expect(data.database.tests.write_test).toBe(true);
+      expect(data.database.tests.read_test).toBe(true);
+
+      expect(data.storage.tests.connection).toBe(true);
+      expect(data.storage.tests.write_test).toBe(true);
+      expect(data.storage.tests.read_test).toBe(true);
+      expect(data.storage.tests.delete_test).toBe(true);
+    });
+
+    it('should handle database failure', async () => {
+      env.DB.prepare.mockImplementation(() => {
+        throw new Error('Database connection failed');
+      });
+
+      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+        },
+      });
+
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.worker.status).toBe(true);
+      expect(data.database.status).toBe(false);
+      expect(data.database.error).toBe('Database connection failed');
+      expect(data.database.tests.connection).toBe(false);
+    });
+
+    it('should handle storage failure', async () => {
+      env.STORAGE.list.mockImplementation(() => {
+        throw new Error('Storage connection failed');
+      });
+
+      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+        },
+      });
+
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.worker.status).toBe(true);
+      expect(data.storage.status).toBe(false);
+      expect(data.storage.error).toBe('Storage connection failed');
+      expect(data.storage.tests.connection).toBe(false);
+    });
   });
 });

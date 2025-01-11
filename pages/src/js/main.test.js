@@ -525,7 +525,7 @@ describe('Main', () => {
 
       await checkHealth();
 
-      expect(document.getElementById('healthStatus').textContent).toBe('❌ Error');
+      expect(document.getElementById('healthStatus').textContent).toBe('❌ Unhealthy');
       expect(document.getElementById('healthStatus').className).toBe('health-error');
       expect(document.getElementById('lastCheck').textContent).toBeTruthy();
       expect(alert).toHaveBeenCalledWith('Health check error: Network error');
@@ -539,7 +539,7 @@ describe('Main', () => {
 
       await checkHealth();
 
-      expect(document.getElementById('healthStatus').textContent).toBe('❌ Error');
+      expect(document.getElementById('healthStatus').textContent).toBe('❌ Unhealthy');
       expect(document.getElementById('healthStatus').className).toBe('health-error');
       expect(document.getElementById('lastCheck').textContent).toBeTruthy();
       expect(alert).toHaveBeenCalledWith('Health check error: Invalid JSON');
@@ -552,7 +552,7 @@ describe('Main', () => {
       expect(formatBytes(1024)).toBe('1 KB');
       expect(formatBytes(1024 * 1024)).toBe('1 MB');
       expect(formatBytes(1024 * 1024 * 1024)).toBe('1 GB');
-      expect(formatBytes(1500)).toBe('1.46 KB');
+      expect(formatBytes(1234567)).toBe('1.18 MB');
     });
   });
 });

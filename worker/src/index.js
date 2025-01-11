@@ -74,7 +74,7 @@ export default {
       // Check if table exists
       try {
         const tableCheck = await env.DB.prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='clients'"
+          'SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'clients\''
         ).all();
         console.log('Table check result:', tableCheck);
         

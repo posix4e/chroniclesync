@@ -70,10 +70,23 @@ EOL
 # Initialize D1 schema
 echo "Initializing D1 schemas..."
 if [ -f "schema.sql" ]; then
+    echo "Creating staging database schema..."
     wrangler d1 execute "database-${TIMESTAMP}-${COUNTER}-staging" --file=schema.sql
+    
+    echo "Creating production database schema..."
     wrangler d1 execute "database-${TIMESTAMP}-${COUNTER}-prod" --file=schema.sql
+    
+    # Verify table creation
+    echo "Verifying staging database setup..."
+    wrangler d1 execute "database-${TIMESTAMP}-${COUNTER}-staging" \
+        --command="SELECT name FROM sqlite_master WHERE type='table' OR type='index';"
+    
+    echo "Verifying production database setup..."
+    wrangler d1 execute "database-${TIMESTAMP}-${COUNTER}-prod" \
+        --command="SELECT name FROM sqlite_master WHERE type='table' OR type='index';"
 else
-    echo "Warning: schema.sql not found. Skipping schema initialization."
+    echo "Error: schema.sql not found. Database initialization failed."
+    exit 1
 fi
 
 echo "Setup complete! New resources created with ID: ${TIMESTAMP}-${COUNTER}"

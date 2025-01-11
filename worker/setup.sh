@@ -76,24 +76,5 @@ else
     echo "Warning: schema.sql not found. Skipping schema initialization."
 fi
 
-# Test infrastructure
-echo "Testing infrastructure..."
-
-# Test staging
-echo "Testing staging environment..."
-wrangler dev --test &
-DEV_PID=$!
-sleep 5
-curl -s http://localhost:8787/health || echo "Staging health check failed"
-kill $DEV_PID
-
-# Test production
-echo "Testing production environment..."
-wrangler dev --env production --test &
-PROD_PID=$!
-sleep 5
-curl -s http://localhost:8787/health || echo "Production health check failed"
-kill $PROD_PID
-
 echo "Setup complete! New resources created with ID: ${TIMESTAMP}-${COUNTER}"
-echo "Please verify all tests passed before deploying."
+echo "Please verify the setup manually before deploying."

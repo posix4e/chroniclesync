@@ -189,9 +189,9 @@ async function viewClientData(clientId) {
 
 
 
-export const healthCheck = new HealthCheck(API_URL);
+const healthCheck = new HealthCheck(API_URL);
 
-export async function checkHealth() {
+async function checkHealth() {
   const healthStatus = document.getElementById('healthStatus');
   const lastCheck = document.getElementById('lastCheck');
   
@@ -230,4 +230,5 @@ export {
   viewClientData,
   checkHealth,
   formatBytes,
+  healthCheck,
 };

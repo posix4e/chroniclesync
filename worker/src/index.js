@@ -153,6 +153,9 @@ export default {
           });
         } catch (e) {
           log('error', 'Error getting client info', { clientId: key.name, error: e.message });
+          if (e.message === 'Storage error') {
+            throw e;
+          }
           stats.push({
             clientId: key.name,
             lastSync: null,

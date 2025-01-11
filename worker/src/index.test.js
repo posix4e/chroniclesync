@@ -13,9 +13,22 @@ async function makeRequest(path, init) {
 describe('Worker API', () => {
   let env;
 
+  let originalStorageList;
+  let originalStorageDelete;
+  let originalMetadataGet;
+  let originalMetadataList;
+  let originalMetadataDelete;
+
   beforeEach(async () => {
     // Get fresh bindings for each test
     env = getMiniflareBindings();
+
+    // Save original functions
+    originalStorageList = env.STORAGE.list;
+    originalStorageDelete = env.STORAGE.delete;
+    originalMetadataGet = env.METADATA.get;
+    originalMetadataList = env.METADATA.list;
+    originalMetadataDelete = env.METADATA.delete;
 
     // Clean up KV and R2 before each test
     const { keys } = await env.METADATA.list();
@@ -26,6 +39,25 @@ describe('Worker API', () => {
     const objects = await env.STORAGE.list();
     for (const obj of objects.objects) {
       await env.STORAGE.delete(obj.key);
+    }
+  });
+
+  afterEach(() => {
+    // Restore original functions
+    if (env.STORAGE.list !== originalStorageList) {
+      env.STORAGE.list = originalStorageList;
+    }
+    if (env.STORAGE.delete !== originalStorageDelete) {
+      env.STORAGE.delete = originalStorageDelete;
+    }
+    if (env.METADATA.get !== originalMetadataGet) {
+      env.METADATA.get = originalMetadataGet;
+    }
+    if (env.METADATA.list !== originalMetadataList) {
+      env.METADATA.list = originalMetadataList;
+    }
+    if (env.METADATA.delete !== originalMetadataDelete) {
+      env.METADATA.delete = originalMetadataDelete;
     }
   });
 
@@ -171,6 +203,39 @@ describe('Worker API', () => {
       // Restore original functions
       env.STORAGE.list = originalList;
       env.STORAGE.delete = originalDelete;
+    });
+
+    it('handles errors in client list', async () => {
+      const originalList = env.STORAGE.list;
+      env.STORAGE.list = () => { throw new Error('Storage error'); };
+
+      const resp = await makeRequest('/admin/clients', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(500);
+      expect(await resp.text()).toBe('Internal server error');
+
+      // Restore original function
+      env.STORAGE.list = originalList;
+    });
+
+    it('handles errors in client info', async () => {
+      const originalGet = env.METADATA.get;
+      env.METADATA.get = () => { throw new Error('KV error'); };
+
+      const resp = await makeRequest('/admin/clients', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+      const data = await resp.json();
+      expect(data[0].error).toBe('Error fetching client data');
+
+      // Restore original function
+      env.METADATA.get = originalGet;
     });
 
     it('deletes client data and metadata', async () => {

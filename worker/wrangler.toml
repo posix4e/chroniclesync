@@ -4,6 +4,10 @@ compatibility_date = "2024-01-01"
 [observability.logs]
 enabled = true
 
+[[kv_namespaces]]
+binding = "METADATA"
+id = "885fc6a560ab45e7bfd3b89252f89f2d"
+
 [env.production]
 routes = [
   { pattern = "api.chroniclesync.xyz", custom_domain = true }

@@ -31,20 +31,11 @@ jobs:
           npm run lint
           npm run test:coverage
 
-      - name: Deploy Pages
-        working-directory: pages
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          npm ci
-          npm run deploy
-
-  deploy:
+  deploy-pages:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: ${{ github.event_name == 'push' && 'production' || 'staging' }}
+    if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
       
@@ -52,15 +43,38 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            **/package-lock.json
+          cache-dependency-path: pages/package-lock.json
+
+      - name: Deploy Pages
+        working-directory: pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+        run: |
+          npm ci
+          npm run deploy -- --env $ENVIRONMENT
+
+  deploy-worker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: worker/package-lock.json
 
       - name: Deploy Worker
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
         run: |
           npm ci
-          npm run deploy ${{ github.event_name != 'push' && '-- --env staging' || '' }}
-
+          npm run deploy -- --env $ENVIRONMENT

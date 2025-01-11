@@ -1,0 +1,16 @@
+name: 'Setup Node.js'
+description: 'Sets up Node.js with caching for the specified project'
+
+inputs:
+  project:
+    description: 'Project directory containing package-lock.json'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.project }}/package-lock.json

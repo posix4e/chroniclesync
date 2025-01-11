@@ -18,11 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: ./.github/actions/setup-node
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+          project: ${{ matrix.project }}
           
       - name: Install and Test
         working-directory: ${{ matrix.project }}
@@ -39,11 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: ./.github/actions/setup-node
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: pages/package-lock.json
+          project: pages
 
       - name: Deploy Pages
         working-directory: pages
@@ -66,11 +62,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: ./.github/actions/setup-node
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: worker/package-lock.json
+          project: worker
 
       - name: Deploy Worker
         working-directory: worker

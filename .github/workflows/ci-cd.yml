@@ -10,28 +10,8 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  test:
+  ci-cd:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [worker, pages]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
-          
-      - name: Install and Test
-        working-directory: ${{ matrix.project }}
-        run: npm ci && npm run lint && npm run test:coverage
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
@@ -44,16 +24,26 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
+      - name: Test Pages
+        working-directory: pages
+        run: npm ci && npm run lint && npm run test:coverage
+
+      - name: Test Worker
+        working-directory: worker
+        run: npm ci && npm run lint && npm run test:coverage
+
       - name: Deploy Pages
+        if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         working-directory: pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npm ci && if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --branch main; else npm run deploy -- --branch ${{ github.head_ref }}; fi
+        run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --branch main; else npm run deploy -- --branch ${{ github.head_ref }}; fi
 
       - name: Deploy Worker
+        if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npm ci && if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy; else npm run deploy -- --env staging; fi
+        run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy; else npm run deploy -- --env staging; fi

@@ -17,7 +17,6 @@ function formatDate(date) {
 
 export default {
   corsHeaders(origin = '*') {
-    // Only allow requests from our known domains
     const allowedDomains = [
       'chroniclesync.xyz',
       'chroniclesync-pages.pages.dev',
@@ -27,15 +26,13 @@ export default {
       '127.0.0.1:8788'
     ];
     
-    // Check if origin matches any of our allowed domains
     const isAllowed = origin === '*' ? false : allowedDomains.some(domain => {
       if (domain.startsWith('localhost') || domain.startsWith('127.0.0.1')) {
         return origin === `http://${domain}`;
       }
-      // Handle wildcards for pages.dev subdomains
       if (domain === 'chroniclesync-pages.pages.dev') {
         return origin.endsWith('.chroniclesync-pages.pages.dev') || 
-               origin === `https://${domain}`;
+          origin === `https://${domain}`;
       }
       return origin === `https://${domain}`;
     });

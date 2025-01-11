@@ -256,7 +256,7 @@ export default {
 
       // Test 2: Check if clients table exists
       const tableCheck = await env.DB.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='clients'"
+        'SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'clients\''
       ).first();
       status.database.tests.table_exists = tableCheck !== null;
 

@@ -117,15 +117,24 @@ async function refreshStats() {
 
     stats.forEach(client => {
       const row = document.createElement('tr');
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => deleteClient(client.clientId));
+
+      const viewBtn = document.createElement('button');
+      viewBtn.textContent = 'View Data';
+      viewBtn.addEventListener('click', () => viewClientData(client.clientId));
+
+      const actionsCell = document.createElement('td');
+      actionsCell.appendChild(deleteBtn);
+      actionsCell.appendChild(viewBtn);
+
       row.innerHTML = `
                 <td>${client.clientId}</td>
                 <td>${new Date(client.lastSync).toLocaleString()}</td>
                 <td>${formatBytes(client.dataSize)}</td>
-                <td>
-                    <button onclick="deleteClient('${client.clientId}')">Delete</button>
-                    <button onclick="viewClientData('${client.clientId}')">View Data</button>
-                </td>
             `;
+      row.appendChild(actionsCell);
       tbody.appendChild(row);
     });
   } catch (error) {

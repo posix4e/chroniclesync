@@ -11,7 +11,7 @@ routes = [
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "production"
-database_id = "${CF_PROD_DB_ID}"
+database_id = "DB_ID"
 
 [[env.production.r2_buckets]]
 binding = "STORAGE"
@@ -27,7 +27,7 @@ routes = [
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "staging"
-database_id = "${CF_STAGING_DB_ID}"
+database_id = "DB_ID"
 
 [[env.staging.r2_buckets]]
 binding = "STORAGE"

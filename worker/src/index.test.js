@@ -186,28 +186,28 @@ describe('Worker API', () => {
   it('handles CORS headers correctly', async () => {
     // Test production domain
     const prodReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { 'Origin': 'https://chroniclesync.xyz' },
+      headers: { Origin: 'https://chroniclesync.xyz' },
     });
     const prodRes = await worker.fetch(prodReq, env);
     expect(prodRes.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
 
     // Test pages.dev subdomain
     const pagesReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { 'Origin': 'https://my-branch.chroniclesync-pages.pages.dev' },
+      headers: { Origin: 'https://my-branch.chroniclesync-pages.pages.dev' },
     });
     const pagesRes = await worker.fetch(pagesReq, env);
     expect(pagesRes.headers.get('Access-Control-Allow-Origin')).toBe('https://my-branch.chroniclesync-pages.pages.dev');
 
     // Test localhost
     const localReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { 'Origin': 'http://localhost:8787' },
+      headers: { Origin: 'http://localhost:8787' },
     });
     const localRes = await worker.fetch(localReq, env);
     expect(localRes.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8787');
 
     // Test disallowed origin
     const badReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { 'Origin': 'https://evil.com' },
+      headers: { Origin: 'https://evil.com' },
     });
     const badRes = await worker.fetch(badReq, env);
     expect(badRes.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
@@ -215,7 +215,7 @@ describe('Worker API', () => {
     // Test OPTIONS request
     const optionsReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
       method: 'OPTIONS',
-      headers: { 'Origin': 'https://chroniclesync.xyz' },
+      headers: { Origin: 'https://chroniclesync.xyz' },
     });
     const optionsRes = await worker.fetch(optionsReq, env);
     expect(optionsRes.status).toBe(200);

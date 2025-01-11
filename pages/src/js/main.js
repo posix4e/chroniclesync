@@ -212,13 +212,6 @@ async function checkHealth() {
   }
 }
 
-// Make functions available globally for onclick handlers
-window.checkHealth = checkHealth;
-window.initializeClient = initializeClient;
-window.saveData = saveData;
-window.syncData = syncData;
-window.loginAdmin = loginAdmin;
-
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;

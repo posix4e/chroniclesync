@@ -186,31 +186,7 @@ async function viewClientData(clientId) {
   }
 }
 
-async function triggerWorkflow(action) {
-  if (!confirm(`Are you sure you want to run ${action}?`)) {
-    return;
-  }
 
-  try {
-    const response = await fetch(`${API_URL}/admin/workflow`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ action })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to trigger workflow');
-    }
-
-    const result = await response.json();
-    alert(`Workflow triggered: ${result.message}`);
-  } catch (error) {
-    alert(`Error triggering workflow: ${error.message}`);
-  }
-}
 
 async function checkHealth() {
   const healthStatus = document.getElementById('healthStatus');
@@ -251,7 +227,6 @@ export {
   refreshStats,
   deleteClient,
   viewClientData,
-  triggerWorkflow,
   checkHealth,
   formatBytes,
 };

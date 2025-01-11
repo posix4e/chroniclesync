@@ -230,4 +230,5 @@ export {
   viewClientData,
   checkHealth,
   formatBytes,
+  healthCheck,
 };

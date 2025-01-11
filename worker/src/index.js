@@ -18,16 +18,29 @@ function formatDate(date) {
 export default {
   corsHeaders(origin = '*') {
     // Only allow requests from our known domains
-    const allowedOrigins = [
-      'https://chroniclesync.xyz',
-      'https://chroniclesync.pages.dev',
-      'http://localhost:8787',
-      'http://localhost:8788',
-      'http://127.0.0.1:8787',
-      'http://127.0.0.1:8788'
+    const allowedDomains = [
+      'chroniclesync.xyz',
+      'chroniclesync-pages.pages.dev',
+      'localhost:8787',
+      'localhost:8788',
+      '127.0.0.1:8787',
+      '127.0.0.1:8788'
     ];
     
-    const finalOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    // Check if origin matches any of our allowed domains
+    const isAllowed = origin === '*' ? false : allowedDomains.some(domain => {
+      if (domain.startsWith('localhost') || domain.startsWith('127.0.0.1')) {
+        return origin === `http://${domain}`;
+      }
+      // Handle wildcards for pages.dev subdomains
+      if (domain === 'chroniclesync-pages.pages.dev') {
+        return origin.endsWith('.chroniclesync-pages.pages.dev') || 
+               origin === `https://${domain}`;
+      }
+      return origin === `https://${domain}`;
+    });
+    
+    const finalOrigin = isAllowed ? origin : 'https://chroniclesync.xyz';
     
     return {
       'Access-Control-Allow-Origin': finalOrigin,

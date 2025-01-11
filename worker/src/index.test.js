@@ -217,7 +217,8 @@ describe('Worker API', () => {
           return Promise.resolve({ name: 'clients' });
         }
         if (query.includes('client_id')) {
-          return Promise.resolve({ client_id: '_test_status_check_123' });
+          const testClientId = '_test_status_check_' + Date.now();
+          return Promise.resolve({ client_id: testClientId });
         }
         return Promise.resolve({});
       }),
@@ -237,17 +238,14 @@ describe('Worker API', () => {
       }),
     }));
 
+    const testData = JSON.stringify({ test: 'data' });
     env.STORAGE = {
       get: jest.fn().mockImplementation((key) => {
-        if (key === '_test_status_check_123/data') {
+        if (key.includes('_test_status_check_')) {
           return Promise.resolve({
-            text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
+            text: () => Promise.resolve(testData),
+            body: testData,
             uploaded: new Date(),
-          });
-        }
-        if (key === '_test_status_check_123') {
-          return Promise.resolve({
-            text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
           });
         }
         return Promise.resolve(null);
@@ -365,7 +363,10 @@ describe('Worker API', () => {
             if (query.includes('sqlite_master')) {
               return Promise.resolve({ name: 'clients' });
             }
-            return Promise.resolve({ client_id: '_test_status_check_123' });
+            if (query.includes('client_id')) {
+              return Promise.resolve({ client_id: '_test_status_check_123' });
+            }
+            return Promise.resolve({});
           }),
           all: jest.fn().mockImplementation(() => {
             if (query.includes('sqlite_master')) {
@@ -388,9 +389,11 @@ describe('Worker API', () => {
       // Reset Storage mock for storage tests
       env.STORAGE = {
         get: jest.fn().mockImplementation((key) => {
-          if (key === '_test_status_check_123') {
+          if (key.includes('_test_status_check_')) {
             return Promise.resolve({
               text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
+              body: JSON.stringify({ test: 'data' }),
+              uploaded: new Date(),
             });
           }
           return Promise.resolve(null);
@@ -477,6 +480,56 @@ describe('Worker API', () => {
 
   describe('admin status', () => {
     it('should check all components with success', async () => {
+      // Set up successful mocks
+      env.DB.prepare = jest.fn().mockImplementation((query) => ({
+        bind: jest.fn().mockReturnThis(),
+        run: jest.fn().mockResolvedValue({}),
+        first: jest.fn().mockImplementation(() => {
+          if (query.includes('SELECT 1')) {
+            return Promise.resolve({ test: 1 });
+          }
+          if (query.includes('sqlite_master')) {
+            return Promise.resolve({ name: 'clients' });
+          }
+          if (query.includes('client_id')) {
+            const testClientId = '_test_status_check_' + Date.now();
+            return Promise.resolve({ client_id: testClientId });
+          }
+          return Promise.resolve({});
+        }),
+        all: jest.fn().mockImplementation(() => {
+          if (query.includes('sqlite_master')) {
+            return Promise.resolve({ 
+              results: [
+                { name: 'clients', sql: 'CREATE TABLE clients...' },
+                { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
+              ] 
+            });
+          }
+          if (query.includes('integrity_check')) {
+            return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
+          }
+          return Promise.resolve({ results: [] });
+        }),
+      }));
+
+      const testData = JSON.stringify({ test: 'data' });
+      env.STORAGE = {
+        get: jest.fn().mockImplementation((key) => {
+          if (key.includes('_test_status_check_')) {
+            return Promise.resolve({
+              text: () => Promise.resolve(testData),
+              body: testData,
+              uploaded: new Date(),
+            });
+          }
+          return Promise.resolve(null);
+        }),
+        put: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
+        list: jest.fn().mockResolvedValue({ objects: [] }),
+      };
+
       const request = new Request('https://api.chroniclesync.xyz/admin/status', {
         headers: {
           'Authorization': 'Bearer francesisthebest',

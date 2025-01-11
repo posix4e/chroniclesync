@@ -29,7 +29,7 @@ function log(level, message, data = null) {
 import MetadataService from './services/metadata.js';
 
 export default {
-  corsHeaders(origin = '*') {
+  securityHeaders(origin = '*') {
     const allowedDomains = [
       'chroniclesync.xyz',
       'chroniclesync-pages.pages.dev',
@@ -52,11 +52,39 @@ export default {
     
     const finalOrigin = isAllowed ? origin : 'https://chroniclesync.xyz';
     
+    // Base CSP directives
+    const cspDirectives = [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline'`, // Required for ES modules
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      `connect-src 'self' ${finalOrigin}`,
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "base-uri 'self'",
+      "upgrade-insecure-requests"
+    ];
+
+    // Add the origin to connect-src in development
+    if (finalOrigin.includes('localhost') || finalOrigin.includes('127.0.0.1')) {
+      cspDirectives.push(`connect-src 'self' ${finalOrigin} http://localhost:* http://127.0.0.1:*`);
+    }
+    
     return {
+      // CORS headers
       'Access-Control-Allow-Origin': finalOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
+      
+      // Security headers
+      'Content-Security-Policy': cspDirectives.join('; '),
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'Permissions-Policy': 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
     };
   },
 
@@ -76,7 +104,7 @@ export default {
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
-        headers: this.corsHeaders(origin),
+        headers: this.securityHeaders(origin),
       });
     }
 
@@ -86,7 +114,7 @@ export default {
       if (authHeader !== 'Bearer francesisthebest') {
         return new Response('Unauthorized', { 
           status: 401,
-          headers: this.corsHeaders()
+          headers: this.securityHeaders()
         });
       }
 
@@ -117,7 +145,7 @@ export default {
     if (!clientId) {
       return new Response('Client ID required', { 
         status: 400,
-        headers: this.corsHeaders()
+        headers: this.securityHeaders()
       });
     }
 
@@ -131,7 +159,7 @@ export default {
 
     return new Response('Method not allowed', { 
       status: 405,
-      headers: this.corsHeaders()
+      headers: this.securityHeaders()
     });
   },
 
@@ -173,14 +201,14 @@ export default {
       return new Response(JSON.stringify(stats), { 
         headers: {
           'Content-Type': 'application/json',
-          ...this.corsHeaders()
+          ...this.securityHeaders()
         }
       });
     } catch (e) {
       log('error', 'Error getting client list', { error: e.message });
       return new Response('Internal server error', { 
         status: 500,
-        headers: this.corsHeaders()
+        headers: this.securityHeaders()
       });
     }
   },
@@ -190,7 +218,7 @@ export default {
     if (!clientId) {
       return new Response('Client ID required', { 
         status: 400,
-        headers: this.corsHeaders(origin)
+        headers: this.securityHeaders(origin)
       });
     }
 
@@ -209,20 +237,20 @@ export default {
         log('info', 'Client deleted successfully', { clientId });
         return new Response('Client deleted', { 
           status: 200,
-          headers: this.corsHeaders(origin)
+          headers: this.securityHeaders(origin)
         });
       } catch (e) {
         log('error', 'Error deleting client', { error: e.message });
         return new Response('Internal server error', { 
           status: 500,
-          headers: this.corsHeaders(origin)
+          headers: this.securityHeaders(origin)
         });
       }
     }
 
     return new Response('Method not allowed', { 
       status: 405,
-      headers: this.corsHeaders(origin)
+      headers: this.securityHeaders(origin)
     });
   },
 
@@ -329,7 +357,7 @@ export default {
     return new Response(JSON.stringify(status), { 
       headers: {
         'Content-Type': 'application/json',
-        ...this.corsHeaders(origin)
+        ...this.securityHeaders(origin)
       }
     });
   },
@@ -339,7 +367,7 @@ export default {
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { 
         status: 405,
-        headers: this.corsHeaders(origin)
+        headers: this.securityHeaders(origin)
       });
     }
 
@@ -349,7 +377,7 @@ export default {
     if (!validActions.includes(action)) {
       return new Response('Invalid action', { 
         status: 400,
-        headers: this.corsHeaders(origin)
+        headers: this.securityHeaders(origin)
       });
     }
 
@@ -376,7 +404,7 @@ export default {
         }), { 
           headers: {
             'Content-Type': 'application/json',
-            ...this.corsHeaders(origin)
+            ...this.securityHeaders(origin)
           }
         });
       }
@@ -420,7 +448,7 @@ export default {
         }), { 
           headers: {
             'Content-Type': 'application/json',
-            ...this.corsHeaders(origin)
+            ...this.securityHeaders(origin)
           }
         });
       }
@@ -433,7 +461,7 @@ export default {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...this.corsHeaders(origin)
+          ...this.securityHeaders(origin)
         }
       });
     }
@@ -463,7 +491,7 @@ export default {
     return new Response(JSON.stringify(response), {
       headers: {
         'Content-Type': 'application/json',
-        ...this.corsHeaders(origin)
+        ...this.securityHeaders(origin)
       },
       status: response.healthy ? 200 : 503
     });
@@ -475,7 +503,7 @@ export default {
     if (!data) {
       return new Response('No data found', { 
         status: 404,
-        headers: this.corsHeaders(origin)
+        headers: this.securityHeaders(origin)
       });
     }
 
@@ -483,7 +511,7 @@ export default {
       headers: {
         'Content-Type': 'application/json',
         'Last-Modified': formatDate(data.uploaded),
-        ...this.corsHeaders(origin)
+        ...this.securityHeaders(origin)
       },
     });
   },
@@ -495,7 +523,7 @@ export default {
     if (!/^[a-zA-Z0-9_-]+$/.test(clientId)) {
       return new Response('Invalid client ID', { 
         status: 400,
-        headers: this.corsHeaders(origin)
+        headers: this.securityHeaders(origin)
       });
     }
     
@@ -514,7 +542,7 @@ export default {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          ...this.corsHeaders(origin)
+          ...this.securityHeaders(origin)
         }
       });
     } catch (error) {
@@ -523,7 +551,7 @@ export default {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...this.corsHeaders(origin)
+          ...this.securityHeaders(origin)
         }
       });
     }

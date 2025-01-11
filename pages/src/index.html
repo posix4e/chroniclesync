@@ -123,14 +123,19 @@
         </style>
     </div>
 
+    <!-- Load modules with CSP-compliant attributes -->
+    <script type="module" src="js/db.js" crossorigin="anonymous" integrity="sha384-HASH_TO_BE_GENERATED"></script>
+    <script type="module" src="js/main.js" crossorigin="anonymous" integrity="sha384-HASH_TO_BE_GENERATED"></script>
     <script type="module">
+        // Import and expose functions to global scope in a CSP-compliant way
         import { initializeClient, saveData, syncData, loginAdmin, checkHealth } from './js/main.js';
-        // Make functions available globally for onclick handlers
-        window.initializeClient = initializeClient;
-        window.saveData = saveData;
-        window.syncData = syncData;
-        window.loginAdmin = loginAdmin;
-        window.checkHealth = checkHealth;
+        Object.assign(window, {
+            initializeClient,
+            saveData,
+            syncData,
+            loginAdmin,
+            checkHealth
+        });
     </script>
 </body>
 </html>

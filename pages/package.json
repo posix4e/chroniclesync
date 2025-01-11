@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev src",
-    "deploy": "wrangler pages deploy src --project-name chroniclesync-pages",
+    "dev": "node scripts/generate-sri.js && wrangler pages dev src",
+    "deploy": "node scripts/generate-sri.js && wrangler pages deploy src --project-name chroniclesync-pages",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

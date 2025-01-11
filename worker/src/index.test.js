@@ -1,600 +1,510 @@
 import worker from './index.js';
 
+/**
+ * @param {string} path
+ * @param {RequestInit} [init]
+ */
+async function makeRequest(path, init) {
+  const url = new URL(path, 'https://api.chroniclesync.xyz');
+  return worker.fetch(new Request(url, init), getMiniflareBindings());
+}
+
 describe('Worker API', () => {
   let env;
 
-  beforeEach(() => {
-    env = {
-      DB: {
-        prepare: jest.fn().mockImplementation((query) => ({
-          bind: jest.fn().mockReturnThis(),
-          run: jest.fn().mockResolvedValue({}),
-          first: jest.fn().mockImplementation(() => {
-            if (query.includes('SELECT 1')) {
-              return Promise.resolve({ test: 1 });
-            }
-            if (query.includes('sqlite_master')) {
-              return Promise.resolve({ name: 'clients' });
-            }
-            if (query.includes('client_id')) {
-              return Promise.resolve({ client_id: '_test_status_check_123' });
-            }
-            return Promise.resolve({});
-          }),
-          all: jest.fn().mockImplementation(() => {
-            if (query.includes('sqlite_master')) {
-              return Promise.resolve({ 
-                results: [
-                  { name: 'clients', sql: 'CREATE TABLE clients...' },
-                  { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
-                ] 
-              });
-            }
-            if (query.includes('integrity_check')) {
-              return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
-            }
-            return Promise.resolve({ results: [] });
-          }),
-        })),
-        batch: jest.fn().mockResolvedValue([]),
-      },
-      STORAGE: {
-        get: jest.fn().mockImplementation((key) => {
-          if (key === '_test_status_check_123/data') {
-            return Promise.resolve({
-              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
-              uploaded: new Date(),
-            });
-          }
-          if (key === '_test_status_check_123') {
-            return Promise.resolve({
-              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
-            });
-          }
-          return Promise.resolve(null);
-        }),
-        put: jest.fn().mockResolvedValue({}),
-        delete: jest.fn().mockResolvedValue({}),
-        list: jest.fn().mockResolvedValue({ objects: [] }),
-      },
-    };
+  beforeEach(async () => {
+    // Get fresh bindings for each test
+    env = getMiniflareBindings();
+
+    // Clean up KV and R2 before each test
+    const { keys } = await env.METADATA.list();
+    for (const key of keys) {
+      await env.METADATA.delete(key.name);
+    }
+
+    const objects = await env.STORAGE.list();
+    for (const obj of objects.objects) {
+      await env.STORAGE.delete(obj.key);
+    }
   });
 
   it('requires client ID', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/');
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(400);
-    expect(await res.text()).toBe('Client ID required');
+    const resp = await makeRequest('/');
+    expect(resp.status).toBe(400);
+    expect(await resp.text()).toBe('Client ID required');
   });
 
   it('handles non-existent client data', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/?clientId=test123');
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(404);
-    expect(await res.text()).toBe('No data found');
+    const resp = await makeRequest('/?clientId=test123');
+    expect(resp.status).toBe(404);
+    expect(await resp.text()).toBe('No data found');
+  });
+
+  it('handles JSON parse errors', async () => {
+    const resp = await makeRequest('/?clientId=test123', {
+      method: 'POST',
+      body: 'invalid json'
+    });
+    expect(resp.status).toBe(500);
+    const error = await resp.json();
+    expect(error.error).toBeTruthy();
+  });
+
+  it('handles storage errors', async () => {
+    const originalPut = env.STORAGE.put;
+    env.STORAGE.put = () => { throw new Error('Storage error'); };
+
+    const resp = await makeRequest('/?clientId=test123', {
+      method: 'POST',
+      body: JSON.stringify({ test: 'data' })
+    });
+    expect(resp.status).toBe(500);
+    const error = await resp.json();
+    expect(error.error).toBe('Storage error');
+
+    // Restore original put function
+    env.STORAGE.put = originalPut;
   });
 
   it('stores and retrieves client data', async () => {
     const testData = { key: 'value' };
-    
-    // Mock storage.get to return data after it's stored
-    env.STORAGE.get.mockImplementation((key) => {
-      if (key === 'test123/data') {
-        return {
-          body: JSON.stringify(testData),
-          uploaded: new Date(),
-        };
-      }
-      return null;
-    });
-    
+    const clientId = 'test123';
+
     // Store data
-    const postReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
+    const postResp = await makeRequest('/?clientId=' + clientId, {
       method: 'POST',
-      body: JSON.stringify(testData),
+      body: JSON.stringify(testData)
     });
-    const postRes = await worker.fetch(postReq, env);
-    expect(postRes.status).toBe(200);
+    expect(postResp.status).toBe(200);
+    const postJson = await postResp.json();
+    expect(postJson.message).toBe('Sync successful');
+
+    // Verify metadata was stored
+    const metadata = await env.METADATA.get(clientId, 'json');
+    expect(metadata).toBeTruthy();
+    expect(metadata.lastSync).toBeTruthy();
+    expect(metadata.dataSize).toBe(JSON.stringify(testData).length);
 
     // Retrieve data
-    const getReq = new Request('https://api.chroniclesync.xyz/?clientId=test123');
-    const getRes = await worker.fetch(getReq, env);
-    expect(getRes.status).toBe(200);
-    const data = await getRes.json();
-    expect(data).toEqual(testData);
+    const getResp = await makeRequest('/?clientId=' + clientId);
+    expect(getResp.status).toBe(200);
+    expect(getResp.headers.get('Content-Type')).toBe('application/json');
+    expect(getResp.headers.get('Last-Modified')).toBeTruthy();
+    const getData = await getResp.json();
+    expect(getData).toEqual(testData);
   });
 
   it('requires authentication for admin access', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/admin');
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(401);
+    const resp = await makeRequest('/admin');
+    expect(resp.status).toBe(401);
   });
 
   it('allows admin access with correct password', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/admin/clients', {
+    const resp = await makeRequest('/admin/clients', {
       headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
+        'Authorization': 'Bearer francesisthebest'
+      }
     });
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(200);
-    const data = await res.json();
+    expect(resp.status).toBe(200);
+    const data = await resp.json();
     expect(Array.isArray(data)).toBe(true);
   });
 
   it('handles unsupported methods', async () => {
-    const req = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      method: 'PUT',
+    const resp = await makeRequest('/?clientId=test123', {
+      method: 'PUT'
     });
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(405);
-    expect(await res.text()).toBe('Method not allowed');
+    expect(resp.status).toBe(405);
+    expect(await resp.text()).toBe('Method not allowed');
   });
 
-  it('handles admin client operations with errors', async () => {
-    // Mock Storage.list to throw error
-    env.STORAGE.list = jest.fn().mockImplementation(() => {
-      throw new Error('Storage error');
-    });
-
-    const deleteReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const deleteRes = await worker.fetch(deleteReq, env);
-    expect(deleteRes.status).toBe(500);
-  });
-
-  it('handles admin client operations', async () => {
-    // Test client deletion
-    const deleteReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const deleteRes = await worker.fetch(deleteReq, env);
-    expect(deleteRes.status).toBe(200);
-    expect(await deleteRes.text()).toBe('Client deleted');
-
-    // Test invalid method
-    const putReq = new Request('https://api.chroniclesync.xyz/admin/client?clientId=test123', {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const putRes = await worker.fetch(putReq, env);
-    expect(putRes.status).toBe(405);
-
-    // Test missing client ID
-    const noClientReq = new Request('https://api.chroniclesync.xyz/admin/client', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const noClientRes = await worker.fetch(noClientReq, env);
-    expect(noClientRes.status).toBe(400);
-  });
-
-  it('handles admin status check with errors', async () => {
-    // Mock DB and Storage to throw errors
-    env.DB.prepare = jest.fn().mockImplementation(() => {
-      throw new Error('DB error');
-    });
-    env.STORAGE.list = jest.fn().mockImplementation(() => {
-      throw new Error('Storage error');
-    });
-
-    const req = new Request('https://api.chroniclesync.xyz/admin/status', {
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.worker.status).toBe(true);
-    expect(data.database.status).toBe(false);
-    expect(data.storage.status).toBe(false);
-    expect(data.database.error).toBe('DB error');
-    expect(data.storage.error).toBe('Storage error');
-  });
-
-  it('handles admin status check', async () => {
-    // Set up successful mocks
-    env.DB.prepare = jest.fn().mockImplementation((query) => ({
-      bind: jest.fn().mockReturnThis(),
-      run: jest.fn().mockResolvedValue({}),
-      first: jest.fn().mockImplementation(() => {
-        if (query.includes('SELECT 1')) {
-          return Promise.resolve({ test: 1 });
-        }
-        if (query.includes('sqlite_master')) {
-          return Promise.resolve({ name: 'clients' });
-        }
-        if (query.includes('client_id')) {
-          const testClientId = '_test_status_check_' + Date.now();
-          return Promise.resolve({ client_id: testClientId });
-        }
-        return Promise.resolve({});
-      }),
-      all: jest.fn().mockImplementation(() => {
-        if (query.includes('sqlite_master')) {
-          return Promise.resolve({ 
-            results: [
-              { name: 'clients', sql: 'CREATE TABLE clients...' },
-              { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
-            ] 
-          });
-        }
-        if (query.includes('integrity_check')) {
-          return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
-        }
-        return Promise.resolve({ results: [] });
-      }),
-    }));
-
-    const testData = JSON.stringify({ test: 'data' });
-    env.STORAGE = {
-      get: jest.fn().mockImplementation((key) => {
-        if (key.includes('_test_status_check_')) {
-          return Promise.resolve({
-            text: () => Promise.resolve(testData),
-            body: testData,
-            uploaded: new Date(),
-          });
-        }
-        return Promise.resolve(null);
-      }),
-      put: jest.fn().mockResolvedValue({}),
-      delete: jest.fn().mockResolvedValue({}),
-      list: jest.fn().mockResolvedValue({ objects: [] }),
-    };
-
-    const req = new Request('https://api.chroniclesync.xyz/admin/status', {
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-      },
-    });
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.worker.status).toBe(true);
-    expect(data.database.status).toBe(true);
-    expect(data.storage.status).toBe(true);
-    expect(data.database.tests.connection).toBe(true);
-    expect(data.database.tests.table_exists).toBe(true);
-    expect(data.database.tests.write_test).toBe(true);
-    expect(data.database.tests.read_test).toBe(true);
-    expect(data.storage.tests.connection).toBe(true);
-    expect(data.storage.tests.write_test).toBe(true);
-    expect(data.storage.tests.read_test).toBe(true);
-    expect(data.storage.tests.delete_test).toBe(true);
-  });
-
-  it('handles CORS headers correctly', async () => {
-    // Test production domain
-    const prodReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { Origin: 'https://chroniclesync.xyz' },
-    });
-    const prodRes = await worker.fetch(prodReq, env);
-    expect(prodRes.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
-
-    // Test pages.dev subdomain
-    const pagesReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { Origin: 'https://my-branch.chroniclesync-pages.pages.dev' },
-    });
-    const pagesRes = await worker.fetch(pagesReq, env);
-    expect(pagesRes.headers.get('Access-Control-Allow-Origin')).toBe('https://my-branch.chroniclesync-pages.pages.dev');
-
-    // Test localhost
-    const localReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { Origin: 'http://localhost:8787' },
-    });
-    const localRes = await worker.fetch(localReq, env);
-    expect(localRes.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8787');
-
-    // Test disallowed origin
-    const badReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      headers: { Origin: 'https://evil.com' },
-    });
-    const badRes = await worker.fetch(badReq, env);
-    expect(badRes.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
-
-    // Test OPTIONS request
-    const optionsReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      method: 'OPTIONS',
-      headers: { Origin: 'https://chroniclesync.xyz' },
-    });
-    const optionsRes = await worker.fetch(optionsReq, env);
-    expect(optionsRes.status).toBe(200);
-    expect(optionsRes.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
-  });
-
-  it('handles client post errors', async () => {
-    // Test JSON parse error
-    const badJsonReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      method: 'POST',
-      body: 'invalid json',
-    });
-    const badJsonRes = await worker.fetch(badJsonReq, env);
-    expect(badJsonRes.status).toBe(500);
-    const badJsonData = await badJsonRes.json();
-    expect(badJsonData.error).toBeTruthy();
-
-    // Test storage error
-    env.STORAGE.put.mockImplementation(() => {
-      throw new Error('Storage error');
-    });
-    const storageErrorReq = new Request('https://api.chroniclesync.xyz/?clientId=test123', {
-      method: 'POST',
-      body: JSON.stringify({ test: 'data' }),
-    });
-    const storageErrorRes = await worker.fetch(storageErrorReq, env);
-    expect(storageErrorRes.status).toBe(500);
-    const storageErrorData = await storageErrorRes.json();
-    expect(storageErrorData.error).toBe('Storage error');
-  });
-
-  describe('admin workflow', () => {
-    const makeRequest = (action) => new Request('https://api.chroniclesync.xyz/admin/workflow', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action }),
-    });
-
-    beforeEach(() => {
-      // Reset DB mock for database tests
-      env.DB = {
-        prepare: jest.fn().mockImplementation((query) => ({
-          bind: jest.fn().mockReturnThis(),
-          run: jest.fn().mockResolvedValue({}),
-          first: jest.fn().mockImplementation(() => {
-            if (query.includes('SELECT 1')) {
-              return Promise.resolve({ test: 1 });
-            }
-            if (query.includes('sqlite_master')) {
-              return Promise.resolve({ name: 'clients' });
-            }
-            if (query.includes('client_id')) {
-              return Promise.resolve({ client_id: '_test_status_check_123' });
-            }
-            return Promise.resolve({});
-          }),
-          all: jest.fn().mockImplementation(() => {
-            if (query.includes('sqlite_master')) {
-              return Promise.resolve({ 
-                results: [
-                  { name: 'clients', sql: 'CREATE TABLE clients...' },
-                  { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
-                ] 
-              });
-            }
-            if (query.includes('integrity_check')) {
-              return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
-            }
-            return Promise.resolve({ results: [] });
-          }),
-        })),
-        batch: jest.fn().mockResolvedValue([]),
-      };
-
-      // Reset Storage mock for storage tests
-      env.STORAGE = {
-        get: jest.fn().mockImplementation((key) => {
-          if (key.includes('_test_status_check_')) {
-            return Promise.resolve({
-              text: () => Promise.resolve(JSON.stringify({ test: 'data' })),
-              body: JSON.stringify({ test: 'data' }),
-              uploaded: new Date(),
-            });
-          }
-          return Promise.resolve(null);
-        }),
-        put: jest.fn().mockResolvedValue({}),
-        delete: jest.fn().mockResolvedValue({}),
-        list: jest.fn().mockResolvedValue({ objects: [] }),
-      };
-    });
-
-    it('should initialize database', async () => {
-      const request = makeRequest('init-database');
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.message).toBe('Database initialized successfully');
-      expect(data.status).toBe('completed');
-
-      // Verify DB calls
-      expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS clients'));
-      expect(env.DB.batch).toHaveBeenCalled();
-    });
-
-    it('should check tables', async () => {
-      const request = makeRequest('check-tables');
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.message).toBe('Database check completed');
-      expect(data.status).toBe('completed');
-      expect(data.tables).toBeInstanceOf(Array);
-      expect(data.indexes).toBeInstanceOf(Array);
-    });
-
-    it('should repair tables', async () => {
-      const request = makeRequest('repair-tables');
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.message).toBe('Database repair completed');
-      expect(data.status).toBe('completed');
-      expect(data.integrityCheck).toBeInstanceOf(Array);
-
-      // Verify DB calls
-      expect(env.DB.prepare).toHaveBeenCalledWith('ANALYZE clients');
-      expect(env.DB.prepare).toHaveBeenCalledWith('VACUUM');
-      expect(env.DB.prepare).toHaveBeenCalledWith('PRAGMA integrity_check');
-    });
-
-    it('should reject invalid actions', async () => {
-      const request = makeRequest('invalid-action');
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(400);
-    });
-
-    it('should handle database errors', async () => {
-      env.DB.prepare.mockImplementation(() => {
-        throw new Error('Database error');
-      });
-
-      const request = makeRequest('init-database');
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(500);
-
-      const data = await response.json();
-      expect(data.error).toBe('Database operation failed');
-      expect(data.details).toBe('Database error');
-    });
-
-    it('should handle invalid method', async () => {
-      const request = new Request('https://api.chroniclesync.xyz/admin/workflow', {
-        method: 'GET',
+  describe('Admin Client Operations', () => {
+    it('handles invalid client ID', async () => {
+      const resp = await makeRequest('/?clientId=invalid/client', {
+        method: 'POST',
         headers: {
-          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({ test: 'data' })
       });
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(405);
+      expect(resp.status).toBe(400);
+      expect(await resp.text()).toBe('Invalid client ID');
+    });
+    const clientId = 'test_client';
+    const testData = { test: 'data' };
+
+    beforeEach(async () => {
+      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(testData));
+      await env.METADATA.put(clientId, JSON.stringify({
+        lastSync: new Date().toISOString(),
+        dataSize: JSON.stringify(testData).length
+      }));
+    });
+
+    it('handles unsupported methods', async () => {
+      const resp = await makeRequest('/admin/client?clientId=test123', {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(405);
+      expect(await resp.text()).toBe('Method not allowed');
+    });
+
+    it('handles storage errors during deletion', async () => {
+      const originalList = env.STORAGE.list;
+      const originalDelete = env.STORAGE.delete;
+      env.STORAGE.list = () => Promise.resolve({ objects: [{ key: 'test123/data' }] });
+      env.STORAGE.delete = () => { throw new Error('Storage error'); };
+
+      const resp = await makeRequest('/admin/client?clientId=test123', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(500);
+      expect(await resp.text()).toBe('Internal server error');
+
+      // Restore original functions
+      env.STORAGE.list = originalList;
+      env.STORAGE.delete = originalDelete;
+    });
+
+    it('deletes client data and metadata', async () => {
+      const resp = await makeRequest('/admin/client?clientId=' + clientId, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+      expect(await resp.text()).toBe('Client deleted');
+
+      // Verify data was deleted
+      const metadata = await env.METADATA.get(clientId);
+      expect(metadata).toBeNull();
+
+      const data = await env.STORAGE.get(`${clientId}/data`);
+      expect(data).toBeNull();
+    });
+
+    it('requires client ID for deletion', async () => {
+      const resp = await makeRequest('/admin/client', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(400);
+      expect(await resp.text()).toBe('Client ID required');
     });
   });
 
-  describe('admin status', () => {
-    it('should check all components with success', async () => {
-      // Set up successful mocks
-      env.DB.prepare = jest.fn().mockImplementation((query) => ({
-        bind: jest.fn().mockReturnThis(),
-        run: jest.fn().mockResolvedValue({}),
-        first: jest.fn().mockImplementation(() => {
-          if (query.includes('SELECT 1')) {
-            return Promise.resolve({ test: 1 });
-          }
-          if (query.includes('sqlite_master')) {
-            return Promise.resolve({ name: 'clients' });
-          }
-          if (query.includes('client_id')) {
-            const testClientId = '_test_status_check_' + Date.now();
-            return Promise.resolve({ client_id: testClientId });
-          }
-          return Promise.resolve({});
-        }),
-        all: jest.fn().mockImplementation(() => {
-          if (query.includes('sqlite_master')) {
-            return Promise.resolve({ 
-              results: [
-                { name: 'clients', sql: 'CREATE TABLE clients...' },
-                { name: 'idx_last_sync', sql: 'CREATE INDEX idx_last_sync...' }
-              ] 
-            });
-          }
-          if (query.includes('integrity_check')) {
-            return Promise.resolve({ results: [{ integrity_check: 'ok' }] });
-          }
-          return Promise.resolve({ results: [] });
-        }),
+  describe('Admin Status Check', () => {
+    let originalList;
+    let originalGet;
+    let originalPut;
+    let originalDelete;
+
+    beforeEach(async () => {
+      await env.METADATA.put('_test_status_check_123', JSON.stringify({
+        lastSync: new Date().toISOString(),
+        dataSize: 100
+      }));
+      await env.STORAGE.put('_test_status_check_123/data', JSON.stringify({ test: 'data' }));
+
+      // Save original functions
+      originalList = env.STORAGE.list;
+      originalGet = env.STORAGE.get;
+      originalPut = env.STORAGE.put;
+      originalDelete = env.STORAGE.delete;
+
+      // Mock storage functions to return success
+      env.STORAGE.list = () => Promise.resolve({ objects: [] });
+      env.STORAGE.get = () => Promise.resolve({ text: () => Promise.resolve(JSON.stringify({ test: 'data' })) });
+      env.STORAGE.put = () => Promise.resolve();
+      env.STORAGE.delete = () => Promise.resolve();
+    });
+
+    afterEach(() => {
+      // Restore original functions
+      env.STORAGE.list = originalList;
+      env.STORAGE.get = originalGet;
+      env.STORAGE.put = originalPut;
+      env.STORAGE.delete = originalDelete;
+    });
+
+    it('handles test client data', async () => {
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(true);
+      expect(status.storage.status).toBe(true);
+    });
+
+    it('handles missing test client data', async () => {
+      await env.METADATA.delete('_test_status_check_123');
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(true);
+      expect(status.storage.status).toBe(true);
+    });
+
+    it('handles invalid JSON in client data', async () => {
+      await env.STORAGE.put('_test_status_check_123/data', 'invalid json');
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(true);
+      expect(status.storage.status).toBe(true);
+    });
+
+    it('handles KV errors', async () => {
+      const originalList = env.METADATA.list;
+      env.METADATA.list = () => { throw new Error('KV error'); };
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(false);
+      expect(status.metadata.error).toBe('KV error');
+
+      // Restore original list function
+      env.METADATA.list = originalList;
+    });
+
+    it('handles R2 errors', async () => {
+      const originalList = env.STORAGE.list;
+      env.STORAGE.list = () => { throw new Error('R2 error'); };
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.storage.status).toBe(false);
+      expect(status.storage.error).toBe('R2 error');
+
+      // Restore original list function
+      env.STORAGE.list = originalList;
+    });
+
+    it('performs comprehensive status check', async () => {
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(true);
+      expect(status.storage.status).toBe(true);
+
+      // Verify KV tests
+      expect(status.metadata.tests.connection).toBe(true);
+      expect(status.metadata.tests.write_test).toBe(true);
+      expect(status.metadata.tests.read_test).toBe(true);
+      expect(status.metadata.tests.delete_test).toBe(true);
+      expect(status.metadata.tests.list_test).toBe(true);
+
+      // Verify R2 tests
+      expect(status.storage.tests.connection).toBe(true);
+      expect(status.storage.tests.write_test).toBe(true);
+      expect(status.storage.tests.read_test).toBe(true);
+      expect(status.storage.tests.delete_test).toBe(true);
+    });
+  });
+
+  describe('Admin Workflow', () => {
+    beforeEach(async () => {
+      await env.METADATA.put('valid_client', JSON.stringify({
+        lastSync: new Date().toISOString(),
+        dataSize: 100
+      }));
+      await env.METADATA.put('invalid_client', JSON.stringify({
+        lastSync: 'invalid-date',
+        dataSize: 0
+      }));
+      await env.METADATA.put('orphaned_client', JSON.stringify({
+        lastSync: new Date().toISOString(),
+        dataSize: 0
       }));
 
-      const testData = JSON.stringify({ test: 'data' });
-      env.STORAGE = {
-        get: jest.fn().mockImplementation((key) => {
-          if (key.includes('_test_status_check_')) {
-            return Promise.resolve({
-              text: () => Promise.resolve(testData),
-              body: testData,
-              uploaded: new Date(),
-            });
-          }
-          return Promise.resolve(null);
-        }),
-        put: jest.fn().mockResolvedValue({}),
-        delete: jest.fn().mockResolvedValue({}),
-        list: jest.fn().mockResolvedValue({ objects: [] }),
-      };
-
-      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest',
-        },
-      });
-
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.worker.status).toBe(true);
-      expect(data.database.status).toBe(true);
-      expect(data.storage.status).toBe(true);
-
-      expect(data.database.tests.connection).toBe(true);
-      expect(data.database.tests.table_exists).toBe(true);
-      expect(data.database.tests.write_test).toBe(true);
-      expect(data.database.tests.read_test).toBe(true);
-
-      expect(data.storage.tests.connection).toBe(true);
-      expect(data.storage.tests.write_test).toBe(true);
-      expect(data.storage.tests.read_test).toBe(true);
-      expect(data.storage.tests.delete_test).toBe(true);
+      await env.STORAGE.put('valid_client/data', JSON.stringify({ test: 'data' }));
     });
 
-    it('should handle database failure', async () => {
-      env.DB.prepare.mockImplementation(() => {
-        throw new Error('Database connection failed');
-      });
-
-      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
+    it('handles invalid request method', async () => {
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'GET',
         headers: {
-          'Authorization': 'Bearer francesisthebest',
-        },
+          'Authorization': 'Bearer francesisthebest'
+        }
       });
-
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.worker.status).toBe(true);
-      expect(data.database.status).toBe(false);
-      expect(data.database.error).toBe('Database connection failed');
-      expect(data.database.tests.connection).toBe(false);
+      expect(resp.status).toBe(405);
+      expect(await resp.text()).toBe('Method not allowed');
     });
 
-    it('should handle storage failure', async () => {
-      env.STORAGE.list.mockImplementation(() => {
-        throw new Error('Storage connection failed');
-      });
+    it('handles workflow errors', async () => {
+      const originalList = env.METADATA.list;
+      env.METADATA.list = () => { throw new Error('Workflow error'); };
 
-      const request = new Request('https://api.chroniclesync.xyz/admin/status', {
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'POST',
         headers: {
           'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({ action: 'check-metadata' })
       });
+      expect(resp.status).toBe(500);
+      const error = await resp.json();
+      expect(error.error).toBe('Metadata operation failed');
+      expect(error.details).toBe('Workflow error');
 
-      const response = await worker.fetch(request, env);
-      expect(response.status).toBe(200);
+      // Restore original list function
+      env.METADATA.list = originalList;
+    });
 
-      const data = await response.json();
-      expect(data.worker.status).toBe(true);
-      expect(data.storage.status).toBe(false);
-      expect(data.storage.error).toBe('Storage connection failed');
-      expect(data.storage.tests.connection).toBe(false);
+    it('checks metadata integrity', async () => {
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'check-metadata' })
+      });
+      expect(resp.status).toBe(200);
+
+      const data = await resp.json();
+      expect(data.status).toBe('completed');
+      expect(data.message).toBe('Metadata check completed');
+      expect(Array.isArray(data.results)).toBe(true);
+
+      // Find results for each test client
+      const validResult = data.results.find(r => r.clientId === 'valid_client');
+      const invalidResult = data.results.find(r => r.clientId === 'invalid_client');
+      const orphanedResult = data.results.find(r => r.clientId === 'orphaned_client');
+
+      expect(validResult.valid).toBe(true);
+      expect(invalidResult.valid).toBe(false);
+      expect(orphanedResult.valid).toBe(true);
+    });
+
+    it('cleans up invalid and orphaned metadata', async () => {
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'cleanup-metadata' })
+      });
+      expect(resp.status).toBe(200);
+
+      const data = await resp.json();
+      expect(data.status).toBe('completed');
+      expect(data.message).toBe('Metadata cleanup completed');
+      expect(data.results.processed).toBe(3);
+      expect(data.results.cleaned).toBe(2); // invalid_client and orphaned_client should be cleaned
+
+      // Verify cleanup
+      const validMetadata = await env.METADATA.get('valid_client');
+      const invalidMetadata = await env.METADATA.get('invalid_client');
+      const orphanedMetadata = await env.METADATA.get('orphaned_client');
+
+      expect(validMetadata).toBeTruthy();
+      expect(invalidMetadata).toBeNull();
+      expect(orphanedMetadata).toBeNull();
+    });
+
+    it('rejects invalid workflow actions', async () => {
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'invalid-action' })
+      });
+      expect(resp.status).toBe(400);
+      expect(await resp.text()).toBe('Invalid action');
+    });
+  });
+
+  describe('CORS Headers', () => {
+    it('handles production domain', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { Origin: 'https://chroniclesync.xyz' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+    });
+
+    it('handles pages.dev subdomain', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { Origin: 'https://my-branch.chroniclesync-pages.pages.dev' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://my-branch.chroniclesync-pages.pages.dev');
+    });
+
+    it('handles localhost', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { Origin: 'http://localhost:8787' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8787');
+    });
+
+    it('handles disallowed origin', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { Origin: 'https://evil.com' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+    });
+
+    it('handles OPTIONS request', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://chroniclesync.xyz' }
+      });
+      expect(resp.status).toBe(200);
+      expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
+      expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
+      expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
     });
   });
 });

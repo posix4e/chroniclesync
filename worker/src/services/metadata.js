@@ -30,9 +30,8 @@ class MetadataService {
   }
 
   async validateMetadata(metadata) {
-    return metadata && 
-           metadata.lastSync && 
-           !isNaN(new Date(metadata.lastSync).getTime());
+    if (!metadata || !metadata.lastSync) return false;
+    return !isNaN(new Date(metadata.lastSync).getTime());
   }
 }
 

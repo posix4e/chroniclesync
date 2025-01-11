@@ -453,6 +453,14 @@ export default {
   async handleClientPost(request, env, clientId) {
     const origin = request.headers.get('Origin') || '*';
     
+    // Validate client ID format
+    if (!/^[a-zA-Z0-9_-]+$/.test(clientId)) {
+      return new Response('Invalid client ID', { 
+        status: 400,
+        headers: this.corsHeaders(origin)
+      });
+    }
+    
     try {
       const data = await request.json();
       

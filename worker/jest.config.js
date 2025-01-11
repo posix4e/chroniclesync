@@ -9,6 +9,7 @@ module.exports = {
     }
   },
   testMatch: ['**/*.test.js'],
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.js'],
   collectCoverageFrom: ['src/**/*.js'],
   coverageThreshold: {
     global: {

@@ -1,4 +1,5 @@
 import worker from './index.js';
+import './test-setup.js';
 
 /**
  * @param {string} path

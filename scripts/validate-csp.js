@@ -1,6 +1,28 @@
 const fs = require('fs');
 const path = require('path');
-const parse5 = require('parse5');
+
+// Simple HTML parser for script and style tags
+function parseHTML(content) {
+    const tags = [];
+    let pos = 0;
+    
+    while (pos < content.length) {
+        const startTag = content.indexOf('<', pos);
+        if (startTag === -1) break;
+        
+        const endTag = content.indexOf('>', startTag);
+        if (endTag === -1) break;
+        
+        const tag = content.slice(startTag, endTag + 1);
+        if (tag.match(/<(script|style|link)\s|<(script|style)>/i)) {
+            tags.push(tag);
+        }
+        
+        pos = endTag + 1;
+    }
+    
+    return tags;
+}
 
 // Parse CSP header from _headers file
 function parseCSP(headersPath) {
@@ -38,8 +60,40 @@ function collectSources(directory) {
         const content = fs.readFileSync(filePath, 'utf-8');
 
         if (ext === '.html') {
-            const document = parse5.parse(content);
-            traverseDOM(document, sources);
+            const tags = parseHTML(content);
+            for (const tag of tags) {
+                if (tag.match(/<script/i)) {
+                    const src = tag.match(/src=["']([^"']+)["']/);
+                    if (src) {
+                        if (src[1].startsWith('http')) {
+                            sources['script-src'].add(new URL(src[1]).origin);
+                        } else {
+                            sources['script-src'].add("'self'");
+                        }
+                    } else {
+                        sources['script-src'].add("'unsafe-inline'");
+                    }
+                }
+
+                if (tag.match(/<style/i)) {
+                    sources['style-src'].add("'unsafe-inline'");
+                }
+
+                if (tag.match(/<link/i) && tag.match(/rel=["']stylesheet["']/i)) {
+                    const href = tag.match(/href=["']([^"']+)["']/);
+                    if (href && href[1].startsWith('http')) {
+                        sources['style-src'].add(new URL(href[1]).origin);
+                    } else {
+                        sources['style-src'].add("'self'");
+                    }
+                }
+            }
+
+            // Check for emoji usage in HTML
+            if (/[\u{1F300}-\u{1F9FF}]/u.test(content)) {
+                sources['font-src'].add("'self'");
+                sources['font-src'].add('data:');
+            }
         } else if (ext === '.js') {
             // Find API_URL definitions and hostname-based URLs
             const apiUrlPatterns = content.match(/if\s*\(\s*hostname\s*===?\s*['"`][^'"`]+['"`]\s*\)\s*{\s*return\s*['"`](https?:\/\/[^'"`]+)['"`]/g);
@@ -97,51 +151,6 @@ function collectSources(directory) {
                 sources['font-src'].add('data:');
             }
         }
-    }
-
-    function traverseDOM(node, sources) {
-        if (node.tagName === 'script') {
-            const src = getAttribute(node, 'src');
-            if (src) {
-                if (src.startsWith('http')) {
-                    sources['script-src'].add(new URL(src).origin);
-                } else {
-                    sources['script-src'].add("'self'");
-                }
-            } else {
-                // Inline script
-                sources['script-src'].add("'unsafe-inline'");
-            }
-        }
-
-        if (node.tagName === 'style') {
-            sources['style-src'].add("'unsafe-inline'");
-        }
-
-        if (node.tagName === 'link' && getAttribute(node, 'rel') === 'stylesheet') {
-            const href = getAttribute(node, 'href');
-            if (href && href.startsWith('http')) {
-                sources['style-src'].add(new URL(href).origin);
-            } else {
-                sources['style-src'].add("'self'");
-            }
-        }
-
-        // Check for emoji usage (might need font-src)
-        if (node.value && /[\u{1F300}-\u{1F9FF}]/u.test(node.value)) {
-            sources['font-src'].add("'self'");
-            sources['font-src'].add('data:');
-        }
-
-        if (node.childNodes) {
-            node.childNodes.forEach(child => traverseDOM(child, sources));
-        }
-    }
-
-    function getAttribute(node, name) {
-        if (!node.attrs) return null;
-        const attr = node.attrs.find(a => a.name === name);
-        return attr ? attr.value : null;
     }
 
     // Recursively process all files

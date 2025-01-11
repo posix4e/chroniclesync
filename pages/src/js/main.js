@@ -186,61 +186,28 @@ async function viewClientData(clientId) {
   }
 }
 
-async function triggerWorkflow(action, environment) {
-  if (!confirm(`Are you sure you want to run ${action} on ${environment}?`)) {
-    return;
-  }
 
+
+async function checkHealth() {
+  const healthStatus = document.getElementById('healthStatus');
+  const lastCheck = document.getElementById('lastCheck');
+  
   try {
-    const response = await fetch(`${API_URL}/admin/workflow`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer francesisthebest',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ action, environment })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to trigger workflow');
-    }
-
-    try {
-      const result = await response.json();
-      alert(`Workflow triggered: ${result.message}`);
-    } catch (error) {
-      throw new Error('Invalid JSON');
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+    
+    healthStatus.textContent = data.healthy ? '✅ Healthy' : '❌ Unhealthy';
+    healthStatus.className = data.healthy ? 'health-ok' : 'health-error';
+    lastCheck.textContent = new Date().toLocaleString();
+    
+    if (!data.healthy && data.error) {
+      alert(`Health check failed: ${data.error}`);
     }
   } catch (error) {
-    alert(`Error triggering workflow: ${error.message}`);
-  }
-}
-
-async function checkSystemStatus() {
-  try {
-    const response = await fetch(`${API_URL}/admin/status`, {
-      headers: {
-        'Authorization': 'Bearer francesisthebest'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to check status');
-    }
-
-    const status = await response.json();
-        
-    // Update production status
-    document.getElementById('prodWorkerStatus').textContent = status.production.worker ? '✅ Online' : '❌ Offline';
-    document.getElementById('prodDbStatus').textContent = status.production.database ? '✅ Connected' : '❌ Error';
-    document.getElementById('prodStorageStatus').textContent = status.production.storage ? '✅ Available' : '❌ Error';
-        
-    // Update staging status
-    document.getElementById('stagingWorkerStatus').textContent = status.staging.worker ? '✅ Online' : '❌ Offline';
-    document.getElementById('stagingDbStatus').textContent = status.staging.database ? '✅ Connected' : '❌ Error';
-    document.getElementById('stagingStorageStatus').textContent = status.staging.storage ? '✅ Available' : '❌ Error';
-  } catch (error) {
-    alert(`Error checking status: ${error.message}`);
+    healthStatus.textContent = '❌ Error';
+    healthStatus.className = 'health-error';
+    lastCheck.textContent = new Date().toLocaleString();
+    alert(`Health check error: ${error.message}`);
   }
 }
 
@@ -260,7 +227,6 @@ export {
   refreshStats,
   deleteClient,
   viewClientData,
-  triggerWorkflow,
-  checkSystemStatus,
+  checkHealth,
   formatBytes,
 };

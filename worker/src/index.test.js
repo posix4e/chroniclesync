@@ -221,6 +221,39 @@ describe('Worker API', () => {
       env.STORAGE.list = originalList;
     });
 
+    it('calculates client storage size', async () => {
+      const clientId = 'test_client';
+      const testData = { test: 'data' };
+      
+      // Setup test data
+      await env.METADATA.put(clientId, JSON.stringify({
+        lastSync: new Date().toISOString(),
+        dataSize: JSON.stringify(testData).length
+      }));
+      await env.STORAGE.put(`${clientId}/data1`, JSON.stringify(testData));
+      await env.STORAGE.put(`${clientId}/data2`, JSON.stringify(testData));
+
+      // Mock storage list to return test objects
+      env.STORAGE.list = () => Promise.resolve({
+        objects: [
+          { key: `${clientId}/data1`, size: 100 },
+          { key: `${clientId}/data2`, size: 200 }
+        ]
+      });
+
+      const resp = await makeRequest('/admin/clients', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+      const data = await resp.json();
+      
+      const clientData = data.find(c => c.clientId === clientId);
+      expect(clientData).toBeTruthy();
+      expect(clientData.dataSize).toBe(300); // 100 + 200
+    });
+
     it('handles errors in client info', async () => {
       const originalGet = env.METADATA.get;
       env.METADATA.get = () => { throw new Error('KV error'); };
@@ -268,19 +301,13 @@ describe('Worker API', () => {
     });
   });
 
-  describe('Admin Status Check', () => {
+  describe('Public Health Check', () => {
     let originalList;
     let originalGet;
     let originalPut;
     let originalDelete;
 
     beforeEach(async () => {
-      await env.METADATA.put('_test_status_check_123', JSON.stringify({
-        lastSync: new Date().toISOString(),
-        dataSize: 100
-      }));
-      await env.STORAGE.put('_test_status_check_123/data', JSON.stringify({ test: 'data' }));
-
       // Save original functions
       originalList = env.STORAGE.list;
       originalGet = env.STORAGE.get;
@@ -302,117 +329,58 @@ describe('Worker API', () => {
       env.STORAGE.delete = originalDelete;
     });
 
-    it('handles test client data', async () => {
-      const resp = await makeRequest('/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest'
-        }
-      });
+    it('returns healthy status when all services are up', async () => {
+      const resp = await makeRequest('/health');
       expect(resp.status).toBe(200);
 
       const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.metadata.status).toBe(true);
-      expect(status.storage.status).toBe(true);
+      expect(status.healthy).toBe(true);
+      expect(status.error).toBeNull();
+      expect(status.timestamp).toBeTruthy();
     });
 
-    it('handles missing test client data', async () => {
-      await env.METADATA.delete('_test_status_check_123');
-
-      const resp = await makeRequest('/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest'
-        }
-      });
-      expect(resp.status).toBe(200);
-
-      const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.metadata.status).toBe(true);
-      expect(status.storage.status).toBe(true);
-    });
-
-    it('handles invalid JSON in client data', async () => {
-      await env.STORAGE.put('_test_status_check_123/data', 'invalid json');
-
-      const resp = await makeRequest('/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest'
-        }
-      });
-      expect(resp.status).toBe(200);
-
-      const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.metadata.status).toBe(true);
-      expect(status.storage.status).toBe(true);
-    });
-
-    it('handles KV errors', async () => {
+    it('returns unhealthy status when KV is down', async () => {
       const originalList = env.METADATA.list;
       env.METADATA.list = () => { throw new Error('KV error'); };
 
-      const resp = await makeRequest('/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest'
-        }
-      });
-      expect(resp.status).toBe(200);
+      const resp = await makeRequest('/health');
+      expect(resp.status).toBe(503);
 
       const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.metadata.status).toBe(false);
-      expect(status.metadata.error).toBe('KV error');
+      expect(status.healthy).toBe(false);
+      expect(status.error).toBe('Storage connectivity issue');
+      expect(status.timestamp).toBeTruthy();
 
       // Restore original list function
       env.METADATA.list = originalList;
     });
 
-    it('handles R2 errors', async () => {
+    it('returns unhealthy status when R2 is down', async () => {
       const originalList = env.STORAGE.list;
       env.STORAGE.list = () => { throw new Error('R2 error'); };
 
-      const resp = await makeRequest('/admin/status', {
-        headers: {
-          'Authorization': 'Bearer francesisthebest'
-        }
-      });
-      expect(resp.status).toBe(200);
+      const resp = await makeRequest('/health');
+      expect(resp.status).toBe(503);
 
       const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.storage.status).toBe(false);
-      expect(status.storage.error).toBe('R2 error');
+      expect(status.healthy).toBe(false);
+      expect(status.error).toBe('Storage connectivity issue');
+      expect(status.timestamp).toBeTruthy();
 
       // Restore original list function
       env.STORAGE.list = originalList;
     });
 
-    it('performs comprehensive status check', async () => {
-      const resp = await makeRequest('/admin/status', {
+    it('includes CORS headers in response', async () => {
+      const resp = await makeRequest('/health', {
         headers: {
-          'Authorization': 'Bearer francesisthebest'
+          'Origin': 'https://chroniclesync.xyz'
         }
       });
       expect(resp.status).toBe(200);
-
-      const status = await resp.json();
-      expect(status.worker.status).toBe(true);
-      expect(status.metadata.status).toBe(true);
-      expect(status.storage.status).toBe(true);
-
-      // Verify KV tests
-      expect(status.metadata.tests.connection).toBe(true);
-      expect(status.metadata.tests.write_test).toBe(true);
-      expect(status.metadata.tests.read_test).toBe(true);
-      expect(status.metadata.tests.delete_test).toBe(true);
-      expect(status.metadata.tests.list_test).toBe(true);
-
-      // Verify R2 tests
-      expect(status.storage.tests.connection).toBe(true);
-      expect(status.storage.tests.write_test).toBe(true);
-      expect(status.storage.tests.read_test).toBe(true);
-      expect(status.storage.tests.delete_test).toBe(true);
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+      expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
+      expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
     });
   });
 
@@ -492,6 +460,29 @@ describe('Worker API', () => {
       expect(orphanedResult.valid).toBe(true);
     });
 
+    it('handles errors during metadata cleanup', async () => {
+      const originalStorageList = env.STORAGE.list;
+      env.STORAGE.list = () => { throw new Error('Storage error during cleanup'); };
+
+      const resp = await makeRequest('/admin/workflow', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'cleanup-metadata' })
+      });
+      expect(resp.status).toBe(200);
+
+      const data = await resp.json();
+      expect(data.status).toBe('completed');
+      expect(data.results.errors.length).toBeGreaterThan(0);
+      expect(data.results.errors[0].error).toBe('Storage error during cleanup');
+
+      // Restore original function
+      env.STORAGE.list = originalStorageList;
+    });
+
     it('cleans up invalid and orphaned metadata', async () => {
       const resp = await makeRequest('/admin/workflow', {
         method: 'POST',
@@ -530,6 +521,104 @@ describe('Worker API', () => {
       });
       expect(resp.status).toBe(400);
       expect(await resp.text()).toBe('Invalid action');
+    });
+  });
+
+  describe('Admin Status', () => {
+    let originalStorageList;
+    let originalStorageGet;
+    let originalStoragePut;
+    let originalStorageDelete;
+    let originalMetadataList;
+
+    beforeEach(() => {
+      // Save original functions
+      originalStorageList = env.STORAGE.list;
+      originalStorageGet = env.STORAGE.get;
+      originalStoragePut = env.STORAGE.put;
+      originalStorageDelete = env.STORAGE.delete;
+      originalMetadataList = env.METADATA.list;
+
+      // Mock storage functions to return success
+      env.STORAGE.list = () => Promise.resolve({ objects: [] });
+      env.STORAGE.get = () => Promise.resolve({ text: () => Promise.resolve(JSON.stringify({ test: 'data' })) });
+      env.STORAGE.put = () => Promise.resolve();
+      env.STORAGE.delete = () => Promise.resolve();
+      env.METADATA.list = () => Promise.resolve({ keys: [] });
+    });
+
+    afterEach(() => {
+      // Restore original functions
+      env.STORAGE.list = originalStorageList;
+      env.STORAGE.get = originalStorageGet;
+      env.STORAGE.put = originalStoragePut;
+      env.STORAGE.delete = originalStorageDelete;
+      env.METADATA.list = originalMetadataList;
+    });
+
+    it('returns status of all services', async () => {
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.worker.version).toBe('1.0.0');
+      expect(status.worker.timestamp).toBeTruthy();
+
+      expect(status.metadata.status).toBe(true);
+      expect(status.metadata.details).toBe('All KV tests passed');
+      expect(status.metadata.error).toBeNull();
+      expect(status.metadata.tests.connection).toBe(true);
+      expect(status.metadata.tests.write_test).toBe(true);
+      expect(status.metadata.tests.read_test).toBe(true);
+      expect(status.metadata.tests.delete_test).toBe(true);
+      expect(status.metadata.tests.list_test).toBe(true);
+
+      expect(status.storage.status).toBe(true);
+      expect(status.storage.details).toBe('All storage tests passed');
+      expect(status.storage.error).toBeNull();
+      expect(status.storage.tests.connection).toBe(true);
+      expect(status.storage.tests.write_test).toBe(true);
+      expect(status.storage.tests.read_test).toBe(true);
+      expect(status.storage.tests.delete_test).toBe(true);
+    });
+
+    it('handles KV failures', async () => {
+      env.METADATA.list = () => { throw new Error('KV error'); };
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(false);
+      expect(status.metadata.error).toBe('KV error');
+      expect(status.storage.status).toBe(true);
+    });
+
+    it('handles R2 failures', async () => {
+      env.STORAGE.list = () => { throw new Error('R2 error'); };
+
+      const resp = await makeRequest('/admin/status', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(200);
+
+      const status = await resp.json();
+      expect(status.worker.status).toBe(true);
+      expect(status.metadata.status).toBe(true);
+      expect(status.storage.status).toBe(false);
+      expect(status.storage.error).toBe('R2 error');
     });
   });
 

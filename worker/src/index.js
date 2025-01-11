@@ -1,3 +1,20 @@
+function formatDate(date) {
+  // Format: Thu, 01 Jan 1970 00:00:00 GMT
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const d = new Date(date);
+  const dayName = days[d.getUTCDay()];
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const month = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hours = String(d.getUTCHours()).padStart(2, '0');
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(d.getUTCSeconds()).padStart(2, '0');
+  
+  return `${dayName}, ${day} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+}
+
 export default {
   corsHeaders(origin = '*') {
     return {
@@ -101,7 +118,10 @@ export default {
       for (const client of clients.results) {
         try {
           const objects = await env.STORAGE.list({ prefix: `${client.client_id}/` });
-          const totalSize = objects.objects.reduce((acc, obj) => acc + obj.size, 0);
+          let totalSize = 0;
+          for (const obj of objects.objects) {
+            totalSize += obj.size;
+          }
           stats.push({
             clientId: client.client_id,
             lastSync: client.last_sync,
@@ -118,7 +138,12 @@ export default {
         }
       }
 
-      return Response.json(stats, { headers: this.corsHeaders() });
+      return new Response(JSON.stringify(stats), { 
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders()
+        }
+      });
     } catch (e) {
       console.error('Error getting client list:', e);
       return new Response('Internal server error', { 
@@ -200,7 +225,12 @@ export default {
       console.error('Storage check failed:', e);
     }
 
-    return Response.json(status, { headers: this.corsHeaders(origin) });
+    return new Response(JSON.stringify(status), { 
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.corsHeaders(origin)
+      }
+    });
   },
 
   async handleAdminWorkflow(request, _env) {
@@ -232,10 +262,15 @@ export default {
 
     // In a real implementation, this would trigger the GitHub workflow
     // For now, we'll just return success
-    return Response.json({
+    return new Response(JSON.stringify({
       message: `Triggered ${action} workflow for ${environment} environment`,
       status: 'pending',
-    }, { headers: this.corsHeaders(origin) });
+    }), { 
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.corsHeaders(origin)
+      }
+    });
   },
 
   async handleClientGet(request, env, clientId) {
@@ -251,7 +286,7 @@ export default {
     return new Response(data.body, {
       headers: {
         'Content-Type': 'application/json',
-        'Last-Modified': data.uploaded.toISOString(),
+        'Last-Modified': formatDate(data.uploaded),
         ...this.corsHeaders(origin)
       },
     });

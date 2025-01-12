@@ -201,6 +201,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Try running the converter directly first
+echo "Running converter with direct path..."
 if ! "$CONVERTER_PATH" "$TEMP_DIR" \
     --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \
@@ -209,13 +210,23 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
     --macos \
     --force; then
     echo "Direct converter execution failed, trying with xcrun..."
-    xcrun safari-web-extension-converter "$TEMP_DIR" \
+    if ! xcrun safari-web-extension-converter "$TEMP_DIR" \
         --project-location "$SAFARI_APP" \
         --bundle-identifier dev.all-hands.chroniclesync \
         --no-prompt \
         --swift \
         --macos \
-        --force
+        --force; then
+        echo "Both converter attempts failed. Checking environment:"
+        echo "PATH: $PATH"
+        echo "XCODE_PATH: $XCODE_PATH"
+        echo "CONVERTER_PATH: $CONVERTER_PATH"
+        echo "TEMP_DIR contents:"
+        ls -la "$TEMP_DIR"
+        echo "SAFARI_APP contents:"
+        ls -la "$SAFARI_APP"
+        exit 1
+    fi
 fi
 
 # Find the Xcode project

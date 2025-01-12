@@ -492,39 +492,44 @@ create_certificate() {
     local csr_file="$CERT_DIR/cert.csr"
     local cert_file="$CERT_DIR/cert.cer"
     local p12_file="$CERT_DIR/cert.p12"
+    local config_file="$CERT_DIR/openssl.cnf"
 
     # Validate parameters
     validate_params "$name" "$org" "$domain"
 
-    echo "Creating certificate signing request..."
-    openssl req -new -newkey rsa:2048 -nodes \
-        -keyout "$key_file" \
-        -out "$csr_file" \
-        -subj "/C=US/ST=California/L=San Francisco/O=$org/CN=$name" \
-        -config <(cat << EOF
+    # Create OpenSSL config file
+    cat > "$config_file" << EOF
 [req]
 default_bits = 2048
 prompt = no
 default_md = sha256
 distinguished_name = dn
 req_extensions = v3_req
+
 [dn]
 C = US
 ST = California
 L = San Francisco
 O = $org
 CN = $name
+
 [v3_req]
 basicConstraints = CA:FALSE
 keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = codeSigning
 subjectKeyIdentifier = hash
 subjectAltName = @alt_names
+
 [alt_names]
 DNS.1 = $domain
 DNS.2 = *.$domain
 EOF
-) || handle_cert_error "Failed to create certificate signing request"
+
+    echo "Creating certificate signing request..."
+    openssl req -new -newkey rsa:2048 -nodes \
+        -keyout "$key_file" \
+        -out "$csr_file" \
+        -config "$config_file" || handle_cert_error "Failed to create certificate signing request"
 
     echo "Creating self-signed certificate..."
     openssl x509 -req -days 365 \
@@ -532,19 +537,7 @@ EOF
         -signkey "$key_file" \
         -out "$cert_file" \
         -extensions v3_req \
-        -extfile <(cat << EOF
-[v3_req]
-basicConstraints = CA:FALSE
-keyUsage = digitalSignature, keyEncipherment
-extendedKeyUsage = codeSigning
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = $domain
-DNS.2 = *.$domain
-EOF
-) || handle_cert_error "Failed to create certificate"
+        -extfile "$config_file" || handle_cert_error "Failed to create certificate"
 
     echo "Creating PKCS#12 file..."
     openssl pkcs12 -export \

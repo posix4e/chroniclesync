@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
               for (const file of jsFiles) {
                 const srcPath = resolve(__dirname, `src/extension/${file}`);
                 const destPath = resolve(__dirname, `dist/${browser}/${file}`);
-                console.log(`Converting ${file} to CommonJS:`, { src: srcPath, dest: destPath });
+                console.log(`Copying ${file}:`, { src: srcPath, dest: destPath });
                 
                 if (!fs.existsSync(srcPath)) {
                   console.error(`Source file not found: ${srcPath}`);
@@ -41,15 +41,8 @@ export default defineConfig(({ mode }) => {
                 }
 
                 const content = fs.readFileSync(srcPath, 'utf8');
-                console.log(`Original content of ${file}:`, content);
-
-                // Remove any import/export statements and use CommonJS
-                const commonJsContent = content
-                  .replace(/import\s+.*\s+from\s+['"].*['"]/g, '')
-                  .replace(/export\s+default\s+/g, 'module.exports = ');
-
-                console.log(`Converted content of ${file}:`, commonJsContent);
-                fs.writeFileSync(destPath, commonJsContent);
+                console.log(`Content of ${file}:`, content);
+                fs.writeFileSync(destPath, content);
               }
             }
 

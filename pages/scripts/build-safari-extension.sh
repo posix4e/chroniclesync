@@ -67,12 +67,12 @@ SAFARI_APP="$(pwd)/dist/safari-app"
 echo "Verifying manifest version..."
 MANIFEST_VERSION=$(jq -r '.manifest_version' "$SAFARI_SRC/manifest.json")
 if [ "$MANIFEST_VERSION" != "2" ]; then
-    echo "Error: Safari requires manifest version 2, but found version $MANIFEST_VERSION"
-    echo "This indicates a problem with the build configuration."
-    echo "Please ensure the correct manifest version is being used."
-    echo "Current manifest content:"
-    jq '.' "$SAFARI_SRC/manifest.json"
-    exit 1
+    echo "Converting manifest to v2..."
+    jq '.manifest_version = 2 | 
+        if .action then .browser_action = .action | del(.action) else . end |
+        if .background.service_worker then .background.scripts = [.background.service_worker] | del(.background.service_worker) else . end |
+        if .host_permissions then .permissions = (.permissions + .host_permissions) | del(.host_permissions) else . end' \
+        "$SAFARI_SRC/manifest.json" > "$SAFARI_SRC/manifest.json.tmp" && mv "$SAFARI_SRC/manifest.json.tmp" "$SAFARI_SRC/manifest.json"
 fi
 
 echo "Verified manifest version 2:"

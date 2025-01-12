@@ -107,6 +107,8 @@ chmod +x "$EXTENSION_DIR/Contents/MacOS/ChronicleSync_Extension"
 # Package the app
 echo "Packaging Safari extension..."
 cd dist/safari-app
-zip -r ../../chroniclesync-safari.zip ChronicleSync.app
+rm -f ../../chroniclesync-safari.zip  # Remove any existing zip
+zip -r ../../chroniclesync-safari.zip ChronicleSync.app/* # Zip the contents directly
+cd ../..
 
 echo "✓ Safari extension built successfully"

@@ -1,98 +1,83 @@
-import { fetchWithAuth, handleResponse } from '../api';
+import { formatBytes } from '../api';
 
 describe('API utilities', () => {
-  let originalFetch: typeof window.fetch;
-  
-  interface MockResponse extends Omit<Response, 'json'> {
-    json: () => Promise<unknown>;
-  }
+  describe('API_URL resolution', () => {
+    const originalLocation = window.location;
 
-  beforeEach(() => {
-    originalFetch = window.fetch;
-    window.fetch = jest.fn();
-  });
-
-  afterEach(() => {
-    window.fetch = originalFetch;
-  });
-
-  describe('fetchWithAuth', () => {
-    it('should add authorization header when token is provided', async () => {
-      const mockResponse: MockResponse = { ok: true, json: () => Promise.resolve({ data: 'test' }) } as MockResponse;
-      (window.fetch as jest.Mock).mockResolvedValue(mockResponse);
-
-      await fetchWithAuth('/api/test', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
+    beforeEach(() => {
+      // Mock window.location
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          ...originalLocation,
+          hostname: '',
         },
-        token: 'test-token'
-      });
-
-      expect(window.fetch).toHaveBeenCalledWith('/api/test', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token'
-        }
       });
     });
 
-    it('should not add authorization header when token is not provided', async () => {
-      const mockResponse: MockResponse = { ok: true, json: () => Promise.resolve({ data: 'test' }) } as MockResponse;
-      (window.fetch as jest.Mock).mockResolvedValue(mockResponse);
-
-      await fetchWithAuth('/api/test', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+    afterEach(() => {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
       });
+    });
 
-      expect(window.fetch).toHaveBeenCalledWith('/api/test', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+    it('returns production URL for chroniclesync.xyz', () => {
+      window.location.hostname = 'chroniclesync.xyz';
+      // Re-import to get fresh value
+      jest.isolateModules(() => {
+        const apiModule = jest.requireActual('../api');
+        expect(apiModule.API_URL).toBe('https://api.chroniclesync.xyz');
+      });
+    });
+
+    it('returns staging URL for pages.dev domain', () => {
+      window.location.hostname = 'my-branch.chroniclesync.pages.dev';
+      jest.isolateModules(() => {
+        const apiModule = jest.requireActual('../api');
+        expect(apiModule.API_URL).toBe('https://api-staging.chroniclesync.xyz');
+      });
+    });
+
+    it('returns localhost URL for local development', () => {
+      window.location.hostname = 'localhost';
+      jest.isolateModules(() => {
+        const apiModule = jest.requireActual('../api');
+        expect(apiModule.API_URL).toBe('http://localhost:8787');
+      });
+    });
+
+    it('returns production URL as fallback', () => {
+      window.location.hostname = 'unknown-domain.com';
+      jest.isolateModules(() => {
+        const apiModule = jest.requireActual('../api');
+        expect(apiModule.API_URL).toBe('https://api.chroniclesync.xyz');
       });
     });
   });
 
-  describe('handleResponse', () => {
-    it('should return response data when ok', async () => {
-      const mockResponse: MockResponse = {
-        ok: true,
-        json: () => Promise.resolve({ data: 'test' })
-      } as MockResponse;
-
-      const result = await handleResponse(mockResponse as Response);
-      expect(result).toEqual({ data: 'test' });
+  describe('formatBytes', () => {
+    it('formats 0 bytes correctly', () => {
+      expect(formatBytes(0)).toBe('0 Bytes');
     });
 
-    it('should throw error with status text when not ok', async () => {
-      const mockResponse: MockResponse = {
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        json: () => Promise.resolve({ error: 'Resource not found' })
-      } as MockResponse;
-
-      await expect(handleResponse(mockResponse as Response))
-        .rejects
-        .toThrow('404 Not Found');
+    it('formats bytes correctly', () => {
+      expect(formatBytes(500)).toBe('500 Bytes');
     });
 
-    it('should include error message from response when available', async () => {
-      const mockResponse: MockResponse = {
-        ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-        json: () => Promise.resolve({ error: 'Invalid input' })
-      } as MockResponse;
+    it('formats kilobytes correctly', () => {
+      expect(formatBytes(1024)).toBe('1 KB');
+      expect(formatBytes(2048)).toBe('2 KB');
+    });
 
-      await expect(handleResponse(mockResponse as Response))
-        .rejects
-        .toThrow('400 Bad Request: Invalid input');
+    it('formats megabytes correctly', () => {
+      expect(formatBytes(1024 * 1024)).toBe('1 MB');
+      expect(formatBytes(2.5 * 1024 * 1024)).toBe('2.5 MB');
+    });
+
+    it('formats gigabytes correctly', () => {
+      expect(formatBytes(1024 * 1024 * 1024)).toBe('1 GB');
+      expect(formatBytes(1.5 * 1024 * 1024 * 1024)).toBe('1.5 GB');
     });
   });
 });

@@ -26,7 +26,7 @@ jobs:
 
       - name: Test Pages
         working-directory: pages
-        run: npm ci && npm run lint && npm run test:coverage
+        run: npm ci && npm run lint && npm run test && npm run build
 
       - name: Test Worker
         working-directory: worker

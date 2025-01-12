@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFiles: ['./jest.setup.js'],
+  setupFilesAfterEnv: ['./jest.setup.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
@@ -9,7 +9,10 @@ module.exports = {
     '**/__tests__/**/*.test.[jt]s?(x)',
   ],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+      isolatedModules: true
+    }],
     '^.+\\.(js|jsx)$': ['babel-jest', { rootMode: 'upward' }],
   },
   collectCoverageFrom: [
@@ -25,9 +28,5 @@ module.exports = {
       statements: 75,
     },
   },
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
+
 };

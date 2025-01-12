@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, formatBytes } from '../utils/api';
-import type { ClientStats } from '../types';
+import type { ClientStats } from '../types/index';
 
 export function AdminPanel() {
   const [clients, setClients] = useState<ClientStats[]>([]);

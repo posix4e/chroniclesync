@@ -1,86 +1,78 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HealthCheck } from '../HealthCheck';
+import React from 'react';
 
-// Mock the checkSystemStatus function
-const mockCheckSystemStatus = jest.fn();
-declare global {
-  interface Window {
-    checkSystemStatus: jest.Mock;
-  }
-}
-window.checkSystemStatus = mockCheckSystemStatus;
+// Mock fetch globally
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
 describe('HealthCheck', () => {
   beforeEach(() => {
-    mockCheckSystemStatus.mockReset();
+    // Reset mock before each test
+    mockFetch.mockReset();
   });
 
   it('renders initial state correctly', () => {
     render(<HealthCheck />);
-    
+
     expect(screen.getByText('System Health')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /check status/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Health' })).toBeInTheDocument();
+    expect(screen.getByText('Status:')).toBeInTheDocument();
+    expect(screen.getByText('Checking...')).toBeInTheDocument();
+    expect(screen.getByText('Last Check:')).toBeInTheDocument();
+    expect(screen.getByText('Never')).toBeInTheDocument();
   });
 
-  it('displays loading state while checking status', async () => {
-    mockCheckSystemStatus.mockImplementation(() => new Promise(() => {})); // Never resolves
-    
+  it('displays healthy status after successful check', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ healthy: true })
+    });
+
     render(<HealthCheck />);
-    
-    fireEvent.click(screen.getByRole('button', { name: /check status/i }));
-    
-    expect(screen.getByText(/checking system status/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /check status/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Check Health' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('✅ Healthy')).toBeInTheDocument();
+    });
+
+    // Verify last check time is updated
+    expect(screen.queryByText('Never')).not.toBeInTheDocument();
   });
 
-  it('displays success message when system is healthy', async () => {
-    mockCheckSystemStatus.mockResolvedValue({ status: 'healthy' });
+  it('displays unhealthy status with error message', async () => {
+    const errorMessage = 'Database connection failed';
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ healthy: false, error: errorMessage })
+    });
+
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
     
     render(<HealthCheck />);
-    
-    fireEvent.click(screen.getByRole('button', { name: /check status/i }));
-    
+    fireEvent.click(screen.getByRole('button', { name: 'Check Health' }));
+
     await waitFor(() => {
-      expect(screen.getByText(/system is healthy/i)).toBeInTheDocument();
+      expect(screen.getByText('❌ Unhealthy')).toBeInTheDocument();
     });
+
+    expect(alertMock).toHaveBeenCalledWith(`Health check failed: ${errorMessage}`);
+    alertMock.mockRestore();
   });
 
-  it('displays error message when system check fails', async () => {
-    mockCheckSystemStatus.mockRejectedValue(new Error('Connection failed'));
+  it('handles network errors gracefully', async () => {
+    const networkError = new Error('Network error');
+    mockFetch.mockRejectedValueOnce(networkError);
+
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
     
     render(<HealthCheck />);
-    
-    fireEvent.click(screen.getByRole('button', { name: /check status/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(/error checking system status/i)).toBeInTheDocument();
-      expect(screen.getByText(/connection failed/i)).toBeInTheDocument();
-    });
-  });
+    fireEvent.click(screen.getByRole('button', { name: 'Check Health' }));
 
-  it('allows retrying after error', async () => {
-    mockCheckSystemStatus
-      .mockRejectedValueOnce(new Error('First attempt failed'))
-      .mockResolvedValueOnce({ status: 'healthy' });
-    
-    render(<HealthCheck />);
-    
-    // First attempt
-    fireEvent.click(screen.getByRole('button', { name: /check status/i }));
-    
     await waitFor(() => {
-      expect(screen.getByText(/error checking system status/i)).toBeInTheDocument();
+      expect(screen.getByText('❌ Error')).toBeInTheDocument();
     });
 
-    // Retry
-    fireEvent.click(screen.getByRole('button', { name: /check status/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(/system is healthy/i)).toBeInTheDocument();
-    });
-    
-    expect(mockCheckSystemStatus).toHaveBeenCalledTimes(2);
+    expect(alertMock).toHaveBeenCalledWith(`Health check error: ${networkError.message}`);
+    alertMock.mockRestore();
   });
 });

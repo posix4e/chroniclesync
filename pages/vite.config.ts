@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { writeFileSync, copyFileSync, mkdirSync } from 'fs';
+import * as fs from 'fs';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -21,16 +21,16 @@ export default defineConfig(({ command, mode }) => {
             ];
 
             for (const [src, dest] of staticFiles) {
-              copyFileSync(
+              fs.copyFileSync(
                 resolve(__dirname, `src/extension/${src}`),
                 resolve(__dirname, `dist/extension/${dest}`)
               );
             }
 
             // Copy icons
-            mkdirSync(resolve(__dirname, 'dist/extension/icons'), { recursive: true });
+            fs.mkdirSync(resolve(__dirname, 'dist/extension/icons'), { recursive: true });
             ['16', '48', '128'].forEach(size => {
-              copyFileSync(
+              fs.copyFileSync(
                 resolve(__dirname, `src/extension/icons/icon${size}.png`),
                 resolve(__dirname, `dist/extension/icons/icon${size}.png`)
               );

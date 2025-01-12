@@ -1,12 +1,14 @@
 /* global safari */
 // Browser API compatibility layer
-const browserAPI = (() => {
+(() => {
   if (typeof browser !== 'undefined') {
     // Firefox already has the browser namespace
-    return browser;
-  } else if (typeof chrome !== 'undefined') {
+    return;
+  }
+
+  if (typeof chrome !== 'undefined') {
     // Chrome uses the chrome namespace
-    return {
+    window.browser = {
       storage: {
         local: {
           get: (keys) => new Promise((resolve) => chrome.storage.local.get(keys, resolve)),
@@ -24,9 +26,12 @@ const browserAPI = (() => {
         create: (details) => new Promise((resolve) => chrome.tabs.create(details, resolve))
       }
     };
-  } else if (typeof safari !== 'undefined') {
+    return;
+  }
+
+  if (typeof safari !== 'undefined') {
     // Safari extension API
-    return {
+    window.browser = {
       storage: {
         local: {
           get: async (keys) => {
@@ -81,14 +86,8 @@ const browserAPI = (() => {
         }
       }
     };
-  } else {
-    throw new Error('No compatible browser API found');
+    return;
   }
-})();
 
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = browserAPI;
-} else {
-  window.browserAPI = browserAPI;
-}
+  throw new Error('No compatible browser API found');
+})();

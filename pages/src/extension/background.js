@@ -1,5 +1,7 @@
-// Use the global browserAPI object
-const browserAPI = window.browserAPI || require('./browser-polyfill.js');
+// Use the appropriate browser API
+const browserAPI = (typeof browser !== 'undefined' ? browser :
+                   typeof chrome !== 'undefined' ? chrome :
+                   typeof safari !== 'undefined' ? safari : null);
 
 // Configuration
 const API_URL = (() => {

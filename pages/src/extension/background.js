@@ -1,3 +1,8 @@
+// Use the appropriate browser API
+const browserAPI = (typeof browser !== 'undefined' ? browser :
+  typeof chrome !== 'undefined' ? chrome :
+  typeof window !== 'undefined' && window.safari ? window.safari : null);
+
 // Configuration
 const API_URL = (() => {
   // For extensions, we'll use the production API by default
@@ -13,11 +18,11 @@ async function initialize() {
   if (isInitialized) return;
   
   // Get or generate unique client ID
-  const storage = await chrome.storage.local.get(['clientId', 'lastSync']);
+  const storage = await browserAPI.storage.local.get(['clientId', 'lastSync']);
   clientId = storage.clientId;
   if (!clientId) {
     clientId = 'browser_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    await chrome.storage.local.set({ clientId });
+    await browserAPI.storage.local.set({ clientId });
   }
 
   const lastSync = storage.lastSync || Date.now() - (24 * 60 * 60 * 1000);
@@ -37,7 +42,7 @@ async function initialize() {
 async function syncHistory(startTime) {
   try {
     // Get local history since last sync
-    const historyItems = await chrome.history.search({
+    const historyItems = await browserAPI.history.search({
       text: '',
       startTime,
       maxResults: 1000
@@ -84,12 +89,12 @@ async function syncHistory(startTime) {
     });
 
     // Update local sync time
-    await chrome.storage.local.set({ lastSync: Date.now() });
+    await browserAPI.storage.local.set({ lastSync: Date.now() });
 
     // Add any new remote entries to local history
     for (const item of mergedHistory.values()) {
       try {
-        await chrome.history.addUrl({
+        await browserAPI.history.addUrl({
           url: item.url,
           title: item.title
         });
@@ -103,12 +108,12 @@ async function syncHistory(startTime) {
 }
 
 async function getLastSync() {
-  const storage = await chrome.storage.local.get(['lastSync']);
+  const storage = await browserAPI.storage.local.get(['lastSync']);
   return storage.lastSync || 0;
 }
 
 // Listen for new history items and trigger sync
-chrome.history.onVisited.addListener(async () => {
+browserAPI.history.onVisited.addListener(async () => {
   await syncHistory(await getLastSync());
 });
 

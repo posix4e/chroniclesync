@@ -215,7 +215,30 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
     --no-build \
     --no-configure-xcode \
     --no-install \
-    --no-run; then
+    --no-run \
+    --platform macos \
+    --deployment-target 10.15 \
+    --language swift \
+    --swift-version 5.0 \
+    --development-region en \
+    --organization-name "OpenHands" \
+    --organization-identifier "dev.all-hands" \
+    --product-name "ChronicleSync" \
+    --product-version "1.0.0" \
+    --product-build-version "1" \
+    --product-copyright "Copyright © 2024 OpenHands. All rights reserved." \
+    --product-bundle-identifier "dev.all-hands.chroniclesync" \
+    --product-team-identifier "" \
+    --product-signing-identity "-" \
+    --product-signing-certificate "-" \
+    --product-provisioning-profile "" \
+    --product-provisioning-profile-specifier "" \
+    --product-entitlements "" \
+    --product-capabilities "" \
+    --product-frameworks "" \
+    --product-resources "" \
+    --product-info-plist "" \
+    --product-settings ""; then
     echo "Direct converter execution failed, trying with xcrun..."
     if ! xcrun safari-web-extension-converter "$TEMP_DIR" \
         --project-location "$SAFARI_APP" \
@@ -230,7 +253,30 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
         --no-build \
         --no-configure-xcode \
         --no-install \
-        --no-run; then
+        --no-run \
+        --platform macos \
+        --deployment-target 10.15 \
+        --language swift \
+        --swift-version 5.0 \
+        --development-region en \
+        --organization-name "OpenHands" \
+        --organization-identifier "dev.all-hands" \
+        --product-name "ChronicleSync" \
+        --product-version "1.0.0" \
+        --product-build-version "1" \
+        --product-copyright "Copyright © 2024 OpenHands. All rights reserved." \
+        --product-bundle-identifier "dev.all-hands.chroniclesync" \
+        --product-team-identifier "" \
+        --product-signing-identity "-" \
+        --product-signing-certificate "-" \
+        --product-provisioning-profile "" \
+        --product-provisioning-profile-specifier "" \
+        --product-entitlements "" \
+        --product-capabilities "" \
+        --product-frameworks "" \
+        --product-resources "" \
+        --product-info-plist "" \
+        --product-settings ""; then
         echo "Both converter attempts failed. Checking environment:"
         echo "PATH: $PATH"
         echo "XCODE_PATH: $XCODE_PATH"
@@ -243,6 +289,12 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
         "$CONVERTER_PATH" --version || true
         echo "Converter help:"
         "$CONVERTER_PATH" --help || true
+        echo "Xcode version:"
+        xcodebuild -version
+        echo "Available SDKs:"
+        xcodebuild -showsdks
+        echo "Available platforms:"
+        xcrun --show-sdk-platform-path --sdk macosx
         exit 1
     fi
 fi

@@ -105,7 +105,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Delete old beta releases and their tags
-          for tag in $(gh release list | grep "beta-" | cut -f1); do
+          for tag in $(gh release list --limit 100 | grep -o 'beta-[0-9]\{8\}-[0-9]\{6\}'); do
             echo "Deleting release and tag: $tag"
             gh release delete "$tag" -y || true
             git tag -d "$tag" 2>/dev/null || true

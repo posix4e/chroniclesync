@@ -106,35 +106,60 @@ jobs:
           echo "Building web app..."
           npm run build:web
 
-          echo "Building browser extensions..."
-          if ! npm run build:extensions; then
-            echo "::error::Failed to build browser extensions"
+          echo "Building Chrome extension..."
+          if ! BROWSER=chrome npm run build:extensions; then
+            echo "::error::Failed to build Chrome extension"
             echo "Build output:"
-            ls -la dist/
-            for browser in chrome firefox safari; do
-              if [ -d "dist/$browser" ]; then
-                echo "Contents of dist/$browser:"
-                ls -la "dist/$browser"
-                if [ -f "dist/$browser/manifest.json" ]; then
-                  echo "Manifest for $browser:"
-                  cat "dist/$browser/manifest.json"
-                fi
-              fi
-            done
+            ls -la dist/chrome || true
+            if [ -f "dist/chrome/manifest.json" ]; then
+              echo "Chrome manifest:"
+              cat "dist/chrome/manifest.json"
+            fi
             exit 1
           fi
 
-          echo "Packaging extensions..."
-          if ! npm run package:extensions; then
-            echo "::error::Failed to package extensions"
-            echo "Package output:"
-            ls -la .
-            for ext in chroniclesync-*.zip; do
-              if [ -f "$ext" ]; then
-                echo "Found packaged extension: $ext"
-                unzip -l "$ext"
-              fi
-            done
+          echo "Building Firefox extension..."
+          if ! BROWSER=firefox npm run build:extensions; then
+            echo "::error::Failed to build Firefox extension"
+            echo "Build output:"
+            ls -la dist/firefox || true
+            if [ -f "dist/firefox/manifest.json" ]; then
+              echo "Firefox manifest:"
+              cat "dist/firefox/manifest.json"
+            fi
+            exit 1
+          fi
+
+          echo "Building Safari extension..."
+          if ! BROWSER=safari npm run build:extensions; then
+            echo "::error::Failed to build Safari extension"
+            echo "Build output:"
+            ls -la dist/safari || true
+            if [ -f "dist/safari/manifest.json" ]; then
+              echo "Safari manifest:"
+              cat "dist/safari/manifest.json"
+            fi
+            exit 1
+          fi
+
+          echo "Packaging Chrome extension..."
+          if ! npm run package:chrome; then
+            echo "::error::Failed to package Chrome extension"
+            ls -la dist/chrome || true
+            exit 1
+          fi
+
+          echo "Packaging Firefox extension..."
+          if ! npm run package:firefox; then
+            echo "::error::Failed to package Firefox extension"
+            ls -la dist/firefox || true
+            exit 1
+          fi
+
+          echo "Packaging Safari extension..."
+          if ! npm run package:safari; then
+            echo "::error::Failed to package Safari extension"
+            ls -la dist/safari || true
             exit 1
           fi
 

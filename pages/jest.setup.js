@@ -30,10 +30,20 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Mock window functions used in components
-window.checkSystemStatus = jest.fn();
-window.initializeClient = jest.fn();
-window.saveData = jest.fn();
-window.loginAdmin = jest.fn();
-window.deleteClient = jest.fn();
-window.viewClientData = jest.fn();
-window.triggerWorkflow = jest.fn();
+const mockFunctions = {
+  checkSystemStatus: jest.fn(),
+  initializeClient: jest.fn(),
+  saveData: jest.fn(),
+  loginAdmin: jest.fn(),
+  deleteClient: jest.fn(),
+  viewClientData: jest.fn(),
+  triggerWorkflow: jest.fn(),
+};
+
+Object.entries(mockFunctions).forEach(([key, value]) => {
+  Object.defineProperty(window, key, {
+    value,
+    writable: true,
+    configurable: true,
+  });
+});

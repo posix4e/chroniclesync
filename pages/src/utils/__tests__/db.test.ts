@@ -3,7 +3,7 @@ import { DB } from '../db';
 describe('DB', () => {
   let db: DB;
   let indexedDB: IDBFactory;
-  let mockStore: { [key: string]: unknown };
+  let mockStore: Record<string, unknown>;
 
   beforeEach(() => {
     mockStore = {};

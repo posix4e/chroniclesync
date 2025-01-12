@@ -5,7 +5,12 @@ import { HealthCheck } from '../HealthCheck';
 
 // Mock the checkSystemStatus function
 const mockCheckSystemStatus = jest.fn();
-(window as any).checkSystemStatus = mockCheckSystemStatus;
+declare global {
+  interface Window {
+    checkSystemStatus: jest.Mock;
+  }
+}
+window.checkSystemStatus = mockCheckSystemStatus;
 
 describe('HealthCheck', () => {
   beforeEach(() => {

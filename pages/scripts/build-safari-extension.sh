@@ -23,6 +23,41 @@ if [ ! -d "dist/safari" ]; then
     exit 1
 fi
 
+# Prepare Safari extension source
+echo "Preparing Safari extension source..."
+if [ ! -f "dist/safari/manifest.json" ]; then
+    echo "Error: manifest.json not found in dist/safari!"
+    ls -la dist/safari/
+    exit 1
+fi
+
+# Ensure all required files are present
+required_files=("manifest.json" "background.js" "popup.js" "popup.html")
+for file in "${required_files[@]}"; do
+    if [ ! -f "dist/safari/$file" ]; then
+        echo "Error: Required file $file is missing!"
+        exit 1
+    fi
+done
+
+# Ensure icons directory exists with all required icons
+if [ ! -d "dist/safari/icons" ]; then
+    echo "Error: icons directory not found!"
+    exit 1
+fi
+
+for size in 16 48 128; do
+    if [ ! -f "dist/safari/icons/icon${size}.png" ]; then
+        echo "Error: icon${size}.png is missing!"
+        exit 1
+    fi
+done
+
+echo "Safari extension source files:"
+ls -la dist/safari/
+echo "Icons:"
+ls -la dist/safari/icons/
+
 # Convert web extension to Safari extension
 echo "Converting web extension to Safari extension..."
 xcrun safari-web-extension-converter dist/safari \
@@ -30,7 +65,8 @@ xcrun safari-web-extension-converter dist/safari \
     --bundle-identifier dev.all-hands.chroniclesync \
     --no-prompt \
     --swift \
-    --macos
+    --macos \
+    --force
 
 # Find the Xcode project
 echo "Looking for Xcode project..."

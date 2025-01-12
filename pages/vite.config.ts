@@ -14,11 +14,18 @@ export default defineConfig(({ command, mode }) => {
         name: 'extension-manifest',
         writeBundle: () => {
           if (isExtension) {
-            // Copy manifest
-            copyFileSync(
-              resolve(__dirname, 'src/extension/manifest.json'),
-              resolve(__dirname, 'dist/extension/manifest.json')
-            );
+            // Copy static files
+            const staticFiles = [
+              ['manifest.json', 'manifest.json'],
+              ['popup.html', 'popup.html']
+            ];
+
+            for (const [src, dest] of staticFiles) {
+              copyFileSync(
+                resolve(__dirname, `src/extension/${src}`),
+                resolve(__dirname, `dist/extension/${dest}`)
+              );
+            }
 
             // Copy icons
             mkdirSync(resolve(__dirname, 'dist/extension/icons'), { recursive: true });
@@ -38,7 +45,7 @@ export default defineConfig(({ command, mode }) => {
       rollupOptions: isExtension ? {
         input: {
           background: resolve(__dirname, 'src/extension/background.js'),
-          popup: resolve(__dirname, 'src/extension/popup.html')
+          popup: resolve(__dirname, 'src/extension/popup.js')
         },
         output: {
           entryFileNames: '[name].js',

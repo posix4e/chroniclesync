@@ -1,16 +1,8 @@
 // Configuration
 const API_URL = (() => {
-  const hostname = window.location.hostname;
-  
-  if (hostname === 'chroniclesync.xyz') {
-    return 'https://api.chroniclesync.xyz';
-  }
-  
-  if (hostname.endsWith('chroniclesync.pages.dev')) {
-    return 'https://api-staging.chroniclesync.xyz';
-  }
-  
-  return 'http://localhost:8787';
+  // For extensions, we'll use the production API by default
+  // and allow configuration through extension options later
+  return 'https://api.chroniclesync.xyz';
 })();
 
 let isInitialized = false;
@@ -95,7 +87,7 @@ async function syncHistory(startTime) {
     await chrome.storage.local.set({ lastSync: Date.now() });
 
     // Add any new remote entries to local history
-    for (const [url, item] of mergedHistory) {
+    for (const item of mergedHistory.values()) {
       try {
         await chrome.history.addUrl({
           url: item.url,
@@ -116,7 +108,7 @@ async function getLastSync() {
 }
 
 // Listen for new history items and trigger sync
-chrome.history.onVisited.addListener(async (historyItem) => {
+chrome.history.onVisited.addListener(async () => {
   await syncHistory(await getLastSync());
 });
 

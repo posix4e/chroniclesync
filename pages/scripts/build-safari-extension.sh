@@ -247,10 +247,31 @@ echo "Found project: $PROJECT_NAME in $PROJECT_DIR"
 # Build the project
 echo "Building Safari extension..."
 cd "$PROJECT_DIR"
-xcodebuild -project "$PROJECT_NAME.xcodeproj" \
+echo "Current directory: $(pwd)"
+echo "Project name: $PROJECT_NAME"
+echo "Project files:"
+ls -la
+
+if [ ! -f "$PROJECT_NAME.xcodeproj/project.pbxproj" ]; then
+    echo "Error: Project file not found: $PROJECT_NAME.xcodeproj/project.pbxproj"
+    echo "Contents of current directory:"
+    ls -la
+    echo "Contents of .xcodeproj directory:"
+    ls -la "$PROJECT_NAME.xcodeproj" || true
+    exit 1
+fi
+
+echo "Building with xcodebuild..."
+if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -scheme "$PROJECT_NAME" \
     -configuration Release \
-    -verbose
+    -verbose; then
+    echo "xcodebuild failed. Checking build directory:"
+    ls -la build/Release || true
+    echo "Checking available schemes:"
+    xcodebuild -list -project "$PROJECT_NAME.xcodeproj" || true
+    exit 1
+fi
 
 # Find and package the app
 echo "Looking for built app..."

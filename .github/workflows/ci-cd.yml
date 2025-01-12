@@ -34,45 +34,51 @@ jobs:
       - name: Install and Build Pages
         working-directory: pages
         run: |
-          # Create a directory for debug logs
           mkdir -p debug_logs
           
+          # Redirect detailed output to log files but keep errors visible
           {
-            echo "Installing dependencies..."
-            npm ci
+            npm ci > debug_logs/npm_install.log 2>&1 || { cat debug_logs/npm_install.log; exit 1; }
+            echo "✓ Dependencies installed"
             
-            echo "Running linting..."
-            npm run lint
+            npm run lint > debug_logs/lint.log 2>&1 || { cat debug_logs/lint.log; exit 1; }
+            echo "✓ Linting passed"
             
-            echo "Running tests..."
-            npm run test
+            npm run test > debug_logs/test.log 2>&1 || { cat debug_logs/test.log; exit 1; }
+            echo "✓ Tests passed"
             
-            echo "Building web app..."
-            npm run build:web
+            npm run build:web > debug_logs/web_build.log 2>&1 || { cat debug_logs/web_build.log; exit 1; }
+            echo "✓ Web app built"
             
-            echo "Building and packaging extensions..."
             for BROWSER in chrome firefox safari; do
               echo "Building $BROWSER extension..."
-              if ! BROWSER=$BROWSER npm run build:extensions; then
+              if ! BROWSER=$BROWSER npm run build:extensions > "debug_logs/${BROWSER}_build.log" 2>&1; then
                 echo "::error::Failed to build $BROWSER extension"
-                echo "Build output:"
-                ls -la "dist/$BROWSER" || true
-                if [ -f "dist/$BROWSER/manifest.json" ]; then
-                  echo "$BROWSER manifest:"
-                  cat "dist/$BROWSER/manifest.json"
-                fi
+                cat "debug_logs/${BROWSER}_build.log"
+                {
+                  echo -e "\nBuild directory content:"
+                  ls -la "dist/$BROWSER" || true
+                  if [ -f "dist/$BROWSER/manifest.json" ]; then
+                    echo -e "\nManifest content:"
+                    cat "dist/$BROWSER/manifest.json"
+                  fi
+                } >> "debug_logs/${BROWSER}_build.log"
                 exit 1
               fi
               
               echo "Packaging $BROWSER extension..."
-              if ! npm run "package:$BROWSER"; then
+              if ! npm run "package:$BROWSER" > "debug_logs/${BROWSER}_package.log" 2>&1; then
                 echo "::error::Failed to package $BROWSER extension"
-                ls -la "dist/$BROWSER" || true
+                cat "debug_logs/${BROWSER}_package.log"
+                {
+                  echo -e "\nBuild directory content:"
+                  ls -la "dist/$BROWSER" || true
+                } >> "debug_logs/${BROWSER}_package.log"
                 exit 1
               fi
+              echo "✓ $BROWSER extension built and packaged"
               
-              # Capture extension-specific debug info
-              echo "Capturing debug info for $BROWSER extension..."
+              # Record build artifacts for debugging
               {
                 echo "=== $BROWSER Extension Build Info ==="
                 echo "Directory structure:"
@@ -82,9 +88,11 @@ jobs:
               } > "debug_logs/${BROWSER}_build_info.log"
             done
             
-            echo "✓ Build completed successfully"
-            echo "Generated artifacts:"
-            ls -la chroniclesync-*.zip
+            echo "✓ All builds completed successfully"
+            
+            # Record final artifacts list
+            echo -e "\nGenerated extension packages:" > debug_logs/artifacts_list.log
+            ls -la chroniclesync-*.zip >> debug_logs/artifacts_list.log
             
             # Capture final build state
             echo -e "\nFinal build directory structure:" >> debug_logs/build_summary.log
@@ -123,19 +131,20 @@ jobs:
         working-directory: worker
         run: |
           mkdir -p debug_logs
+          
+          # Redirect detailed output to log file but keep errors visible
           {
-            echo "Installing dependencies..."
-            npm ci
+            npm ci > debug_logs/worker_npm_install.log 2>&1 || { cat debug_logs/worker_npm_install.log; exit 1; }
+            echo "✓ Dependencies installed"
             
-            echo "Running linting..."
-            npm run lint
+            npm run lint > debug_logs/worker_lint.log 2>&1 || { cat debug_logs/worker_lint.log; exit 1; }
+            echo "✓ Linting passed"
             
-            echo "Running tests with coverage..."
-            npm run test:coverage
+            npm run test:coverage > debug_logs/worker_test.log 2>&1 || { cat debug_logs/worker_test.log; exit 1; }
+            echo "✓ Tests passed"
             
-            echo "Capturing test coverage report..."
             cp -r coverage debug_logs/
-          } 2>&1 | tee debug_logs/worker_output.log
+          }
 
       - name: Upload Worker Debug Logs
         uses: actions/upload-artifact@v3

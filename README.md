@@ -1,5 +1,31 @@
 # ChronicleSync
 
+## Browser Extensions
+
+ChronicleSync is available as a browser extension for:
+- Chrome/Chromium-based browsers
+- Firefox
+- Safari
+
+### Installation
+
+#### Chrome
+1. Download the latest `chroniclesync-chrome.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
+2. Go to `chrome://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the extracted extension folder
+
+#### Firefox
+1. Download the latest `chroniclesync-firefox.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
+2. Go to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on" and select the downloaded zip file
+
+#### Safari
+1. Download the latest `chroniclesync-safari.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
+2. Extract the zip file
+3. Double-click the `.app` file to install
+4. Open Safari Preferences > Extensions and enable ChronicleSync
+
 IndexedDB synchronization service using Cloudflare Workers and Pages. Sync your client-side data across browsers and devices.
 
 ## Quick Start

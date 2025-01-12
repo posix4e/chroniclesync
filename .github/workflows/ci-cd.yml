@@ -34,31 +34,83 @@ jobs:
       - name: Install and Build Pages
         working-directory: pages
         run: |
+          echo "Installing dependencies..."
           npm ci
+
+          echo "Running linting..."
           npm run lint
+
+          echo "Running tests..."
           npm run test
+
+          echo "Building web app..."
           npm run build:web
-          npm run build:extension
-          npm run package:extension
+
+          echo "Building and packaging extensions..."
+          for BROWSER in chrome firefox safari; do
+            echo "Building $BROWSER extension..."
+            if ! BROWSER=$BROWSER npm run build:extensions; then
+              echo "::error::Failed to build $BROWSER extension"
+              echo "Build output:"
+              ls -la "dist/$BROWSER" || true
+              if [ -f "dist/$BROWSER/manifest.json" ]; then
+                echo "$BROWSER manifest:"
+                cat "dist/$BROWSER/manifest.json"
+              fi
+              exit 1
+            fi
+
+            echo "Packaging $BROWSER extension..."
+            if ! npm run "package:$BROWSER"; then
+              echo "::error::Failed to package $BROWSER extension"
+              ls -la "dist/$BROWSER" || true
+              exit 1
+            fi
+          done
+
+          echo "✓ Build completed successfully"
+          echo "Generated artifacts:"
+          ls -la chroniclesync-*.zip
+
+      - name: Upload Chrome Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-chrome
+          path: pages/chroniclesync-chrome.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-firefox
+          path: pages/chroniclesync-firefox.zip
+          if-no-files-found: error
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-safari
+          path: pages/chroniclesync-safari.zip
+          if-no-files-found: error
 
       - name: Test Worker
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
 
-      - name: Upload Extension Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: chroniclesync-extension
-          path: pages/chroniclesync-extension.zip
-          if-no-files-found: error
 
-      - name: Delete Old Beta Release
+
+      - name: Delete Old Beta Releases and Tags
         if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Delete old beta releases
-          gh release list | grep "beta-" | cut -f1 | xargs -I {} gh release delete {} -y || true
+          # Delete old beta releases and their tags
+          for tag in $(gh release list | grep "beta-" | cut -f1); do
+            echo "Deleting release and tag: $tag"
+            gh release delete "$tag" -y || true
+            git tag -d "$tag" 2>/dev/null || true
+            git push --delete origin "$tag" 2>/dev/null || true
+          done
 
       - name: Create Beta Release
         if: github.ref == 'refs/heads/main'
@@ -67,7 +119,7 @@ jobs:
         run: |
           BETA_TAG="beta-$(date +%Y%m%d)"
           BETA_TITLE="Beta Release $(date +%Y-%m-%d)"
-          gh release create "$BETA_TAG" pages/chroniclesync-extension.zip \
+          gh release create "$BETA_TAG" pages/chroniclesync-*.zip \
             --title "$BETA_TITLE" \
             --notes "Beta release from main branch
 
@@ -82,7 +134,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          gh release create "$VERSION" pages/chroniclesync-extension.zip \
+          gh release create "$VERSION" pages/chroniclesync-*.zip \
             --title "Release $VERSION" \
             --notes "Production release $VERSION
 

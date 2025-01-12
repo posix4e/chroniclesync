@@ -376,40 +376,49 @@ defaults write com.apple.dt.Xcode IDECustomDerivedDataLocation -string "$SAFARI_
 # Set up code signing
 echo "Setting up code signing..."
 
+# Function to clean up keychain
+cleanup_keychain() {
+    echo "Cleaning up keychain..."
+    security delete-keychain build.keychain 2>/dev/null || true
+}
+
+# Function to handle errors
+handle_error() {
+    local message="$1"
+    echo "Error: $message"
+    cleanup_keychain
+    exit 1
+}
+
 # Clean up any existing keychain
-echo "Cleaning up existing keychain..."
-security delete-keychain build.keychain || true
+cleanup_keychain
 
 # Create new keychain
 echo "Creating new keychain..."
 if ! security create-keychain -p "" build.keychain; then
-    echo "Failed to create keychain"
-    exit 1
+    handle_error "Failed to create keychain"
 fi
 
 # Set as default keychain
 echo "Setting as default keychain..."
 if ! security default-keychain -s build.keychain; then
-    echo "Failed to set default keychain"
-    security delete-keychain build.keychain || true
-    exit 1
+    handle_error "Failed to set default keychain"
 fi
 
 # Unlock keychain
 echo "Unlocking keychain..."
 if ! security unlock-keychain -p "" build.keychain; then
-    echo "Failed to unlock keychain"
-    security delete-keychain build.keychain || true
-    exit 1
+    handle_error "Failed to unlock keychain"
 fi
 
 # Set keychain settings
 echo "Setting keychain settings..."
 if ! security set-keychain-settings -t 3600 -l build.keychain; then
-    echo "Failed to set keychain settings"
-    security delete-keychain build.keychain || true
-    exit 1
+    handle_error "Failed to set keychain settings"
 fi
+
+# Set up trap to clean up keychain on script exit
+trap cleanup_keychain EXIT
 
 # Create temporary directory for certificate files
 CERT_DIR="$(mktemp -d)"

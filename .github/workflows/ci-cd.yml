@@ -46,7 +46,16 @@ jobs:
           npm run test
           npm run build:web
           npm run build:extensions
+          # Debug info for Safari build
+          echo "Contents of dist directory:"
+          ls -la dist/
+          echo "Contents of dist/safari directory:"
+          ls -la dist/safari/
+          # Run packaging
           npm run package:extensions
+          # Verify Safari build results
+          echo "Contents of dist/safari-app after build:"
+          ls -la dist/safari-app/
 
       - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v3

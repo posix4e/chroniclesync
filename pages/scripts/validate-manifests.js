@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 // Read manifests
 const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.json'), 'utf8'));

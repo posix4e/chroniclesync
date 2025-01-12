@@ -295,13 +295,26 @@ if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     MACOSX_DEPLOYMENT_TARGET=10.15 \
     CODE_SIGN_IDENTITY="-" \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO; then
+    CODE_SIGNING_ALLOWED=NO \
+    DEVELOPMENT_TEAM="" \
+    PROVISIONING_PROFILE="" \
+    PROVISIONING_PROFILE_SPECIFIER="" \
+    ENABLE_HARDENED_RUNTIME=NO \
+    ENABLE_APP_SANDBOX=NO \
+    SKIP_INSTALL=NO \
+    BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
+    STRIP_INSTALLED_PRODUCT=NO \
+    COPY_PHASE_STRIP=NO \
+    DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+    GCC_OPTIMIZATION_LEVEL=0; then
     echo "xcodebuild failed. Checking build directory:"
     ls -la build/Release || true
     echo "Checking available schemes:"
     xcodebuild -list -project "$PROJECT_NAME.xcodeproj" || true
     echo "Checking build logs:"
     find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec tail -n 100 {} \;
+    echo "Checking project settings:"
+    xcodebuild -project "$PROJECT_NAME.xcodeproj" -showBuildSettings || true
     exit 1
 fi
 

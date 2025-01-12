@@ -257,7 +257,7 @@ describe('Worker API', () => {
     it('handles errors in client info', async () => {
       const originalGet = env.METADATA.get;
       let getCallCount = 0;
-      env.METADATA.get = (key) => {
+      env.METADATA.get = (_key) => {
         getCallCount++;
         // First call is for password validation
         if (getCallCount === 1) {

@@ -340,6 +340,7 @@ xcodebuild -showsdks || true
 
 echo "Building project..."
 # Clean build directory first
+echo "Cleaning build directory..."
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -scheme "$PROJECT_NAME" \
     -configuration Release \
@@ -348,7 +349,19 @@ if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     exit 1
 fi
 
+# Clean DerivedData directory
+echo "Cleaning DerivedData directory..."
+rm -rf "$SAFARI_APP/DerivedData"
+mkdir -p "$SAFARI_APP/DerivedData"
+
+# Clean other build directories
+echo "Cleaning other build directories..."
+rm -rf "$SAFARI_APP/build.xcresult"
+rm -rf "$SAFARI_APP/SourcePackages"
+rm -rf "$SAFARI_APP/ResolvedPackages"
+
 # Build the project
+echo "Starting build..."
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -scheme "$PROJECT_NAME" \
     -configuration Release \

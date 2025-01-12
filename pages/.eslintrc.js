@@ -4,7 +4,12 @@ module.exports = {
     es2021: true,
     node: true,
     jest: true,
+    mocha: true,
+    webdriverio/wdio: true,
   },
+  plugins: [
+    'webdriverio',
+  ],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',

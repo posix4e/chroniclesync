@@ -1,11 +1,15 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import url from 'url';
+
+// Get current directory
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 // Read and encode the extension
 const extensionPath = path.join(__dirname, 'chroniclesync-chrome.zip');
 const extensionBase64 = fs.readFileSync(extensionPath).toString('base64');
 
-exports.config = {
+export const config = {
     runner: 'local',
     user: process.env.SAUCE_USERNAME,
     key: process.env.SAUCE_ACCESS_KEY,

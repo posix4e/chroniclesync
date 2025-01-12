@@ -31,73 +31,103 @@ jobs:
         with:
           xcode-version: '15.0'
 
-      - name: Validate Safari Extension Build Requirements
+      - name: Setup Build Environment
         run: |
-          echo "Checking Safari extension build requirements..."
+          echo "Setting up build environment..."
           
-          # Check if running on macOS
+          # Check platform requirements
           if [[ "$(uname)" != "Darwin" ]]; then
-            echo "::error::Safari extension build requires macOS runner. Current OS: $(uname)"
+            echo "::error::Safari extension build requires macOS. This workflow must run on a macOS runner."
+            echo "Current OS: $(uname)"
             exit 1
           fi
-          
-          # Check for Xcode
-          if ! command -v xcodebuild &> /dev/null; then
-            echo "::error::Xcode (xcodebuild) not found. Required for Safari extension build."
-            exit 1
-          fi
-          
-          # Check for xcrun
-          if ! command -v xcrun &> /dev/null; then
-            echo "::error::xcrun not found. Required for Safari extension build."
-            exit 1
-          fi
-          
-          # Print environment info
-          echo "Environment information:"
-          echo "OS: $(uname -a)"
-          echo "Xcode version: $(xcodebuild -version)"
-          echo "xcrun version: $(xcrun --version)"
-          
-          echo "✓ All Safari extension build requirements met"
 
-      - name: Install System Dependencies
-        run: |
+          # Install dependencies
+          echo "Installing dependencies..."
           brew install zip jq
+
+          # Verify Xcode installation
+          if ! command -v xcodebuild &> /dev/null; then
+            echo "::error::Xcode not found. Please ensure Xcode 15.0 or later is installed."
+            exit 1
+          fi
+
+          # Print Xcode version
+          XCODE_VERSION=$(xcodebuild -version | head -n1)
+          if [[ ! "$XCODE_VERSION" =~ ^Xcode[[:space:]]15 ]]; then
+            echo "::warning::Recommended Xcode version is 15.0 or later. Found: $XCODE_VERSION"
+          fi
+          
+          # Setup Xcode
+          echo "Configuring Xcode..."
           sudo xcodebuild -license accept || true
-          # Ensure proper Xcode setup
           sudo xcode-select --reset
           sudo xcode-select --switch /Applications/Xcode.app
           sudo xcodebuild -runFirstLaunch
+
+          # Verify Safari extension converter
+          CONVERTER_PATH=$(xcrun --find safari-web-extension-converter 2>/dev/null || true)
+          if [ -z "$CONVERTER_PATH" ]; then
+            echo "::error::Safari Web Extension Converter not found."
+            echo "This tool is required and should be included with Xcode."
+            echo "Please ensure Xcode is properly installed with command line tools."
+            exit 1
+          fi
           
-          # Verify Xcode setup
-          echo "Xcode Configuration:"
-          echo "- Path: $(xcode-select -p)"
-          echo "- Available SDKs:"
-          xcodebuild -showsdks
-          echo "- Available simulators:"
-          xcrun simctl list devices
-          echo "- Command line tools version:"
-          pkgutil --pkg-info=com.apple.pkg.CLTools_Executables 2>/dev/null || echo "Command line tools not found"
+          echo "✓ Build environment ready"
+          echo "Xcode: $XCODE_VERSION"
+          echo "Safari Extension Converter: $CONVERTER_PATH"
 
       - name: Install and Build Pages
         working-directory: pages
         run: |
+          echo "Installing dependencies..."
           npm ci
+
+          echo "Running linting..."
           npm run lint
+
+          echo "Running tests..."
           npm run test
+
+          echo "Building web app..."
           npm run build:web
-          npm run build:extensions
-          # Debug info for Safari build
-          echo "Contents of dist directory:"
-          ls -la dist/
-          echo "Contents of dist/safari directory:"
-          ls -la dist/safari/
-          # Run packaging
-          npm run package:extensions
-          # Verify Safari build results
-          echo "Contents of dist/safari-app after build:"
-          ls -la dist/safari-app/
+
+          echo "Building browser extensions..."
+          if ! npm run build:extensions; then
+            echo "::error::Failed to build browser extensions"
+            echo "Build output:"
+            ls -la dist/
+            for browser in chrome firefox safari; do
+              if [ -d "dist/$browser" ]; then
+                echo "Contents of dist/$browser:"
+                ls -la "dist/$browser"
+                if [ -f "dist/$browser/manifest.json" ]; then
+                  echo "Manifest for $browser:"
+                  cat "dist/$browser/manifest.json"
+                fi
+              fi
+            done
+            exit 1
+          fi
+
+          echo "Packaging extensions..."
+          if ! npm run package:extensions; then
+            echo "::error::Failed to package extensions"
+            echo "Package output:"
+            ls -la .
+            for ext in chroniclesync-*.zip; do
+              if [ -f "$ext" ]; then
+                echo "Found packaged extension: $ext"
+                unzip -l "$ext"
+              fi
+            done
+            exit 1
+          fi
+
+          echo "✓ Build completed successfully"
+          echo "Generated artifacts:"
+          ls -la chroniclesync-*.zip
 
       - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v3

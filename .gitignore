@@ -63,5 +63,8 @@ worker-configuration.json
 # Output of 'npm pack'
 *.tgz
 
+# Package files
+*.zip
+
 # Yarn Integrity file
 .yarn-integrity

@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Read manifests
-const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.v3.json'), 'utf8'));
-const manifestV2 = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.v2.json'), 'utf8'));
+const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.v3.json'), 'utf8'));
+const manifestV2 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.v2.json'), 'utf8'));
 
 // Validate common fields
 const requiredFields = ['name', 'version', 'description', 'icons'];
@@ -36,6 +36,7 @@ function validateManifest(manifest, version) {
       throw new Error(`Missing required icon size: ${size}`);
     }
     const iconPath = path.join(__dirname, '../src/extension/icons', `icon${size}.png`);
+    console.log(`Checking icon: ${iconPath}`);
     if (!fs.existsSync(iconPath)) {
       throw new Error(`Icon file not found: ${iconPath}`);
     }

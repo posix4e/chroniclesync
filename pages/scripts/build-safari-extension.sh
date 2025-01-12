@@ -101,16 +101,52 @@ echo "Manifest content:"
 cat "$SAFARI_SRC/manifest.json"
 
 # Check if safari-web-extension-converter is available
-if ! xcrun --find safari-web-extension-converter &>/dev/null; then
+CONVERTER_PATH=$(xcrun --find safari-web-extension-converter 2>/dev/null || true)
+if [ -z "$CONVERTER_PATH" ]; then
     echo "Error: safari-web-extension-converter not found. Please ensure Xcode is properly installed."
     xcrun --find safari-web-extension-converter
     exit 1
 fi
 
-echo "Running safari-web-extension-converter..."
-echo "Command: xcrun safari-web-extension-converter \"${SAFARI_SRC}/\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
+echo "Found safari-web-extension-converter at: $CONVERTER_PATH"
 
-xcrun safari-web-extension-converter "${SAFARI_SRC}/" \
+# Verify the converter is executable
+if [ ! -x "$CONVERTER_PATH" ]; then
+    echo "Error: safari-web-extension-converter is not executable"
+    ls -l "$CONVERTER_PATH"
+    exit 1
+fi
+
+# Create a clean temporary directory with just the required files
+TEMP_DIR="$(mktemp -d)"
+echo "Creating temporary directory for Safari extension: $TEMP_DIR"
+
+# Copy only the required files
+cp "$SAFARI_SRC/manifest.json" "$TEMP_DIR/"
+cp "$SAFARI_SRC/background.js" "$TEMP_DIR/"
+cp "$SAFARI_SRC/popup.html" "$TEMP_DIR/"
+cp "$SAFARI_SRC/popup.js" "$TEMP_DIR/"
+cp "$SAFARI_SRC/browser-polyfill.js" "$TEMP_DIR/"
+mkdir -p "$TEMP_DIR/icons"
+cp "$SAFARI_SRC/icons/"* "$TEMP_DIR/icons/"
+
+echo "Contents of temporary directory:"
+ls -la "$TEMP_DIR"
+ls -la "$TEMP_DIR/icons"
+
+echo "Running safari-web-extension-converter..."
+echo "Command: xcrun safari-web-extension-converter \"$TEMP_DIR\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
+
+# Cleanup function
+cleanup() {
+    echo "Cleaning up temporary directory..."
+    rm -rf "$TEMP_DIR"
+}
+
+# Set up trap to clean up on script exit
+trap cleanup EXIT
+
+xcrun safari-web-extension-converter "$TEMP_DIR" \
     --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \
     --no-prompt \

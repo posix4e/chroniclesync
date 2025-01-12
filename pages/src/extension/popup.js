@@ -1,9 +1,17 @@
-// Use the appropriate browser API
-const browserAPI = (typeof browser !== 'undefined' ? browser :
-  typeof chrome !== 'undefined' ? chrome :
-    typeof window !== 'undefined' && window.safari ? window.safari : null);
+function getBrowser() {
+  if (typeof browser !== 'undefined') return browser;
+  if (typeof chrome !== 'undefined') return chrome;
+  if (typeof window !== 'undefined' && window.safari) return window.safari;
+  throw new Error('Unsupported browser');
+}
 
 document.getElementById('openDashboard').addEventListener('click', () => {
-  // Use the actual deployed GitHub Pages URL
-  browserAPI.tabs.create({ url: 'https://chroniclesync.pages.dev' });
+  const browser = getBrowser();
+  const url = 'https://chroniclesync.pages.dev';
+  
+  if (browser === window.safari) {
+    window.open(url, '_blank');
+  } else {
+    browser.tabs.create({ url });
+  }
 });

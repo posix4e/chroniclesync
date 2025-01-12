@@ -1,7 +1,7 @@
 // Use the appropriate browser API
 const browserAPI = (typeof browser !== 'undefined' ? browser :
-                   typeof chrome !== 'undefined' ? chrome :
-                   typeof safari !== 'undefined' ? safari : null);
+  typeof chrome !== 'undefined' ? chrome :
+  typeof window !== 'undefined' && window.safari ? window.safari : null);
 
 // Configuration
 const API_URL = (() => {

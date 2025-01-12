@@ -1,11 +1,24 @@
 const path = require('path');
 const fs = require('fs');
 
-// Read and encode the extension
-const extensionPath = path.join(__dirname, 'chroniclesync-chrome.zip');
-const extensionBase64 = fs.readFileSync(extensionPath).toString('base64');
+// Function to read and encode the extension
+function getEncodedExtension() {
+    const extensionPath = path.join(__dirname, 'chroniclesync-chrome.zip');
+    try {
+        return fs.readFileSync(extensionPath).toString('base64');
+    } catch (error) {
+        console.error('Extension file not found:', extensionPath);
+        console.error('Make sure to run npm run package:chrome first');
+        process.exit(1);
+    }
+}
 
 exports.config = {
+    // Hook to ensure extension is loaded before tests
+    before: function (capabilities) {
+        // Log browser info
+        console.log('Running tests with capabilities:', capabilities);
+    },
     runner: 'local',
     user: process.env.SAUCE_USERNAME,
     key: process.env.SAUCE_ACCESS_KEY,
@@ -25,7 +38,7 @@ exports.config = {
         },
         'goog:chromeOptions': {
             args: ['--no-sandbox'],
-            extensions: [extensionBase64]
+            extensions: [getEncodedExtension()]
         }
     }],
     logLevel: 'info',

@@ -5,10 +5,23 @@ module.exports = {
     node: true,
     jest: true,
   },
-  extends: 'eslint:recommended',
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended'
+  ],
+  settings: {
+    react: {
+      version: 'detect'
+    }
+  },
+  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
   rules: {
     'indent': ['error', 2],

@@ -26,7 +26,7 @@ export class DB {
     });
   }
 
-  async getData(): Promise<Record<string, any>> {
+  async getData(): Promise<Record<string, unknown>> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -39,7 +39,7 @@ export class DB {
     });
   }
 
-  async setData(data: Record<string, any>): Promise<void> {
+  async setData(data: Record<string, unknown>): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {

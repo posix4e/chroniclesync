@@ -339,6 +339,16 @@ echo "Available SDKs:"
 xcodebuild -showsdks || true
 
 echo "Building project..."
+# Clean build directory first
+if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
+    -scheme "$PROJECT_NAME" \
+    -configuration Release \
+    clean; then
+    echo "Failed to clean project"
+    exit 1
+fi
+
+# Build the project
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -scheme "$PROJECT_NAME" \
     -configuration Release \

@@ -10,6 +10,7 @@ export function ClientSection({ db }: ClientSectionProps) {
   const [clientId, setClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   const initializeClient = async () => {
     if (!clientId) {
@@ -40,6 +41,7 @@ export function ClientSection({ db }: ClientSectionProps) {
 
   const syncData = async () => {
     try {
+      setSyncStatus('Syncing...');
       const currentData = await db.getData();
       const response = await fetch(`${API_URL}?clientId=${db.clientId}`, {
         method: 'POST',
@@ -53,8 +55,9 @@ export function ClientSection({ db }: ClientSectionProps) {
         throw new Error('Sync failed');
       }
 
-      alert('Sync successful');
+      setSyncStatus('Sync complete');
     } catch (error) {
+      setSyncStatus('Sync failed');
       alert(`Sync error: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
@@ -86,7 +89,8 @@ export function ClientSection({ db }: ClientSectionProps) {
           />
           <br />
           <button onClick={saveData}>Save Data</button>
-          <button onClick={syncData}>Sync with Server</button>
+          <button onClick={syncData} data-testid="sync-button">Sync with Server</button>
+          <div data-testid="sync-status">{syncStatus}</div>
         </div>
       )}
     </div>

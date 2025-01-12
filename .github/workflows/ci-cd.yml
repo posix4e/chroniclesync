@@ -157,3 +157,42 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
+
+      # Verify staging deployment with Chrome extension tests
+      - name: Run Chrome Extension Tests
+        if: github.event.pull_request.base.ref == 'main'  # Only run on PR builds (staging)
+        working-directory: pages
+        env:
+          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+        run: |
+          # Wait for deployment to be ready
+          echo "Waiting for staging deployment to be ready..."
+          sleep 30  # Give Cloudflare some time to propagate the changes
+
+          # Install Sauce Labs dependencies
+          npm install -g @wdio/cli @wdio/sauce-service
+
+          # Run tests using WebdriverIO with Sauce Labs
+          # The staging URL is based on the PR branch name in Cloudflare Pages
+          STAGING_API_URL="https://api-${GITHUB_HEAD_REF}.chroniclesync.xyz" npx wdio run ./wdio.sauce.conf.js
+
+      - name: Wait for Staging Deployment
+        if: github.event.pull_request.base.ref == 'main'
+        run: |
+          echo "Waiting for staging deployment to be ready..."
+          sleep 30  # Give Cloudflare some time to propagate the changes
+
+      - name: Run Chrome Extension Tests
+        if: github.event.pull_request.base.ref == 'main'
+        working-directory: pages
+        env:
+          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+          STAGING_API_URL: ${{ format('https://api-{0}.chroniclesync.xyz', github.head_ref) }}
+        run: |
+          # Install Sauce Labs dependencies
+          npm install -g @wdio/cli @wdio/sauce-service
+
+          # Run tests using WebdriverIO with Sauce Labs
+          npx wdio run ./wdio.sauce.conf.js

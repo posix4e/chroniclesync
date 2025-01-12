@@ -390,32 +390,54 @@ handle_error() {
     exit 1
 }
 
+# Function to verify keychain
+verify_keychain() {
+    echo "Verifying keychain..."
+    if ! security show-keychain-info build.keychain &>/dev/null; then
+        handle_error "Keychain verification failed"
+    fi
+}
+
+# Function to set up keychain
+setup_keychain() {
+    local action="$1"
+    local error_msg="$2"
+    shift 2
+    echo "$action..."
+    if ! "$@"; then
+        handle_error "$error_msg"
+    fi
+}
+
 # Clean up any existing keychain
 cleanup_keychain
 
 # Create new keychain
-echo "Creating new keychain..."
-if ! security create-keychain -p "" build.keychain; then
-    handle_error "Failed to create keychain"
-fi
+setup_keychain \
+    "Creating new keychain" \
+    "Failed to create keychain" \
+    security create-keychain -p "" build.keychain
 
 # Set as default keychain
-echo "Setting as default keychain..."
-if ! security default-keychain -s build.keychain; then
-    handle_error "Failed to set default keychain"
-fi
+setup_keychain \
+    "Setting as default keychain" \
+    "Failed to set default keychain" \
+    security default-keychain -s build.keychain
 
 # Unlock keychain
-echo "Unlocking keychain..."
-if ! security unlock-keychain -p "" build.keychain; then
-    handle_error "Failed to unlock keychain"
-fi
+setup_keychain \
+    "Unlocking keychain" \
+    "Failed to unlock keychain" \
+    security unlock-keychain -p "" build.keychain
 
 # Set keychain settings
-echo "Setting keychain settings..."
-if ! security set-keychain-settings -t 3600 -l build.keychain; then
-    handle_error "Failed to set keychain settings"
-fi
+setup_keychain \
+    "Setting keychain settings" \
+    "Failed to set keychain settings" \
+    security set-keychain-settings -t 3600 -l build.keychain
+
+# Verify keychain setup
+verify_keychain
 
 # Set up trap to clean up keychain on script exit
 trap cleanup_keychain EXIT

@@ -106,17 +106,7 @@ chmod +x "$EXTENSION_DIR/Contents/MacOS/ChronicleSync_Extension"
 
 # Package the app
 echo "Packaging Safari extension..."
-cd dist
-
-# Try ditto first (on macOS), fall back to zip
-if command -v ditto &> /dev/null; then
-    echo "Using ditto for packaging..."
-    ditto -c -k --keepParent safari-app/ChronicleSync.app ../chroniclesync-safari.zip
-else
-    echo "Using zip for packaging..."
-    cd safari-app
-    zip -r ../../chroniclesync-safari.zip ChronicleSync.app
-    cd ..
-fi
+cd dist/safari-app
+zip -r ../../chroniclesync-safari.zip ChronicleSync.app
 
 echo "✓ Safari extension built successfully"

@@ -256,7 +256,16 @@ describe('Worker API', () => {
 
     it('handles errors in client info', async () => {
       const originalGet = env.METADATA.get;
-      env.METADATA.get = () => { throw new Error('KV error'); };
+      let getCallCount = 0;
+      env.METADATA.get = (_key) => {
+        getCallCount++;
+        // First call is for password validation
+        if (getCallCount === 1) {
+          return 'francesisthebest';
+        }
+        // Subsequent calls should throw the error
+        throw new Error('KV error');
+      };
 
       const resp = await makeRequest('/admin/clients', {
         headers: {
@@ -660,6 +669,85 @@ describe('Worker API', () => {
       expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
       expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
       expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
+    });
+  });
+
+  describe('Password Management', () => {
+    let originalGet;
+    let originalPut;
+
+    beforeEach(() => {
+      originalGet = env.METADATA.get;
+      originalPut = env.METADATA.put;
+    });
+
+    afterEach(() => {
+      env.METADATA.get = originalGet;
+      env.METADATA.put = originalPut;
+    });
+
+    it('changes admin password successfully', async () => {
+      const resp = await makeRequest('/admin/password', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newPassword: 'newpassword123' })
+      });
+      expect(resp.status).toBe(200);
+      const data = await resp.json();
+      expect(data.message).toBe('Password updated successfully');
+
+      // Verify old password no longer works
+      const oldAuthResp = await makeRequest('/admin/clients', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(oldAuthResp.status).toBe(401);
+
+      // Verify new password works
+      const newAuthResp = await makeRequest('/admin/clients', {
+        headers: {
+          'Authorization': 'Bearer newpassword123'
+        }
+      });
+      expect(newAuthResp.status).toBe(200);
+    });
+
+    it('rejects invalid password changes', async () => {
+      const resp = await makeRequest('/admin/password', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer francesisthebest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newPassword: 'short' })
+      });
+      expect(resp.status).toBe(400);
+      const data = await resp.json();
+      expect(data.error).toContain('must be at least 8 characters');
+    });
+
+    it('requires authentication for password change', async () => {
+      const resp = await makeRequest('/admin/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newPassword: 'newpassword123' })
+      });
+      expect(resp.status).toBe(401);
+    });
+
+    it('requires POST method for password change', async () => {
+      const resp = await makeRequest('/admin/password', {
+        headers: {
+          'Authorization': 'Bearer francesisthebest'
+        }
+      });
+      expect(resp.status).toBe(405);
     });
   });
 });

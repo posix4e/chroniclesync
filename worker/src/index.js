@@ -83,7 +83,18 @@ export default {
     // Admin endpoints
     if (url.pathname.startsWith('/admin')) {
       const authHeader = request.headers.get('Authorization');
-      if (authHeader !== 'Bearer francesisthebest') {
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response('Unauthorized', { 
+          status: 401,
+          headers: this.corsHeaders()
+        });
+      }
+
+      const providedPassword = authHeader.substring(7);
+      const metadataService = new MetadataService(env);
+      const isValidPassword = await metadataService.validateAdminPassword(providedPassword);
+
+      if (!isValidPassword) {
         return new Response('Unauthorized', { 
           status: 401,
           headers: this.corsHeaders()
@@ -105,6 +116,10 @@ export default {
 
       if (url.pathname === '/admin/workflow') {
         return await this.handleAdminWorkflow(request, env);
+      }
+
+      if (url.pathname === '/admin/password') {
+        return await this.handleAdminPassword(request, env);
       }
     }
 
@@ -431,6 +446,49 @@ export default {
         details: error.message
       }), { 
         status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    }
+  },
+
+  async handleAdminPassword(request, env) {
+    const origin = request.headers.get('Origin') || '*';
+    
+    if (request.method !== 'POST') {
+      return new Response('Method not allowed', { 
+        status: 405,
+        headers: this.corsHeaders(origin)
+      });
+    }
+
+    try {
+      const { newPassword } = await request.json();
+      if (!newPassword) {
+        return new Response('New password is required', {
+          status: 400,
+          headers: this.corsHeaders(origin)
+        });
+      }
+
+      const metadataService = new MetadataService(env);
+      await metadataService.setAdminPassword(newPassword);
+
+      log('info', 'Admin password updated successfully');
+      return new Response(JSON.stringify({ message: 'Password updated successfully' }), {
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    } catch (error) {
+      log('error', 'Error updating admin password', { error: error.message });
+      return new Response(JSON.stringify({ 
+        error: error.message 
+      }), {
+        status: error.message.includes('must be at least') ? 400 : 500,
         headers: {
           'Content-Type': 'application/json',
           ...this.corsHeaders(origin)

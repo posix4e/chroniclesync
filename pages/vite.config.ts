@@ -40,6 +40,12 @@ export default defineConfig(({ mode }) => {
               }
             }
 
+            // Debug output
+            console.log('Extension files:');
+            console.log('Source directory:', resolve(__dirname, 'src/extension'));
+            console.log('Destination directory:', resolve(__dirname, `dist/${browser}`));
+            console.log('Files to copy:', staticFiles);
+
             for (const [src, dest] of staticFiles) {
               copyFileSync(src, dest);
             }
@@ -66,12 +72,17 @@ export default defineConfig(({ mode }) => {
             }
 
             // Copy icons
-            mkdirSync(resolve(__dirname, `dist/${browser}/icons`), { recursive: true });
+            const iconsDir = resolve(__dirname, `dist/${browser}/icons`);
+            mkdirSync(iconsDir, { recursive: true });
             ['16', '48', '128'].forEach(size => {
-              copyFileSync(
-                resolve(__dirname, `src/extension/icons/icon${size}.png`),
-                resolve(__dirname, `dist/${browser}/icons/icon${size}.png`)
-              );
+              const srcIcon = resolve(__dirname, `src/extension/icons/icon${size}.png`);
+              const destIcon = resolve(__dirname, `dist/${browser}/icons/icon${size}.png`);
+              console.log(`Copying icon ${size}:`, { src: srcIcon, dest: destIcon });
+              if (!fs.existsSync(srcIcon)) {
+                console.error(`Icon not found: ${srcIcon}`);
+                throw new Error(`Required icon not found: icon${size}.png`);
+              }
+              copyFileSync(srcIcon, destIcon);
             });
           }
         }

@@ -313,7 +313,20 @@ if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     ONLY_ACTIVE_ARCH=YES \
     ARCHS="x86_64" \
     VALID_ARCHS="x86_64" \
-    EXCLUDED_ARCHS="arm64"; then
+    EXCLUDED_ARCHS="arm64" \
+    CLANG_ENABLE_MODULES=YES \
+    SWIFT_VERSION=5.0 \
+    SWIFT_OPTIMIZATION_LEVEL="-Onone" \
+    SWIFT_COMPILATION_MODE=singlefile \
+    SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+    SWIFT_SUPPRESS_WARNINGS=YES \
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG" \
+    SWIFT_ENFORCE_EXCLUSIVE_ACCESS=off \
+    SWIFT_INSTALL_OBJC_HEADER=NO \
+    SWIFT_OBJC_BRIDGING_HEADER="" \
+    SWIFT_PRECOMPILE_BRIDGING_HEADER=NO \
+    SWIFT_REFLECTION_METADATA_LEVEL=none \
+    SWIFT_WHOLE_MODULE_OPTIMIZATION=NO; then
     echo "xcodebuild failed. Checking build directory:"
     ls -la build/Release || true
     echo "Checking available schemes:"

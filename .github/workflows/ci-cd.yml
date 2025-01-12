@@ -44,6 +44,31 @@ jobs:
           xcodebuild -version
           xcrun --version
 
+      - name: Setup Safari Extension Development
+        run: |
+          echo "Setting up Safari extension development..."
+          # Enable Safari Developer Menu
+          defaults write com.apple.Safari IncludeDevelopMenu -bool true
+          defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+          defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
+          
+          # Enable Safari Allow Unsigned Extensions
+          defaults write com.apple.Safari AllowUnsignedExtensions -bool true
+          
+          # Enable Safari Allow Remote Automation
+          defaults write com.apple.Safari AllowRemoteAutomation -bool true
+          
+          # Enable Safari Allow JavaScript from Apple Events
+          defaults write com.apple.Safari AllowJavaScriptFromAppleEvents -bool true
+          
+          echo "Safari development settings:"
+          defaults read com.apple.Safari IncludeDevelopMenu
+          defaults read com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey
+          defaults read com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled
+          defaults read com.apple.Safari AllowUnsignedExtensions
+          defaults read com.apple.Safari AllowRemoteAutomation
+          defaults read com.apple.Safari AllowJavaScriptFromAppleEvents
+
       - name: Setup Build Environment
         run: |
           echo "Setting up build environment..."

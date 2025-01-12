@@ -72,8 +72,23 @@ if [ "$MANIFEST_VERSION" != "2" ]; then
     # Create a backup
     cp "$SAFARI_SRC/manifest.json" "$SAFARI_SRC/manifest.json.bak"
     # Convert to v2
-    jq '.manifest_version = 2 | del(.background.service_worker) | .background.scripts = ["background.js"]' \
-        "$SAFARI_SRC/manifest.json.bak" > "$SAFARI_SRC/manifest.json"
+    jq '
+      .manifest_version = 2 |
+      del(.background.service_worker) |
+      del(.background.type) |
+      .background.scripts = ["background.js"] |
+      .browser_action = .action |
+      del(.action) |
+      .permissions = (.permissions + (.host_permissions // [])) |
+      del(.host_permissions)
+    ' "$SAFARI_SRC/manifest.json.bak" > "$SAFARI_SRC/manifest.json"
+
+    # Verify the converted manifest is valid JSON
+    if ! jq empty "$SAFARI_SRC/manifest.json" 2>/dev/null; then
+        echo "Error: Failed to convert manifest to version 2. Invalid JSON."
+        cat "$SAFARI_SRC/manifest.json"
+        exit 1
+    fi
 fi
 
 echo "Current directory: $(pwd)"
@@ -85,7 +100,16 @@ ls -la "$SAFARI_SRC"
 echo "Manifest content:"
 cat "$SAFARI_SRC/manifest.json"
 
+# Check if safari-web-extension-converter is available
+if ! xcrun --find safari-web-extension-converter &>/dev/null; then
+    echo "Error: safari-web-extension-converter not found. Please ensure Xcode is properly installed."
+    xcrun --find safari-web-extension-converter
+    exit 1
+fi
+
 echo "Running safari-web-extension-converter..."
+echo "Command: xcrun safari-web-extension-converter \"${SAFARI_SRC}/\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
+
 xcrun safari-web-extension-converter "${SAFARI_SRC}/" \
     --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \

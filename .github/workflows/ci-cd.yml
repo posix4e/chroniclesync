@@ -13,7 +13,7 @@ env:
 
 jobs:
   ci-cd:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +28,7 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zip
+          brew install zip
 
       - name: Install and Build Pages
         working-directory: pages
@@ -38,19 +37,35 @@ jobs:
           npm run lint
           npm run test
           npm run build:web
-          npm run build:extension
-          npm run package:extension
+          npm run build:extensions
+          npm run package:extensions
+
+      - name: Upload Chrome Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-chrome
+          path: pages/chroniclesync-chrome.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-firefox
+          path: pages/chroniclesync-firefox.zip
+          if-no-files-found: error
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chroniclesync-safari
+          path: pages/chroniclesync-safari.zip
+          if-no-files-found: error
 
       - name: Test Worker
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
 
-      - name: Upload Extension Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: chroniclesync-extension
-          path: pages/chroniclesync-extension.zip
-          if-no-files-found: error
+
 
       - name: Delete Old Beta Release
         if: github.ref == 'refs/heads/main'
@@ -67,7 +82,7 @@ jobs:
         run: |
           BETA_TAG="beta-$(date +%Y%m%d)"
           BETA_TITLE="Beta Release $(date +%Y-%m-%d)"
-          gh release create "$BETA_TAG" pages/chroniclesync-extension.zip \
+          gh release create "$BETA_TAG" pages/chroniclesync-*.zip \
             --title "$BETA_TITLE" \
             --notes "Beta release from main branch
 
@@ -82,7 +97,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          gh release create "$VERSION" pages/chroniclesync-extension.zip \
+          gh release create "$VERSION" pages/chroniclesync-*.zip \
             --title "Release $VERSION" \
             --notes "Production release $VERSION
 

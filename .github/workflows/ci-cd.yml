@@ -26,17 +26,21 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.0'
+
       - name: Install System Dependencies
         run: |
           brew install zip
-          # Ensure Xcode Command Line Tools are installed and configured
-          sudo rm -rf /Library/Developer/CommandLineTools
-          sudo xcode-select --install || true
-          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-          sudo xcodebuild -runFirstLaunch
           sudo xcodebuild -license accept || true
-          # Wait for Xcode setup to complete
-          sleep 30
+          xcrun simctl list
+          xcodebuild -version
+          # Debug Xcode setup
+          echo "Xcode path: $(xcode-select -p)"
+          echo "Available SDKs:"
+          xcodebuild -showsdks
 
       - name: Install and Build Pages
         working-directory: pages

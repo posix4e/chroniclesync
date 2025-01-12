@@ -13,7 +13,7 @@
     "package:extensions": "npm run package:chrome && npm run package:firefox && npm run package:safari",
     "package:chrome": "cd dist/chrome && zip -r ../../chroniclesync-chrome.zip * .??*",
     "package:firefox": "cd dist/firefox && zip -r ../../chroniclesync-firefox.zip * .??*",
-    "package:safari": "mkdir -p dist/safari-app && xcrun safari-web-extension-converter dist/safari --project-location dist/safari-app --bundle-identifier dev.all-hands.chroniclesync --no-prompt && cd dist/safari-app/ChronicleSync && xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Release && cd .. && zip -r ../chroniclesync-safari.zip ChronicleSync/build/Release/ChronicleSync.app",
+    "package:safari": "mkdir -p dist/safari-app && rm -rf dist/safari-app/* && xcrun safari-web-extension-converter dist/safari --project-location dist/safari-app --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift && (cd dist/safari-app && find . -type f -name '*.xcodeproj' -exec sh -c 'PROJECT_DIR=$(dirname \"{}\") && cd \"$PROJECT_DIR\" && xcodebuild -project $(basename \"{}\") -scheme $(basename \"$PROJECT_DIR\") -configuration Release' \\; && find . -name '*.app' -exec zip -r ../chroniclesync-safari.zip {} \\;)",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

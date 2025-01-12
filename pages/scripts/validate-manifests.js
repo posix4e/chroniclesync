@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Read manifests
-const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.json'), 'utf8'));
-const manifestV2 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.v2.json'), 'utf8'));
+const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.v3.json'), 'utf8'));
+const manifestV2 = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.v2.json'), 'utf8'));
 
 // Validate common fields
 const requiredFields = ['name', 'version', 'description', 'icons'];
@@ -35,9 +35,9 @@ function validateManifest(manifest, version) {
     if (!icons[size]) {
       throw new Error(`Missing required icon size: ${size}`);
     }
-    const iconPath = path.join(__dirname, '../src/extension', icons[size]);
+    const iconPath = path.join(__dirname, '../src/extension/icons', `icon${size}.png`);
     if (!fs.existsSync(iconPath)) {
-      throw new Error(`Icon file not found: ${icons[size]}`);
+      throw new Error(`Icon file not found: ${iconPath}`);
     }
   });
 
@@ -49,13 +49,24 @@ function validateManifest(manifest, version) {
     if (!manifest.background?.service_worker) {
       throw new Error('Missing service_worker in background section');
     }
-  } else if (version === 2) {
-    if (!manifest.browser_specific_settings?.gecko?.id) {
-      throw new Error('Missing Firefox extension ID in browser_specific_settings');
+    if (!manifest.action) {
+      throw new Error('Missing action section in v3 manifest');
     }
+  } else if (version === 2) {
     if (!manifest.background?.scripts) {
       throw new Error('Missing scripts in background section');
     }
+    if (!manifest.browser_action) {
+      throw new Error('Missing browser_action section in v2 manifest');
+    }
+    // Check that all URLs are in permissions for v2
+    const hostPermissions = manifest.host_permissions || [];
+    const allPermissions = manifest.permissions || [];
+    hostPermissions.forEach(perm => {
+      if (!allPermissions.includes(perm)) {
+        throw new Error(`Host permission ${perm} must be in permissions array for v2 manifest`);
+      }
+    });
   }
 
   console.log(`✓ Manifest v${version} is valid`);

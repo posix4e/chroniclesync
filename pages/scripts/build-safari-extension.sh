@@ -68,43 +68,15 @@ echo "Verifying manifest version..."
 MANIFEST_VERSION=$(jq -r '.manifest_version' "$SAFARI_SRC/manifest.json")
 if [ "$MANIFEST_VERSION" != "2" ]; then
     echo "Error: Safari requires manifest version 2, but found version $MANIFEST_VERSION"
-    echo "Converting manifest to version 2..."
-    # Create a backup
-    cp "$SAFARI_SRC/manifest.json" "$SAFARI_SRC/manifest.json.bak"
-    # Convert to v2
-    jq '
-      .manifest_version = 2 |
-      del(.background.service_worker) |
-      del(.background.type) |
-      .background.scripts = ["background.js"] |
-      .browser_action = .action |
-      del(.action) |
-      .permissions = (.permissions + (.host_permissions // [])) |
-      del(.host_permissions)
-    ' "$SAFARI_SRC/manifest.json.bak" > "$SAFARI_SRC/manifest.json.tmp" && \
-    mv "$SAFARI_SRC/manifest.json.tmp" "$SAFARI_SRC/manifest.json"
-
-    # Verify the converted manifest is valid JSON and version 2
-    if ! jq empty "$SAFARI_SRC/manifest.json" 2>/dev/null; then
-        echo "Error: Failed to convert manifest to version 2. Invalid JSON."
-        cat "$SAFARI_SRC/manifest.json"
-        exit 1
-    fi
-
-    # Double-check manifest version
-    MANIFEST_VERSION=$(jq -r '.manifest_version' "$SAFARI_SRC/manifest.json")
-    if [ "$MANIFEST_VERSION" != "2" ]; then
-        echo "Error: Manifest conversion failed. Still at version $MANIFEST_VERSION"
-        echo "Original manifest:"
-        cat "$SAFARI_SRC/manifest.json.bak"
-        echo "Converted manifest:"
-        cat "$SAFARI_SRC/manifest.json"
-        exit 1
-    fi
-
-    echo "Successfully converted manifest to version 2:"
+    echo "This indicates a problem with the build configuration."
+    echo "Please ensure the correct manifest version is being used."
+    echo "Current manifest content:"
     jq '.' "$SAFARI_SRC/manifest.json"
+    exit 1
 fi
+
+echo "Verified manifest version 2:"
+jq '.' "$SAFARI_SRC/manifest.json"
 
 echo "Current directory: $(pwd)"
 echo "Safari source path: $SAFARI_SRC"

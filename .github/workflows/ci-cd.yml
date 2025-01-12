@@ -173,8 +173,8 @@ jobs:
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
           STAGING_API_URL: ${{ format('https://api-{0}.chroniclesync.xyz', github.head_ref) }}
         run: |
-          # Install Sauce Labs dependencies
-          npm install -g @wdio/cli @wdio/sauce-service
+          # Install WebdriverIO and Sauce Labs dependencies
+          npm install -g @wdio/cli @wdio/local-runner @wdio/sauce-service
 
           # Run tests using WebdriverIO with Sauce Labs
           npx wdio run ./wdio.sauce.conf.js

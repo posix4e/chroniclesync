@@ -7,7 +7,7 @@
     "build": "npm run build:web && npm run build:extensions",
     "build:web": "tsc && vite build",
     "validate:manifests": "node scripts/validate-manifests.js",
-    "build:extensions": "npm run validate:manifests && npm run build:chrome && npm run build:firefox && npm run build:safari",
+    "build:extensions": "npm run validate:manifests && npm run build:${BROWSER:-chrome}",
     "build:chrome": "BROWSER=chrome vite build --mode extension",
     "build:firefox": "BROWSER=firefox vite build --mode extension",
     "build:safari": "BROWSER=safari vite build --mode extension",

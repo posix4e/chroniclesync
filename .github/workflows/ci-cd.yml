@@ -29,8 +29,14 @@ jobs:
       - name: Install System Dependencies
         run: |
           brew install zip
+          # Ensure Xcode Command Line Tools are installed and configured
+          sudo rm -rf /Library/Developer/CommandLineTools
           sudo xcode-select --install || true
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -runFirstLaunch
           sudo xcodebuild -license accept || true
+          # Wait for Xcode setup to complete
+          sleep 30
 
       - name: Install and Build Pages
         working-directory: pages

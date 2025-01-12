@@ -8,7 +8,8 @@
     "storage",
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*",
-    "http://localhost:8787/*"
+    "http://localhost:8787/*",
+    "http://localhost:3000/*"
   ],
   "background": {
     "scripts": ["browser-polyfill.js", "background.js"]

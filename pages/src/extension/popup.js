@@ -7,7 +7,7 @@ function getBrowser() {
 
 document.getElementById('openDashboard').addEventListener('click', () => {
   const browser = getBrowser();
-  const url = 'https://chroniclesync.pages.dev';
+  const url = 'http://localhost:3000';
   
   if (browser === window.safari) {
     window.open(url, '_blank');

@@ -10,7 +10,8 @@
   "host_permissions": [
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*",
-    "http://localhost:8787/*"
+    "http://localhost:8787/*",
+    "http://localhost:3000/*"
   ],
   "background": {
     "service_worker": "background.js",

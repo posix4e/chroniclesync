@@ -22,13 +22,13 @@ export default defineConfig(({ mode }) => {
               ['background.js', 'background.js'],
               ['popup.js', 'popup.js'],
               ['browser-polyfill.js', 'browser-polyfill.js']
-            ];
+            ].map(([src, dest]) => [
+              resolve(__dirname, `src/extension/${src}`),
+              resolve(__dirname, `dist/${browser}/${dest}`)
+            ]);
 
             for (const [src, dest] of staticFiles) {
-              copyFileSync(
-                resolve(__dirname, `src/extension/${src}`),
-                resolve(__dirname, `dist/${browser}/${dest}`)
-              );
+              copyFileSync(src, dest);
             }
 
             // Copy browser-specific files

@@ -143,6 +143,17 @@ cp "$SAFARI_SRC/browser-polyfill.js" "$TEMP_DIR/"
 mkdir -p "$TEMP_DIR/icons"
 cp "$SAFARI_SRC/icons/"* "$TEMP_DIR/icons/"
 
+# Ensure manifest is v2 for Safari
+echo "Verifying and fixing manifest version..."
+jq '.manifest_version = 2 | 
+    if .action then .browser_action = .action | del(.action) else . end |
+    if .background.service_worker then .background.scripts = [.background.service_worker] | del(.background.service_worker) else . end |
+    if .host_permissions then .permissions = (.permissions + .host_permissions) | del(.host_permissions) else . end' \
+    "$TEMP_DIR/manifest.json" > "$TEMP_DIR/manifest.json.tmp" && mv "$TEMP_DIR/manifest.json.tmp" "$TEMP_DIR/manifest.json"
+
+echo "Final manifest content:"
+cat "$TEMP_DIR/manifest.json"
+
 echo "Contents of temporary directory:"
 ls -la "$TEMP_DIR"
 ls -la "$TEMP_DIR/icons"

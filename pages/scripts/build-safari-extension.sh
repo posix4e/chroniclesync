@@ -449,15 +449,44 @@ echo "Creating certificate files in: $CERT_DIR"
 # Function to clean up certificate files
 cleanup_certs() {
     echo "Cleaning up certificate files..."
-    rm -rf "$CERT_DIR" 2>/dev/null || true
+    if [ -d "$CERT_DIR" ]; then
+        # Securely wipe sensitive files
+        if [ -f "$CERT_DIR/cert.key" ]; then
+            dd if=/dev/urandom of="$CERT_DIR/cert.key" bs=1k count=1 2>/dev/null
+            rm -f "$CERT_DIR/cert.key"
+        fi
+        if [ -f "$CERT_DIR/cert.p12" ]; then
+            dd if=/dev/urandom of="$CERT_DIR/cert.p12" bs=1k count=1 2>/dev/null
+            rm -f "$CERT_DIR/cert.p12"
+        fi
+        # Remove other files
+        rm -f "$CERT_DIR/cert.csr" "$CERT_DIR/cert.cer" "$CERT_DIR/openssl.cnf"
+        # Remove directory
+        rm -rf "$CERT_DIR"
+    fi
 }
 
 # Function to handle certificate errors
 handle_cert_error() {
     local message="$1"
     echo "Error: $message"
+    # Print OpenSSL errors if available
+    if [ -f "$CERT_DIR/openssl.err" ]; then
+        echo "OpenSSL errors:"
+        cat "$CERT_DIR/openssl.err"
+    fi
     cleanup_certs
     exit 1
+}
+
+# Function to run OpenSSL command with error logging
+run_openssl() {
+    local command="$1"
+    shift
+    if ! "$command" "$@" 2>"$CERT_DIR/openssl.err"; then
+        handle_cert_error "OpenSSL command failed: $command $*"
+    fi
+    rm -f "$CERT_DIR/openssl.err"
 }
 
 # Function to validate parameters
@@ -526,21 +555,24 @@ DNS.2 = *.$domain
 EOF
 
     echo "Creating certificate signing request..."
-    openssl req -new -newkey rsa:2048 -nodes \
+    run_openssl openssl req -new -newkey rsa:2048 -nodes \
         -keyout "$key_file" \
         -out "$csr_file" \
-        -config "$config_file" || handle_cert_error "Failed to create certificate signing request"
+        -config "$config_file"
 
     echo "Creating self-signed certificate..."
-    openssl x509 -req -days 365 \
+    run_openssl openssl x509 -req -days 365 \
         -in "$csr_file" \
         -signkey "$key_file" \
         -out "$cert_file" \
         -extensions v3_req \
-        -extfile "$config_file" || handle_cert_error "Failed to create certificate"
+        -extfile "$config_file"
+
+    echo "Verifying certificate..."
+    run_openssl openssl x509 -in "$cert_file" -text -noout
 
     echo "Creating PKCS#12 file..."
-    openssl pkcs12 -export \
+    run_openssl openssl pkcs12 -export \
         -in "$cert_file" \
         -inkey "$key_file" \
         -out "$p12_file" \
@@ -548,7 +580,10 @@ EOF
         -passout pass:"" \
         -macalg sha256 \
         -keypbe PBE-SHA1-3DES \
-        -certpbe PBE-SHA1-3DES || handle_cert_error "Failed to create PKCS#12 file"
+        -certpbe PBE-SHA1-3DES
+
+    echo "Verifying PKCS#12 file..."
+    run_openssl openssl pkcs12 -in "$p12_file" -info -nodes -passin pass:""
 
     echo "Importing certificate..."
     if ! security import "$p12_file" \

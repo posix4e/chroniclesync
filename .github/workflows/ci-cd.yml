@@ -34,43 +34,69 @@ jobs:
       - name: Install and Build Pages
         working-directory: pages
         run: |
-          echo "Installing dependencies..."
-          npm ci
-
-          echo "Running linting..."
-          npm run lint
-
-          echo "Running tests..."
-          npm run test
-
-          echo "Building web app..."
-          npm run build:web
-
-          echo "Building and packaging extensions..."
-          for BROWSER in chrome firefox safari; do
-            echo "Building $BROWSER extension..."
-            if ! BROWSER=$BROWSER npm run build:extensions; then
-              echo "::error::Failed to build $BROWSER extension"
-              echo "Build output:"
-              ls -la "dist/$BROWSER" || true
-              if [ -f "dist/$BROWSER/manifest.json" ]; then
-                echo "$BROWSER manifest:"
-                cat "dist/$BROWSER/manifest.json"
+          # Create a directory for debug logs
+          mkdir -p debug_logs
+          
+          {
+            echo "Installing dependencies..."
+            npm ci
+            
+            echo "Running linting..."
+            npm run lint
+            
+            echo "Running tests..."
+            npm run test
+            
+            echo "Building web app..."
+            npm run build:web
+            
+            echo "Building and packaging extensions..."
+            for BROWSER in chrome firefox safari; do
+              echo "Building $BROWSER extension..."
+              if ! BROWSER=$BROWSER npm run build:extensions; then
+                echo "::error::Failed to build $BROWSER extension"
+                echo "Build output:"
+                ls -la "dist/$BROWSER" || true
+                if [ -f "dist/$BROWSER/manifest.json" ]; then
+                  echo "$BROWSER manifest:"
+                  cat "dist/$BROWSER/manifest.json"
+                fi
+                exit 1
               fi
-              exit 1
-            fi
+              
+              echo "Packaging $BROWSER extension..."
+              if ! npm run "package:$BROWSER"; then
+                echo "::error::Failed to package $BROWSER extension"
+                ls -la "dist/$BROWSER" || true
+                exit 1
+              fi
+              
+              # Capture extension-specific debug info
+              echo "Capturing debug info for $BROWSER extension..."
+              {
+                echo "=== $BROWSER Extension Build Info ==="
+                echo "Directory structure:"
+                ls -R "dist/$BROWSER"
+                echo -e "\nManifest content:"
+                cat "dist/$BROWSER/manifest.json"
+              } > "debug_logs/${BROWSER}_build_info.log"
+            done
+            
+            echo "✓ Build completed successfully"
+            echo "Generated artifacts:"
+            ls -la chroniclesync-*.zip
+            
+            # Capture final build state
+            echo -e "\nFinal build directory structure:" >> debug_logs/build_summary.log
+            ls -R . >> debug_logs/build_summary.log
+          } 2>&1 | tee debug_logs/build_output.log
 
-            echo "Packaging $BROWSER extension..."
-            if ! npm run "package:$BROWSER"; then
-              echo "::error::Failed to package $BROWSER extension"
-              ls -la "dist/$BROWSER" || true
-              exit 1
-            fi
-          done
-
-          echo "✓ Build completed successfully"
-          echo "Generated artifacts:"
-          ls -la chroniclesync-*.zip
+      - name: Upload Debug Logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-debug-logs
+          path: pages/debug_logs/
+          if-no-files-found: error
 
       - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v3
@@ -95,7 +121,28 @@ jobs:
 
       - name: Test Worker
         working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
+        run: |
+          mkdir -p debug_logs
+          {
+            echo "Installing dependencies..."
+            npm ci
+            
+            echo "Running linting..."
+            npm run lint
+            
+            echo "Running tests with coverage..."
+            npm run test:coverage
+            
+            echo "Capturing test coverage report..."
+            cp -r coverage debug_logs/
+          } 2>&1 | tee debug_logs/worker_output.log
+
+      - name: Upload Worker Debug Logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: worker-debug-logs
+          path: worker/debug_logs/
+          if-no-files-found: error
 
 
 

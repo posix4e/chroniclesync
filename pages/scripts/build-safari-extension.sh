@@ -100,22 +100,48 @@ ls -la "$SAFARI_SRC"
 echo "Manifest content:"
 cat "$SAFARI_SRC/manifest.json"
 
-# Check if safari-web-extension-converter is available
-CONVERTER_PATH=$(xcrun --find safari-web-extension-converter 2>/dev/null || true)
+# Check Xcode and developer tools setup
+echo "Checking Xcode setup..."
+XCODE_PATH=$(xcode-select -p)
+echo "Xcode path: $XCODE_PATH"
+
+# List available developer tools
+echo "Available developer tools:"
+ls -la "$XCODE_PATH/usr/bin/"
+
+# Try to find safari-web-extension-converter in multiple locations
+POSSIBLE_PATHS=(
+    "$XCODE_PATH/usr/bin/safari-web-extension-converter"
+    "/Applications/Xcode.app/Contents/Developer/usr/bin/safari-web-extension-converter"
+    "/Library/Developer/CommandLineTools/usr/bin/safari-web-extension-converter"
+)
+
+CONVERTER_PATH=""
+for path in "${POSSIBLE_PATHS[@]}"; do
+    if [ -x "$path" ]; then
+        CONVERTER_PATH="$path"
+        break
+    fi
+done
+
 if [ -z "$CONVERTER_PATH" ]; then
-    echo "Error: safari-web-extension-converter not found. Please ensure Xcode is properly installed."
-    xcrun --find safari-web-extension-converter
+    echo "Error: safari-web-extension-converter not found in any of these locations:"
+    printf '%s\n' "${POSSIBLE_PATHS[@]}"
+    echo "Trying xcrun as fallback..."
+    CONVERTER_PATH=$(xcrun --find safari-web-extension-converter 2>/dev/null || true)
+fi
+
+if [ -z "$CONVERTER_PATH" ]; then
+    echo "Error: Could not find safari-web-extension-converter"
+    echo "Current PATH: $PATH"
+    echo "Xcode version:"
+    xcodebuild -version
+    echo "Available SDKs:"
+    xcodebuild -showsdks
     exit 1
 fi
 
 echo "Found safari-web-extension-converter at: $CONVERTER_PATH"
-
-# Verify the converter is executable
-if [ ! -x "$CONVERTER_PATH" ]; then
-    echo "Error: safari-web-extension-converter is not executable"
-    ls -l "$CONVERTER_PATH"
-    exit 1
-fi
 
 # Create a clean temporary directory with just the required files
 TEMP_DIR="$(mktemp -d)"
@@ -135,7 +161,7 @@ ls -la "$TEMP_DIR"
 ls -la "$TEMP_DIR/icons"
 
 echo "Running safari-web-extension-converter..."
-echo "Command: xcrun safari-web-extension-converter \"$TEMP_DIR\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
+echo "Command: \"$CONVERTER_PATH\" \"$TEMP_DIR\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
 
 # Cleanup function
 cleanup() {
@@ -146,13 +172,23 @@ cleanup() {
 # Set up trap to clean up on script exit
 trap cleanup EXIT
 
-xcrun safari-web-extension-converter "$TEMP_DIR" \
+# Try running the converter directly first
+if ! "$CONVERTER_PATH" "$TEMP_DIR" \
     --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \
     --no-prompt \
     --swift \
     --macos \
-    --force
+    --force; then
+    echo "Direct converter execution failed, trying with xcrun..."
+    xcrun safari-web-extension-converter "$TEMP_DIR" \
+        --project-location "$SAFARI_APP" \
+        --bundle-identifier dev.all-hands.chroniclesync \
+        --no-prompt \
+        --swift \
+        --macos \
+        --force
+fi
 
 # Find the Xcode project
 echo "Looking for Xcode project..."

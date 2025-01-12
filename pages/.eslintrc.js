@@ -9,13 +9,16 @@ module.exports = {
   plugins: [
     'webdriverio',
   ],
-  globals: {
-    browser: true,
-    $: true,
-    $$: true,
-    expect: true,
-    chrome: true,
-  },
+  overrides: [{
+    files: ['**/tests/e2e/**/*.js'],
+    globals: {
+      browser: true,
+      $: true,
+      $$: true,
+      expect: true,
+      chrome: true,
+    },
+  }],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',

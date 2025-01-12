@@ -424,19 +424,40 @@ trap cleanup_keychain EXIT
 CERT_DIR="$(mktemp -d)"
 echo "Creating certificate files in: $CERT_DIR"
 
+# Function to clean up certificate files
+cleanup_certs() {
+    echo "Cleaning up certificate files..."
+    rm -rf "$CERT_DIR" 2>/dev/null || true
+}
+
+# Function to handle certificate errors
+handle_cert_error() {
+    local message="$1"
+    echo "Error: $message"
+    cleanup_certs
+    exit 1
+}
+
 # Create self-signed certificate
 echo "Creating certificate signing request..."
 openssl req -new -newkey rsa:2048 -nodes \
     -keyout "$CERT_DIR/cert.key" \
     -out "$CERT_DIR/cert.csr" \
-    -subj "/C=US/ST=California/L=San Francisco/O=OpenHands/CN=ChronicleSync"
-
-if [ $? -ne 0 ]; then
-    echo "Failed to create certificate signing request"
-    security delete-keychain build.keychain || true
-    rm -rf "$CERT_DIR"
-    exit 1
-fi
+    -subj "/C=US/ST=California/L=San Francisco/O=OpenHands/CN=ChronicleSync" \
+    -config <(cat << EOF
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+[dn]
+C = US
+ST = California
+L = San Francisco
+O = OpenHands
+CN = ChronicleSync
+EOF
+) || handle_cert_error "Failed to create certificate signing request"
 
 # Create self-signed certificate
 echo "Creating self-signed certificate..."
@@ -452,15 +473,12 @@ keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = codeSigning
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = chroniclesync.pages.dev
+DNS.2 = *.chroniclesync.pages.dev
 EOF
-)
-
-if [ $? -ne 0 ]; then
-    echo "Failed to create certificate"
-    security delete-keychain build.keychain || true
-    rm -rf "$CERT_DIR"
-    exit 1
-fi
+) || handle_cert_error "Failed to create certificate"
 
 # Create PKCS#12 file
 echo "Creating PKCS#12 file..."
@@ -469,14 +487,10 @@ openssl pkcs12 -export \
     -inkey "$CERT_DIR/cert.key" \
     -out "$CERT_DIR/cert.p12" \
     -name "ChronicleSync" \
-    -passout pass:""
-
-if [ $? -ne 0 ]; then
-    echo "Failed to create PKCS#12 file"
-    security delete-keychain build.keychain || true
-    rm -rf "$CERT_DIR"
-    exit 1
-fi
+    -passout pass:"" \
+    -macalg sha256 \
+    -keypbe PBE-SHA1-3DES \
+    -certpbe PBE-SHA1-3DES || handle_cert_error "Failed to create PKCS#12 file"
 
 # Import certificate
 echo "Importing certificate..."
@@ -485,11 +499,11 @@ if ! security import "$CERT_DIR/cert.p12" \
     -P "" \
     -T /usr/bin/codesign \
     -f pkcs12; then
-    echo "Failed to import certificate"
-    security delete-keychain build.keychain || true
-    rm -rf "$CERT_DIR"
-    exit 1
+    handle_cert_error "Failed to import certificate"
 fi
+
+# Set up trap to clean up certificate files on script exit
+trap cleanup_certs EXIT
 
 # Clean up certificate files
 rm -rf "$CERT_DIR"

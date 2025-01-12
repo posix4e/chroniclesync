@@ -91,7 +91,7 @@ describe('Chrome Extension Tests', () => {
     for (const selector of components) {
       const element = await $(selector);
       const isDisplayed = await element.isDisplayed();
-      expect(isDisplayed).to.be.true;
+      expect(isDisplayed).to.equal(true);
     }
   });
 });

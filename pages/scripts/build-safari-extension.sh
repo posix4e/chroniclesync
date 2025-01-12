@@ -460,35 +460,53 @@ handle_cert_error() {
     exit 1
 }
 
-# Create self-signed certificate
-echo "Creating certificate signing request..."
-openssl req -new -newkey rsa:2048 -nodes \
-    -keyout "$CERT_DIR/cert.key" \
-    -out "$CERT_DIR/cert.csr" \
-    -subj "/C=US/ST=California/L=San Francisco/O=OpenHands/CN=ChronicleSync" \
-    -config <(cat << EOF
+# Function to create certificate
+create_certificate() {
+    local name="$1"
+    local org="$2"
+    local domain="$3"
+    local key_file="$CERT_DIR/cert.key"
+    local csr_file="$CERT_DIR/cert.csr"
+    local cert_file="$CERT_DIR/cert.cer"
+    local p12_file="$CERT_DIR/cert.p12"
+
+    echo "Creating certificate signing request..."
+    openssl req -new -newkey rsa:2048 -nodes \
+        -keyout "$key_file" \
+        -out "$csr_file" \
+        -subj "/C=US/ST=California/L=San Francisco/O=$org/CN=$name" \
+        -config <(cat << EOF
 [req]
 default_bits = 2048
 prompt = no
 default_md = sha256
 distinguished_name = dn
+req_extensions = v3_req
 [dn]
 C = US
 ST = California
 L = San Francisco
-O = OpenHands
-CN = ChronicleSync
+O = $org
+CN = $name
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = codeSigning
+subjectKeyIdentifier = hash
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = $domain
+DNS.2 = *.$domain
 EOF
 ) || handle_cert_error "Failed to create certificate signing request"
 
-# Create self-signed certificate
-echo "Creating self-signed certificate..."
-openssl x509 -req -days 365 \
-    -in "$CERT_DIR/cert.csr" \
-    -signkey "$CERT_DIR/cert.key" \
-    -out "$CERT_DIR/cert.cer" \
-    -extensions v3_req \
-    -extfile <(cat << EOF
+    echo "Creating self-signed certificate..."
+    openssl x509 -req -days 365 \
+        -in "$csr_file" \
+        -signkey "$key_file" \
+        -out "$cert_file" \
+        -extensions v3_req \
+        -extfile <(cat << EOF
 [v3_req]
 basicConstraints = CA:FALSE
 keyUsage = digitalSignature, keyEncipherment
@@ -497,32 +515,42 @@ subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer
 subjectAltName = @alt_names
 [alt_names]
-DNS.1 = chroniclesync.pages.dev
-DNS.2 = *.chroniclesync.pages.dev
+DNS.1 = $domain
+DNS.2 = *.$domain
 EOF
 ) || handle_cert_error "Failed to create certificate"
 
-# Create PKCS#12 file
-echo "Creating PKCS#12 file..."
-openssl pkcs12 -export \
-    -in "$CERT_DIR/cert.cer" \
-    -inkey "$CERT_DIR/cert.key" \
-    -out "$CERT_DIR/cert.p12" \
-    -name "ChronicleSync" \
-    -passout pass:"" \
-    -macalg sha256 \
-    -keypbe PBE-SHA1-3DES \
-    -certpbe PBE-SHA1-3DES || handle_cert_error "Failed to create PKCS#12 file"
+    echo "Creating PKCS#12 file..."
+    openssl pkcs12 -export \
+        -in "$cert_file" \
+        -inkey "$key_file" \
+        -out "$p12_file" \
+        -name "$name" \
+        -passout pass:"" \
+        -macalg sha256 \
+        -keypbe PBE-SHA1-3DES \
+        -certpbe PBE-SHA1-3DES || handle_cert_error "Failed to create PKCS#12 file"
 
-# Import certificate
-echo "Importing certificate..."
-if ! security import "$CERT_DIR/cert.p12" \
-    -k build.keychain \
-    -P "" \
-    -T /usr/bin/codesign \
-    -f pkcs12; then
-    handle_cert_error "Failed to import certificate"
-fi
+    echo "Importing certificate..."
+    if ! security import "$p12_file" \
+        -k build.keychain \
+        -P "" \
+        -T /usr/bin/codesign \
+        -f pkcs12; then
+        handle_cert_error "Failed to import certificate"
+    fi
+
+    echo "Verifying certificate..."
+    if ! security find-certificate -a -c "$name" build.keychain >/dev/null; then
+        handle_cert_error "Certificate verification failed"
+    fi
+}
+
+# Create certificate for Safari extension
+create_certificate \
+    "ChronicleSync" \
+    "OpenHands" \
+    "chroniclesync.pages.dev"
 
 # Set up trap to clean up certificate files on script exit
 trap cleanup_certs EXIT

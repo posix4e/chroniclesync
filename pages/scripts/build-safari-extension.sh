@@ -181,6 +181,16 @@ ls -la "$TEMP_DIR/icons"
 echo "Running safari-web-extension-converter..."
 echo "Command: \"$CONVERTER_PATH\" \"$TEMP_DIR\" --project-location \"$SAFARI_APP\" --bundle-identifier dev.all-hands.chroniclesync --no-prompt --swift --macos --force"
 
+# Print contents of all files for debugging
+echo "Contents of manifest.json:"
+cat "$TEMP_DIR/manifest.json"
+echo "Contents of background.js:"
+cat "$TEMP_DIR/background.js"
+echo "Contents of popup.js:"
+cat "$TEMP_DIR/popup.js"
+echo "Contents of browser-polyfill.js:"
+cat "$TEMP_DIR/browser-polyfill.js"
+
 # Cleanup function
 cleanup() {
     echo "Cleaning up temporary directory..."

@@ -31,6 +31,19 @@ jobs:
         with:
           xcode-version: '15.0'
 
+      - name: Install Xcode Command Line Tools
+        run: |
+          echo "Installing Xcode Command Line Tools..."
+          xcode-select --install || true
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -license accept || true
+          sudo xcodebuild -runFirstLaunch || true
+          
+          echo "Xcode setup:"
+          xcode-select -p
+          xcodebuild -version
+          xcrun --version
+
       - name: Setup Build Environment
         run: |
           echo "Setting up build environment..."

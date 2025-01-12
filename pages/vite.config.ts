@@ -20,7 +20,8 @@ export default defineConfig(({ command, mode }) => {
               [browser === 'firefox' ? 'manifest.v2.json' : 'manifest.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
               ['background.js', 'background.js'],
-              ['popup.js', 'popup.js']
+              ['popup.js', 'popup.js'],
+              ['browser-polyfill.js', 'browser-polyfill.js']
             ];
 
             for (const [src, dest] of staticFiles) {

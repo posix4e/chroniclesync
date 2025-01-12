@@ -118,7 +118,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BETA_TAG="beta-$(date +%Y%m%d-%H%M%S)"
-          BETA_TITLE="Beta Release $(date +%Y-%m-%d %H:%M:%S)"
+          BETA_TITLE="Beta Release $(date '+%Y-%m-%d %H:%M:%S')"
           gh release create "$BETA_TAG" pages/chroniclesync-*.zip \
             --title "$BETA_TITLE" \
             --notes "Beta release from main branch

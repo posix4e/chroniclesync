@@ -373,6 +373,45 @@ defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -boo
 defaults write com.apple.dt.Xcode IDEDerivedDataLocationStyle -string "Workspace"
 defaults write com.apple.dt.Xcode IDECustomDerivedDataLocation -string "$SAFARI_APP/DerivedData"
 
+# Set up code signing
+echo "Setting up code signing..."
+security create-keychain -p "" build.keychain
+security default-keychain -s build.keychain
+security unlock-keychain -p "" build.keychain
+security set-keychain-settings -t 3600 -l build.keychain
+
+# Create self-signed certificate
+echo "Creating self-signed certificate..."
+security create-certificate-signing-request \
+    -k build.keychain \
+    -o /tmp/cert.csr \
+    -n "ChronicleSync" \
+    -c "US" \
+    -st "California" \
+    -l "San Francisco" \
+    -o "OpenHands" \
+    -e "openhands@all-hands.dev"
+
+# Create self-signed certificate
+echo "Creating self-signed certificate..."
+security create-certificate \
+    -k build.keychain \
+    -n "ChronicleSync" \
+    -c "US" \
+    -st "California" \
+    -l "San Francisco" \
+    -o "OpenHands" \
+    -e "openhands@all-hands.dev" \
+    -i /tmp/cert.csr \
+    -a /tmp/cert.cer
+
+# Import certificate
+echo "Importing certificate..."
+security import /tmp/cert.cer -k build.keychain -T /usr/bin/codesign
+
+# Clean up certificate files
+rm -f /tmp/cert.csr /tmp/cert.cer
+
 # Build the project
 echo "Starting build..."
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \

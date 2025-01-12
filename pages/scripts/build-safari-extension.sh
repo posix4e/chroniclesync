@@ -60,8 +60,15 @@ ls -la dist/safari/icons/
 
 # Convert web extension to Safari extension
 echo "Converting web extension to Safari extension..."
-xcrun safari-web-extension-converter dist/safari \
-    --project-location dist/safari-app \
+SAFARI_SRC="$(pwd)/dist/safari"
+SAFARI_APP="$(pwd)/dist/safari-app"
+echo "Current directory: $(pwd)"
+echo "Safari source path: $SAFARI_SRC"
+echo "Safari app path: $SAFARI_APP"
+echo "Verifying source directory contents:"
+ls -la "$SAFARI_SRC"
+xcrun safari-web-extension-converter "$SAFARI_SRC" \
+    --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \
     --no-prompt \
     --swift \

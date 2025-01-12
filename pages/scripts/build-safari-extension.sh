@@ -208,7 +208,14 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
     --no-prompt \
     --swift \
     --macos \
-    --force; then
+    --force \
+    --app-name "ChronicleSync" \
+    --copy-resources \
+    --no-open \
+    --no-build \
+    --no-configure-xcode \
+    --no-install \
+    --no-run; then
     echo "Direct converter execution failed, trying with xcrun..."
     if ! xcrun safari-web-extension-converter "$TEMP_DIR" \
         --project-location "$SAFARI_APP" \
@@ -216,7 +223,14 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
         --no-prompt \
         --swift \
         --macos \
-        --force; then
+        --force \
+        --app-name "ChronicleSync" \
+        --copy-resources \
+        --no-open \
+        --no-build \
+        --no-configure-xcode \
+        --no-install \
+        --no-run; then
         echo "Both converter attempts failed. Checking environment:"
         echo "PATH: $PATH"
         echo "XCODE_PATH: $XCODE_PATH"
@@ -225,6 +239,10 @@ if ! "$CONVERTER_PATH" "$TEMP_DIR" \
         ls -la "$TEMP_DIR"
         echo "SAFARI_APP contents:"
         ls -la "$SAFARI_APP"
+        echo "Converter version:"
+        "$CONVERTER_PATH" --version || true
+        echo "Converter help:"
+        "$CONVERTER_PATH" --help || true
         exit 1
     fi
 fi

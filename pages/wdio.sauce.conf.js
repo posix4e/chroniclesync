@@ -1,4 +1,9 @@
 const path = require('path');
+const fs = require('fs');
+
+// Read and encode the extension
+const extensionPath = path.join(__dirname, 'chroniclesync-chrome.zip');
+const extensionBase64 = fs.readFileSync(extensionPath).toString('base64');
 
 exports.config = {
     runner: 'local',
@@ -20,7 +25,7 @@ exports.config = {
         },
         'goog:chromeOptions': {
             args: ['--no-sandbox'],
-            extensions: [require('fs').readFileSync(path.join(__dirname, 'chroniclesync-chrome.zip')).toString('base64')]
+            extensions: [extensionBase64]
         }
     }],
     logLevel: 'info',

@@ -1,13 +1,34 @@
 describe('Chrome Extension Tests', () => {
   before(async () => {
     // Get the extension ID from the browser
-    const extensions = await browser.execute(() => {
-      return chrome.runtime.id;
+    const extensionId = await browser.execute(() => {
+      // Get all extension IDs
+      const extensionIds = Object.keys(chrome.runtime.getManifest ? 
+        { [chrome.runtime.id]: true } : // Chrome 91+
+        window.localStorage);
+      
+      // Find our extension by checking manifest
+      for (const id of extensionIds) {
+        try {
+          const manifest = chrome.runtime.getManifest ?
+            chrome.runtime.getManifest() :
+            JSON.parse(window.localStorage[id]).manifest;
+          if (manifest && manifest.name === 'ChronicleSync') {
+            return id;
+          }
+        } catch (e) {
+          // Skip invalid entries
+          continue;
+        }
+      }
+      return null;
     });
-    const extensionId = extensions || process.env.EXTENSION_ID;
+
     if (!extensionId) {
       throw new Error('Extension ID not found');
     }
+
+    // Navigate to extension page
     await browser.url(`chrome-extension://${extensionId}/index.html`);
   });
 

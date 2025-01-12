@@ -174,7 +174,7 @@ jobs:
           STAGING_API_URL: ${{ format('https://api-{0}.chroniclesync.xyz', github.head_ref) }}
         run: |
           # Install WebdriverIO and Sauce Labs dependencies
-          npm install -g @wdio/cli @wdio/local-runner @wdio/sauce-service @wdio/mocha-framework @wdio/spec-reporter mocha
+          npm install --save-dev @wdio/cli @wdio/local-runner @wdio/sauce-service @wdio/mocha-framework @wdio/spec-reporter mocha
 
           # Run tests using WebdriverIO with Sauce Labs
           npx wdio run ./wdio.sauce.conf.js

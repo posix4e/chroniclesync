@@ -34,10 +34,9 @@ jobs:
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
 
-      - name: Package Extension
-        run: |
-          cd extension
-          zip -r ../chroniclesync-extension.zip .
+      - name: Build and Package Extension
+        working-directory: pages
+        run: npm run build:extension && npm run package:extension
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v3

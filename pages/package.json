@@ -7,7 +7,7 @@
     "build": "npm run build:web && npm run build:extension",
     "build:web": "tsc && vite build",
     "build:extension": "vite build --mode extension",
-    "package:extension": "cd dist/extension && zip -r ../../chroniclesync-extension.zip .",
+    "package:extension": "cd dist/extension && zip -r ../../chroniclesync-extension.zip * .??*",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

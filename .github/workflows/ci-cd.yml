@@ -35,12 +35,16 @@ jobs:
         run: |
           brew install zip
           sudo xcodebuild -license accept || true
-          xcrun simctl list
-          xcodebuild -version
+          # Ensure proper Xcode setup
+          sudo xcode-select --reset
+          sudo xcode-select --switch /Applications/Xcode.app
+          sudo xcodebuild -runFirstLaunch
           # Debug Xcode setup
           echo "Xcode path: $(xcode-select -p)"
           echo "Available SDKs:"
           xcodebuild -showsdks
+          xcrun simctl list
+          xcodebuild -version
 
       - name: Install and Build Pages
         working-directory: pages

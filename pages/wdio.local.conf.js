@@ -14,30 +14,19 @@ function getEncodedExtension() {
 }
 
 exports.config = {
-    // Hook to ensure extension is loaded before tests
-    before: function (capabilities) {
-        // Log browser info
-        console.log('Running tests with capabilities:', capabilities);
-    },
     runner: 'local',
-    user: process.env.SAUCE_USERNAME,
-    key: process.env.SAUCE_ACCESS_KEY,
-    region: 'us',
-    services: ['sauce'],
     specs: [
         './src/tests/e2e/**/*.test.js'
     ],
-    maxInstances: 2,
+    maxInstances: 1,
     capabilities: [{
         browserName: 'chrome',
-        browserVersion: 'latest',
-        platformName: 'Windows 10',
-        'sauce:options': {
-            extendedDebugging: true,
-            capturePerformance: true
-        },
         'goog:chromeOptions': {
-            args: ['--no-sandbox'],
+            args: [
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--headless'
+            ],
             extensions: [getEncodedExtension()]
         }
     }],
@@ -47,10 +36,16 @@ exports.config = {
     waitforTimeout: 10000,
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
+    services: ['chromedriver'],
     framework: 'mocha',
     reporters: ['spec'],
     mochaOpts: {
         ui: 'bdd',
         timeout: 60000
+    },
+    // Hook to ensure extension is loaded before tests
+    before: function (capabilities) {
+        // Log browser info
+        console.log('Running tests with capabilities:', capabilities);
     }
 };

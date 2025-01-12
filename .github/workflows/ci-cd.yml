@@ -165,16 +165,20 @@ jobs:
           echo "Waiting for staging deployment to be ready..."
           sleep 30  # Give Cloudflare some time to propagate the changes
 
+      - name: Install Chrome
+        if: github.event.pull_request.base.ref == 'main'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser xvfb
+
       - name: Run Chrome Extension Tests
         if: github.event.pull_request.base.ref == 'main'  # Only run on PR builds (staging)
         working-directory: pages
         env:
-          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
-          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
           STAGING_API_URL: ${{ format('https://api-{0}.chroniclesync.xyz', github.head_ref) }}
         run: |
-          # Install WebdriverIO and Sauce Labs dependencies
-          npm install --save-dev @wdio/cli @wdio/local-runner @wdio/sauce-service @wdio/mocha-framework @wdio/spec-reporter @wdio/types @wdio/globals @wdio/runner mocha
+          # Install WebdriverIO dependencies
+          npm install --save-dev @wdio/cli @wdio/local-runner @wdio/mocha-framework @wdio/spec-reporter chromedriver
 
-          # Run tests using WebdriverIO with Sauce Labs
-          npx wdio run ./wdio.sauce.conf.js
+          # Run tests using WebdriverIO with Xvfb
+          xvfb-run --server-args="-screen 0 1920x1080x24" npx wdio run ./wdio.local.conf.js

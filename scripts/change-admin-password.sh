@@ -57,6 +57,19 @@ if [ ${#NEW_PASSWORD} -lt 8 ]; then
     exit 1
 fi
 
+# Confirm password change
+if [ -t 0 ]; then  # Only ask for confirmation if running interactively
+    read -p "Are you sure you want to change the admin password? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Password change cancelled."
+        exit 1
+    fi
+fi
+
+# Show what's being done
+echo "Changing password at $API_URL..."
+
 # Make the API request
 response=$(curl -s -w "\n%{http_code}" "$API_URL/admin/password" \
     -H "Authorization: Bearer $CURRENT_PASSWORD" \
@@ -66,6 +79,18 @@ response=$(curl -s -w "\n%{http_code}" "$API_URL/admin/password" \
 # Split response into body and status code
 body=$(echo "$response" | head -n 1)
 status_code=$(echo "$response" | tail -n 1)
+
+# Save request details for debugging if there's an error
+debug_info="/tmp/password_change_debug_$(date +%Y%m%d_%H%M%S).log"
+if [ "$status_code" != "200" ]; then
+    {
+        echo "Request URL: $API_URL/admin/password"
+        echo "Status Code: $status_code"
+        echo "Response: $body"
+        echo "Timestamp: $(date -u)"
+    } > "$debug_info"
+    echo "Debug information saved to: $debug_info"
+fi
 
 # Check response
 case $status_code in

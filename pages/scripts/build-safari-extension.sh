@@ -362,11 +362,19 @@ if ! ditto -c -k --sequesterRsrc --keepParent "$FULL_APP_PATH" ../chroniclesync-
     ls -la "$FULL_APP_PATH"
     echo "Checking target directory:"
     ls -la ..
+    echo "Checking app contents:"
+    find "$FULL_APP_PATH" -type f -ls
+    echo "Checking app permissions:"
+    ls -la "$FULL_APP_PATH/Contents/MacOS/"* || true
     echo "Trying zip command as fallback..."
     if ! zip -r ../chroniclesync-safari.zip "$FULL_APP_PATH"; then
         echo "Error: Both ditto and zip failed"
         echo "Checking zip command:"
         which zip
+        echo "Checking disk space:"
+        df -h .
+        echo "Checking file limits:"
+        ulimit -a
         exit 1
     fi
 fi

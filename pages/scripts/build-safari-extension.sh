@@ -316,15 +316,21 @@ if [ ! -d "$FULL_APP_PATH" ]; then
 fi
 
 echo "Creating zip archive from: $FULL_APP_PATH"
-if ! zip -r ../chroniclesync-safari.zip "$FULL_APP_PATH"; then
-    echo "Error: Failed to create zip archive"
-    echo "Checking zip command:"
-    which zip
+if ! ditto -c -k --sequesterRsrc --keepParent "$FULL_APP_PATH" ../chroniclesync-safari.zip; then
+    echo "Error: Failed to create zip archive with ditto"
+    echo "Checking ditto command:"
+    which ditto
     echo "Checking source directory:"
     ls -la "$FULL_APP_PATH"
     echo "Checking target directory:"
     ls -la ..
-    exit 1
+    echo "Trying zip command as fallback..."
+    if ! zip -r ../chroniclesync-safari.zip "$FULL_APP_PATH"; then
+        echo "Error: Both ditto and zip failed"
+        echo "Checking zip command:"
+        which zip
+        exit 1
+    fi
 fi
 
 echo "Safari extension build complete!"

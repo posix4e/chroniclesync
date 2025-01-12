@@ -29,6 +29,8 @@ jobs:
       - name: Install System Dependencies
         run: |
           brew install zip
+          sudo xcode-select --install || true
+          sudo xcodebuild -license accept || true
 
       - name: Install and Build Pages
         working-directory: pages

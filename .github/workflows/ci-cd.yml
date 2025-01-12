@@ -232,13 +232,18 @@ jobs:
 
 
 
-      - name: Delete Old Beta Release
+      - name: Delete Old Beta Releases and Tags
         if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Delete old beta releases
-          gh release list | grep "beta-" | cut -f1 | xargs -I {} gh release delete {} -y || true
+          # Delete old beta releases and their tags
+          for tag in $(gh release list | grep "beta-" | cut -f1); do
+            echo "Deleting release and tag: $tag"
+            gh release delete "$tag" -y || true
+            git tag -d "$tag" 2>/dev/null || true
+            git push --delete origin "$tag" 2>/dev/null || true
+          done
 
       - name: Create Beta Release
         if: github.ref == 'refs/heads/main'

@@ -292,6 +292,9 @@ if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -configuration Release \
     -sdk macosx \
     -verbose \
+    -allowProvisioningUpdates \
+    -allowProvisioningDeviceRegistration \
+    -destination 'platform=macOS' \
     MACOSX_DEPLOYMENT_TARGET=10.15 \
     CODE_SIGN_IDENTITY="-" \
     CODE_SIGNING_REQUIRED=NO \
@@ -306,7 +309,11 @@ if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     STRIP_INSTALLED_PRODUCT=NO \
     COPY_PHASE_STRIP=NO \
     DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
-    GCC_OPTIMIZATION_LEVEL=0; then
+    GCC_OPTIMIZATION_LEVEL=0 \
+    ONLY_ACTIVE_ARCH=YES \
+    ARCHS="x86_64" \
+    VALID_ARCHS="x86_64" \
+    EXCLUDED_ARCHS="arm64"; then
     echo "xcodebuild failed. Checking build directory:"
     ls -la build/Release || true
     echo "Checking available schemes:"

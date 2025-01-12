@@ -75,3 +75,69 @@ button:hover {
 .health-error { 
   color: #e74c3c; 
 }
+
+.browser-history {
+  padding: 1rem;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+
+.browser-history h2 {
+  margin-bottom: 1rem;
+}
+
+.browser-history .controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.browser-history .last-sync {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.browser-history .error {
+  color: #dc3545;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f8d7da;
+  border-radius: 4px;
+}
+
+.browser-history .history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.browser-history .history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.browser-history .history-item:last-child {
+  border-bottom: none;
+}
+
+.browser-history .history-item a {
+  color: #0066cc;
+  text-decoration: none;
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.browser-history .history-item a:hover {
+  text-decoration: underline;
+}
+
+.browser-history .history-item .timestamp {
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}

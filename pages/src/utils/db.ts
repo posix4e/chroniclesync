@@ -22,6 +22,11 @@ export class DB {
         if (!db.objectStoreNames.contains('data')) {
           db.createObjectStore('data');
         }
+        if (!db.objectStoreNames.contains('history')) {
+          const historyStore = db.createObjectStore('history', { keyPath: 'timestamp' });
+          historyStore.createIndex('url', 'url', { unique: false });
+          historyStore.createIndex('title', 'title', { unique: false });
+        }
       };
     });
   }
@@ -46,6 +51,58 @@ export class DB {
       const transaction = this.db!.transaction(['data'], 'readwrite');
       const store = transaction.objectStore('data');
       const request = store.put(data, 'userData');
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  async addHistoryEntry(entry: { url: string; title: string; timestamp?: number }): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['history'], 'readwrite');
+      const store = transaction.objectStore('history');
+      const historyEntry = {
+        ...entry,
+        timestamp: entry.timestamp || Date.now()
+      };
+      const request = store.add(historyEntry);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  async getHistory(startTime?: number, endTime?: number): Promise<Array<{ url: string; title: string; timestamp: number }>> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['history'], 'readonly');
+      const store = transaction.objectStore('history');
+      const request = store.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        let history = request.result;
+        if (startTime) {
+          history = history.filter(entry => entry.timestamp >= startTime);
+        }
+        if (endTime) {
+          history = history.filter(entry => entry.timestamp <= endTime);
+        }
+        resolve(history);
+      };
+    });
+  }
+
+  async clearHistory(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['history'], 'readwrite');
+      const store = transaction.objectStore('history');
+      const request = store.clear();
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();

@@ -21,3 +21,16 @@ export interface ClientStats {
 export interface IDBRequestEvent extends Event {
   target: IDBRequest;
 }
+
+export interface HistoryEntry {
+  url: string;
+  title: string;
+  timestamp: number;
+}
+
+export interface HistoryState {
+  entries: HistoryEntry[];
+  lastSync: number;
+  syncing: boolean;
+  error?: string;
+}

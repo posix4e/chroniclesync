@@ -14,7 +14,7 @@
     "package:extensions": "npm run package:chrome && npm run package:firefox && npm run package:safari",
     "package:chrome": "cd dist/chrome && zip -r ../../chroniclesync-chrome.zip * .??*",
     "package:firefox": "cd dist/firefox && zip -r ../../chroniclesync-firefox.zip * .??*",
-    "package:safari": "bash -e ./scripts/build-safari-extension.sh",
+    "package:safari": "bash -e ./scripts/build-safari-extension-direct.sh",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -13,7 +13,7 @@ env:
 
 jobs:
   ci-cd:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
@@ -26,108 +26,10 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '15.0'
-
-      - name: Install Xcode Command Line Tools
+      - name: Install System Dependencies
         run: |
-          echo "Installing Xcode Command Line Tools..."
-          xcode-select --install || true
-          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-          sudo xcodebuild -license accept || true
-          sudo xcodebuild -runFirstLaunch || true
-          
-          echo "Xcode setup:"
-          xcode-select -p
-          xcodebuild -version
-          xcrun --version
-
-      - name: Setup Safari Extension Development
-        run: |
-          echo "Setting up Safari extension development..."
-          # Enable Safari Developer Menu
-          defaults write com.apple.Safari IncludeDevelopMenu -bool true
-          defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
-          defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
-          
-          # Enable Safari Allow Unsigned Extensions
-          defaults write com.apple.Safari AllowUnsignedExtensions -bool true
-          
-          # Enable Safari Allow Remote Automation
-          defaults write com.apple.Safari AllowRemoteAutomation -bool true
-          
-          # Enable Safari Allow JavaScript from Apple Events
-          defaults write com.apple.Safari AllowJavaScriptFromAppleEvents -bool true
-          
-          echo "Safari development settings:"
-          defaults read com.apple.Safari IncludeDevelopMenu
-          defaults read com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey
-          defaults read com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled
-          defaults read com.apple.Safari AllowUnsignedExtensions
-          defaults read com.apple.Safari AllowRemoteAutomation
-          defaults read com.apple.Safari AllowJavaScriptFromAppleEvents
-
-      - name: Setup Build Environment
-        run: |
-          echo "Setting up build environment..."
-          
-          # Check platform requirements
-          if [[ "$(uname)" != "Darwin" ]]; then
-            echo "::error::Safari extension build requires macOS. This workflow must run on a macOS runner."
-            echo "Current OS: $(uname)"
-            exit 1
-          fi
-
-          # Install dependencies
-          echo "Installing dependencies..."
-          brew install zip jq
-
-          # Verify Xcode installation
-          if ! command -v xcodebuild &> /dev/null; then
-            echo "::error::Xcode not found. Please ensure Xcode 15.0 or later is installed."
-            exit 1
-          fi
-
-          # Print Xcode version
-          XCODE_VERSION=$(xcodebuild -version | head -n1)
-          if [[ ! "$XCODE_VERSION" =~ ^Xcode[[:space:]]15 ]]; then
-            echo "::warning::Recommended Xcode version is 15.0 or later. Found: $XCODE_VERSION"
-          fi
-          
-          # Setup Xcode
-          echo "Configuring Xcode..."
-          sudo xcodebuild -license accept || true
-          sudo xcode-select --reset
-          sudo xcode-select --switch /Applications/Xcode.app
-          sudo xcodebuild -runFirstLaunch
-
-          # Verify Safari extension converter
-          CONVERTER_PATH=$(xcrun --find safari-web-extension-converter 2>/dev/null || true)
-          if [ -z "$CONVERTER_PATH" ]; then
-            echo "::error::Safari Web Extension Converter not found."
-            echo "This tool is required and should be included with Xcode."
-            echo "Please ensure Xcode is properly installed with command line tools."
-            exit 1
-          fi
-
-          # Verify ditto command
-          if ! command -v ditto &> /dev/null; then
-            echo "::warning::ditto command not found. Will use zip as fallback."
-          fi
-
-          # Verify build tools
-          echo "Build tools:"
-          echo "- xcodebuild: $(which xcodebuild)"
-          echo "- xcrun: $(which xcrun)"
-          echo "- ditto: $(which ditto || echo 'not found')"
-          echo "- zip: $(which zip)"
-          echo "- jq: $(which jq)"
-          
-          echo "✓ Build environment ready"
-          echo "Xcode: $XCODE_VERSION"
-          echo "Safari Extension Converter: $CONVERTER_PATH"
+          sudo apt-get update
+          sudo apt-get install -y zip
 
       - name: Install and Build Pages
         working-directory: pages

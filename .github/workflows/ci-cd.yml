@@ -31,6 +31,36 @@ jobs:
         with:
           xcode-version: '15.0'
 
+      - name: Validate Safari Extension Build Requirements
+        run: |
+          echo "Checking Safari extension build requirements..."
+          
+          # Check if running on macOS
+          if [[ "$(uname)" != "Darwin" ]]; then
+            echo "::error::Safari extension build requires macOS runner. Current OS: $(uname)"
+            exit 1
+          fi
+          
+          # Check for Xcode
+          if ! command -v xcodebuild &> /dev/null; then
+            echo "::error::Xcode (xcodebuild) not found. Required for Safari extension build."
+            exit 1
+          fi
+          
+          # Check for xcrun
+          if ! command -v xcrun &> /dev/null; then
+            echo "::error::xcrun not found. Required for Safari extension build."
+            exit 1
+          fi
+          
+          # Print environment info
+          echo "Environment information:"
+          echo "OS: $(uname -a)"
+          echo "Xcode version: $(xcodebuild -version)"
+          echo "xcrun version: $(xcrun --version)"
+          
+          echo "✓ All Safari extension build requirements met"
+
       - name: Install System Dependencies
         run: |
           brew install zip
@@ -39,12 +69,16 @@ jobs:
           sudo xcode-select --reset
           sudo xcode-select --switch /Applications/Xcode.app
           sudo xcodebuild -runFirstLaunch
-          # Debug Xcode setup
-          echo "Xcode path: $(xcode-select -p)"
-          echo "Available SDKs:"
+          
+          # Verify Xcode setup
+          echo "Xcode Configuration:"
+          echo "- Path: $(xcode-select -p)"
+          echo "- Available SDKs:"
           xcodebuild -showsdks
-          xcrun simctl list
-          xcodebuild -version
+          echo "- Available simulators:"
+          xcrun simctl list devices
+          echo "- Command line tools version:"
+          pkgutil --pkg-info=com.apple.pkg.CLTools_Executables 2>/dev/null || echo "Command line tools not found"
 
       - name: Install and Build Pages
         working-directory: pages

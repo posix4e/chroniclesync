@@ -470,20 +470,40 @@ if [ ! -d "$FULL_APP_PATH" ]; then
 fi
 
 echo "Creating zip archive from: $FULL_APP_PATH"
-if ! ditto -c -k --sequesterRsrc --keepParent "$FULL_APP_PATH" ../chroniclesync-safari.zip; then
+# First, ensure all files have correct permissions
+echo "Setting file permissions..."
+find "$FULL_APP_PATH" -type f -exec chmod 644 {} \;
+find "$FULL_APP_PATH" -type d -exec chmod 755 {} \;
+find "$FULL_APP_PATH/Contents/MacOS" -type f -exec chmod 755 {} \;
+
+# Create a clean temporary directory for packaging
+PACKAGE_DIR="$(mktemp -d)"
+echo "Creating temporary package directory: $PACKAGE_DIR"
+
+# Copy app to temporary directory with ditto to preserve attributes
+echo "Copying app to temporary directory..."
+if ! ditto "$FULL_APP_PATH" "$PACKAGE_DIR/$(basename "$FULL_APP_PATH")"; then
+    echo "Error: Failed to copy app to temporary directory"
+    exit 1
+fi
+
+# Create zip archive
+echo "Creating zip archive..."
+if ! ditto -c -k --sequesterRsrc --keepParent "$PACKAGE_DIR/$(basename "$FULL_APP_PATH")" ../chroniclesync-safari.zip; then
     echo "Error: Failed to create zip archive with ditto"
     echo "Checking ditto command:"
     which ditto
     echo "Checking source directory:"
-    ls -la "$FULL_APP_PATH"
+    ls -la "$PACKAGE_DIR"
     echo "Checking target directory:"
     ls -la ..
     echo "Checking app contents:"
-    find "$FULL_APP_PATH" -type f -ls
+    find "$PACKAGE_DIR" -type f -ls
     echo "Checking app permissions:"
-    ls -la "$FULL_APP_PATH/Contents/MacOS/"* || true
+    ls -la "$PACKAGE_DIR/$(basename "$FULL_APP_PATH")/Contents/MacOS/"* || true
     echo "Trying zip command as fallback..."
-    if ! zip -r ../chroniclesync-safari.zip "$FULL_APP_PATH"; then
+    cd "$PACKAGE_DIR"
+    if ! zip -r ../../chroniclesync-safari.zip "$(basename "$FULL_APP_PATH")"; then
         echo "Error: Both ditto and zip failed"
         echo "Checking zip command:"
         which zip
@@ -491,9 +511,16 @@ if ! ditto -c -k --sequesterRsrc --keepParent "$FULL_APP_PATH" ../chroniclesync-
         df -h .
         echo "Checking file limits:"
         ulimit -a
+        cd -
+        rm -rf "$PACKAGE_DIR"
         exit 1
     fi
+    cd -
 fi
+
+# Clean up
+echo "Cleaning up temporary directory..."
+rm -rf "$PACKAGE_DIR"
 
 echo "Safari extension build complete!"
 ls -la ../chroniclesync-safari.zip

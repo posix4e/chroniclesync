@@ -135,13 +135,33 @@ TEMP_DIR="$(mktemp -d)"
 echo "Creating temporary directory for Safari extension: $TEMP_DIR"
 
 # Copy only the required files
-cp "$SAFARI_SRC/manifest.json" "$TEMP_DIR/"
-cp "$SAFARI_SRC/background.js" "$TEMP_DIR/"
-cp "$SAFARI_SRC/popup.html" "$TEMP_DIR/"
-cp "$SAFARI_SRC/popup.js" "$TEMP_DIR/"
-cp "$SAFARI_SRC/browser-polyfill.js" "$TEMP_DIR/"
+echo "Copying files to temporary directory..."
+for file in manifest.json background.js popup.html popup.js browser-polyfill.js; do
+  echo "Copying $file..."
+  if [ ! -f "$SAFARI_SRC/$file" ]; then
+    echo "Error: Required file $file not found in $SAFARI_SRC"
+    ls -la "$SAFARI_SRC"
+    exit 1
+  fi
+  cp "$SAFARI_SRC/$file" "$TEMP_DIR/"
+done
+
+echo "Copying icons..."
 mkdir -p "$TEMP_DIR/icons"
-cp "$SAFARI_SRC/icons/"* "$TEMP_DIR/icons/"
+if [ ! -d "$SAFARI_SRC/icons" ]; then
+  echo "Error: Icons directory not found in $SAFARI_SRC"
+  ls -la "$SAFARI_SRC"
+  exit 1
+fi
+
+for size in 16 48 128; do
+  if [ ! -f "$SAFARI_SRC/icons/icon${size}.png" ]; then
+    echo "Error: Required icon icon${size}.png not found in $SAFARI_SRC/icons"
+    ls -la "$SAFARI_SRC/icons"
+    exit 1
+  fi
+  cp "$SAFARI_SRC/icons/icon${size}.png" "$TEMP_DIR/icons/"
+done
 
 # Ensure manifest is v2 for Safari
 echo "Verifying and fixing manifest version..."

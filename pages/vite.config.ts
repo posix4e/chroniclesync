@@ -27,6 +27,19 @@ export default defineConfig(({ mode }) => {
               resolve(__dirname, `dist/${browser}/${dest}`)
             ]);
 
+            // For Safari, we need to ensure all JS files are CommonJS modules
+            if (browser === 'safari') {
+              const jsFiles = ['background.js', 'popup.js', 'browser-polyfill.js'];
+              for (const file of jsFiles) {
+                const content = fs.readFileSync(resolve(__dirname, `src/extension/${file}`), 'utf8');
+                // Remove any import/export statements and use CommonJS
+                const commonJsContent = content
+                  .replace(/import\s+.*\s+from\s+['"].*['"]/g, '')
+                  .replace(/export\s+default\s+/g, 'module.exports = ');
+                fs.writeFileSync(resolve(__dirname, `dist/${browser}/${file}`), commonJsContent);
+              }
+            }
+
             for (const [src, dest] of staticFiles) {
               copyFileSync(src, dest);
             }

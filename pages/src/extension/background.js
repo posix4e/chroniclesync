@@ -1,4 +1,5 @@
-import browserAPI from './browser-polyfill.js';
+// Use the global browserAPI object
+const browserAPI = window.browserAPI || require('./browser-polyfill.js');
 
 // Configuration
 const API_URL = (() => {

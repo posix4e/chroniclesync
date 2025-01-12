@@ -87,4 +87,8 @@ const browserAPI = (() => {
 })();
 
 // Export for use in other files
-export default browserAPI;
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = browserAPI;
+} else {
+  window.browserAPI = browserAPI;
+}

@@ -16,7 +16,7 @@ describe('Chrome Extension Tests', () => {
           if (manifest && manifest.name === 'ChronicleSync') {
             return id;
           }
-        } catch (e) {
+        } catch {
           // Skip invalid entries
           continue;
         }

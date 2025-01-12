@@ -4,8 +4,7 @@ import { resolve } from 'path';
 import { writeFileSync, copyFileSync, mkdirSync } from 'fs';
 
 // https://vitejs.dev/config/
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-export default defineConfig(({ _command, mode }) => {
+export default defineConfig(({ mode }) => {
   const isExtension = mode === 'extension';
   const browser = process.env.BROWSER || 'chrome';
 

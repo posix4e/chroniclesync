@@ -86,6 +86,19 @@ jobs:
             echo "Please ensure Xcode is properly installed with command line tools."
             exit 1
           fi
+
+          # Verify ditto command
+          if ! command -v ditto &> /dev/null; then
+            echo "::warning::ditto command not found. Will use zip as fallback."
+          fi
+
+          # Verify build tools
+          echo "Build tools:"
+          echo "- xcodebuild: $(which xcodebuild)"
+          echo "- xcrun: $(which xcrun)"
+          echo "- ditto: $(which ditto || echo 'not found')"
+          echo "- zip: $(which zip)"
+          echo "- jq: $(which jq)"
           
           echo "✓ Build environment ready"
           echo "Xcode: $XCODE_VERSION"

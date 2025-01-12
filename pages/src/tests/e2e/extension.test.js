@@ -23,25 +23,41 @@ describe('Chrome Extension Tests', () => {
     });
 
     it('should sync data with staging server', async () => {
+        // Initialize client
+        const clientIdInput = await $('#clientId');
+        await clientIdInput.setValue('test-client');
+        const initButton = await $('.container button');
+        await initButton.click();
+
         // Test data synchronization
-        const syncButton = await $('[data-testid="sync-button"]');
+        const syncButton = await $('#dataSection button:nth-child(2)'); // "Sync with Server" button
         await syncButton.click();
-        
-        // Wait for sync to complete
+
+        // Wait for sync alert
         await browser.waitUntil(async () => {
-            const status = await $('[data-testid="sync-status"]').getText();
-            return status === 'Sync complete';
+            try {
+                const alert = await browser.getAlertText();
+                await browser.acceptAlert();
+                return alert.includes('Sync successful');
+            } catch {
+                return false;
+            }
         }, { timeout: 5000 });
     });
 
     it('should work offline', async () => {
         // Simulate offline mode
         await browser.setNetworkConditions({ offline: true });
-        
-        // Verify offline functionality
-        const offlineIndicator = await $('[data-testid="offline-indicator"]');
-        expect(await offlineIndicator.isDisplayed()).toBe(true);
-        
+
+        // Try to sync and verify error
+        const syncButton = await $('#dataSection button:nth-child(2)');
+        await syncButton.click();
+
+        // Should show network error alert
+        const alertText = await browser.getAlertText();
+        expect(alertText).toContain('error');
+        await browser.acceptAlert();
+
         // Restore network
         await browser.setNetworkConditions({});
     });
@@ -49,11 +65,11 @@ describe('Chrome Extension Tests', () => {
     it('should validate UI components', async () => {
         // Test critical UI elements
         const components = [
-            '[data-testid="header"]',
-            '[data-testid="main-content"]',
-            '[data-testid="settings-panel"]'
+            '#clientSection',
+            '#dataSection',
+            '#healthCheck'
         ];
-        
+
         for (const selector of components) {
             const element = await $(selector);
             expect(await element.isDisplayed()).toBe(true);

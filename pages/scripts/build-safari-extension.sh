@@ -280,12 +280,38 @@ if [ -z "$APP_PATH" ]; then
     echo "Error: Built app not found!"
     echo "Contents of build directory:"
     find . -type d
+    echo "Contents of Release directory:"
+    ls -la build/Release || true
+    echo "Contents of Debug directory:"
+    ls -la build/Debug || true
     exit 1
 fi
 
+echo "Found app at: $APP_PATH"
+echo "App contents:"
+ls -la "$APP_PATH"
+
 echo "Creating zip archive..."
 cd ..
-zip -r ../chroniclesync-safari.zip "$PROJECT_NAME/build/Release/$PROJECT_NAME.app"
+FULL_APP_PATH="$PROJECT_NAME/build/Release/$PROJECT_NAME.app"
+if [ ! -d "$FULL_APP_PATH" ]; then
+    echo "Error: App not found at expected path: $FULL_APP_PATH"
+    echo "Available paths:"
+    find "$PROJECT_NAME/build" -type d
+    exit 1
+fi
+
+echo "Creating zip archive from: $FULL_APP_PATH"
+if ! zip -r ../chroniclesync-safari.zip "$FULL_APP_PATH"; then
+    echo "Error: Failed to create zip archive"
+    echo "Checking zip command:"
+    which zip
+    echo "Checking source directory:"
+    ls -la "$FULL_APP_PATH"
+    echo "Checking target directory:"
+    ls -la ..
+    exit 1
+fi
 
 echo "Safari extension build complete!"
 ls -la ../chroniclesync-safari.zip

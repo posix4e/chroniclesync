@@ -79,6 +79,52 @@ This checks:
 * Icons are present and valid
 * Platform-specific requirements are met
 
+### Browser Compatibility
+
+ChronicleSync uses a browser polyfill to ensure consistent behavior across browsers:
+
+#### Browser API Polyfill
+
+The `browser-polyfill.js` file provides a unified `browser` namespace that works across all supported browsers:
+
+* Firefox: Uses native `browser` namespace
+* Chrome: Maps `chrome` namespace to `browser`
+* Safari: Maps Safari extension APIs to `browser`
+
+Example usage:
+```javascript
+// Wait for DOM and polyfill to be ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Use browser.* APIs consistently across all browsers
+  browser.tabs.create({ url: 'https://example.com' });
+});
+```
+
+#### Web Page vs Extension Context
+
+The application can run in two contexts:
+
+1. As a web page (http://localhost:3000 or chroniclesync.xyz)
+2. As a browser extension (Chrome/Firefox/Safari)
+
+When running as a web page:
+* Browser extension APIs are not available
+* Use feature detection to provide fallback behavior
+* Use web-standard APIs where possible
+
+Example:
+```javascript
+function openUrl(url) {
+  if (typeof browser !== 'undefined' && browser.tabs) {
+    // Running as extension
+    browser.tabs.create({ url });
+  } else {
+    // Running as web page
+    window.open(url, '_blank');
+  }
+}
+```
+
 ### Development Tips
 
 #### Adding New Permissions

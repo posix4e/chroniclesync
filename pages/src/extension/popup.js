@@ -1,20 +1,21 @@
 // Wait for DOM and browser polyfill to be ready
 document.addEventListener('DOMContentLoaded', () => {
-  function getBrowser() {
-    if (typeof browser !== 'undefined') return browser;
-    if (typeof chrome !== 'undefined') return chrome;
-    if (typeof window !== 'undefined' && window.safari) return window.safari;
-    throw new Error('Unsupported browser');
+  function openUrl(url) {
+    // Check if running as extension with browser API available
+    if (typeof browser !== 'undefined' && browser.tabs) {
+      return browser.tabs.create({ url });
+    }
+    
+    // Fallback for web page context or Safari
+    window.open(url, '_blank');
   }
 
   document.getElementById('openDashboard').addEventListener('click', () => {
-    const browser = getBrowser();
-    const url = 'http://localhost:3000';
+    // Use environment-specific URL (localhost for development, production for release)
+    const url = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:3000'
+      : 'https://chroniclesync.xyz';
     
-    if (browser === window.safari) {
-      window.open(url, '_blank');
-    } else {
-      browser.tabs.create({ url });
-    }
+    openUrl(url);
   });
 });

@@ -360,6 +360,19 @@ rm -rf "$SAFARI_APP/build.xcresult"
 rm -rf "$SAFARI_APP/SourcePackages"
 rm -rf "$SAFARI_APP/ResolvedPackages"
 
+# Create required directories
+echo "Creating build directories..."
+mkdir -p "$SAFARI_APP/build.xcresult"
+mkdir -p "$SAFARI_APP/SourcePackages"
+mkdir -p "$SAFARI_APP/ResolvedPackages"
+
+# Set up build environment
+echo "Setting up build environment..."
+defaults write com.apple.dt.Xcode IDESkipMacroValidation -bool YES
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
+defaults write com.apple.dt.Xcode IDEDerivedDataLocationStyle -string "Workspace"
+defaults write com.apple.dt.Xcode IDECustomDerivedDataLocation -string "$SAFARI_APP/DerivedData"
+
 # Build the project
 echo "Starting build..."
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \

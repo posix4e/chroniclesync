@@ -62,12 +62,31 @@ ls -la dist/safari/icons/
 echo "Converting web extension to Safari extension..."
 SAFARI_SRC="$(pwd)/dist/safari"
 SAFARI_APP="$(pwd)/dist/safari-app"
+
+# Verify manifest version
+echo "Verifying manifest version..."
+MANIFEST_VERSION=$(jq -r '.manifest_version' "$SAFARI_SRC/manifest.json")
+if [ "$MANIFEST_VERSION" != "2" ]; then
+    echo "Error: Safari requires manifest version 2, but found version $MANIFEST_VERSION"
+    echo "Converting manifest to version 2..."
+    # Create a backup
+    cp "$SAFARI_SRC/manifest.json" "$SAFARI_SRC/manifest.json.bak"
+    # Convert to v2
+    jq '.manifest_version = 2 | del(.background.service_worker) | .background.scripts = ["background.js"]' \
+        "$SAFARI_SRC/manifest.json.bak" > "$SAFARI_SRC/manifest.json"
+fi
+
 echo "Current directory: $(pwd)"
 echo "Safari source path: $SAFARI_SRC"
 echo "Safari app path: $SAFARI_APP"
 echo "Verifying source directory contents:"
 ls -la "$SAFARI_SRC"
-xcrun safari-web-extension-converter "$SAFARI_SRC" \
+
+echo "Manifest content:"
+cat "$SAFARI_SRC/manifest.json"
+
+echo "Running safari-web-extension-converter..."
+xcrun safari-web-extension-converter "${SAFARI_SRC}/" \
     --project-location "$SAFARI_APP" \
     --bundle-identifier dev.all-hands.chroniclesync \
     --no-prompt \

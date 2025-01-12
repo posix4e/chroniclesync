@@ -63,7 +63,7 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          brew install zip
+          brew install zip jq
           sudo xcodebuild -license accept || true
           # Ensure proper Xcode setup
           sudo xcode-select --reset

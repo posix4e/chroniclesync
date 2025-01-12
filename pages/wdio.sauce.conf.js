@@ -1,3 +1,5 @@
+const path = require('path');
+
 exports.config = {
     runner: 'local',
     user: process.env.SAUCE_USERNAME,
@@ -15,6 +17,10 @@ exports.config = {
         'sauce:options': {
             extendedDebugging: true,
             capturePerformance: true
+        },
+        'goog:chromeOptions': {
+            args: ['--no-sandbox'],
+            extensions: [require('fs').readFileSync(path.join(__dirname, 'chroniclesync-chrome.zip')).toString('base64')]
         }
     }],
     logLevel: 'info',

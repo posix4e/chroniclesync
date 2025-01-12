@@ -375,14 +375,29 @@ defaults write com.apple.dt.Xcode IDECustomDerivedDataLocation -string "$SAFARI_
 
 # Set up code signing
 echo "Setting up code signing..."
-security create-keychain -p "" build.keychain
-security default-keychain -s build.keychain
-security unlock-keychain -p "" build.keychain
-security set-keychain-settings -t 3600 -l build.keychain
+if ! security create-keychain -p "" build.keychain; then
+    echo "Failed to create keychain"
+    exit 1
+fi
+
+if ! security default-keychain -s build.keychain; then
+    echo "Failed to set default keychain"
+    exit 1
+fi
+
+if ! security unlock-keychain -p "" build.keychain; then
+    echo "Failed to unlock keychain"
+    exit 1
+fi
+
+if ! security set-keychain-settings -t 3600 -l build.keychain; then
+    echo "Failed to set keychain settings"
+    exit 1
+fi
 
 # Create self-signed certificate
 echo "Creating self-signed certificate..."
-security create-certificate-signing-request \
+if ! security create-certificate-signing-request \
     -k build.keychain \
     -o /tmp/cert.csr \
     -n "ChronicleSync" \
@@ -390,11 +405,14 @@ security create-certificate-signing-request \
     -st "California" \
     -l "San Francisco" \
     -o "OpenHands" \
-    -e "openhands@all-hands.dev"
+    -e "openhands@all-hands.dev"; then
+    echo "Failed to create certificate signing request"
+    exit 1
+fi
 
 # Create self-signed certificate
 echo "Creating self-signed certificate..."
-security create-certificate \
+if ! security create-certificate \
     -k build.keychain \
     -n "ChronicleSync" \
     -c "US" \
@@ -403,14 +421,26 @@ security create-certificate \
     -o "OpenHands" \
     -e "openhands@all-hands.dev" \
     -i /tmp/cert.csr \
-    -a /tmp/cert.cer
+    -a /tmp/cert.cer; then
+    echo "Failed to create certificate"
+    rm -f /tmp/cert.csr
+    exit 1
+fi
 
 # Import certificate
 echo "Importing certificate..."
-security import /tmp/cert.cer -k build.keychain -T /usr/bin/codesign
+if ! security import /tmp/cert.cer -k build.keychain -T /usr/bin/codesign; then
+    echo "Failed to import certificate"
+    rm -f /tmp/cert.csr /tmp/cert.cer
+    exit 1
+fi
 
 # Clean up certificate files
 rm -f /tmp/cert.csr /tmp/cert.cer
+
+# List certificates
+echo "Available certificates:"
+security find-identity -v -p codesigning build.keychain
 
 # Build the project
 echo "Starting build..."

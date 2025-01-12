@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { writeFileSync, copyFileSync, mkdirSync } from 'fs';
+import * as fs from 'fs';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -53,12 +53,12 @@ export default defineConfig(({ mode }) => {
             console.log('Files to copy:', staticFiles);
 
             for (const [src, dest] of staticFiles) {
-              copyFileSync(src, dest);
+              fs.copyFileSync(src, dest);
             }
 
             // Copy browser-specific files
             if (browser === 'safari') {
-              writeFileSync(
+              fs.writeFileSync(
                 resolve(__dirname, 'dist/safari/Info.plist'),
                 `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
 
             // Copy icons
             const iconsDir = resolve(__dirname, `dist/${browser}/icons`);
-            mkdirSync(iconsDir, { recursive: true });
+            fs.mkdirSync(iconsDir, { recursive: true });
             ['16', '48', '128'].forEach(size => {
               const srcIcon = resolve(__dirname, `src/extension/icons/icon${size}.png`);
               const destIcon = resolve(__dirname, `dist/${browser}/icons/icon${size}.png`);
@@ -88,7 +88,7 @@ export default defineConfig(({ mode }) => {
                 console.error(`Icon not found: ${srcIcon}`);
                 throw new Error(`Required icon not found: icon${size}.png`);
               }
-              copyFileSync(srcIcon, destIcon);
+              fs.copyFileSync(srcIcon, destIcon);
             });
           }
         }

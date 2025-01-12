@@ -262,14 +262,28 @@ if [ ! -f "$PROJECT_NAME.xcodeproj/project.pbxproj" ]; then
 fi
 
 echo "Building with xcodebuild..."
+echo "Available schemes:"
+xcodebuild -list -project "$PROJECT_NAME.xcodeproj" || true
+
+echo "Available SDKs:"
+xcodebuild -showsdks || true
+
+echo "Building project..."
 if ! xcodebuild -project "$PROJECT_NAME.xcodeproj" \
     -scheme "$PROJECT_NAME" \
     -configuration Release \
-    -verbose; then
+    -sdk macosx \
+    -verbose \
+    MACOSX_DEPLOYMENT_TARGET=10.15 \
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGNING_REQUIRED=NO \
+    CODE_SIGNING_ALLOWED=NO; then
     echo "xcodebuild failed. Checking build directory:"
     ls -la build/Release || true
     echo "Checking available schemes:"
     xcodebuild -list -project "$PROJECT_NAME.xcodeproj" || true
+    echo "Checking build logs:"
+    find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec tail -n 100 {} \;
     exit 1
 fi
 

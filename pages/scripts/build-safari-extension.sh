@@ -460,6 +460,29 @@ handle_cert_error() {
     exit 1
 }
 
+# Function to validate parameters
+validate_params() {
+    local name="$1"
+    local org="$2"
+    local domain="$3"
+
+    if [ -z "$name" ]; then
+        handle_cert_error "Certificate name is required"
+    fi
+
+    if [ -z "$org" ]; then
+        handle_cert_error "Organization name is required"
+    fi
+
+    if [ -z "$domain" ]; then
+        handle_cert_error "Domain name is required"
+    fi
+
+    if [[ ! "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z0-9-]+\.[a-zA-Z]+$ ]]; then
+        handle_cert_error "Invalid domain name format: $domain"
+    fi
+}
+
 # Function to create certificate
 create_certificate() {
     local name="$1"
@@ -469,6 +492,9 @@ create_certificate() {
     local csr_file="$CERT_DIR/cert.csr"
     local cert_file="$CERT_DIR/cert.cer"
     local p12_file="$CERT_DIR/cert.p12"
+
+    # Validate parameters
+    validate_params "$name" "$org" "$domain"
 
     echo "Creating certificate signing request..."
     openssl req -new -newkey rsa:2048 -nodes \

@@ -1,5 +1,8 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Function to read and encode the extension
 function getEncodedExtension() {
@@ -13,7 +16,7 @@ function getEncodedExtension() {
     }
 }
 
-exports.config = {
+export const config = {
     runner: 'local',
     specs: [
         './src/tests/e2e/**/*.test.js'
@@ -25,7 +28,9 @@ exports.config = {
             args: [
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
-                '--headless'
+                '--headless',
+                '--disable-gpu',
+                '--window-size=1920,1080'
             ],
             extensions: [getEncodedExtension()]
         }
@@ -36,16 +41,34 @@ exports.config = {
     waitforTimeout: 10000,
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
-    services: ['chromedriver'],
+    services: [
+        ['chromedriver', {
+            logFileName: 'wdio-chromedriver.log',
+            outputDir: 'logs',
+            args: ['--silent']
+        }]
+    ],
     framework: 'mocha',
     reporters: ['spec'],
     mochaOpts: {
         ui: 'bdd',
         timeout: 60000
     },
+    autoCompileOpts: {
+        autoCompile: true,
+        tsNodeOpts: {
+            project: './tsconfig.json',
+            transpileOnly: true
+        }
+    },
     // Hook to ensure extension is loaded before tests
-    before: function (capabilities) {
+    before: async function (capabilities) {
         // Log browser info
         console.log('Running tests with capabilities:', capabilities);
+        
+        // Create logs directory if it doesn't exist
+        if (!fs.existsSync('logs')) {
+            fs.mkdirSync('logs');
+        }
     }
 };

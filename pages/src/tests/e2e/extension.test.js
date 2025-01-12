@@ -1,28 +1,19 @@
+import { expect } from '@wdio/globals';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 describe('Chrome Extension Tests', () => {
+  let extensionId;
+
   before(async () => {
-    // Get the extension ID from the browser
-    const extensionId = await browser.execute(() => {
-      // Get all extension IDs
-      const extensionIds = Object.keys(chrome.runtime.getManifest ? 
-        { [chrome.runtime.id]: true } : // Chrome 91+
-        window.localStorage);
-      
-      // Find our extension by checking manifest
-      for (const id of extensionIds) {
-        try {
-          const manifest = chrome.runtime.getManifest ?
-            chrome.runtime.getManifest() :
-            JSON.parse(window.localStorage[id]).manifest;
-          if (manifest && manifest.name === 'ChronicleSync') {
-            return id;
-          }
-        } catch {
-          // Skip invalid entries
-          continue;
-        }
-      }
-      return null;
+    // Get the extension ID from the loaded extensions
+    const extensions = await browser.execute(() => {
+      return chrome.runtime.id;
     });
+    extensionId = extensions;
 
     if (!extensionId) {
       throw new Error('Extension ID not found');
@@ -33,15 +24,15 @@ describe('Chrome Extension Tests', () => {
   });
 
   it('should have correct manifest version', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const manifest = require('../../manifest.json');
-    expect(manifest.manifest_version).toBe(3); // Chrome extensions now use manifest v3
+    const manifestPath = path.join(__dirname, '../../manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    expect(manifest.manifest_version).to.equal(3); // Chrome extensions now use manifest v3
   });
 
   it('should initialize correctly', async () => {
     // Check if the extension loads without errors
     const title = await browser.getTitle();
-    expect(title).toBe('ChronicleSync');
+    expect(title).to.equal('ChronicleSync');
   });
 
   it('should sync data with staging server', async () => {
@@ -64,12 +55,17 @@ describe('Chrome Extension Tests', () => {
       } catch {
         return false;
       }
-    }, { timeout: 5000 });
+    }, {
+      timeout: 5000,
+      timeoutMsg: 'Expected sync alert to be present after 5s'
+    });
   });
 
-  it('should work offline', async () => {
-    // Simulate offline mode
-    await browser.setNetworkConditions({ offline: true });
+  it('should handle offline mode', async () => {
+    // Use CDP to simulate offline mode
+    const cdpConnection = await browser.getPuppeteer();
+    const page = (await cdpConnection.pages())[0];
+    await page.setOfflineMode(true);
 
     // Try to sync and verify error
     const syncButton = await $('#dataSection button:nth-child(2)');
@@ -77,11 +73,11 @@ describe('Chrome Extension Tests', () => {
 
     // Should show network error alert
     const alertText = await browser.getAlertText();
-    expect(alertText).toContain('error');
+    expect(alertText).to.include('error');
     await browser.acceptAlert();
 
     // Restore network
-    await browser.setNetworkConditions({});
+    await page.setOfflineMode(false);
   });
 
   it('should validate UI components', async () => {
@@ -94,7 +90,8 @@ describe('Chrome Extension Tests', () => {
 
     for (const selector of components) {
       const element = await $(selector);
-      expect(await element.isDisplayed()).toBe(true);
+      const isDisplayed = await element.isDisplayed();
+      expect(isDisplayed).to.be.true;
     }
   });
 });

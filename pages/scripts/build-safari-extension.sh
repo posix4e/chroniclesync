@@ -375,31 +375,51 @@ defaults write com.apple.dt.Xcode IDECustomDerivedDataLocation -string "$SAFARI_
 
 # Set up code signing
 echo "Setting up code signing..."
+
+# Clean up any existing keychain
+echo "Cleaning up existing keychain..."
+security delete-keychain build.keychain || true
+
+# Create new keychain
+echo "Creating new keychain..."
 if ! security create-keychain -p "" build.keychain; then
     echo "Failed to create keychain"
     exit 1
 fi
 
+# Set as default keychain
+echo "Setting as default keychain..."
 if ! security default-keychain -s build.keychain; then
     echo "Failed to set default keychain"
+    security delete-keychain build.keychain || true
     exit 1
 fi
 
+# Unlock keychain
+echo "Unlocking keychain..."
 if ! security unlock-keychain -p "" build.keychain; then
     echo "Failed to unlock keychain"
+    security delete-keychain build.keychain || true
     exit 1
 fi
 
+# Set keychain settings
+echo "Setting keychain settings..."
 if ! security set-keychain-settings -t 3600 -l build.keychain; then
     echo "Failed to set keychain settings"
+    security delete-keychain build.keychain || true
     exit 1
 fi
 
+# Create temporary directory for certificate files
+CERT_DIR="$(mktemp -d)"
+echo "Creating certificate files in: $CERT_DIR"
+
 # Create self-signed certificate
-echo "Creating self-signed certificate..."
+echo "Creating certificate signing request..."
 if ! security create-certificate-signing-request \
     -k build.keychain \
-    -o /tmp/cert.csr \
+    -o "$CERT_DIR/cert.csr" \
     -n "ChronicleSync" \
     -c "US" \
     -st "California" \
@@ -407,6 +427,8 @@ if ! security create-certificate-signing-request \
     -o "OpenHands" \
     -e "openhands@all-hands.dev"; then
     echo "Failed to create certificate signing request"
+    security delete-keychain build.keychain || true
+    rm -rf "$CERT_DIR"
     exit 1
 fi
 
@@ -420,27 +442,37 @@ if ! security create-certificate \
     -l "San Francisco" \
     -o "OpenHands" \
     -e "openhands@all-hands.dev" \
-    -i /tmp/cert.csr \
-    -a /tmp/cert.cer; then
+    -i "$CERT_DIR/cert.csr" \
+    -a "$CERT_DIR/cert.cer"; then
     echo "Failed to create certificate"
-    rm -f /tmp/cert.csr
+    security delete-keychain build.keychain || true
+    rm -rf "$CERT_DIR"
     exit 1
 fi
 
 # Import certificate
 echo "Importing certificate..."
-if ! security import /tmp/cert.cer -k build.keychain -T /usr/bin/codesign; then
+if ! security import "$CERT_DIR/cert.cer" -k build.keychain -T /usr/bin/codesign; then
     echo "Failed to import certificate"
-    rm -f /tmp/cert.csr /tmp/cert.cer
+    security delete-keychain build.keychain || true
+    rm -rf "$CERT_DIR"
     exit 1
 fi
 
 # Clean up certificate files
-rm -f /tmp/cert.csr /tmp/cert.cer
+rm -rf "$CERT_DIR"
 
 # List certificates
 echo "Available certificates:"
 security find-identity -v -p codesigning build.keychain
+
+# Set partition list
+echo "Setting partition list..."
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+
+# Add to keychain search list
+echo "Adding to keychain search list..."
+security list-keychains -d user -s build.keychain $(security list-keychains -d user | xargs)
 
 # Build the project
 echo "Starting build..."

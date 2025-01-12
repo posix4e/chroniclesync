@@ -417,15 +417,12 @@ echo "Creating certificate files in: $CERT_DIR"
 
 # Create self-signed certificate
 echo "Creating certificate signing request..."
-if ! security create-certificate-signing-request \
-    -k build.keychain \
-    -o "$CERT_DIR/cert.csr" \
-    -n "ChronicleSync" \
-    -c "US" \
-    -st "California" \
-    -l "San Francisco" \
-    -o "OpenHands" \
-    -e "openhands@all-hands.dev"; then
+openssl req -new -newkey rsa:2048 -nodes \
+    -keyout "$CERT_DIR/cert.key" \
+    -out "$CERT_DIR/cert.csr" \
+    -subj "/C=US/ST=California/L=San Francisco/O=OpenHands/CN=ChronicleSync"
+
+if [ $? -ne 0 ]; then
     echo "Failed to create certificate signing request"
     security delete-keychain build.keychain || true
     rm -rf "$CERT_DIR"
@@ -434,17 +431,39 @@ fi
 
 # Create self-signed certificate
 echo "Creating self-signed certificate..."
-if ! security create-certificate \
-    -k build.keychain \
-    -n "ChronicleSync" \
-    -c "US" \
-    -st "California" \
-    -l "San Francisco" \
-    -o "OpenHands" \
-    -e "openhands@all-hands.dev" \
-    -i "$CERT_DIR/cert.csr" \
-    -a "$CERT_DIR/cert.cer"; then
+openssl x509 -req -days 365 \
+    -in "$CERT_DIR/cert.csr" \
+    -signkey "$CERT_DIR/cert.key" \
+    -out "$CERT_DIR/cert.cer" \
+    -extensions v3_req \
+    -extfile <(cat << EOF
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = codeSigning
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+EOF
+)
+
+if [ $? -ne 0 ]; then
     echo "Failed to create certificate"
+    security delete-keychain build.keychain || true
+    rm -rf "$CERT_DIR"
+    exit 1
+fi
+
+# Create PKCS#12 file
+echo "Creating PKCS#12 file..."
+openssl pkcs12 -export \
+    -in "$CERT_DIR/cert.cer" \
+    -inkey "$CERT_DIR/cert.key" \
+    -out "$CERT_DIR/cert.p12" \
+    -name "ChronicleSync" \
+    -passout pass:""
+
+if [ $? -ne 0 ]; then
+    echo "Failed to create PKCS#12 file"
     security delete-keychain build.keychain || true
     rm -rf "$CERT_DIR"
     exit 1
@@ -452,7 +471,11 @@ fi
 
 # Import certificate
 echo "Importing certificate..."
-if ! security import "$CERT_DIR/cert.cer" -k build.keychain -T /usr/bin/codesign; then
+if ! security import "$CERT_DIR/cert.p12" \
+    -k build.keychain \
+    -P "" \
+    -T /usr/bin/codesign \
+    -f pkcs12; then
     echo "Failed to import certificate"
     security delete-keychain build.keychain || true
     rm -rf "$CERT_DIR"

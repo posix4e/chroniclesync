@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -46,7 +46,7 @@ jobs:
         run: npm ci && npm run lint && npm run test:coverage
 
       - name: Upload Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-extension
           path: pages/chroniclesync-extension.zip

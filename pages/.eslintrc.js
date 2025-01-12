@@ -5,11 +5,17 @@ module.exports = {
     node: true,
     jest: true,
     mocha: true,
-    webdriverio/wdio: true,
   },
   plugins: [
     'webdriverio',
   ],
+  globals: {
+    browser: true,
+    $: true,
+    $$: true,
+    expect: true,
+    chrome: true,
+  },
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',

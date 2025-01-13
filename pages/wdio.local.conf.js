@@ -12,12 +12,13 @@ exports.config = {
         browserName: 'chrome',
         'goog:chromeOptions': {
             args: [
-                '--headless',
+                '--headless=new',
                 '--disable-gpu',
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--window-size=1920,1080'
             ],
+            binary: process.env.CHROME_BIN || '/usr/bin/google-chrome',
             extensions: [path.join(__dirname, 'chroniclesync-chrome.zip')]
         }
     }],

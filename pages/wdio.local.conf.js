@@ -18,7 +18,7 @@ exports.config = {
                 '--disable-dev-shm-usage',
                 '--window-size=1920,1080'
             ],
-            extensions: [path.join(__dirname, 'dist', 'chrome.zip')]
+            extensions: [path.join(__dirname, 'chroniclesync-chrome.zip')]
         }
     }],
     logLevel: 'info',

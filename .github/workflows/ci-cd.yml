@@ -29,7 +29,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip
+          sudo apt-get install -y zip xvfb
 
       - name: Install and Build Pages
         working-directory: pages
@@ -40,11 +40,18 @@ jobs:
           echo "Running linting..."
           npm run lint
 
-          echo "Running tests..."
+          echo "Running unit tests..."
           npm run test
 
           echo "Building web app..."
           npm run build:web
+
+          echo "Building Chrome extension for E2E tests..."
+          BROWSER=chrome npm run build:extensions
+          npm run package:chrome
+
+          echo "Running E2E tests..."
+          xvfb-run npm run test:e2e
 
           echo "Building and packaging extensions..."
           for BROWSER in chrome firefox safari; do

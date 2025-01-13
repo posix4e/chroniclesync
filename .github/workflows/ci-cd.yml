@@ -36,6 +36,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
+          # Create test-logs directory
+          mkdir -p pages/test-logs
+          chmod 777 pages/test-logs
+
+          # Install WebdriverIO dependencies globally
+          sudo npm install -g @wdio/cli
+
       - name: Install and Build Pages
         working-directory: pages
         run: |

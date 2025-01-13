@@ -7,15 +7,9 @@ describe('Chrome Extension', () => {
         // Navigate to the extension popup
         await browser.url(`chrome-extension://${extensionId}/popup.html`);
         
-        // Check the title
-        const title = await browser.$('h1');
-        await expect(title).toHaveText('IndexDB Sync Demo');
-        
-        // Check that main UI elements are present
-        const clientIdInput = await browser.$('#clientId');
-        const initButton = await browser.$('button=Initialize');
-        
-        await expect(clientIdInput).toBeDisplayed();
-        await expect(initButton).toBeDisplayed();
+        // Check that the dashboard button is present
+        const dashboardButton = await browser.$('#openDashboard');
+        await expect(dashboardButton).toBeDisplayed();
+        await expect(dashboardButton).toHaveText('Open Dashboard');
     });
 });

@@ -75,3 +75,30 @@ button:hover {
 .health-error { 
   color: #e74c3c; 
 }
+
+/* Popup specific styles */
+.popup-container {
+  max-width: 400px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.popup-container h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.5rem;
+}
+
+/* Make components more compact in popup */
+.popup-container .health-check,
+.popup-container .client-section,
+.popup-container .admin-panel {
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+/* Adjust button sizes for popup */
+.popup-container button {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}

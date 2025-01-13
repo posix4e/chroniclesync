@@ -27,14 +27,16 @@ jobs:
           cd ../pages && npm ci
 
       - name: Build Extension
-        run: npm run build
+        run: |
+          cd pages
+          npm run build:extension
         
       - name: Upload Extension Artifact
         id: upload-extension
         uses: actions/upload-artifact@v3
         with:
           name: chroniclesync-extension
-          path: dist/
+          path: pages/dist/extension/
           
       - name: Deploy to Staging
         id: deploy-staging
@@ -67,7 +69,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: chroniclesync-extension
-          path: dist/
+          path: pages/dist/extension/
 
       - name: Run Acceptance Tests
         env:

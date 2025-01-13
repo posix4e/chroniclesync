@@ -5,8 +5,8 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
   let browser;
   let context;
   let page;
-  const stagingUrl = process.env.STAGING_URL || 'https://staging.chroniclesync.com';
-  const extensionPath = path.resolve(__dirname, '../../../dist');
+  const stagingUrl = process.env.STAGING_URL || 'https://staging.chroniclesync.xyz';
+  const extensionPath = path.resolve(__dirname, '../../../pages/dist/extension');
 
   beforeAll(async () => {
     // Launch browser with the actual extension loaded
@@ -22,7 +22,7 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
   beforeEach(async () => {
     // Create a fresh context for each test
     context = await browser.newContext({
-      permissions: ['bookmarks'] // Request bookmarks permission
+      permissions: ['history'] // Request history permission
     });
     page = await context.newPage();
   });
@@ -35,26 +35,42 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
     await browser.close();
   });
 
-  test('complete authentication flow', async () => {
-    // Navigate to staging environment
-    await page.goto(stagingUrl);
+  test('extension popup opens dashboard', async () => {
+    // Get the extension background page
+    const backgroundPage = await context.backgroundPages()[0];
+    if (!backgroundPage) {
+      await context.waitForEvent('backgroundpage');
+    }
+
+    // Open a new page and wait for extension to be ready
+    const page = await context.newPage();
+    await page.goto('about:blank'); // Any page to have extension active
+
+    // Get extension popup
+    const extensionPopup = await context.newPage();
+    const extensionUrl = await context.evaluateHandle(() => {
+      return browser.runtime.getURL('popup.html');
+    });
+    await extensionPopup.goto(extensionUrl.toString());
+
+    // Verify popup content
+    const title = await extensionPopup.$('h2');
+    expect(await title.textContent()).toBe('OpenHands History Sync');
+
+    // Click dashboard button
+    const dashboardButton = await extensionPopup.$('#openDashboard');
     
-    // Click the extension icon to open popup
-    const extensionButton = await page.waitForSelector('[data-testid="chroniclesync-extension-button"]');
-    await extensionButton.click();
+    // Create a promise to wait for the new tab
+    const newTabPromise = context.waitForEvent('page');
     
-    // Click login and complete OAuth flow
-    const loginButton = await page.waitForSelector('[data-testid="login-button"]');
-    await loginButton.click();
+    // Click the button
+    await dashboardButton.click();
     
-    // Wait for OAuth redirect and completion
-    await page.waitForURL((url) => url.href.includes('oauth/callback'));
+    // Wait for the new tab and verify it loads the dashboard
+    const newTab = await newTabPromise;
+    await newTab.waitForLoadState('networkidle');
     
-    // Verify we're authenticated by checking for user profile
-    await page.waitForSelector('[data-testid="user-profile"]', { timeout: 30000 });
-    
-    // Verify extension is ready for sync
-    const syncButton = await page.waitForSelector('[data-testid="sync-button"]');
-    expect(await syncButton.isEnabled()).toBe(true);
+    // Verify we're on the dashboard
+    expect(newTab.url()).toContain(stagingUrl);
   });
 });

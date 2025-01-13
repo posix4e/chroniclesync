@@ -1,6 +1,8 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Read manifests
 const manifestV3 = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/extension/manifest.v3.json'), 'utf8'));

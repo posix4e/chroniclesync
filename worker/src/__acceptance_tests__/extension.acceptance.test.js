@@ -9,6 +9,7 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
   const extensionPath = path.resolve(__dirname, '../../../dist');
 
   beforeAll(async () => {
+    // Launch browser with the actual extension loaded
     browser = await chromium.launch({
       headless: false,
       args: [
@@ -19,7 +20,10 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
   });
 
   beforeEach(async () => {
-    context = await browser.newContext();
+    // Create a fresh context for each test
+    context = await browser.newContext({
+      permissions: ['bookmarks'] // Request bookmarks permission
+    });
     page = await context.newPage();
   });
 
@@ -31,16 +35,26 @@ describe('ChronicleSync Extension Acceptance Tests', () => {
     await browser.close();
   });
 
-  it('should successfully authenticate with the service', async () => {
+  test('complete authentication flow', async () => {
+    // Navigate to staging environment
     await page.goto(stagingUrl);
     
-    // Test authentication flow
+    // Click the extension icon to open popup
+    const extensionButton = await page.waitForSelector('[data-testid="chroniclesync-extension-button"]');
+    await extensionButton.click();
+    
+    // Click login and complete OAuth flow
     const loginButton = await page.waitForSelector('[data-testid="login-button"]');
     await loginButton.click();
     
-    // Wait for auth completion and verify success
+    // Wait for OAuth redirect and completion
+    await page.waitForURL((url) => url.href.includes('oauth/callback'));
+    
+    // Verify we're authenticated by checking for user profile
     await page.waitForSelector('[data-testid="user-profile"]', { timeout: 30000 });
-    const profileElement = await page.$('[data-testid="user-profile"]');
-    expect(profileElement).toBeTruthy();
+    
+    // Verify extension is ready for sync
+    const syncButton = await page.waitForSelector('[data-testid="sync-button"]');
+    expect(await syncButton.isEnabled()).toBe(true);
   });
 });

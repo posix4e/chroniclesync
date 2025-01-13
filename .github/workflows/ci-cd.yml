@@ -177,10 +177,14 @@ jobs:
         env:
           STAGING_API_URL: ${{ format('https://api-{0}.chroniclesync.xyz', github.head_ref) }}
           DISPLAY: ':99'
+          NODE_OPTIONS: '--experimental-vm-modules'  # Required for ES modules in tests
         run: |
           # Start Xvfb
           Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
           sleep 3  # Give Xvfb some time to start
+
+          # Install WebdriverIO dependencies
+          npm install --save-dev @wdio/cli @wdio/local-runner @wdio/mocha-framework @wdio/spec-reporter @wdio/chromedriver-service chromedriver
 
           # Run tests using WebdriverIO
           npm run test:e2e

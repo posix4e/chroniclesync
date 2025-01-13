@@ -41,7 +41,7 @@ jobs:
           chmod 777 pages/test-logs
 
           # Install WebdriverIO dependencies globally
-          sudo npm install -g @wdio/cli
+          sudo npm install -g @wdio/cli @wdio/local-runner @wdio/mocha-framework @wdio/spec-reporter chromedriver wdio-chromedriver-service
 
       - name: Install and Build Pages
         working-directory: pages

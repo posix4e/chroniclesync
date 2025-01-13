@@ -4,39 +4,59 @@ describe('Chrome Extension', () => {
     let extensionId;
 
     before(async () => {
-        // List all extensions and find ours
+        // Wait for Chrome to initialize
+        await browser.pause(2000);
+
+        // Try multiple methods to get the extension ID
         try {
+            // Method 1: List all extensions
             const extensions = await browser.execute(() => {
                 return new Promise((resolve) => {
-                    chrome.management.getAll((extensions) => {
-                        resolve(extensions);
-                    });
+                    if (chrome.management && chrome.management.getAll) {
+                        chrome.management.getAll((exts) => resolve(exts));
+                    } else {
+                        resolve([]);
+                    }
                 });
             });
             console.log('Available extensions:', extensions);
 
-            // Find our extension by name
-            const ourExtension = extensions.find(ext => ext.name === 'OpenHands History Sync');
-            if (!ourExtension) {
-                throw new Error('Extension not found');
+            if (extensions.length > 0) {
+                const ourExtension = extensions.find(ext => ext.name === 'OpenHands History Sync');
+                if (ourExtension) {
+                    extensionId = ourExtension.id;
+                    console.log('Found extension ID via management API:', extensionId);
+                }
             }
-            extensionId = ourExtension.id;
-            console.log('Found extension ID:', extensionId);
-        } catch (error) {
-            console.error('Error getting extension ID:', error);
-            // Try alternative method
-            try {
-                const manifest = await browser.execute(() => {
-                    return chrome.runtime.getManifest();
-                });
+
+            // Method 2: Try getting the extension ID via runtime
+            if (!extensionId) {
                 extensionId = await browser.execute(() => {
                     return chrome.runtime.id;
                 });
-                console.log('Got extension ID via runtime:', extensionId);
-            } catch (innerError) {
-                console.error('Error getting extension ID via runtime:', innerError);
-                throw error;
+                console.log('Found extension ID via runtime API:', extensionId);
             }
+
+            // Method 3: Try getting it from the loaded extension path
+            if (!extensionId) {
+                const handles = await browser.getWindowHandles();
+                for (const handle of handles) {
+                    await browser.switchToWindow(handle);
+                    const url = await browser.getUrl();
+                    if (url.startsWith('chrome-extension://')) {
+                        extensionId = url.split('/')[2];
+                        console.log('Found extension ID from URL:', extensionId);
+                        break;
+                    }
+                }
+            }
+
+            if (!extensionId) {
+                throw new Error('Could not find extension ID');
+            }
+        } catch (error) {
+            console.error('Error getting extension ID:', error);
+            throw error;
         }
     });
 
@@ -47,25 +67,27 @@ describe('Chrome Extension', () => {
             console.log('Navigating to:', popupUrl);
             await browser.url(popupUrl);
             console.log('Navigated to popup URL');
-        } catch (error) {
-            console.error('Error navigating to popup:', error);
-            throw error;
-        }
 
-        // Wait for the page to load and log the current URL
-        await browser.pause(1000);
-        const currentUrl = await browser.getUrl();
-        console.log('Current URL:', currentUrl);
+            // Wait for the page to load
+            await browser.pause(2000);
 
-        // Check that the dashboard button is present
-        try {
+            // Log current state
+            const currentUrl = await browser.getUrl();
+            console.log('Current URL:', currentUrl);
+            const title = await browser.getTitle();
+            console.log('Page title:', title);
+            const source = await browser.getPageSource();
+            console.log('Page source:', source);
+
+            // Check that the dashboard button is present
             console.log('Looking for dashboard button...');
             const dashboardButton = await $('#openDashboard');
             console.log('Found button element');
 
             await dashboardButton.waitForDisplayed({ 
-                timeout: 5000,
-                timeoutMsg: 'Dashboard button not displayed after 5 seconds'
+                timeout: 10000,
+                interval: 500,
+                timeoutMsg: 'Dashboard button not displayed after 10 seconds'
             });
             console.log('Button is displayed');
 
@@ -73,18 +95,24 @@ describe('Chrome Extension', () => {
             console.log('Button text:', buttonText);
 
             expect(buttonText).toBe('Open Dashboard');
-        } catch (error) {
-            console.error('Error checking dashboard button:', error);
 
-            // Log the page source and screenshot for debugging
+            // Take a success screenshot
+            const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
+            const screenshotPath = path.join(process.cwd(), 'test-logs', `success-${timestamp}.png`);
+            await browser.saveScreenshot(screenshotPath);
+            console.log('Success screenshot saved to:', screenshotPath);
+        } catch (error) {
+            console.error('Test failed:', error);
+
+            // Log additional debugging information
             try {
-                const html = await browser.getPageSource();
-                console.log('Page source:', html);
+                const logs = await browser.getLogs('browser');
+                console.log('Browser logs:', logs);
 
                 const timestamp = new Date().toISOString().replace(/[^0-9]/g, '');
                 const screenshotPath = path.join(process.cwd(), 'test-logs', `error-${timestamp}.png`);
                 await browser.saveScreenshot(screenshotPath);
-                console.log('Screenshot saved to:', screenshotPath);
+                console.log('Error screenshot saved to:', screenshotPath);
             } catch (debugError) {
                 console.error('Error capturing debug info:', debugError);
             }

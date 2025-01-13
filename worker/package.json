@@ -8,6 +8,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:acceptance": "jest --config=jest.acceptance.config.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix"
   },

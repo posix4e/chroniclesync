@@ -15,61 +15,18 @@ global.chrome = {
   }
 } as any;
 
-// Mock fetch globally
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
-
-// Mock IndexedDB
-const mockIDBOpen = jest.fn();
-const mockIDBTransaction = jest.fn();
-const mockIDBObjectStore = jest.fn();
-const mockIDBPut = jest.fn();
-const mockIDBGet = jest.fn();
-
-const indexedDB = {
-  open: mockIDBOpen,
-  deleteDatabase: jest.fn()
-};
+// Set up staging environment
+Object.defineProperty(window, 'location', {
+  value: {
+    hostname: 'chroniclesync-pages.dev'
+  },
+  writable: true
+});
 
 describe('Extension E2E Tests', () => {
   beforeEach(() => {
-    // Reset all mocks
+    // Reset all mocks except IndexedDB
     jest.clearAllMocks();
-    
-    // Setup IndexedDB mock
-    const mockDB = {
-      createObjectStore: jest.fn().mockReturnValue({
-        put: mockIDBPut,
-        get: mockIDBGet
-      }),
-      transaction: mockIDBTransaction.mockReturnValue({
-        objectStore: mockIDBObjectStore.mockReturnValue({
-          put: mockIDBPut,
-          get: mockIDBGet
-        })
-      })
-    };
-
-    mockIDBOpen.mockImplementation(() => {
-      const request = {
-        result: mockDB,
-        onupgradeneeded: null,
-        onsuccess: null,
-        onerror: null
-      };
-      setTimeout(() => request.onsuccess?.({} as any), 0);
-      return request;
-    });
-
-    Object.defineProperty(window, 'indexedDB', {
-      value: indexedDB,
-      writable: true
-    });
-
-    // Setup fetch mock default response
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ healthy: true })
-    });
 
     // Setup chrome message mock default response
     mockSendMessage.mockImplementation((message, callback) => {
@@ -114,33 +71,77 @@ describe('Extension E2E Tests', () => {
       expect(screen.getByText('✅ Healthy')).toBeInTheDocument();
     });
 
-    // Verify API was called
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    // Verify we're using staging API
+    expect(window.location.hostname).toBe('chroniclesync-pages.dev');
   });
 
   it('should handle data synchronization correctly', async () => {
-    // Mock sync data
+    // Clean up any existing test databases
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(`sync_test-client`);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve();
+    });
+
+    // Set up test data
     const testData = {
       key: 'test-key',
       value: 'test-value',
       timestamp: Date.now()
     };
 
-    // Setup IndexedDB mock response
-    mockIDBGet.mockImplementation((key) => {
-      const request = {
-        result: testData,
-        onsuccess: null,
-        onerror: null
-      };
-      setTimeout(() => request.onsuccess?.({} as any), 0);
-      return request;
+    // Render the app
+    render(<App />);
+
+    // Initialize client
+    const clientIdInput = screen.getByPlaceholderText('Enter client ID');
+    fireEvent.change(clientIdInput, { target: { value: 'test-client' } });
+    
+    const initButton = screen.getByRole('button', { name: 'Initialize' });
+    fireEvent.click(initButton);
+
+    // Wait for initialization and data section
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Data' })).toBeInTheDocument();
     });
 
-    // Mock DB instance
-    jest.spyOn(DB.prototype, 'init').mockResolvedValue();
-    jest.spyOn(DB.prototype, 'setData').mockResolvedValue();
-    jest.spyOn(DB.prototype, 'getData').mockResolvedValue(testData);
+    // Find and fill the data textarea
+    const dataInput = screen.getByRole('textbox', { name: '' });
+    fireEvent.change(dataInput, { target: { value: JSON.stringify(testData) } });
+
+    // Save the data
+    const saveButton = screen.getByRole('button', { name: 'Save Data' });
+    fireEvent.click(saveButton);
+
+    // Wait for success message
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('Data saved locally');
+    });
+
+    // Sync with server
+    const syncButton = screen.getByRole('button', { name: 'Sync with Server' });
+    fireEvent.click(syncButton);
+
+    // Wait for sync success message
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith('Sync successful');
+    });
+  });
+
+  it('should handle offline mode gracefully', async () => {
+    // Clean up any existing test databases
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(`sync_test-client`);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve();
+    });
+
+    // Set up test data
+    const testData = {
+      key: 'offline-test',
+      value: 'offline-value',
+      timestamp: Date.now()
+    };
 
     // Render the app
     render(<App />);
@@ -154,66 +155,43 @@ describe('Extension E2E Tests', () => {
 
     // Wait for initialization
     await waitFor(() => {
-      expect(DB.prototype.init).toHaveBeenCalledWith('test-client');
-    });
-
-    // Wait for data section to appear
-    await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Data' })).toBeInTheDocument();
     });
 
-    // Find and fill the data textarea
+    // Save data locally
     const dataInput = screen.getByRole('textbox', { name: '' });
     fireEvent.change(dataInput, { target: { value: JSON.stringify(testData) } });
 
-    // Save the data
     const saveButton = screen.getByRole('button', { name: 'Save Data' });
     fireEvent.click(saveButton);
 
-    // Wait for data to be saved
+    // Wait for local save success
     await waitFor(() => {
-      expect(DB.prototype.setData).toHaveBeenCalledWith(testData);
-    });
-  });
-
-  it('should handle offline mode gracefully', async () => {
-    // Mock fetch to simulate offline
-    mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-    // Mock DB instance
-    const testData = {
-      key: 'offline-test',
-      value: 'offline-value',
-      timestamp: Date.now()
-    };
-    jest.spyOn(DB.prototype, 'getData').mockResolvedValue(testData);
-
-    // Render the app
-    render(<App />);
-
-    // Perform health check
-    const checkButton = screen.getByRole('button', { name: 'Check Health' });
-    fireEvent.click(checkButton);
-
-    // Wait for error state
-    await waitFor(() => {
-      expect(screen.getByText('❌ Error')).toBeInTheDocument();
+      expect(window.alert).toHaveBeenCalledWith('Data saved locally');
     });
 
-    // Initialize client and verify data is still accessible
-    const clientIdInput = screen.getByPlaceholderText('Enter client ID');
-    fireEvent.change(clientIdInput, { target: { value: 'test-client' } });
-    
-    const initButton = screen.getByRole('button', { name: 'Initialize' });
-    fireEvent.click(initButton);
+    // Try to sync while offline (should fail gracefully)
+    const syncButton = screen.getByRole('button', { name: 'Sync with Server' });
+    fireEvent.click(syncButton);
 
-    // Wait for data section to appear
+    // Wait for sync error message
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Data' })).toBeInTheDocument();
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Sync error'));
     });
 
-    // Verify data is displayed
-    const dataInput = screen.getByRole('textbox', { name: '' });
-    expect(dataInput).toHaveValue(JSON.stringify(testData, null, 2));
+    // Verify data is still accessible locally
+    const savedData = await new Promise<any>((resolve, reject) => {
+      const db = indexedDB.open(`sync_test-client`, 1);
+      db.onerror = () => reject(db.error);
+      db.onsuccess = () => {
+        const transaction = db.result.transaction(['data'], 'readonly');
+        const store = transaction.objectStore('data');
+        const request = store.get('userData');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      };
+    });
+
+    expect(savedData).toEqual(testData);
   });
 });

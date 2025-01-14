@@ -121,6 +121,10 @@ test.describe('Chrome Extension', () => {
       // Wait for any service worker registrations to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Verify that the extension is working
+      const root = await popupPage.$('#root');
+      expect(root, 'Root element should exist').toBeTruthy();
+
       // Close all pages
       const pages2 = await context.pages();
       for (const page of pages2) {
@@ -129,9 +133,6 @@ test.describe('Chrome Extension', () => {
 
       // Wait for any service worker registrations to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Verify that the extension is working
-      expect(true).toBeTruthy();
     } finally {
       // Close the context
       await context.close();

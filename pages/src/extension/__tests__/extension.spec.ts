@@ -167,6 +167,28 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+    await backgroundPage.evaluate(() => {
+      // Try to get service worker state
+      if ('serviceWorker' in navigator) {
+        console.log('Service worker state from background page:', {
+          controller: navigator.serviceWorker.controller,
+          ready: navigator.serviceWorker.ready,
+          registrations: navigator.serviceWorker.getRegistrations(),
+          registration: navigator.serviceWorker.getRegistration(),
+        });
+      }
+    });
+    await backgroundPage.evaluate(() => {
+      // Try to get service worker state with JSON.stringify
+      if ('serviceWorker' in navigator) {
+        console.log('Service worker state from background page (stringified):', JSON.stringify({
+          controller: navigator.serviceWorker.controller,
+          ready: navigator.serviceWorker.ready,
+          registrations: navigator.serviceWorker.getRegistrations(),
+          registration: navigator.serviceWorker.getRegistration(),
+        }, null, 2));
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state

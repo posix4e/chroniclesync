@@ -237,6 +237,9 @@ test.describe('Chrome Extension', () => {
       console.error('No service workers found after retries');
     }
 
+    // Wait for any service worker registrations to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration

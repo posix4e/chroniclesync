@@ -13,8 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
+    services:
+      xvfb:
+        image: selenium/standalone-chrome
+        options: --shm-size=2gb
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Xvfb and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11vnc fluxbox xterm
+          sudo apt-get install -y libxcursor1 libgtk-3-0 libgconf-2-4 libnss3 libxss1 libasound2
 
       - name: Download extension artifact
         uses: dawidd6/action-download-artifact@v3
@@ -36,6 +47,13 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 3
+          fluxbox -display :99 &
+          x11vnc -display :99 -forever -nopw &
+
       - name: Wait for staging deployment
         run: |
           echo "Waiting for staging deployment to be ready..."
@@ -45,10 +63,13 @@ jobs:
         run: |
           # Load the extension before running tests
           EXTENSION_PATH=$(pwd)/extension-build
-          npx playwright test --config=playwright.config.ts
+          xvfb-run --server-args="-screen 0 1920x1080x24" --auto-servernum \
+            npx playwright test --config=playwright.config.ts --workers=1
         env:
+          DISPLAY: :99.0
           PLAYWRIGHT_TEST_BASE_URL: https://staging.chroniclesync.com
           EXTENSION_PATH: ${{ github.workspace }}/extension-build
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
 
       - name: Upload test results
         if: always()
@@ -59,4 +80,13 @@ jobs:
             playwright-report/
             test-results/
             tests/screenshots/
+            xvfb-logs/
           retention-days: 30
+
+      - name: Upload Xvfb logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xvfb-logs
+          path: /var/log/Xvfb*
+          retention-days: 5

@@ -5,7 +5,7 @@ import { existsSync, mkdirSync } from 'fs';
 test.describe('Chrome Extension', () => {
 
   test('extension should load without errors', async () => {
-    test.setTimeout(120000); // Increase timeout to 2 minutes
+    test.setTimeout(60000); // Increase timeout to 1 minute
     const pathToExtension = path.join(__dirname, '../../../dist/chrome');
     console.log('Loading extension from path:', pathToExtension);
     const context = await chromium.launchPersistentContext('', {
@@ -39,12 +39,18 @@ test.describe('Chrome Extension', () => {
         '--use-mock-keychain',
         '--enable-logging',
         '--v=1',
+        '--enable-automation',
+        '--remote-debugging-port=0',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
       ignoreHTTPSErrors: true,
       acceptDownloads: true,
       bypassCSP: true,
+      recordVideo: {
+        dir: 'test-results',
+        size: { width: 1280, height: 720 },
+      },
     });
     
     // Wait for the extension to initialize

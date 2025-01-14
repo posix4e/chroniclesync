@@ -260,6 +260,11 @@ test.describe('Chrome Extension', () => {
     // Wait for any service worker registrations to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Navigate to the extension popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    console.log('Popup page URL:', await popupPage.url());
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration

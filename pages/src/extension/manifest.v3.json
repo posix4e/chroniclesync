@@ -5,8 +5,7 @@
   "description": "Sync browser history across devices using ChronicleSync",
   "permissions": [
     "history",
-    "storage",
-    "background"
+    "storage"
   ],
   "host_permissions": [
     "https://api.chroniclesync.xyz/*",

@@ -171,7 +171,10 @@ jobs:
           npx playwright install chromium --with-deps
 
           # Run E2E tests
-          npm run test:e2e
+          TEST_TYPE=e2e npm run test:e2e
+
+          # Run extension tests
+          TEST_TYPE=extension npm run test:e2e
         env:
           CI: true
           GITHUB_HEAD_REF: ${{ github.head_ref }}

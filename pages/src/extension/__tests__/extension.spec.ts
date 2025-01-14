@@ -241,7 +241,7 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Get the extension ID from the background page URL
-    const backgroundPages = context.backgroundPages();
+    const backgroundPages = await context.backgroundPages();
     if (backgroundPages.length === 0) {
       throw new Error('No background pages found');
     }

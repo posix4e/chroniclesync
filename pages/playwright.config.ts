@@ -1,11 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Log the branch name for debugging
-const branchName = process.env.GITHUB_HEAD_REF || 'main';
-console.log('Branch name:', branchName);
-const baseURL = branchName === 'main' 
-  ? 'https://chroniclesync-pages.pages.dev'
-  : `https://${branchName}.chroniclesync-pages.pages.dev`;
+// Use the specific branch URL where staging is confirmed working
+const baseURL = 'https://add-playwright-e2e-tests.chroniclesync-pages.pages.dev';
 console.log('Using baseURL:', baseURL);
 
 export default defineConfig({

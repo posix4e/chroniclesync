@@ -41,6 +41,9 @@ test.describe('Chrome Extension', () => {
         '--v=1',
         '--enable-automation',
         '--remote-debugging-port=0',
+        '--disable-web-security',
+        '--allow-insecure-localhost',
+        '--allow-running-insecure-content',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -51,10 +54,11 @@ test.describe('Chrome Extension', () => {
         dir: 'test-results',
         size: { width: 1280, height: 720 },
       },
+      serviceWorkers: 'allow',
     });
     
     // Wait for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
       // Wait for the service worker to be available

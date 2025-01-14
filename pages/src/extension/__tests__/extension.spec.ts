@@ -39,10 +39,13 @@ test.describe('Chrome Extension', () => {
         '--use-mock-keychain',
       ],
       timeout: 30000,
+      viewport: { width: 1280, height: 720 },
+      ignoreHTTPSErrors: true,
+      acceptDownloads: true,
     });
     
     // Wait for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     try {
       // Wait for the service worker to be available

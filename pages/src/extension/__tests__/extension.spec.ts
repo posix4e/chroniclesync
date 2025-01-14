@@ -13,6 +13,9 @@ test.describe('Chrome Extension', () => {
       args: [
         `--disable-extensions-except=${pathToExtension}`,
         `--load-extension=${pathToExtension}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
       ],
     });
     

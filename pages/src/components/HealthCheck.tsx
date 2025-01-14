@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { API_URL } from '../utils/api';
 import type { HealthStatus } from '../types';
 
-export function HealthCheck() {
+export function HealthCheck(): JSX.Element {
   const [status, setStatus] = useState<string>('Checking...');
   const [lastCheck, setLastCheck] = useState<string>('Never');
   const [statusClass, setStatusClass] = useState<string>('');
 
-  const checkHealth = async () => {
+  const checkHealth = async (): Promise<void> => {
     try {
       const response = await fetch(`${API_URL}/health`);
       const data: HealthStatus = await response.json();

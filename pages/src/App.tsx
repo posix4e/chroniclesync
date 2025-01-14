@@ -7,7 +7,7 @@ import { DB } from './utils/db';
 
 const db = new DB();
 
-export function App() {
+export function App(): JSX.Element {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   return (

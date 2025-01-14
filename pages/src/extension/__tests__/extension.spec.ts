@@ -18,7 +18,6 @@ test.describe('Chrome Extension', () => {
     try {
       // Get the extension ID from the context
       const extensionId = await context.evaluate(() => {
-        const extensions = (chrome as any).runtime.getManifest();
         return (chrome as any).runtime.id;
       });
       

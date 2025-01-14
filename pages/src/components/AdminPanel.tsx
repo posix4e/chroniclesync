@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { API_URL, formatBytes } from '../utils/api';
 import type { ClientStats } from '../types/index';
 
-export function AdminPanel() {
+export function AdminPanel(): JSX.Element {
   const [clients, setClients] = useState<ClientStats[]>([]);
 
-  const refreshStats = async () => {
+  const refreshStats = async (): Promise<void> => {
     try {
       const response = await fetch(`${API_URL}/admin/clients`, {
         headers: {
@@ -24,7 +24,7 @@ export function AdminPanel() {
     }
   };
 
-  const deleteClient = async (clientId: string) => {
+  const deleteClient = async (clientId: string): Promise<void> => {
     if (!confirm(`Are you sure you want to delete client ${clientId}?`)) {
       return;
     }
@@ -49,7 +49,7 @@ export function AdminPanel() {
     }
   };
 
-  const viewClientData = async (clientId: string) => {
+  const viewClientData = async (clientId: string): Promise<void> => {
     try {
       const response = await fetch(`${API_URL}?clientId=${clientId}`, {
         headers: {

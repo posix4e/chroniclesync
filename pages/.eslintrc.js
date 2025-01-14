@@ -28,12 +28,7 @@ module.exports = {
     'linebreak-style': ['error', 'unix'],
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
-    'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': ['error', { 
-      'varsIgnorePattern': '^(DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)$',
-      'argsIgnorePattern': '^_'
-    }],
-    'react/react-in-jsx-scope': 'off',
+    'no-unused-vars': ['error', { 'varsIgnorePattern': '^(DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)$' }],
   },
   globals: {
     DB: 'readonly',

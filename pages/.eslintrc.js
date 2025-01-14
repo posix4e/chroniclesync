@@ -58,5 +58,7 @@ module.exports = {
     triggerWorkflow: 'readonly',
     checkSystemStatus: 'readonly',
     formatBytes: 'readonly',
+    importScripts: 'readonly',
+    JSX: 'readonly',
   },
 };

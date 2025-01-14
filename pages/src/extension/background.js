@@ -8,25 +8,25 @@ let isInitialized = false;
 let clientId = null;
 
 // Helper function to get browser API
-function getBrowser() {
+function getBrowser(): typeof browser {
   return browser;
 }
 
 // Helper function to handle storage operations
-async function storageGet(keys) {
+async function storageGet(keys: string[]): Promise<Record<string, any>> {
   const browser = getBrowser();
   // We're using the browser polyfill, so we can use the standard API
   return browser.storage.local.get(keys);
 }
 
-async function storageSet(items) {
+async function storageSet(items: Record<string, any>): Promise<void> {
   const browser = getBrowser();
   // We're using the browser polyfill, so we can use the standard API
   return browser.storage.local.set(items);
 }
 
 // Initialize the extension
-async function initialize() {
+async function initialize(): Promise<void> {
   if (isInitialized) return;
   
   // Get or generate unique client ID
@@ -51,19 +51,18 @@ async function initialize() {
 }
 
 // Two-way sync with the backend
-async function syncHistory(startTime) {
+async function syncHistory(startTime: number): Promise<void> {
   try {
     const browser = getBrowser();
     
     // Get local history since last sync
     let historyItems = [];
     // We're using the browser polyfill, so we can use the standard API
-      historyItems = await browser.history.search({
-        text: '',
-        startTime,
-        maxResults: 1000
-      });
-    }
+    historyItems = await browser.history.search({
+      text: '',
+      startTime,
+      maxResults: 1000
+    });
 
     // Get remote history
     const remoteData = await fetch(`${API_URL}?clientId=${clientId}`, {
@@ -109,15 +108,14 @@ async function syncHistory(startTime) {
     await storageSet({ lastSync: Date.now() });
 
     // Add any new remote entries to local history
-      for (const item of mergedHistory.values()) {
-        try {
-          await browser.history.addUrl({
-            url: item.url,
-            title: item.title
-          });
-        } catch (e) {
-          console.warn('Could not add history item:', e);
-        }
+    for (const item of mergedHistory.values()) {
+      try {
+        await browser.history.addUrl({
+          url: item.url,
+          title: item.title
+        });
+      } catch (e) {
+        console.warn('Could not add history item:', e);
       }
     }
   } catch (error) {
@@ -125,7 +123,7 @@ async function syncHistory(startTime) {
   }
 }
 
-async function getLastSync() {
+async function getLastSync(): Promise<number> {
   const storage = await storageGet(['lastSync']);
   return storage.lastSync || 0;
 }

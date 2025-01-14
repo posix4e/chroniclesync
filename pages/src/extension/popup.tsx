@@ -6,7 +6,7 @@ import { HealthCheck } from '../components/HealthCheck';
 import { DB } from '../utils/db';
 import '../styles.css';
 
-const PopupApp = () => {
+const PopupApp = (): JSX.Element => {
   const [db] = useState(() => new DB());
 
   return (

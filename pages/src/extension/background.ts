@@ -5,23 +5,19 @@ importScripts('browser-polyfill.js');
 const API_URL = 'https://api.chroniclesync.xyz';
 
 let isInitialized = false;
-let clientId = null;
+let clientId: string | null = null;
 
-// Helper function to get browser API
-function getBrowser(): typeof browser {
-  return browser;
+interface StorageData {
+  clientId?: string;
+  lastSync?: number;
 }
 
 // Helper function to handle storage operations
-async function storageGet(keys: string[]): Promise<Record<string, any>> {
-  const browser = getBrowser();
-  // We're using the browser polyfill, so we can use the standard API
-  return browser.storage.local.get(keys);
+async function storageGet(keys: string[]): Promise<StorageData> {
+  return browser.storage.local.get(keys) as Promise<StorageData>;
 }
 
-async function storageSet(items: Record<string, any>): Promise<void> {
-  const browser = getBrowser();
-  // We're using the browser polyfill, so we can use the standard API
+async function storageSet(items: StorageData): Promise<void> {
   return browser.storage.local.set(items);
 }
 
@@ -50,15 +46,26 @@ async function initialize(): Promise<void> {
   isInitialized = true;
 }
 
+interface HistoryItem {
+  url: string;
+  title: string;
+  visitTime?: number;
+  visitCount?: number;
+}
+
+interface RemoteData {
+  history: HistoryItem[];
+}
+
 // Two-way sync with the backend
 async function syncHistory(startTime: number): Promise<void> {
   try {
-    const browser = getBrowser();
-    
+    if (!clientId) {
+      throw new Error('Client ID not initialized');
+    }
+
     // Get local history since last sync
-    let historyItems = [];
-    // We're using the browser polyfill, so we can use the standard API
-    historyItems = await browser.history.search({
+    const historyItems = await browser.history.search({
       text: '',
       startTime,
       maxResults: 1000
@@ -67,10 +74,10 @@ async function syncHistory(startTime: number): Promise<void> {
     // Get remote history
     const remoteData = await fetch(`${API_URL}?clientId=${clientId}`, {
       method: 'GET'
-    }).then(r => r.json()).catch(() => ({ history: [] }));
+    }).then(r => r.json()).catch(() => ({ history: [] } as RemoteData));
 
     // Merge local and remote history
-    const mergedHistory = new Map();
+    const mergedHistory = new Map<string, HistoryItem>();
 
     // Add remote history first (older entries)
     if (remoteData.history) {
@@ -91,7 +98,7 @@ async function syncHistory(startTime: number): Promise<void> {
 
     // Convert map to array
     const historyData = {
-      history: Array.from(mergedHistory.values()),
+      history: [...mergedHistory.values()],
       lastSync: Date.now()
     };
 
@@ -129,7 +136,6 @@ async function getLastSync(): Promise<number> {
 }
 
 // Set up event listeners
-const browser = getBrowser();
 browser.history.onVisited.addListener(async () => {
   await syncHistory(await getLastSync());
 });

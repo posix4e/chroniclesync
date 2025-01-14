@@ -148,6 +148,10 @@ test.describe('Chrome Extension', () => {
       // Verify that all pages are closed
       const finalPages = await context.pages();
       expect(finalPages.length, 'All pages should be closed').toBe(0);
+
+      // Verify that all service workers are stopped
+      const finalWorkers = context.serviceWorkers();
+      expect(finalWorkers.length, 'All service workers should be stopped').toBe(0);
     } finally {
       // Close the context
       await context.close();

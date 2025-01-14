@@ -168,7 +168,7 @@ jobs:
         working-directory: pages
         run: |
           # Wait for deployment to be ready
-          sleep 30
+          sleep 10
 
           # Install Playwright
           npx playwright install chromium --with-deps

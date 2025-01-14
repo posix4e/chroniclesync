@@ -108,6 +108,9 @@ test.describe('Chrome Extension', () => {
         console.log('Service workers not supported in background page');
       }
     });
+    await backgroundPage.waitForFunction(() => {
+      return navigator.serviceWorker.ready.then(() => true).catch(() => false);
+    }, { timeout: 10000 });
     await backgroundPage.close();
     
     // Log initial state
@@ -147,6 +150,21 @@ test.describe('Chrome Extension', () => {
     await page.waitForFunction(() => {
       return navigator.serviceWorker.ready.then(() => true).catch(() => false);
     }, { timeout: 10000 });
+    await page.evaluate(() => {
+      // Try to get service worker registration
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(
+          registration => {
+            console.log('Service worker registration:', registration);
+            if (registration) {
+              console.log('Service worker state:', registration.active?.state);
+              console.log('Service worker scope:', registration.scope);
+            }
+          },
+          error => console.error('Failed to get service worker registration:', error)
+        );
+      }
+    });
     await page.close();
     
     // Log the current state

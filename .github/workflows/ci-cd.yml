@@ -177,6 +177,7 @@ jobs:
           npm run test:e2e
         env:
           CI: true
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
 
       - name: Upload E2E Test Results
         if: always() && (github.event.inputs.run_e2e == 'true' || github.event.pull_request.base.ref == 'main')

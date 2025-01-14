@@ -8,7 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'https://staging.chroniclesync.pages.dev',
+    baseURL: process.env.GITHUB_HEAD_REF 
+      ? `https://${process.env.GITHUB_HEAD_REF}.chroniclesync-pages.pages.dev`
+      : 'https://chroniclesync-pages.pages.dev',
     trace: 'on-first-retry',
     screenshot: 'on',
   },

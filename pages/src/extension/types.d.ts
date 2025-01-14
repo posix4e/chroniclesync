@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-declare module './types' {
-  export interface StorageData {
+export interface StorageData {
   clientId?: string;
   lastSync?: number;
 }
@@ -58,5 +57,29 @@ declare namespace browser {
     create(_details: TabCreateDetails): Promise<Tab>;
   };
 }
+
+declare global {
+  function importScripts(...urls: string[]): void;
+  
+  const browser: {
+    storage: {
+      local: {
+        get(keys: string[]): Promise<StorageData>;
+        set(items: Partial<StorageData>): Promise<void>;
+      };
+    };
+    history: {
+      search(query: HistoryQuery): Promise<HistoryItem[]>;
+      addUrl(details: HistoryUrlDetails): Promise<void>;
+      onVisited: {
+        addListener(callback: (result: HistoryItem) => void): void;
+        removeListener(callback: (result: HistoryItem) => void): void;
+      };
+    };
+    tabs: {
+      create(details: TabCreateDetails): Promise<Tab>;
+    };
+  };
 }
+
 /* eslint-enable @typescript-eslint/no-unused-vars */

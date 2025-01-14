@@ -1,5 +1,6 @@
 import { test, expect, chromium } from '@playwright/test';
 import path from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 test.describe('Chrome Extension', () => {
 
@@ -71,10 +72,9 @@ test.describe('Chrome Extension', () => {
       await popupPage.waitForSelector('#root');
       
       // Ensure test-results directory exists
-      const fs = require('fs');
       const testResultsDir = path.join(__dirname, '../../../test-results');
-      if (!fs.existsSync(testResultsDir)) {
-        fs.mkdirSync(testResultsDir, { recursive: true });
+      if (!existsSync(testResultsDir)) {
+        mkdirSync(testResultsDir, { recursive: true });
       }
 
       // Take screenshot for debugging

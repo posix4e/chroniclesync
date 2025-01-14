@@ -16,12 +16,19 @@ test.describe('Chrome Extension', () => {
     });
 
     try {
-      // Create a new page to get the extension ID
-      const page = await context.newPage();
-      const extensionId = await page.evaluate(() => {
-        return (chrome as any).runtime.id;
-      });
-      await page.close();
+      // Get the background page URL to find extension ID
+      const backgroundPages = context.backgroundPages();
+      console.log('Background pages:', backgroundPages.map(p => p.url()));
+      
+      const extensionId = backgroundPages[0]?.url()?.split('/')[2];
+      if (!extensionId) {
+        console.log('Extension context:', {
+          pages: context.pages().length,
+          backgroundPages: backgroundPages.length,
+          serviceWorkers: context.serviceWorkers().length
+        });
+        throw new Error('Could not find extension ID from background pages');
+      }
       
       expect(extensionId, 'Extension should have a valid ID').toBeTruthy();
       console.log('Extension loaded with ID:', extensionId);

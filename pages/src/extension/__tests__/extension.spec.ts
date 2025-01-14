@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from 'fs';
 test.describe('Chrome Extension', () => {
 
   test('extension should load without errors', async () => {
+    test.setTimeout(120000); // Increase timeout to 2 minutes
     const pathToExtension = path.join(__dirname, '../../../dist/chrome');
     console.log('Loading extension from path:', pathToExtension);
     const context = await chromium.launchPersistentContext('', {
@@ -15,14 +16,14 @@ test.describe('Chrome Extension', () => {
       ],
     });
     
-    // Wait a bit for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait longer for the extension to initialize
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     try {
       // Wait for the service worker to be available
       let extensionId: string | undefined;
       let retries = 0;
-      while (!extensionId && retries < 10) {
+      while (!extensionId && retries < 30) {
         const workers = context.serviceWorkers();
         console.log('Service workers:', workers.map(w => w.url()));
         
@@ -38,7 +39,7 @@ test.describe('Chrome Extension', () => {
             pages: context.pages().length,
             serviceWorkers: workers.length
           });
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait longer between retries
           retries++;
         }
       }

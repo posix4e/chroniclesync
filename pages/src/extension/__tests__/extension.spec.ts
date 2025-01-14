@@ -158,6 +158,10 @@ test.describe('Chrome Extension', () => {
 
       // Wait for any service worker registrations to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Log final state
+      console.log('Final pages:', context.pages().map(p => p.url()));
+      console.log('Final service workers:', context.serviceWorkers().map(w => w.url()));
     } finally {
       // Close the context
       await context.close();

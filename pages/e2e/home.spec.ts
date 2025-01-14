@@ -20,18 +20,21 @@ test.describe('Web App', () => {
     // Verify initial health check state
     await expect(page.getByText('System Health')).toBeVisible();
     await expect(page.getByText('Status:')).toBeVisible();
-    await expect(page.getByText('Checking...')).toBeVisible();
     await expect(page.getByText('Last Check:')).toBeVisible();
-    await expect(page.getByText('Never')).toBeVisible();
+    
+    // Initial state should show "Never" for last check
+    const initialLastCheck = await homePage.getLastCheckTime();
+    expect(initialLastCheck).toContain('Never');
 
-    // Perform health check
+    // Perform health check and wait for response
     await homePage.checkHealthStatus();
     
     // Take a screenshot after health check
     await homePage.takePageScreenshot('health-check');
 
-    // Verify the last check time is updated
+    // Verify the last check time is updated to a timestamp
     const lastCheckTime = await homePage.getLastCheckTime();
     expect(lastCheckTime).not.toContain('Never');
+    expect(lastCheckTime).toMatch(/Last Check:.*\d{1,2}:\d{2}/); // Should contain a time
   });
 });

@@ -19,11 +19,32 @@ export class HomePage {
 
   async checkHealthStatus() {
     await this.actions.clickButton('Check Health');
-    await this.actions.waitForText('Status:');
+    
+    // Wait for the network request to complete and status to update
+    await this.page.waitForResponse(response => 
+      response.url().includes('/health') && response.status() === 200
+    );
+    
+    // Wait for the "Checking..." status to disappear
+    await this.page.waitForFunction(() => {
+      const statusText = document.querySelector('.health-status')?.textContent;
+      return statusText && !statusText.includes('Checking...');
+    });
   }
 
   async getLastCheckTime(): Promise<string | null> {
-    const element = await this.page.locator('text=Last Check:').locator('..').last();
+    // Wait for any ongoing health check to complete
+    await this.page.waitForFunction(() => {
+      const statusText = document.querySelector('.health-status')?.textContent;
+      return statusText && !statusText.includes('Checking...');
+    });
+    
+    // Get the last check time element
+    const element = await this.page.locator('[data-testid="last-check-time"]').first();
+    if (!element) {
+      const fallbackElement = await this.page.locator('text=Last Check:').locator('..').last();
+      return await fallbackElement.textContent();
+    }
     return await element.textContent();
   }
 

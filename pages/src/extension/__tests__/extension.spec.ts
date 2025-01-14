@@ -127,6 +127,9 @@ test.describe('Chrome Extension', () => {
         await page.close();
       }
 
+      // Wait for any service worker registrations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Verify that the extension is working
       expect(true).toBeTruthy();
     } finally {

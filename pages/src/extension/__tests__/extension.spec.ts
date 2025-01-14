@@ -141,6 +141,9 @@ test.describe('Chrome Extension', () => {
 
       // Close popup page
       await popupPage.close();
+
+      // Wait for any service worker registrations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } finally {
       // Close the context
       await context.close();

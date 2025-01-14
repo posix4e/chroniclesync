@@ -5,8 +5,7 @@ test.describe('Chrome Extension', () => {
 
   test('extension should load without errors', async () => {
     const pathToExtension = path.join(__dirname, '../../../dist/chrome');
-    console.log('Loading extension from:', pathToExtension);
-    
+    console.log('Loading extension from path:', pathToExtension);
     const context = await chromium.launchPersistentContext('', {
       headless: true,
       args: [
@@ -14,20 +13,33 @@ test.describe('Chrome Extension', () => {
         `--load-extension=${pathToExtension}`,
       ],
     });
+    
+    // Wait a bit for the extension to initialize
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
-      // Get the background page URL to find extension ID
-      const backgroundPages = context.backgroundPages();
-      console.log('Background pages:', backgroundPages.map(p => p.url()));
+      // Wait for the background page to be available
+      let extensionId: string | undefined;
+      let retries = 0;
+      while (!extensionId && retries < 10) {
+        const backgroundPages = context.backgroundPages();
+        console.log('Background pages:', backgroundPages.map(p => p.url()));
+        
+        extensionId = backgroundPages[0]?.url()?.split('/')[2];
+        if (!extensionId) {
+          console.log('Waiting for background page, attempt:', retries + 1);
+          console.log('Extension context:', {
+            pages: context.pages().length,
+            backgroundPages: backgroundPages.length,
+            serviceWorkers: context.serviceWorkers().length
+          });
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries++;
+        }
+      }
       
-      const extensionId = backgroundPages[0]?.url()?.split('/')[2];
       if (!extensionId) {
-        console.log('Extension context:', {
-          pages: context.pages().length,
-          backgroundPages: backgroundPages.length,
-          serviceWorkers: context.serviceWorkers().length
-        });
-        throw new Error('Could not find extension ID from background pages');
+        throw new Error('Could not find extension ID from background pages after retries');
       }
       
       expect(extensionId, 'Extension should have a valid ID').toBeTruthy();

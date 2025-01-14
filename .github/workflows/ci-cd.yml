@@ -183,8 +183,15 @@ jobs:
             exit 1
           fi
 
-          # Run extension tests
-          TEST_TYPE=extension npm run test:e2e
+          # Run extension tests with more debugging
+          echo "Running extension tests..."
+          echo "Current directory: $(pwd)"
+          echo "Chrome extension files:"
+          ls -la dist/chrome/
+          echo "Chrome extension manifest:"
+          cat dist/chrome/manifest.json
+          echo "Running tests with DEBUG=pw:*"
+          DEBUG=pw:* TEST_TYPE=extension npm run test:e2e
         env:
           CI: true
           GITHUB_HEAD_REF: ${{ github.head_ref }}

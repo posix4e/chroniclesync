@@ -7,6 +7,13 @@ test.describe('Chrome Extension', () => {
     test.setTimeout(60000); // Increase timeout to 1 minute
     const pathToExtension = path.join(__dirname, '../../../dist/chrome');
     console.log('Loading extension from path:', pathToExtension);
+
+    // Create test-results directory if it doesn't exist
+    const testResultsDir = path.join(__dirname, '../../../test-results');
+    if (!existsSync(testResultsDir)) {
+      mkdirSync(testResultsDir, { recursive: true });
+    }
+
     const context = await chromium.launchPersistentContext('', {
       headless: true,
       args: [
@@ -59,7 +66,7 @@ test.describe('Chrome Extension', () => {
       acceptDownloads: true,
       bypassCSP: true,
       recordVideo: {
-        dir: 'test-results',
+        dir: testResultsDir,
         size: { width: 1280, height: 720 },
       },
       serviceWorkers: 'allow',

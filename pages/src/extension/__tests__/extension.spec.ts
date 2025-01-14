@@ -47,6 +47,8 @@ test.describe('Chrome Extension', () => {
         '--enable-features=NetworkService,NetworkServiceInProcess',
         '--enable-logging=stderr',
         '--log-level=0',
+        '--enable-background-networking',
+        '--enable-features=ServiceWorker',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -67,6 +69,11 @@ test.describe('Chrome Extension', () => {
     
     // Wait for the extension to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Create a new page to trigger service worker registration
+    const page = await context.newPage();
+    await page.goto('about:blank');
+    await page.close();
     
     // Log the current state
     console.log('Current pages:', context.pages().map(p => p.url()));

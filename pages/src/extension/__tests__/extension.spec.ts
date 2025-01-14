@@ -81,6 +81,33 @@ test.describe('Chrome Extension', () => {
     // Create a background page
     const backgroundPage = await context.newPage();
     await backgroundPage.goto('chrome://extensions');
+    await backgroundPage.evaluate(() => {
+      // Force service worker registration
+      if ('serviceWorker' in navigator) {
+        console.log('Registering service worker from background page...');
+        navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/',
+          type: 'module',
+          updateViaCache: 'none',
+        }).then(
+          registration => {
+            console.log('Service worker registered from background page:', registration);
+            registration.update();
+            // Wait for the service worker to be activated
+            if (registration.active) {
+              console.log('Service worker is already active');
+            } else {
+              registration.addEventListener('activate', () => {
+                console.log('Service worker activated');
+              });
+            }
+          },
+          error => console.error('Service worker registration failed from background page:', error)
+        );
+      } else {
+        console.log('Service workers not supported in background page');
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state
@@ -119,7 +146,7 @@ test.describe('Chrome Extension', () => {
     });
     await page.waitForFunction(() => {
       return navigator.serviceWorker.ready.then(() => true).catch(() => false);
-    });
+    }, { timeout: 10000 });
     await page.close();
     
     // Log the current state

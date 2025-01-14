@@ -7,11 +7,6 @@ const API_URL = 'https://api.chroniclesync.xyz';
 let isInitialized = false;
 let clientId: string | undefined = undefined;
 
-interface StorageData {
-  clientId?: string;
-  lastSync?: number;
-}
-
 // Helper function to handle storage operations
 async function storageGet(keys: string[]): Promise<StorageData> {
   return browser.storage.local.get(keys) as Promise<StorageData>;

@@ -46,13 +46,6 @@ async function initialize(): Promise<void> {
   isInitialized = true;
 }
 
-interface HistoryItem {
-  url: string;
-  title: string;
-  lastVisitTime?: number;
-  visitCount?: number;
-}
-
 interface RemoteData {
   history: HistoryItem[];
 }

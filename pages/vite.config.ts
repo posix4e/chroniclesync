@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
             const staticFiles = [
               [browser === 'chrome' ? 'manifest.v3.json' : 'manifest.v2.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
-              ['background.js', 'background.js'],
+              ['background.ts', 'background.js'],
               ['popup.js', 'popup.js'],
               ['browser-polyfill.js', 'browser-polyfill.js']
             ].map(([src, dest]) => [
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
 
             // For Safari, we need to ensure all JS files are CommonJS modules
             if (browser === 'safari') {
-              const jsFiles = ['background.js', 'popup.js', 'browser-polyfill.js'];
+              const jsFiles = ['background.ts', 'popup.js', 'browser-polyfill.js'];
               for (const file of jsFiles) {
                 const srcPath = resolve(__dirname, `src/extension/${file}`);
                 const destPath = resolve(__dirname, `dist/${browser}/${file}`);
@@ -99,7 +99,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       rollupOptions: isExtension ? {
         input: {
-          background: resolve(__dirname, 'src/extension/background.js'),
+          background: resolve(__dirname, 'src/extension/background.ts'),
           popup: resolve(__dirname, 'src/extension/popup.tsx')
         },
         output: {

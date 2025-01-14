@@ -51,6 +51,8 @@ test.describe('Chrome Extension', () => {
         '--enable-features=ServiceWorker',
         '--enable-background-mode',
         '--enable-background-thread-pool',
+        '--enable-logging=stderr --v=0',
+        '--enable-features=NetworkService,NetworkServiceInProcess,ServiceWorker',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -67,10 +69,19 @@ test.describe('Chrome Extension', () => {
         isEnabled: () => true,
         log: (name, severity, message) => console.log(`${name} [${severity}]: ${message}`),
       },
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
     });
     
     // Wait for the extension to initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Create a background page
+    const backgroundPage = await context.newPage();
+    await backgroundPage.goto('chrome://extensions');
+    await backgroundPage.close();
     
     // Log initial state
     console.log('Initial pages:', context.pages().map(p => p.url()));

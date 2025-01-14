@@ -1,42 +1,27 @@
+// Import browser polyfill
+importScripts('browser-polyfill.js');
+
 // Configuration
 const API_URL = 'https://api.chroniclesync.xyz';
 
 let isInitialized = false;
 let clientId = null;
 
-// Helper function to detect browser type
+// Helper function to get browser API
 function getBrowser() {
-  if (typeof browser !== 'undefined') return browser;
-  if (typeof chrome !== 'undefined') return chrome;
-  if (typeof window !== 'undefined' && window.safari) return window.safari;
-  throw new Error('Unsupported browser');
+  return browser;
 }
 
 // Helper function to handle storage operations
 async function storageGet(keys) {
   const browser = getBrowser();
-  if (browser === window.safari) {
-    return new Promise((resolve) => {
-      const result = {};
-      keys.forEach(key => {
-        result[key] = localStorage.getItem(key);
-      });
-      resolve(result);
-    });
-  }
+  // We're using the browser polyfill, so we can use the standard API
   return browser.storage.local.get(keys);
 }
 
 async function storageSet(items) {
   const browser = getBrowser();
-  if (browser === window.safari) {
-    return new Promise((resolve) => {
-      Object.entries(items).forEach(([key, value]) => {
-        localStorage.setItem(key, value);
-      });
-      resolve();
-    });
-  }
+  // We're using the browser polyfill, so we can use the standard API
   return browser.storage.local.set(items);
 }
 
@@ -72,11 +57,7 @@ async function syncHistory(startTime) {
     
     // Get local history since last sync
     let historyItems = [];
-    if (browser === window.safari) {
-      // Safari doesn't have a direct history API, use alternative method
-      // This is a placeholder - Safari extension will need to request history access
-      historyItems = [];
-    } else {
+    // We're using the browser polyfill, so we can use the standard API
       historyItems = await browser.history.search({
         text: '',
         startTime,
@@ -128,7 +109,6 @@ async function syncHistory(startTime) {
     await storageSet({ lastSync: Date.now() });
 
     // Add any new remote entries to local history
-    if (browser !== window.safari) {
       for (const item of mergedHistory.values()) {
         try {
           await browser.history.addUrl({
@@ -150,17 +130,11 @@ async function getLastSync() {
   return storage.lastSync || 0;
 }
 
-// Set up event listeners based on browser type
+// Set up event listeners
 const browser = getBrowser();
-if (browser === window.safari) {
-  // Safari-specific event handling
-  window.addEventListener('load', () => {
-    initialize();
-  });
-} else {
-  // Chrome/Firefox event handling
-  browser.history.onVisited.addListener(async () => {
-    await syncHistory(await getLastSync());
-  });
-  initialize();
-}
+browser.history.onVisited.addListener(async () => {
+  await syncHistory(await getLastSync());
+});
+
+// Initialize the extension
+initialize();

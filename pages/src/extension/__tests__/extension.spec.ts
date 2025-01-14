@@ -18,20 +18,31 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
-      // Wait for the background page to be available
+      // Wait for the service worker to be available
       let extensionId: string | undefined;
       let retries = 0;
       while (!extensionId && retries < 10) {
-        const backgroundPages = context.backgroundPages();
-        console.log('Background pages:', backgroundPages.map(p => p.url()));
+        const workers = context.serviceWorkers();
+        console.log('Service workers:', workers.map(w => w.url()));
         
-        extensionId = backgroundPages[0]?.url()?.split('/')[2];
+        // Listen for service worker console messages
+        workers.forEach(worker => {
+          worker.on('console', msg => {
+            const type = msg.type();
+            const text = msg.text();
+            console.log(`Service worker ${type}:`, text);
+            if (type === 'error') {
+              throw new Error(`Service worker error: ${text}`);
+            }
+          });
+        });
+        
+        extensionId = workers[0]?.url()?.split('/')[2];
         if (!extensionId) {
-          console.log('Waiting for background page, attempt:', retries + 1);
+          console.log('Waiting for service worker, attempt:', retries + 1);
           console.log('Extension context:', {
             pages: context.pages().length,
-            backgroundPages: backgroundPages.length,
-            serviceWorkers: context.serviceWorkers().length
+            serviceWorkers: workers.length
           });
           await new Promise(resolve => setTimeout(resolve, 1000));
           retries++;

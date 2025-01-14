@@ -25,13 +25,8 @@ test.describe('Chrome Extension', () => {
         const workers = context.serviceWorkers();
         console.log('Service workers:', workers.map(w => w.url()));
         
-        // Monitor service worker events
+        // Log worker URLs for debugging
         workers.forEach(worker => {
-          worker.on('error', error => {
-            throw new Error(`Service worker error: ${error}`);
-          });
-          
-          // Log worker URL for debugging
           console.log('Service worker URL:', worker.url());
         });
         

@@ -45,6 +45,8 @@ test.describe('Chrome Extension', () => {
         '--allow-insecure-localhost',
         '--allow-running-insecure-content',
         '--enable-features=NetworkService,NetworkServiceInProcess',
+        '--enable-logging=stderr',
+        '--log-level=0',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -57,10 +59,18 @@ test.describe('Chrome Extension', () => {
       },
       serviceWorkers: 'allow',
       permissions: ['background-sync'],
+      logger: {
+        isEnabled: () => true,
+        log: (name, severity, message) => console.log(`${name} [${severity}]: ${message}`),
+      },
     });
     
     // Wait for the extension to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Log the current state
+    console.log('Current pages:', context.pages().map(p => p.url()));
+    console.log('Current service workers:', context.serviceWorkers().map(w => w.url()));
 
     try {
       // Wait for the service worker to be available

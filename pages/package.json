@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "npm run build:web && npm run build:extensions",
     "build:web": "tsc && vite build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "validate:manifests": "node scripts/validate-manifests.js",
     "build:extensions": "npm run validate:manifests && BROWSER=${BROWSER:-chrome} vite build --mode extension",
     "package:chrome": "cd dist/chrome && rm -f ../../chroniclesync-chrome.zip && zip -r ../../chroniclesync-chrome.zip *",

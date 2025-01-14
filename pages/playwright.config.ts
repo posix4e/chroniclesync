@@ -19,16 +19,11 @@ export default defineConfig({
         // Launch options for Chrome with the extension
         launchOptions: {
           args: [
-            `--disable-extensions-except=${path.join(__dirname, 'dist/extension')}`,
-            `--load-extension=${path.join(__dirname, 'dist/extension')}`,
+            `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
+            `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
           ],
         },
       },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-  },
 });

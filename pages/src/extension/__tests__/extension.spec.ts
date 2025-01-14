@@ -241,11 +241,12 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Get the extension ID from the background page URL
-    const backgroundPages = await context.backgroundPages();
-    if (backgroundPages.length === 0) {
-      throw new Error('No background pages found');
+    const backgroundPages = await context.pages();
+    const extensionPages = backgroundPages.filter(p => p.url().startsWith('chrome-extension://'));
+    if (extensionPages.length === 0) {
+      throw new Error('No extension pages found');
     }
-    const extensionUrl = backgroundPages[0].url();
+    const extensionUrl = extensionPages[0].url();
     const extensionId = extensionUrl.split('/')[2];
     console.log('Extension ID:', extensionId);
 

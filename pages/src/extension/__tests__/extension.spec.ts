@@ -170,6 +170,69 @@ test.describe('Chrome Extension', () => {
     console.log('Service workers:', workers.map(w => w.url()));
     if (workers.length > 0) {
       console.log('Service worker found:', workers[0].url());
+      // Try to get service worker state
+      await backgroundPage.evaluate(() => {
+        // Try to get service worker state with JSON.stringify and replacer
+        if ('serviceWorker' in navigator) {
+          Promise.all([
+            navigator.serviceWorker.getRegistration(),
+            navigator.serviceWorker.getRegistrations(),
+            navigator.serviceWorker.ready,
+          ]).then(([registration, registrations, ready]) => {
+            console.log('Service worker state from background page (stringified with replacer):', JSON.stringify({
+              controller: navigator.serviceWorker.controller,
+              ready: ready,
+              registrations: registrations,
+              registration: registration,
+            }, (key, value) => {
+              if (value instanceof ServiceWorker) {
+                return {
+                  state: value.state,
+                  scriptURL: value.scriptURL,
+                  onstatechange: value.onstatechange,
+                  onerror: value.onerror,
+                };
+              }
+              if (value instanceof ServiceWorkerRegistration) {
+                return {
+                  active: value.active ? {
+                    state: value.active.state,
+                    scriptURL: value.active.scriptURL,
+                    onstatechange: value.active.onstatechange,
+                    onerror: value.active.onerror,
+                  } : null,
+                  installing: value.installing ? {
+                    state: value.installing.state,
+                    scriptURL: value.installing.scriptURL,
+                    onstatechange: value.installing.onstatechange,
+                    onerror: value.installing.onerror,
+                  } : null,
+                  waiting: value.waiting ? {
+                    state: value.waiting.state,
+                    scriptURL: value.waiting.scriptURL,
+                    onstatechange: value.waiting.onstatechange,
+                    onerror: value.waiting.onerror,
+                  } : null,
+                  scope: value.scope,
+                  navigationPreload: value.navigationPreload,
+                  pushManager: value.pushManager,
+                  sync: value.sync,
+                  index: value.index,
+                  unregister: value.unregister ? 'function' : undefined,
+                  update: value.update ? 'function' : undefined,
+                  updateViaCache: value.updateViaCache,
+                  addEventListener: value.addEventListener ? 'function' : undefined,
+                  removeEventListener: value.removeEventListener ? 'function' : undefined,
+                  dispatchEvent: value.dispatchEvent ? 'function' : undefined,
+                };
+              }
+              return value;
+            }, 2));
+          }).catch(error => {
+            console.error('Failed to get service worker state:', error);
+          });
+        }
+      });
     } else {
       console.error('No service workers found after retries');
     }
@@ -340,6 +403,69 @@ test.describe('Chrome Extension', () => {
     console.log('Service workers:', workers.map(w => w.url()));
     if (workers.length > 0) {
       console.log('Service worker found:', workers[0].url());
+      // Try to get service worker state
+      await page.evaluate(() => {
+        // Try to get service worker state with JSON.stringify and replacer
+        if ('serviceWorker' in navigator) {
+          Promise.all([
+            navigator.serviceWorker.getRegistration(),
+            navigator.serviceWorker.getRegistrations(),
+            navigator.serviceWorker.ready,
+          ]).then(([registration, registrations, ready]) => {
+            console.log('Service worker state (stringified with replacer):', JSON.stringify({
+              controller: navigator.serviceWorker.controller,
+              ready: ready,
+              registrations: registrations,
+              registration: registration,
+            }, (key, value) => {
+              if (value instanceof ServiceWorker) {
+                return {
+                  state: value.state,
+                  scriptURL: value.scriptURL,
+                  onstatechange: value.onstatechange,
+                  onerror: value.onerror,
+                };
+              }
+              if (value instanceof ServiceWorkerRegistration) {
+                return {
+                  active: value.active ? {
+                    state: value.active.state,
+                    scriptURL: value.active.scriptURL,
+                    onstatechange: value.active.onstatechange,
+                    onerror: value.active.onerror,
+                  } : null,
+                  installing: value.installing ? {
+                    state: value.installing.state,
+                    scriptURL: value.installing.scriptURL,
+                    onstatechange: value.installing.onstatechange,
+                    onerror: value.installing.onerror,
+                  } : null,
+                  waiting: value.waiting ? {
+                    state: value.waiting.state,
+                    scriptURL: value.waiting.scriptURL,
+                    onstatechange: value.waiting.onstatechange,
+                    onerror: value.waiting.onerror,
+                  } : null,
+                  scope: value.scope,
+                  navigationPreload: value.navigationPreload,
+                  pushManager: value.pushManager,
+                  sync: value.sync,
+                  index: value.index,
+                  unregister: value.unregister ? 'function' : undefined,
+                  update: value.update ? 'function' : undefined,
+                  updateViaCache: value.updateViaCache,
+                  addEventListener: value.addEventListener ? 'function' : undefined,
+                  removeEventListener: value.removeEventListener ? 'function' : undefined,
+                  dispatchEvent: value.dispatchEvent ? 'function' : undefined,
+                };
+              }
+              return value;
+            }, 2));
+          }).catch(error => {
+            console.error('Failed to get service worker state:', error);
+          });
+        }
+      });
     } else {
       console.error('No service workers found after retries');
     }

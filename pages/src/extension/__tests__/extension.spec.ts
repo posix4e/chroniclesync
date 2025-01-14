@@ -49,6 +49,8 @@ test.describe('Chrome Extension', () => {
         '--log-level=0',
         '--enable-background-networking',
         '--enable-features=ServiceWorker',
+        '--enable-background-mode',
+        '--enable-background-thread-pool',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -73,6 +75,18 @@ test.describe('Chrome Extension', () => {
     // Create a new page to trigger service worker registration
     const page = await context.newPage();
     await page.goto('about:blank');
+    await page.evaluate(() => {
+      // Force service worker registration
+      if ('serviceWorker' in navigator) {
+        console.log('Registering service worker...');
+        navigator.serviceWorker.register('/service-worker.js').then(
+          registration => console.log('Service worker registered:', registration),
+          error => console.error('Service worker registration failed:', error)
+        );
+      } else {
+        console.log('Service workers not supported');
+      }
+    });
     await page.close();
     
     // Log the current state

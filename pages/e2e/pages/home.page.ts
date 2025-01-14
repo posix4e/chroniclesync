@@ -33,19 +33,17 @@ export class HomePage {
   }
 
   async getLastCheckTime(): Promise<string | null> {
-    // Wait for any ongoing health check to complete
-    await this.page.waitForFunction(() => {
-      const statusText = document.querySelector('.health-status')?.textContent;
-      return statusText && !statusText.includes('Checking...');
-    });
+    // Get the last check time element specifically
+    const lastCheckLabel = await this.page.locator('text=Last Check:');
+    const lastCheckSpan = await lastCheckLabel.locator('xpath=./following-sibling::span').first();
     
-    // Get the last check time element
-    const element = await this.page.locator('[data-testid="last-check-time"]').first();
-    if (!element) {
-      const fallbackElement = await this.page.locator('text=Last Check:').locator('..').last();
-      return await fallbackElement.textContent();
+    // If we can't find the specific element, return null
+    if (!lastCheckSpan) {
+      return null;
     }
-    return await element.textContent();
+    
+    // Get just the time value
+    return await lastCheckSpan.textContent();
   }
 
   async takePageScreenshot(name: string) {

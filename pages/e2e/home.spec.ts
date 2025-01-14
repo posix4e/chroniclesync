@@ -24,17 +24,23 @@ test.describe('Web App', () => {
     
     // Initial state should show "Never" for last check
     const initialLastCheck = await homePage.getLastCheckTime();
-    expect(initialLastCheck).toContain('Never');
+    expect(initialLastCheck).toBe('Never');
 
-    // Perform health check and wait for response
+    // Perform health check
     await homePage.checkHealthStatus();
     
     // Take a screenshot after health check
     await homePage.takePageScreenshot('health-check');
 
-    // Verify the last check time is updated to a timestamp
+    // Wait for and verify the last check time update
+    await page.waitForFunction(() => {
+      const timeElement = document.querySelector('text=Last Check:').nextElementSibling;
+      return timeElement && timeElement.textContent !== 'Never';
+    }, { timeout: 10000 });
+
     const lastCheckTime = await homePage.getLastCheckTime();
-    expect(lastCheckTime).not.toContain('Never');
-    expect(lastCheckTime).toMatch(/Last Check:.*\d{1,2}:\d{2}/); // Should contain a time
+    expect(lastCheckTime).not.toBeNull();
+    expect(lastCheckTime).not.toBe('Never');
+    expect(lastCheckTime).toMatch(/\d{1,2}:\d{2}/); // Should be in HH:MM format
   });
 });

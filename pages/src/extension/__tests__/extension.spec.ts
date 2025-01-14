@@ -165,6 +165,15 @@ test.describe('Chrome Extension', () => {
       retries++;
     }
 
+    // Log service worker state
+    const workers = context.serviceWorkers();
+    console.log('Service workers:', workers.map(w => w.url()));
+    if (workers.length > 0) {
+      console.log('Service worker found:', workers[0].url());
+    } else {
+      console.error('No service workers found after retries');
+    }
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration
@@ -324,6 +333,15 @@ test.describe('Chrome Extension', () => {
       console.log('Waiting for service workers, attempt:', retries + 1);
       await new Promise(resolve => setTimeout(resolve, 1000));
       retries++;
+    }
+
+    // Log service worker state
+    const workers = context.serviceWorkers();
+    console.log('Service workers:', workers.map(w => w.url()));
+    if (workers.length > 0) {
+      console.log('Service worker found:', workers[0].url());
+    } else {
+      console.error('No service workers found after retries');
     }
 
     await page.close();

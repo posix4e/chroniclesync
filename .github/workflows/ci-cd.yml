@@ -164,7 +164,7 @@ jobs:
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
       - name: Run E2E Tests
-        if: github.event.inputs.run_e2e == 'true'
+        if: github.event.inputs.run_e2e == 'true' || github.event.pull_request.base.ref == 'main'
         working-directory: pages
         run: |
           # Wait for deployment to be ready
@@ -179,7 +179,7 @@ jobs:
           CI: true
 
       - name: Upload E2E Test Results
-        if: always() && github.event.inputs.run_e2e == 'true'
+        if: always() && (github.event.inputs.run_e2e == 'true' || github.event.pull_request.base.ref == 'main')
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

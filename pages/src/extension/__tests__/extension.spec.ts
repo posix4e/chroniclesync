@@ -12,9 +12,17 @@ test('extension popup should load', async () => {
     ],
   });
 
-  // Get the extension ID from the background page
-  const backgroundPages = context.backgroundPages();
-  const extensionId = backgroundPages[0]?.url()?.split('/')[2];
+  // Wait for the background page to be available
+  let extensionId: string | undefined;
+  let retries = 0;
+  while (!extensionId && retries < 5) {
+    const backgroundPages = context.backgroundPages();
+    extensionId = backgroundPages[0]?.url()?.split('/')[2];
+    if (!extensionId) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      retries++;
+    }
+  }
   expect(extensionId).toBeTruthy();
 
   // Create a new page and navigate to the extension popup

@@ -70,7 +70,7 @@ test.describe('Chrome Extension', () => {
     });
     
     // Wait for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Log initial state
     console.log('Initial pages:', context.pages().map(p => p.url()));
@@ -91,12 +91,23 @@ test.describe('Chrome Extension', () => {
           registration => {
             console.log('Service worker registered:', registration);
             registration.update();
+            // Wait for the service worker to be activated
+            if (registration.active) {
+              console.log('Service worker is already active');
+            } else {
+              registration.addEventListener('activate', () => {
+                console.log('Service worker activated');
+              });
+            }
           },
           error => console.error('Service worker registration failed:', error)
         );
       } else {
         console.log('Service workers not supported');
       }
+    });
+    await page.waitForFunction(() => {
+      return navigator.serviceWorker.ready.then(() => true).catch(() => false);
     });
     await page.close();
     

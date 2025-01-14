@@ -141,6 +141,17 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+    await backgroundPage.evaluate(() => {
+      // Try to get service worker controller
+      if ('serviceWorker' in navigator) {
+        const controller = navigator.serviceWorker.controller;
+        console.log('Service worker controller from background page:', controller);
+        if (controller) {
+          console.log('Service worker controller state from background page:', controller.state);
+          console.log('Service worker controller scriptURL from background page:', controller.scriptURL);
+        }
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state
@@ -219,6 +230,21 @@ test.describe('Chrome Extension', () => {
           console.log('Service worker controller state:', controller.state);
           console.log('Service worker controller scriptURL:', controller.scriptURL);
         }
+      }
+    });
+    await page.evaluate(() => {
+      // Try to get service worker ready state
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(
+          registration => {
+            console.log('Service worker ready:', registration);
+            if (registration) {
+              console.log('Service worker ready state:', registration.active?.state);
+              console.log('Service worker ready scope:', registration.scope);
+            }
+          },
+          error => console.error('Failed to get service worker ready:', error)
+        );
       }
     });
     await page.close();

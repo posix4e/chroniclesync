@@ -15,13 +15,17 @@ export default defineConfig({
   testDir: process.env.TEST_TYPE === 'extension' ? './src/extension/__tests__' : './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
     baseURL,
-    trace: 'on-first-retry',
-    screenshot: 'on'
+    trace: 'on',
+    screenshot: 'on',
+    video: 'on',
+    launchOptions: {
+      slowMo: 1000,
+    }
   },
   projects: [
     {
@@ -34,7 +38,11 @@ export default defineConfig({
             args: [
               `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
               `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
             ],
+            slowMo: 1000,
           },
         } : {}),
       },

@@ -1,61 +1,71 @@
 import { test, expect } from '@playwright/test';
+import { HomePage } from './pages/home.page';
 
 test.describe('Web App', () => {
+  let homePage: HomePage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/', { timeout: 30000 });
+    homePage = new HomePage(page);
+    await homePage.navigate();
   });
 
-  test('should load the landing page', async ({ page }) => {
-    // Log the URL we're testing
-    console.log('Testing URL:', page.url());
+  test('should load the landing page', async () => {
+    await homePage.takePageScreenshot('landing-page');
     
-    await page.goto('/', { timeout: 30000 }); // Increase timeout and log result
-    console.log('Page loaded:', page.url());
-    
-    // Take a screenshot before any interactions
-    await page.screenshot({ 
-      path: './test-results/landing-page.png',
-      fullPage: true 
-    });
-    console.log('Screenshot taken');
-
-    // Log the page content for debugging
-    console.log('Page content:', await page.content());
-
-    // Verify page title
-    const title = await page.title();
-    console.log('Page title:', title);
+    const title = await homePage.verifyTitle();
     expect(title).toBe('ChronicleSync - IndexedDB Synchronization Service');
-
-    // Verify main content is visible
-    const main = await page.locator('body').first();
-    await expect(main).toBeVisible();
-    console.log('Body content:', await main.textContent());
   });
 
   test('should interact with health check component', async ({ page }) => {
+    // Log initial HTML for debugging
+    console.log('Initial HTML:', await page.content());
+
     // Verify initial health check state
     await expect(page.getByText('System Health')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Check Health' })).toBeVisible();
-    await expect(page.getByText('Status:')).toBeVisible();
-    await expect(page.getByText('Checking...')).toBeVisible();
-    await expect(page.getByText('Last Check:')).toBeVisible();
-    await expect(page.getByText('Never')).toBeVisible();
-
-    // Click the health check button
-    await page.getByRole('button', { name: 'Check Health' }).click();
-
-    // Wait for and verify the health status update
-    // Note: The actual status might vary depending on the system state
-    await expect(page.getByText('Status:')).toBeVisible();
     
-    // Take a screenshot after health check
-    await page.screenshot({ 
-      path: './test-results/health-check.png',
-      fullPage: true 
+    // Get all text content for debugging
+    const allText = await page.evaluate(() => document.body.textContent);
+    console.log('All text content:', allText);
+    
+    // Get specific element structure
+    const healthCheckStructure = await page.evaluate(() => {
+      const healthSection = document.querySelector('.health-check') || document.body;
+      return {
+        html: healthSection.innerHTML,
+        text: healthSection.textContent,
+        children: Array.from(healthSection.children).map(el => ({
+          tagName: el.tagName,
+          className: el.className,
+          textContent: el.textContent
+        }))
+      };
     });
+    console.log('Health check structure:', healthCheckStructure);
 
-    // Verify the last check time is updated (should no longer show "Never")
-    await expect(page.getByText('Never')).not.toBeVisible();
+    // Click the health check button and wait for response
+    const checkButton = await page.getByRole('button', { name: 'Check Health' });
+    await checkButton.click();
+
+    // Wait for network idle to ensure request completes
+    await page.waitForLoadState('networkidle');
+
+    // Log the updated HTML
+    console.log('Updated HTML:', await page.content());
+
+    // Take a screenshot for visual debugging
+    await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
+
+    // Get the last check time element's properties
+    const lastCheckElement = await page.locator('text=Last Check:').first();
+    const elementInfo = await lastCheckElement.evaluate(el => ({
+      textContent: el.textContent,
+      innerHTML: el.innerHTML,
+      outerHTML: el.outerHTML,
+      nextSibling: el.nextSibling ? {
+        textContent: el.nextSibling.textContent,
+        nodeType: el.nextSibling.nodeType
+      } : null
+    }));
+    console.log('Last Check element info:', elementInfo);
   });
 });

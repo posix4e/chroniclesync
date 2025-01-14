@@ -250,6 +250,9 @@ test.describe('Chrome Extension', () => {
     const extensionId = extensionUrl.split('/')[2];
     console.log('Extension ID:', extensionId);
 
+    // Wait for any service worker registrations to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration

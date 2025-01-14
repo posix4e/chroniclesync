@@ -5,7 +5,7 @@ test('extension popup should load', async () => {
   const pathToExtension = path.join(__dirname, '../../../dist/chrome');
   
   const context = await chromium.launchPersistentContext('', {
-    headless: false,
+    headless: true,
     args: [
       `--disable-extensions-except=${pathToExtension}`,
       `--load-extension=${pathToExtension}`,

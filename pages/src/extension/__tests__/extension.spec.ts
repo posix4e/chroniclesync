@@ -150,11 +150,14 @@ test.describe('Chrome Extension', () => {
       }
     });
 
-    await backgroundPage.close();
+    // Wait for any service worker registrations to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Log intermediate state
     console.log('After background page - pages:', context.pages().map(p => p.url()));
     console.log('After background page - service workers:', context.serviceWorkers().map(w => w.url()));
+
+    await backgroundPage.close();
     
     // Create a new page to trigger service worker registration
     const page = await context.newPage();
@@ -299,6 +302,13 @@ test.describe('Chrome Extension', () => {
         });
       }
     });
+
+    // Wait for any service worker registrations to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Log final state
+    console.log('Final pages:', context.pages().map(p => p.url()));
+    console.log('Final service workers:', context.serviceWorkers().map(w => w.url()));
 
     await page.close();
     

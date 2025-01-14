@@ -128,11 +128,19 @@ test.describe('Chrome Extension', () => {
       // Wait for any service worker registrations to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Close all pages
+      // Close all pages except popup
       const pages2 = await context.pages();
       for (const page of pages2) {
-        await page.close();
+        if (page !== popupPage) {
+          await page.close();
+        }
       }
+
+      // Wait for any service worker registrations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Close popup page
+      await popupPage.close();
     } finally {
       // Close the context
       await context.close();

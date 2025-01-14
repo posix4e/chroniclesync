@@ -16,7 +16,10 @@ test.describe('Chrome Extension', () => {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
       ],
+      timeout: 30000,
     });
     
     // Wait for the extension to initialize

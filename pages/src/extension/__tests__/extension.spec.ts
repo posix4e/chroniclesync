@@ -144,6 +144,10 @@ test.describe('Chrome Extension', () => {
 
       // Wait for any service worker registrations to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Verify that all pages are closed
+      const finalPages = await context.pages();
+      expect(finalPages.length, 'All pages should be closed').toBe(0);
     } finally {
       // Close the context
       await context.close();

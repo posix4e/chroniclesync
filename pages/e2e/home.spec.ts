@@ -1,20 +1,26 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Home Page', () => {
-  test('should load the home page and take screenshot', async ({ page }) => {
+test.describe('Web App', () => {
+  test('should load the landing page', async ({ page }) => {
     await page.goto('/');
     
-    // Wait for the main content to be visible
-    await page.waitForSelector('main', { state: 'visible' });
-    
-    // Take a screenshot of the entire page
+    // Take a screenshot before any interactions
     await page.screenshot({ 
-      path: './test-results/home-page.png',
+      path: './test-results/landing-page.png',
       fullPage: true 
     });
-    
-    // Basic assertion to ensure the page loaded
+
+    // Verify page title
     const title = await page.title();
-    expect(title).toBeTruthy();
+    expect(title).toBe('ChronicleSync');
+
+    // Verify main content is visible
+    const main = await page.locator('main').first();
+    await expect(main).toBeVisible();
+
+    // Verify key elements are present
+    const heading = await page.getByRole('heading', { level: 1 });
+    await expect(heading).toBeVisible();
+    await expect(heading).toContainText('ChronicleSync');
   });
 });

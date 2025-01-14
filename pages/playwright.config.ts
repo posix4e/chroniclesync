@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'https://staging.chroniclesync.com',
+    baseURL: 'https://staging.chroniclesync.pages.dev',
     trace: 'on-first-retry',
     screenshot: 'on',
   },
@@ -19,9 +19,4 @@ export default defineConfig({
     },
   ],
   outputDir: 'test-results',
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-  },
 });

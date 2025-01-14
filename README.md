@@ -139,7 +139,7 @@ await deleteClient('client-123');
 
 For help and bug reports, please:
 - Open an issue: https://github.com/posix4e/chroniclesync/issues
-- See the [DEVELOPMENT.md](DEVELOPMENT.md) file for technical details
+- See the [DEVELOPMENT.md](pages/DEVELOPMENT.md) file for technical details on the pages code
 
 ## License
 

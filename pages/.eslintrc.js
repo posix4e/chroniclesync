@@ -29,7 +29,23 @@ module.exports = {
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
     'no-unused-vars': ['error', { 'varsIgnorePattern': '^(DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)$' }],
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'react/react-in-jsx-scope': 'off', // Not needed with React 17+
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/explicit-function-return-type': ['warn', {
+      allowExpressions: true,
+      allowTypedFunctionExpressions: true,
+    }],
   },
+  overrides: [
+    {
+      // Allow console.log in test files
+      files: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+  ],
   globals: {
     DB: 'readonly',
     initializeClient: 'readonly',

@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "npm run build:web && npm run build:extensions",
     "build:web": "tsc && vite build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "validate:manifests": "node scripts/validate-manifests.js",
     "build:extensions": "npm run validate:manifests && BROWSER=${BROWSER:-chrome} vite build --mode extension",
     "package:chrome": "cd dist/chrome && rm -f ../../chroniclesync-chrome.zip && zip -r ../../chroniclesync-chrome.zip *",
@@ -26,6 +28,7 @@
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
+    "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.5.2",

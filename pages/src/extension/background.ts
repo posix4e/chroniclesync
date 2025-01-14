@@ -1,6 +1,9 @@
 // Import browser polyfill
 importScripts('browser-polyfill.js');
 
+// Import types
+import type { HistoryItem } from './types';
+
 // Configuration
 const API_URL = 'https://api.chroniclesync.xyz';
 

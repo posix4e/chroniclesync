@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-interface StorageData {
+export interface StorageData {
   clientId?: string;
   lastSync?: number;
 }
 
-interface HistoryItem {
+export interface HistoryItem {
   url: string;
   title: string;
   lastVisitTime?: number;
   visitCount?: number;
 }
 
-interface Tab {
+export interface Tab {
   id: number;
   url: string;
   title?: string;
@@ -19,18 +19,18 @@ interface Tab {
   windowId: number;
 }
 
-interface HistoryQuery {
+export interface HistoryQuery {
   text: string;
   startTime: number;
   maxResults: number;
 }
 
-interface HistoryUrlDetails {
+export interface HistoryUrlDetails {
   url: string;
   title?: string;
 }
 
-interface TabCreateDetails {
+export interface TabCreateDetails {
   url: string;
   active?: boolean;
   windowId?: number;

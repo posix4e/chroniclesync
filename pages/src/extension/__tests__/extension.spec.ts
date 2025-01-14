@@ -152,6 +152,9 @@ test.describe('Chrome Extension', () => {
       // Verify that all service workers are stopped
       const finalWorkers = context.serviceWorkers();
       expect(finalWorkers.length, 'All service workers should be stopped').toBe(0);
+
+      // Wait for any service worker registrations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } finally {
       // Close the context
       await context.close();

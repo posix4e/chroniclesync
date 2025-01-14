@@ -7,8 +7,8 @@ interface StorageData {
 interface HistoryItem {
   url: string;
   title: string;
-  lastVisitTime: number;
-  visitCount: number;
+  lastVisitTime?: number;
+  visitCount?: number;
 }
 
 interface Tab {

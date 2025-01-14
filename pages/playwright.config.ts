@@ -15,7 +15,7 @@ export default defineConfig({
   testDir: process.env.TEST_TYPE === 'extension' ? './src/extension/__tests__' : './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
@@ -24,7 +24,7 @@ export default defineConfig({
     screenshot: 'on',
     video: 'on',
     launchOptions: {
-      slowMo: 1000,
+      slowMo: 100,
     }
   },
   projects: [
@@ -42,7 +42,7 @@ export default defineConfig({
               '--disable-setuid-sandbox',
               '--disable-dev-shm-usage',
             ],
-            slowMo: 1000,
+            slowMo: 100,
           },
         } : {}),
       },

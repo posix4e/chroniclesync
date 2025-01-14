@@ -16,14 +16,14 @@ test.describe('Chrome Extension', () => {
       ],
     });
     
-    // Wait longer for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Wait for the extension to initialize
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       // Wait for the service worker to be available
       let extensionId: string | undefined;
       let retries = 0;
-      while (!extensionId && retries < 30) {
+      while (!extensionId && retries < 3) {
         const workers = context.serviceWorkers();
         console.log('Service workers:', workers.map(w => w.url()));
         
@@ -39,7 +39,7 @@ test.describe('Chrome Extension', () => {
             pages: context.pages().length,
             serviceWorkers: workers.length
           });
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait longer between retries
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait between retries
           retries++;
         }
       }

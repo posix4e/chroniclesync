@@ -44,6 +44,7 @@ test.describe('Chrome Extension', () => {
         '--disable-web-security',
         '--allow-insecure-localhost',
         '--allow-running-insecure-content',
+        '--enable-features=NetworkService,NetworkServiceInProcess',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -55,10 +56,11 @@ test.describe('Chrome Extension', () => {
         size: { width: 1280, height: 720 },
       },
       serviceWorkers: 'allow',
+      permissions: ['background-sync'],
     });
     
     // Wait for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       // Wait for the service worker to be available

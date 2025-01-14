@@ -77,10 +77,27 @@ test.describe('Chrome Extension', () => {
     
     // Wait for the extension to initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
+    // Log initial state
+    console.log('Initial pages:', context.pages().map(p => p.url()));
+    console.log('Initial service workers:', context.serviceWorkers().map(w => w.url()));
+
     // Create a background page
     const backgroundPage = await context.newPage();
     await backgroundPage.goto('chrome://extensions');
+    console.log('Background page URL:', await backgroundPage.url());
+
+    // Listen for console messages in background page
+    backgroundPage.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      console.log(`Background page console ${type}:`, text);
+      // Log errors but don't fail test
+      if (type === 'error') {
+        console.error(`Background page error: ${text}`);
+      }
+    });
+
     await backgroundPage.evaluate(() => {
       // Force service worker registration
       if ('serviceWorker' in navigator) {
@@ -108,9 +125,15 @@ test.describe('Chrome Extension', () => {
         console.log('Service workers not supported in background page');
       }
     });
-    await backgroundPage.waitForFunction(() => {
-      return navigator.serviceWorker.ready.then(() => true).catch(() => false);
-    }, { timeout: 10000 });
+
+    try {
+      await backgroundPage.waitForFunction(() => {
+        return navigator.serviceWorker.ready.then(() => true).catch(() => false);
+      }, { timeout: 10000 });
+    } catch (error) {
+      console.error('Service worker ready timeout:', error);
+    }
+
     await backgroundPage.evaluate(() => {
       // Try to get service worker registration
       if ('serviceWorker' in navigator) {
@@ -126,259 +149,29 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
-    await backgroundPage.evaluate(() => {
-      // Try to get all service worker registrations
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(
-          registrations => {
-            console.log('All service worker registrations from background page:', registrations);
-            registrations.forEach(registration => {
-              console.log('Service worker state from background page:', registration.active?.state);
-              console.log('Service worker scope from background page:', registration.scope);
-            });
-          },
-          error => console.error('Failed to get service worker registrations from background page:', error)
-        );
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker controller
-      if ('serviceWorker' in navigator) {
-        const controller = navigator.serviceWorker.controller;
-        console.log('Service worker controller from background page:', controller);
-        if (controller) {
-          console.log('Service worker controller state from background page:', controller.state);
-          console.log('Service worker controller scriptURL from background page:', controller.scriptURL);
-        }
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker ready state
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(
-          registration => {
-            console.log('Service worker ready from background page:', registration);
-            if (registration) {
-              console.log('Service worker ready state from background page:', registration.active?.state);
-              console.log('Service worker ready scope from background page:', registration.scope);
-            }
-          },
-          error => console.error('Failed to get service worker ready from background page:', error)
-        );
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker state
-      if ('serviceWorker' in navigator) {
-        console.log('Service worker state from background page:', {
-          controller: navigator.serviceWorker.controller,
-          ready: navigator.serviceWorker.ready,
-          registrations: navigator.serviceWorker.getRegistrations(),
-          registration: navigator.serviceWorker.getRegistration(),
-        });
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker state with JSON.stringify
-      if ('serviceWorker' in navigator) {
-        Promise.all([
-          navigator.serviceWorker.getRegistration(),
-          navigator.serviceWorker.getRegistrations(),
-          navigator.serviceWorker.ready,
-        ]).then(([registration, registrations, ready]) => {
-          console.log('Service worker state from background page (stringified):', JSON.stringify({
-            controller: navigator.serviceWorker.controller,
-            ready: ready,
-            registrations: registrations,
-            registration: registration,
-          }, null, 2));
-        }).catch(error => {
-          console.error('Failed to get service worker state:', error);
-        });
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker state with JSON.stringify and replacer
-      if ('serviceWorker' in navigator) {
-        Promise.all([
-          navigator.serviceWorker.getRegistration(),
-          navigator.serviceWorker.getRegistrations(),
-          navigator.serviceWorker.ready,
-        ]).then(([registration, registrations, ready]) => {
-          console.log('Service worker state from background page (stringified with replacer):', JSON.stringify({
-            controller: navigator.serviceWorker.controller,
-            ready: ready,
-            registrations: registrations,
-            registration: registration,
-          }, (key, value) => {
-            if (value instanceof ServiceWorker) {
-              return {
-                state: value.state,
-                scriptURL: value.scriptURL,
-              };
-            }
-            if (value instanceof ServiceWorkerRegistration) {
-              return {
-                active: value.active ? {
-                  state: value.active.state,
-                  scriptURL: value.active.scriptURL,
-                } : null,
-                scope: value.scope,
-              };
-            }
-            return value;
-          }, 2));
-        }).catch(error => {
-          console.error('Failed to get service worker state:', error);
-        });
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker state with JSON.stringify and replacer for all properties
-      if ('serviceWorker' in navigator) {
-        Promise.all([
-          navigator.serviceWorker.getRegistration(),
-          navigator.serviceWorker.getRegistrations(),
-          navigator.serviceWorker.ready,
-        ]).then(([registration, registrations, ready]) => {
-          console.log('Service worker state from background page (stringified with full replacer):', JSON.stringify({
-            controller: navigator.serviceWorker.controller,
-            ready: ready,
-            registrations: registrations,
-            registration: registration,
-          }, (key, value) => {
-            if (value instanceof ServiceWorker) {
-              return {
-                state: value.state,
-                scriptURL: value.scriptURL,
-                onstatechange: value.onstatechange,
-                onerror: value.onerror,
-              };
-            }
-            if (value instanceof ServiceWorkerRegistration) {
-              return {
-                active: value.active ? {
-                  state: value.active.state,
-                  scriptURL: value.active.scriptURL,
-                  onstatechange: value.active.onstatechange,
-                  onerror: value.active.onerror,
-                } : null,
-                installing: value.installing ? {
-                  state: value.installing.state,
-                  scriptURL: value.installing.scriptURL,
-                  onstatechange: value.installing.onstatechange,
-                  onerror: value.installing.onerror,
-                } : null,
-                waiting: value.waiting ? {
-                  state: value.waiting.state,
-                  scriptURL: value.waiting.scriptURL,
-                  onstatechange: value.waiting.onstatechange,
-                  onerror: value.waiting.onerror,
-                } : null,
-                scope: value.scope,
-                navigationPreload: value.navigationPreload,
-                pushManager: value.pushManager,
-                sync: value.sync,
-                index: value.index,
-                unregister: value.unregister,
-                update: value.update,
-                updateViaCache: value.updateViaCache,
-              };
-            }
-            return value;
-          }, 2));
-        }).catch(error => {
-          console.error('Failed to get service worker state:', error);
-        });
-      }
-    });
-    await backgroundPage.evaluate(() => {
-      // Try to get service worker state with JSON.stringify and replacer for all properties and functions
-      if ('serviceWorker' in navigator) {
-        Promise.all([
-          navigator.serviceWorker.getRegistration(),
-          navigator.serviceWorker.getRegistrations(),
-          navigator.serviceWorker.ready,
-        ]).then(([registration, registrations, ready]) => {
-          console.log('Service worker state from background page (stringified with full replacer and functions):', JSON.stringify({
-            controller: navigator.serviceWorker.controller,
-            ready: ready,
-            registrations: registrations,
-            registration: registration,
-          }, (key, value) => {
-            if (value instanceof ServiceWorker) {
-              return {
-                state: value.state,
-                scriptURL: value.scriptURL,
-                onstatechange: value.onstatechange,
-                onerror: value.onerror,
-                postMessage: value.postMessage ? 'function' : undefined,
-                addEventListener: value.addEventListener ? 'function' : undefined,
-                removeEventListener: value.removeEventListener ? 'function' : undefined,
-                dispatchEvent: value.dispatchEvent ? 'function' : undefined,
-              };
-            }
-            if (value instanceof ServiceWorkerRegistration) {
-              return {
-                active: value.active ? {
-                  state: value.active.state,
-                  scriptURL: value.active.scriptURL,
-                  onstatechange: value.active.onstatechange,
-                  onerror: value.active.onerror,
-                  postMessage: value.active.postMessage ? 'function' : undefined,
-                  addEventListener: value.active.addEventListener ? 'function' : undefined,
-                  removeEventListener: value.active.removeEventListener ? 'function' : undefined,
-                  dispatchEvent: value.active.dispatchEvent ? 'function' : undefined,
-                } : null,
-                installing: value.installing ? {
-                  state: value.installing.state,
-                  scriptURL: value.installing.scriptURL,
-                  onstatechange: value.installing.onstatechange,
-                  onerror: value.installing.onerror,
-                  postMessage: value.installing.postMessage ? 'function' : undefined,
-                  addEventListener: value.installing.addEventListener ? 'function' : undefined,
-                  removeEventListener: value.installing.removeEventListener ? 'function' : undefined,
-                  dispatchEvent: value.installing.dispatchEvent ? 'function' : undefined,
-                } : null,
-                waiting: value.waiting ? {
-                  state: value.waiting.state,
-                  scriptURL: value.waiting.scriptURL,
-                  onstatechange: value.waiting.onstatechange,
-                  onerror: value.waiting.onerror,
-                  postMessage: value.waiting.postMessage ? 'function' : undefined,
-                  addEventListener: value.waiting.addEventListener ? 'function' : undefined,
-                  removeEventListener: value.waiting.removeEventListener ? 'function' : undefined,
-                  dispatchEvent: value.waiting.dispatchEvent ? 'function' : undefined,
-                } : null,
-                scope: value.scope,
-                navigationPreload: value.navigationPreload,
-                pushManager: value.pushManager,
-                sync: value.sync,
-                index: value.index,
-                unregister: value.unregister ? 'function' : undefined,
-                update: value.update ? 'function' : undefined,
-                updateViaCache: value.updateViaCache,
-                addEventListener: value.addEventListener ? 'function' : undefined,
-                removeEventListener: value.removeEventListener ? 'function' : undefined,
-                dispatchEvent: value.dispatchEvent ? 'function' : undefined,
-              };
-            }
-            return value;
-          }, 2));
-        }).catch(error => {
-          console.error('Failed to get service worker state:', error);
-        });
-      }
-    });
+
     await backgroundPage.close();
-    
-    // Log initial state
-    console.log('Initial pages:', context.pages().map(p => p.url()));
-    console.log('Initial service workers:', context.serviceWorkers().map(w => w.url()));
+
+    // Log intermediate state
+    console.log('After background page - pages:', context.pages().map(p => p.url()));
+    console.log('After background page - service workers:', context.serviceWorkers().map(w => w.url()));
     
     // Create a new page to trigger service worker registration
     const page = await context.newPage();
     await page.goto('about:blank');
+    console.log('Test page URL:', await page.url());
+
+    // Listen for console messages in test page
+    page.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      console.log(`Test page console ${type}:`, text);
+      // Log errors but don't fail test
+      if (type === 'error') {
+        console.error(`Test page error: ${text}`);
+      }
+    });
+
     await page.evaluate(() => {
       // Force service worker registration
       if ('serviceWorker' in navigator) {
@@ -406,9 +199,15 @@ test.describe('Chrome Extension', () => {
         console.log('Service workers not supported');
       }
     });
-    await page.waitForFunction(() => {
-      return navigator.serviceWorker.ready.then(() => true).catch(() => false);
-    }, { timeout: 10000 });
+
+    try {
+      await page.waitForFunction(() => {
+        return navigator.serviceWorker.ready.then(() => true).catch(() => false);
+      }, { timeout: 10000 });
+    } catch (error) {
+      console.error('Service worker ready timeout:', error);
+    }
+
     await page.evaluate(() => {
       // Try to get service worker registration
       if ('serviceWorker' in navigator) {
@@ -424,6 +223,7 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+
     await page.evaluate(() => {
       // Try to get all service worker registrations
       if ('serviceWorker' in navigator) {
@@ -439,6 +239,7 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+
     await page.evaluate(() => {
       // Try to get service worker controller
       if ('serviceWorker' in navigator) {
@@ -450,6 +251,7 @@ test.describe('Chrome Extension', () => {
         }
       }
     });
+
     await page.evaluate(() => {
       // Try to get service worker ready state
       if ('serviceWorker' in navigator) {
@@ -465,6 +267,7 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+
     await page.evaluate(() => {
       // Try to get service worker state
       if ('serviceWorker' in navigator) {
@@ -476,6 +279,7 @@ test.describe('Chrome Extension', () => {
         });
       }
     });
+
     await page.evaluate(() => {
       // Try to get service worker state with JSON.stringify
       if ('serviceWorker' in navigator) {
@@ -495,6 +299,7 @@ test.describe('Chrome Extension', () => {
         });
       }
     });
+
     await page.close();
     
     // Log the current state

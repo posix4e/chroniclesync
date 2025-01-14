@@ -59,25 +59,25 @@ declare namespace browser {
 }
 
 declare global {
-  function importScripts(...urls: string[]): void;
+  function importScripts(..._urls: string[]): void;
   
   const browser: {
     storage: {
       local: {
-        get(keys: string[]): Promise<StorageData>;
-        set(items: Partial<StorageData>): Promise<void>;
+        get(_keys: string[]): Promise<StorageData>;
+        set(_items: Partial<StorageData>): Promise<void>;
       };
     };
     history: {
-      search(query: HistoryQuery): Promise<HistoryItem[]>;
-      addUrl(details: HistoryUrlDetails): Promise<void>;
+      search(_query: HistoryQuery): Promise<HistoryItem[]>;
+      addUrl(_details: HistoryUrlDetails): Promise<void>;
       onVisited: {
-        addListener(callback: (result: HistoryItem) => void): void;
-        removeListener(callback: (result: HistoryItem) => void): void;
+        addListener(_callback: (_result: HistoryItem) => void): void;
+        removeListener(_callback: (_result: HistoryItem) => void): void;
       };
     };
     tabs: {
-      create(details: TabCreateDetails): Promise<Tab>;
+      create(_details: TabCreateDetails): Promise<Tab>;
     };
   };
 }

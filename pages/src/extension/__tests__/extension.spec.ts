@@ -240,6 +240,15 @@ test.describe('Chrome Extension', () => {
     // Wait for any service worker registrations to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Get the extension ID from the background page URL
+    const backgroundPages = context.backgroundPages();
+    if (backgroundPages.length === 0) {
+      throw new Error('No background pages found');
+    }
+    const extensionUrl = backgroundPages[0].url();
+    const extensionId = extensionUrl.split('/')[2];
+    console.log('Extension ID:', extensionId);
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration

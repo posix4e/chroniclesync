@@ -21,7 +21,7 @@ test.describe('Web App', () => {
     // Verify page title
     const title = await page.title();
     console.log('Page title:', title);
-    expect(title).toBeTruthy(); // Make this more lenient for now
+    expect(title).toBe('ChronicleSync - IndexedDB Synchronization Service');
 
     // Verify main content is visible
     const main = await page.locator('body').first();

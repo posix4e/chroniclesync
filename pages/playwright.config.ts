@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Log the branch name for debugging
+const branchName = process.env.GITHUB_HEAD_REF || 'main';
+console.log('Branch name:', branchName);
+const baseURL = branchName === 'main' 
+  ? 'https://chroniclesync-pages.pages.dev'
+  : `https://${branchName}.chroniclesync-pages.pages.dev`;
+console.log('Using baseURL:', baseURL);
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -8,9 +16,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: process.env.GITHUB_HEAD_REF 
-      ? `https://${process.env.GITHUB_HEAD_REF}.chroniclesync-pages.pages.dev`
-      : 'https://chroniclesync-pages.pages.dev',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'on',
   },

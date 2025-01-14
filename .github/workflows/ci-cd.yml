@@ -167,9 +167,6 @@ jobs:
         if: github.event.inputs.run_e2e == 'true' || github.event.pull_request.base.ref == 'main'
         working-directory: pages
         run: |
-          # Wait for deployment to be ready
-          sleep 10
-
           # Install Playwright
           npx playwright install chromium --with-deps
 

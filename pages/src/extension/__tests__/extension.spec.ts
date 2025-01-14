@@ -292,6 +292,84 @@ test.describe('Chrome Extension', () => {
         });
       }
     });
+    await backgroundPage.evaluate(() => {
+      // Try to get service worker state with JSON.stringify and replacer for all properties and functions
+      if ('serviceWorker' in navigator) {
+        Promise.all([
+          navigator.serviceWorker.getRegistration(),
+          navigator.serviceWorker.getRegistrations(),
+          navigator.serviceWorker.ready,
+        ]).then(([registration, registrations, ready]) => {
+          console.log('Service worker state from background page (stringified with full replacer and functions):', JSON.stringify({
+            controller: navigator.serviceWorker.controller,
+            ready: ready,
+            registrations: registrations,
+            registration: registration,
+          }, (key, value) => {
+            if (value instanceof ServiceWorker) {
+              return {
+                state: value.state,
+                scriptURL: value.scriptURL,
+                onstatechange: value.onstatechange,
+                onerror: value.onerror,
+                postMessage: value.postMessage ? 'function' : undefined,
+                addEventListener: value.addEventListener ? 'function' : undefined,
+                removeEventListener: value.removeEventListener ? 'function' : undefined,
+                dispatchEvent: value.dispatchEvent ? 'function' : undefined,
+              };
+            }
+            if (value instanceof ServiceWorkerRegistration) {
+              return {
+                active: value.active ? {
+                  state: value.active.state,
+                  scriptURL: value.active.scriptURL,
+                  onstatechange: value.active.onstatechange,
+                  onerror: value.active.onerror,
+                  postMessage: value.active.postMessage ? 'function' : undefined,
+                  addEventListener: value.active.addEventListener ? 'function' : undefined,
+                  removeEventListener: value.active.removeEventListener ? 'function' : undefined,
+                  dispatchEvent: value.active.dispatchEvent ? 'function' : undefined,
+                } : null,
+                installing: value.installing ? {
+                  state: value.installing.state,
+                  scriptURL: value.installing.scriptURL,
+                  onstatechange: value.installing.onstatechange,
+                  onerror: value.installing.onerror,
+                  postMessage: value.installing.postMessage ? 'function' : undefined,
+                  addEventListener: value.installing.addEventListener ? 'function' : undefined,
+                  removeEventListener: value.installing.removeEventListener ? 'function' : undefined,
+                  dispatchEvent: value.installing.dispatchEvent ? 'function' : undefined,
+                } : null,
+                waiting: value.waiting ? {
+                  state: value.waiting.state,
+                  scriptURL: value.waiting.scriptURL,
+                  onstatechange: value.waiting.onstatechange,
+                  onerror: value.waiting.onerror,
+                  postMessage: value.waiting.postMessage ? 'function' : undefined,
+                  addEventListener: value.waiting.addEventListener ? 'function' : undefined,
+                  removeEventListener: value.waiting.removeEventListener ? 'function' : undefined,
+                  dispatchEvent: value.waiting.dispatchEvent ? 'function' : undefined,
+                } : null,
+                scope: value.scope,
+                navigationPreload: value.navigationPreload,
+                pushManager: value.pushManager,
+                sync: value.sync,
+                index: value.index,
+                unregister: value.unregister ? 'function' : undefined,
+                update: value.update ? 'function' : undefined,
+                updateViaCache: value.updateViaCache,
+                addEventListener: value.addEventListener ? 'function' : undefined,
+                removeEventListener: value.removeEventListener ? 'function' : undefined,
+                dispatchEvent: value.dispatchEvent ? 'function' : undefined,
+              };
+            }
+            return value;
+          }, 2));
+        }).catch(error => {
+          console.error('Failed to get service worker state:', error);
+        });
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state

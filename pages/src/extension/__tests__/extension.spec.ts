@@ -265,6 +265,17 @@ test.describe('Chrome Extension', () => {
     await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
     console.log('Popup page URL:', await popupPage.url());
 
+    // Listen for console messages in popup
+    popupPage.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      console.log(`Popup console ${type}:`, text);
+      // Log errors but don't fail test
+      if (type === 'error') {
+        console.error(`Popup error: ${text}`);
+      }
+    });
+
     await backgroundPage.close();
     
     // Create a new page to trigger service worker registration

@@ -197,6 +197,42 @@ test.describe('Chrome Extension', () => {
         });
       }
     });
+    await backgroundPage.evaluate(() => {
+      // Try to get service worker state with JSON.stringify and replacer
+      if ('serviceWorker' in navigator) {
+        Promise.all([
+          navigator.serviceWorker.getRegistration(),
+          navigator.serviceWorker.getRegistrations(),
+          navigator.serviceWorker.ready,
+        ]).then(([registration, registrations, ready]) => {
+          console.log('Service worker state from background page (stringified with replacer):', JSON.stringify({
+            controller: navigator.serviceWorker.controller,
+            ready: ready,
+            registrations: registrations,
+            registration: registration,
+          }, (key, value) => {
+            if (value instanceof ServiceWorker) {
+              return {
+                state: value.state,
+                scriptURL: value.scriptURL,
+              };
+            }
+            if (value instanceof ServiceWorkerRegistration) {
+              return {
+                active: value.active ? {
+                  state: value.active.state,
+                  scriptURL: value.active.scriptURL,
+                } : null,
+                scope: value.scope,
+              };
+            }
+            return value;
+          }, 2));
+        }).catch(error => {
+          console.error('Failed to get service worker state:', error);
+        });
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state

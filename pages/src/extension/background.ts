@@ -5,7 +5,7 @@ importScripts('browser-polyfill.js');
 const API_URL = 'https://api.chroniclesync.xyz';
 
 let isInitialized = false;
-let clientId: string | null = null;
+let clientId: string | undefined = undefined;
 
 interface StorageData {
   clientId?: string;
@@ -49,7 +49,7 @@ async function initialize(): Promise<void> {
 interface HistoryItem {
   url: string;
   title: string;
-  visitTime?: number;
+  lastVisitTime?: number;
   visitCount?: number;
 }
 
@@ -91,7 +91,7 @@ async function syncHistory(startTime: number): Promise<void> {
       mergedHistory.set(item.url, {
         url: item.url,
         title: item.title,
-        visitTime: item.lastVisitTime,
+        lastVisitTime: item.lastVisitTime,
         visitCount: item.visitCount
       });
     }

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-export interface StorageData {
+declare module './types' {
+  export interface StorageData {
   clientId?: string;
   lastSync?: number;
 }
@@ -56,5 +57,6 @@ declare namespace browser {
   const tabs: {
     create(_details: TabCreateDetails): Promise<Tab>;
   };
+}
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */

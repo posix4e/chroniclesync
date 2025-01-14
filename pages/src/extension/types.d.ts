@@ -36,25 +36,25 @@ interface TabCreateDetails {
   windowId?: number;
 }
 
-declare function importScripts(...urls: string[]): void;
+declare function importScripts(..._urls: string[]): void;
 
 declare namespace browser {
   const storage: {
     local: {
-      get(keys: string[]): Promise<StorageData>;
-      set(items: Partial<StorageData>): Promise<void>;
+      get(_keys: string[]): Promise<StorageData>;
+      set(_items: Partial<StorageData>): Promise<void>;
     };
   };
   const history: {
-    search(query: HistoryQuery): Promise<HistoryItem[]>;
-    addUrl(details: HistoryUrlDetails): Promise<void>;
+    search(_query: HistoryQuery): Promise<HistoryItem[]>;
+    addUrl(_details: HistoryUrlDetails): Promise<void>;
     onVisited: {
-      addListener(callback: (result: HistoryItem) => void): void;
-      removeListener(callback: (result: HistoryItem) => void): void;
+      addListener(_callback: (_result: HistoryItem) => void): void;
+      removeListener(_callback: (_result: HistoryItem) => void): void;
     };
   };
   const tabs: {
-    create(details: TabCreateDetails): Promise<Tab>;
+    create(_details: TabCreateDetails): Promise<Tab>;
   };
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */

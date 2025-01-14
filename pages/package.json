@@ -15,6 +15,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:extension": "npm run build:extensions && playwright test",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "deploy": "wrangler pages deploy dist/web --project-name chroniclesync-pages"
@@ -26,9 +29,11 @@
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
+    "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.5.2",
+    "@types/chrome": "^0.0.294",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.5",
     "@types/react": "^18.2.0",

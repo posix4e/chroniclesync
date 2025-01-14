@@ -183,6 +183,13 @@ test.describe('Chrome Extension', () => {
       // Log final state one last time
       console.log('Final pages (after final wait):', context.pages().map(p => p.url()));
       console.log('Final service workers (after final wait):', context.serviceWorkers().map(w => w.url()));
+
+      // Wait for any service worker registrations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Log final state after cleanup
+      console.log('Final pages (after cleanup):', context.pages().map(p => p.url()));
+      console.log('Final service workers (after cleanup):', context.serviceWorkers().map(w => w.url()));
     } finally {
       // Close the context
       await context.close();

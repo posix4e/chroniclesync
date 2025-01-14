@@ -37,11 +37,14 @@ test.describe('Chrome Extension', () => {
         '--no-first-run',
         '--password-store=basic',
         '--use-mock-keychain',
+        '--enable-logging',
+        '--v=1',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
       ignoreHTTPSErrors: true,
       acceptDownloads: true,
+      bypassCSP: true,
     });
     
     // Wait for the extension to initialize
@@ -60,14 +63,26 @@ test.describe('Chrome Extension', () => {
           console.log('Service worker URL:', worker.url());
         });
         
+        // Try to get extension ID from service workers first
         extensionId = workers[0]?.url()?.split('/')[2];
+        
+        // If no service worker found, try to get extension ID from background page
         if (!extensionId) {
-          console.log('Waiting for service worker, attempt:', retries + 1);
+          const pages = context.pages();
+          console.log('Pages:', pages.map(p => p.url()));
+          const backgroundPage = pages.find(p => p.url().startsWith('chrome-extension://'));
+          if (backgroundPage) {
+            extensionId = backgroundPage.url().split('/')[2];
+          }
+        }
+        
+        if (!extensionId) {
+          console.log('Waiting for service worker or background page, attempt:', retries + 1);
           console.log('Extension context:', {
             pages: context.pages().length,
             serviceWorkers: workers.length
           });
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait between retries
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait between retries
           retries++;
         }
       }

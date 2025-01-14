@@ -1,16 +1,7 @@
 import { test, expect, chromium } from '@playwright/test';
 import path from 'path';
-import { execSync } from 'child_process';
 
 test.describe('Chrome Extension', () => {
-  test.beforeAll(async () => {
-    // Build the extension before running tests
-    console.log('Building Chrome extension...');
-    execSync('npm run build:extensions', { 
-      stdio: 'inherit',
-      env: { ...process.env, BROWSER: 'chrome' }
-    });
-  });
 
   test('extension should load without errors', async () => {
     const pathToExtension = path.join(__dirname, '../../../dist/chrome');

@@ -163,14 +163,27 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
-      - name: Run Extension Tests
+      - name: Build and Test Extension
         if: github.event.inputs.run_e2e == 'true' || github.event.pull_request.base.ref == 'main'
         working-directory: pages
         run: |
           # Install Playwright
           npx playwright install chromium --with-deps
 
-          # Run extension tests only
+          # Build Chrome extension first
+          BROWSER=chrome npm run build:extensions
+
+          # Verify extension files exist
+          if [ ! -d "dist/chrome" ]; then
+            echo "Error: Chrome extension build failed - dist/chrome directory not found"
+            exit 1
+          fi
+          if [ ! -f "dist/chrome/manifest.json" ]; then
+            echo "Error: Chrome extension build failed - manifest.json not found"
+            exit 1
+          fi
+
+          # Run extension tests
           TEST_TYPE=extension npm run test:e2e
         env:
           CI: true

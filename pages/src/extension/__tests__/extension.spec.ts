@@ -70,9 +70,16 @@ test.describe('Chrome Extension', () => {
       // Wait for React to mount and render
       await popupPage.waitForSelector('#root');
       
+      // Ensure test-results directory exists
+      const fs = require('fs');
+      const testResultsDir = path.join(__dirname, '../../../test-results');
+      if (!fs.existsSync(testResultsDir)) {
+        fs.mkdirSync(testResultsDir, { recursive: true });
+      }
+
       // Take screenshot for debugging
       await popupPage.screenshot({ 
-        path: 'test-results/extension-popup.png',
+        path: path.join(testResultsDir, 'extension-popup.png'),
         fullPage: true 
       });
 

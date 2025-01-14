@@ -126,6 +126,21 @@ test.describe('Chrome Extension', () => {
         );
       }
     });
+    await backgroundPage.evaluate(() => {
+      // Try to get all service worker registrations
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(
+          registrations => {
+            console.log('All service worker registrations from background page:', registrations);
+            registrations.forEach(registration => {
+              console.log('Service worker state from background page:', registration.active?.state);
+              console.log('Service worker scope from background page:', registration.scope);
+            });
+          },
+          error => console.error('Failed to get service worker registrations from background page:', error)
+        );
+      }
+    });
     await backgroundPage.close();
     
     // Log initial state
@@ -193,6 +208,17 @@ test.describe('Chrome Extension', () => {
           },
           error => console.error('Failed to get service worker registrations:', error)
         );
+      }
+    });
+    await page.evaluate(() => {
+      // Try to get service worker controller
+      if ('serviceWorker' in navigator) {
+        const controller = navigator.serviceWorker.controller;
+        console.log('Service worker controller:', controller);
+        if (controller) {
+          console.log('Service worker controller state:', controller.state);
+          console.log('Service worker controller scriptURL:', controller.scriptURL);
+        }
       }
     });
     await page.close();

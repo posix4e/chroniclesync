@@ -181,12 +181,20 @@ test.describe('Chrome Extension', () => {
     await backgroundPage.evaluate(() => {
       // Try to get service worker state with JSON.stringify
       if ('serviceWorker' in navigator) {
-        console.log('Service worker state from background page (stringified):', JSON.stringify({
-          controller: navigator.serviceWorker.controller,
-          ready: navigator.serviceWorker.ready,
-          registrations: navigator.serviceWorker.getRegistrations(),
-          registration: navigator.serviceWorker.getRegistration(),
-        }, null, 2));
+        Promise.all([
+          navigator.serviceWorker.getRegistration(),
+          navigator.serviceWorker.getRegistrations(),
+          navigator.serviceWorker.ready,
+        ]).then(([registration, registrations, ready]) => {
+          console.log('Service worker state from background page (stringified):', JSON.stringify({
+            controller: navigator.serviceWorker.controller,
+            ready: ready,
+            registrations: registrations,
+            registration: registration,
+          }, null, 2));
+        }).catch(error => {
+          console.error('Failed to get service worker state:', error);
+        });
       }
     });
     await backgroundPage.close();
@@ -292,6 +300,25 @@ test.describe('Chrome Extension', () => {
           ready: navigator.serviceWorker.ready,
           registrations: navigator.serviceWorker.getRegistrations(),
           registration: navigator.serviceWorker.getRegistration(),
+        });
+      }
+    });
+    await page.evaluate(() => {
+      // Try to get service worker state with JSON.stringify
+      if ('serviceWorker' in navigator) {
+        Promise.all([
+          navigator.serviceWorker.getRegistration(),
+          navigator.serviceWorker.getRegistrations(),
+          navigator.serviceWorker.ready,
+        ]).then(([registration, registrations, ready]) => {
+          console.log('Service worker state (stringified):', JSON.stringify({
+            controller: navigator.serviceWorker.controller,
+            ready: ready,
+            registrations: registrations,
+            registration: registration,
+          }, null, 2));
+        }).catch(error => {
+          console.error('Failed to get service worker state:', error);
         });
       }
     });

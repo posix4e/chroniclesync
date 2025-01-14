@@ -100,7 +100,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: isExtension ? {
         input: {
           background: resolve(__dirname, 'src/extension/background.js'),
-          popup: resolve(__dirname, 'src/extension/popup.js')
+          popup: resolve(__dirname, 'src/extension/popup.tsx')
         },
         output: {
           entryFileNames: '[name].js',

@@ -1,5 +1,4 @@
-declare function importScripts(..._urls: string[]): void;
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 interface StorageData {
   clientId?: string;
   lastSync?: number;
@@ -20,33 +19,42 @@ interface Tab {
   windowId: number;
 }
 
+interface HistoryQuery {
+  text: string;
+  startTime: number;
+  maxResults: number;
+}
+
+interface HistoryUrlDetails {
+  url: string;
+  title?: string;
+}
+
+interface TabCreateDetails {
+  url: string;
+  active?: boolean;
+  windowId?: number;
+}
+
+declare function importScripts(...urls: string[]): void;
+
 declare namespace browser {
   const storage: {
     local: {
-      get(_keys: string[]): Promise<StorageData>;
-      set(_items: Partial<StorageData>): Promise<void>;
+      get(keys: string[]): Promise<StorageData>;
+      set(items: Partial<StorageData>): Promise<void>;
     };
   };
   const history: {
-    search(_query: {
-      text: string;
-      startTime: number;
-      maxResults: number;
-    }): Promise<HistoryItem[]>;
-    addUrl(_details: {
-      url: string;
-      title?: string;
-    }): Promise<void>;
+    search(query: HistoryQuery): Promise<HistoryItem[]>;
+    addUrl(details: HistoryUrlDetails): Promise<void>;
     onVisited: {
       addListener(callback: (result: HistoryItem) => void): void;
       removeListener(callback: (result: HistoryItem) => void): void;
     };
   };
   const tabs: {
-    create(_details: {
-      url: string;
-      active?: boolean;
-      windowId?: number;
-    }): Promise<Tab>;
+    create(details: TabCreateDetails): Promise<Tab>;
   };
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */

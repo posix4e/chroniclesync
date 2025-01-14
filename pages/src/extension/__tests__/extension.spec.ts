@@ -72,6 +72,10 @@ test.describe('Chrome Extension', () => {
     // Wait for the extension to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Log initial state
+    console.log('Initial pages:', context.pages().map(p => p.url()));
+    console.log('Initial service workers:', context.serviceWorkers().map(w => w.url()));
+    
     // Create a new page to trigger service worker registration
     const page = await context.newPage();
     await page.goto('about:blank');
@@ -79,8 +83,15 @@ test.describe('Chrome Extension', () => {
       // Force service worker registration
       if ('serviceWorker' in navigator) {
         console.log('Registering service worker...');
-        navigator.serviceWorker.register('/service-worker.js').then(
-          registration => console.log('Service worker registered:', registration),
+        navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/',
+          type: 'module',
+          updateViaCache: 'none',
+        }).then(
+          registration => {
+            console.log('Service worker registered:', registration);
+            registration.update();
+          },
           error => console.error('Service worker registration failed:', error)
         );
       } else {

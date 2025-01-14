@@ -25,16 +25,14 @@ test.describe('Chrome Extension', () => {
         const workers = context.serviceWorkers();
         console.log('Service workers:', workers.map(w => w.url()));
         
-        // Listen for service worker console messages
+        // Monitor service worker events
         workers.forEach(worker => {
-          worker.on('console', msg => {
-            const type = msg.type();
-            const text = msg.text();
-            console.log(`Service worker ${type}:`, text);
-            if (type === 'error') {
-              throw new Error(`Service worker error: ${text}`);
-            }
+          worker.on('error', error => {
+            throw new Error(`Service worker error: ${error}`);
           });
+          
+          // Log worker URL for debugging
+          console.log('Service worker URL:', worker.url());
         });
         
         extensionId = workers[0]?.url()?.split('/')[2];

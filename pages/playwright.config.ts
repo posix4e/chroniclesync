@@ -22,9 +22,10 @@ export default defineConfig({
     baseURL,
     trace: 'on',
     screenshot: 'on',
-    video: 'on',
+    video: 'retain-on-failure',
     launchOptions: {
       slowMo: 100,
+      timeout: 30000,
     }
   },
   projects: [
@@ -43,6 +44,7 @@ export default defineConfig({
               '--disable-dev-shm-usage',
             ],
             slowMo: 100,
+            timeout: 30000,
           },
         } : {}),
       },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AdminPanel } from '../components/AdminPanel';
 import { ClientSection } from '../components/ClientSection';

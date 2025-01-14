@@ -16,16 +16,20 @@ test.describe('Chrome Extension', () => {
     });
 
     try {
-      // Wait for and verify background page
+      // Wait for and verify service worker
       let extensionId: string | undefined;
-      let backgroundPage;
+      let serviceWorker;
       let retries = 0;
       while (!extensionId && retries < 5) {
-        const backgroundPages = context.backgroundPages();
-        backgroundPage = backgroundPages[0];
-        extensionId = backgroundPage?.url()?.split('/')[2];
+        const workers = context.serviceWorkers();
+        serviceWorker = workers[0];
+        if (serviceWorker) {
+          const url = serviceWorker.url();
+          console.log('Found service worker URL:', url);
+          extensionId = url.split('/')[2];
+        }
         if (!extensionId) {
-          console.log('Waiting for background page, attempt:', retries + 1);
+          console.log('Waiting for service worker, attempt:', retries + 1);
           await new Promise(resolve => setTimeout(resolve, 1000));
           retries++;
         }
@@ -33,14 +37,14 @@ test.describe('Chrome Extension', () => {
       expect(extensionId, 'Extension should have a valid ID').toBeTruthy();
       console.log('Extension loaded with ID:', extensionId);
 
-      // Check for console errors/warnings in background page
-      backgroundPage?.on('console', msg => {
+      // Check for console errors/warnings in service worker
+      serviceWorker?.on('console', msg => {
         const type = msg.type();
         const text = msg.text();
-        console.log(`Background console ${type}:`, text);
+        console.log(`Service worker console ${type}:`, text);
         // Fail test on errors
         if (type === 'error') {
-          throw new Error(`Background script error: ${text}`);
+          throw new Error(`Service worker error: ${text}`);
         }
       });
 

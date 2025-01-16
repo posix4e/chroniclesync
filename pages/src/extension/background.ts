@@ -1,5 +1,5 @@
 // Import types
-import type { HistoryItem, StorageData } from './types';
+import type { HistoryItem, StorageData, HistoryQuery, HistoryUrlDetails } from './types';
 
 // Configuration
 const API_URL = 'https://api.chroniclesync.xyz';
@@ -10,18 +10,27 @@ export { initialize };
 // Set up browser polyfill if needed
 if (typeof browser === 'undefined') {
   if (typeof chrome !== 'undefined') {
-    (globalThis as any).browser = {
+    (globalThis as typeof global).browser = {
       storage: {
         local: {
-          get: (keys: string[]) => new Promise((resolve) => chrome.storage.local.get(keys, (result) => resolve(result))),
-          set: (items: any) => new Promise((resolve) => chrome.storage.local.set(items, () => resolve(undefined))),
+          get: (keys: string[]) => new Promise<StorageData>((resolve) => 
+            chrome.storage.local.get(keys, (result) => resolve(result as StorageData))
+          ),
+          set: (items: Partial<StorageData>) => new Promise<void>((resolve) => 
+            chrome.storage.local.set(items, () => resolve())
+          ),
         },
       },
       history: {
-        search: (query: any) => new Promise((resolve) => chrome.history.search(query, (result) => resolve(result))),
-        addUrl: (details: any) => new Promise((resolve) => chrome.history.addUrl(details, () => resolve(undefined))),
+        search: (query: HistoryQuery) => new Promise<HistoryItem[]>((resolve) => 
+          chrome.history.search(query, (result) => resolve(result))
+        ),
+        addUrl: (details: HistoryUrlDetails) => new Promise<void>((resolve) => 
+          chrome.history.addUrl(details, () => resolve())
+        ),
         onVisited: {
-          addListener: (callback: any) => chrome.history.onVisited.addListener(callback),
+          addListener: (callback: (_result: HistoryItem) => void) => 
+            chrome.history.onVisited.addListener(callback),
         },
       },
     };

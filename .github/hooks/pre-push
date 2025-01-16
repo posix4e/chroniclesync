@@ -1,13 +1,22 @@
 #!/bin/bash
 
+# Get the current git user.name
+current_user=$(git config user.name)
+
+# Only run checks for openhands user
+if [ "$current_user" != "openhands" ]; then
+    echo "Skipping pre-push checks (not openhands user)"
+    exit 0
+fi
+
 # Run linting checks before push
-echo "Running pre-push linting checks..."
+echo "Running pre-push linting checks for openhands..."
 
 # Run your linting commands here
 # Example: Using flake8 for Python linting
 if command -v flake8 >/dev/null 2>&1; then
-    echo "Running flake8..."
-    flake8 .
+    echo "Running flake8 on openhands directory..."
+    flake8 openhands/
     if [ $? -ne 0 ]; then
         echo "❌ Linting failed. Please fix the issues before pushing."
         exit 1
@@ -17,10 +26,10 @@ fi
 # Add any other linting tools you use
 # Example: black for Python formatting check
 if command -v black >/dev/null 2>&1; then
-    echo "Running black check..."
-    black --check .
+    echo "Running black check on openhands directory..."
+    black --check openhands/
     if [ $? -ne 0 ]; then
-        echo "❌ Black formatting check failed. Please run 'black .' to format your code."
+        echo "❌ Black formatting check failed. Please run 'black openhands/' to format your code."
         exit 1
     fi
 fi

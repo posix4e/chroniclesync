@@ -1,5 +1,4 @@
-// Import types
-import type { HistoryItem, StorageData } from '../types';
+// No type imports needed for tests
 
 // Create mock implementations
 const mockStorageGet = jest.fn();

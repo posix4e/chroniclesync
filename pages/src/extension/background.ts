@@ -1,5 +1,5 @@
 // Import types
-import type { HistoryItem, StorageData, HistoryQuery, HistoryUrlDetails } from './types';
+import type { HistoryItem, StorageData } from './types';
 import './browser-polyfill.js';
 
 // Configuration

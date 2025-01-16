@@ -1,146 +1,136 @@
 # ChronicleSync
 
-## Browser Extensions
+ChronicleSync is a powerful IndexedDB synchronization service built with Cloudflare Workers and Pages, enabling seamless client-side data synchronization across browsers and devices.
 
-ChronicleSync is available as a browser extension for:
-- Chrome/Chromium-based browsers
-- Firefox
-- Safari
+## 🌟 Features
 
-### Installation
+- 📱 **Offline-First Architecture**
+  - Work seamlessly offline
+  - Automatic background sync when online
+  - Conflict resolution strategies
 
-#### Chrome
-1. Download the latest `chroniclesync-chrome.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Go to `chrome://extensions/`
+- 🔄 **Cross-Browser Support**
+  - Chrome/Chromium-based browsers (Manifest V3)
+  - Firefox (Manifest V2)
+  - Safari (Manifest V2)
+
+- 🔒 **Security & Privacy**
+  - End-to-end HTTPS encryption
+  - Fine-grained access controls
+  - Secure client authentication
+
+- 📊 **Administration**
+  - Comprehensive admin panel
+  - Real-time monitoring
+  - Client data management
+
+## 🚀 Quick Start
+
+### Browser Extension Installation
+
+#### Chrome/Edge
+1. Download `chroniclesync-chrome.zip` from [Releases](https://github.com/posix4e/chroniclesync/releases)
+2. Visit `chrome://extensions/`
 3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extracted extension folder
+4. Click "Load unpacked" → select extracted folder
 
 #### Firefox
-1. Download the latest `chroniclesync-firefox.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Go to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on" and select the downloaded zip file
+1. Download `chroniclesync-firefox.zip`
+2. Visit `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on" → select zip
 
 #### Safari
-1. Download the latest `chroniclesync-safari.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Extract the zip file
-3. Double-click the `.app` file to install
-4. Open Safari Preferences > Extensions and enable ChronicleSync
+1. Download `chroniclesync-safari.zip`
+2. Extract and double-click `.app` file
+3. Enable in Safari Preferences → Extensions
 
-IndexedDB synchronization service using Cloudflare Workers and Pages. Sync your client-side data across browsers and devices.
-
-## Quick Start
-
-1. **Initialize Client**
-   ```javascript
-   // Initialize with your unique client ID
-   await initializeClient('your-client-id');
-   ```
-
-2. **Save Data**
-   ```javascript
-   // Save data locally
-   await saveData({ key: 'value' });
-   ```
-
-3. **Sync with Server**
-   ```javascript
-   // Sync local data with cloud
-   await syncData();
-   ```
-
-## Features
-
-- 📱 **Offline-First**: Work offline, sync when online
-- 🔄 **Manual Sync**: Explicit sync when needed
-- 🔒 **Basic Security**: HTTPS and access controls
-- 📊 **Admin Panel**: Monitor and manage client data
-- ❤️ **Health Checks**: Real-time system monitoring
-
-## Installation
-
-```bash
-npm install chroniclesync
-```
-
-## Basic Usage
-
-```html
-<script type="module">
-  import { initializeClient } from 'chroniclesync';
-
-  // Initialize with your client ID
-  await initializeClient('your-client-id');
-
-  // Save data locally
-  await saveData({
-    notes: 'Meeting notes',
-    timestamp: new Date()
-  });
-
-  // Manually sync when needed
-  document.getElementById('syncButton').onclick = async () => {
-    await syncData();
-  };
-</script>
-```
-
-## API Reference
-
-### Client Operations
+### API Usage
 
 ```javascript
 // Initialize client
-await initializeClient('client-123');
+await initializeClient('your-client-id');
 
-// Save data
+// Save data locally
 await saveData({
-  title: 'Note 1',
-  content: 'Content here'
+  notes: 'Meeting notes',
+  timestamp: new Date()
 });
 
-// Sync with server
+// Manual sync
 await syncData();
-
-// Check system health
-await checkHealth();
 ```
 
-### Admin Operations
+## 📚 Documentation
 
-```javascript
-// Login as admin
-await loginAdmin('your-admin-password');
+- [Development Guide](pages/DEVELOPMENT.md) - Setup and development workflow
+- [Testing Guide](TESTING.md) - Comprehensive testing methodology
+- [Local Development](pages/LOCAL_DEVELOPMENT.md) - Local setup instructions
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
 
-// Get client statistics
-await refreshStats();
+## 🛠️ Development Setup
 
-// Delete client data
-await deleteClient('client-123');
+1. Prerequisites:
+   - Node.js and npm
+   - For Safari: macOS + Xcode 15.0+
+
+2. Installation:
+   ```bash
+   npm install
+   ```
+
+3. Development Server:
+   ```bash
+   npm run dev
+   ```
+
+4. Testing:
+   ```bash
+   # E2E tests
+   npm run test:e2e
+   
+   # Unit/Integration tests
+   npm run test
+   ```
+
+## 🏗️ Project Structure
+
+```
+chroniclesync/
+├── pages/              # Frontend & Extension code
+│   ├── src/           # Source code
+│   ├── e2e/           # E2E tests
+│   └── scripts/       # Build scripts
+├── worker/            # Cloudflare Worker
+│   └── src/           # Worker source code
+└── scripts/           # Utility scripts
 ```
 
-## Common Issues
+## 🤝 Contributing
 
-1. **Sync Failed**
-   - Check your internet connection
-   - Verify client ID is correct
-   - Ensure data is valid JSON
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-2. **Access Denied**
-   - Verify admin credentials
-   - Check your permissions
-   - Ensure you're using HTTPS
+## 🐛 Common Issues
 
-3. **Data Not Saving**
-   - Check browser storage permissions
-   - Verify data format
-   - Clear browser cache if needed
+1. **Sync Issues**
+   - Check internet connectivity
+   - Verify client ID
+   - Ensure valid JSON data
 
-## Support
+2. **Extension Loading**
+   - Verify browser compatibility
+   - Check manifest version
+   - Clear browser cache
 
-For help and bug reports, please:
-- Open an issue: https://github.com/posix4e/chroniclesync/issues
-- See the [DEVELOPMENT.md](pages/DEVELOPMENT.md) file for technical details on the pages code
+3. **Development Setup**
+   - Node.js version compatibility
+   - Dependencies installation
+   - Browser-specific requirements
 
-## License
+## 🆘 Support
+
+- GitHub Issues: [Open an issue](https://github.com/posix4e/chroniclesync/issues)
+- Documentation: See [Development Guide](pages/DEVELOPMENT.md)
+
+## 📄 License
 
 MIT © [OpenHands]

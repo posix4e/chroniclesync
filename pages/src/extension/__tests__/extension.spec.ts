@@ -75,8 +75,12 @@ test.describe('Chrome Extension', () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Get the extension ID from the service worker
-      const targets = await context.browser().targets();
-      const serviceWorker = targets.find(t => t.type() === 'service_worker');
+      const browser = context.browser();
+      if (!browser) {
+        throw new Error('No browser instance found');
+      }
+      const workers = context.serviceWorkers();
+      const serviceWorker = workers.find(w => w.url().includes('background.js'));
       if (!serviceWorker) {
         throw new Error('No service worker found');
       }

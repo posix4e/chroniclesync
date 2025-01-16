@@ -190,9 +190,9 @@ jobs:
           ls -la dist/chrome/
           echo "Chrome extension manifest:"
           cat dist/chrome/manifest.json
-          echo "Running tests with DEBUG=pw:* and PWDEBUG=1"
+          echo "Running extension tests..."
           mkdir -p test-results playwright-report
-          PWDEBUG=1 DEBUG=pw:* TEST_TYPE=extension npm run test:e2e
+          TEST_TYPE=extension npm run test:e2e
         env:
           CI: true
           GITHUB_HEAD_REF: ${{ github.head_ref }}

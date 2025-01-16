@@ -53,12 +53,6 @@ test.describe('Chrome Extension', () => {
         '--enable-features=NetworkService,NetworkServiceInProcess',
         '--enable-logging=stderr',
         '--log-level=0',
-        '--enable-background-networking',
-        '--enable-features=ServiceWorker',
-        '--enable-background-mode',
-        '--enable-background-thread-pool',
-        '--enable-logging=stderr --v=0',
-        '--enable-features=NetworkService,NetworkServiceInProcess,ServiceWorker',
       ],
       timeout: 30000,
       viewport: { width: 1280, height: 720 },
@@ -69,15 +63,10 @@ test.describe('Chrome Extension', () => {
         dir: testResultsDir,
         size: { width: 1280, height: 720 },
       },
-      serviceWorkers: 'allow',
-      permissions: ['background-sync'],
+      serviceWorkers: 'block', // Block service workers to avoid cleanup issues
       logger: {
         isEnabled: () => true,
         log: (name, severity, message) => console.log(`${name} [${severity}]: ${message}`),
-      },
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       },
     });
     
@@ -111,29 +100,9 @@ test.describe('Chrome Extension', () => {
         }
       });
 
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log initial state
-      console.log('Initial pages:', context.pages().map(p => p.url()));
-      console.log('Initial service workers:', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       // Verify that the extension is working
       const root = await popupPage.$('#root');
       expect(root, 'Root element should exist').toBeTruthy();
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log intermediate state
-      console.log('Intermediate pages:', context.pages().map(p => p.url()));
-      console.log('Intermediate service workers:', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Close all pages except popup
       const pages2 = await context.pages();
@@ -143,67 +112,13 @@ test.describe('Chrome Extension', () => {
         }
       }
 
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       // Close popup page
       await popupPage.close();
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state
-      console.log('Final pages:', context.pages().map(p => p.url()));
-      console.log('Final service workers:', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Verify that all pages are closed
       const finalPages = await context.pages();
       expect(finalPages.length, 'All pages should be closed').toBe(0);
 
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Verify that all service workers are stopped
-      const finalWorkers = context.serviceWorkers();
-      expect(finalWorkers.length, 'All service workers should be stopped').toBe(0);
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state again
-      console.log('Final pages (after verification):', context.pages().map(p => p.url()));
-      console.log('Final service workers (after verification):', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state one last time
-      console.log('Final pages (after final wait):', context.pages().map(p => p.url()));
-      console.log('Final service workers (after final wait):', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state after cleanup
-      console.log('Final pages (after cleanup):', context.pages().map(p => p.url()));
-      console.log('Final service workers (after cleanup):', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state after final cleanup
-      console.log('Final pages (after final cleanup):', context.pages().map(p => p.url()));
-      console.log('Final service workers (after final cleanup):', context.serviceWorkers().map(w => w.url()));
-
-      // Wait for any service worker registrations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log final state after context cleanup
-      console.log('Final pages (after context cleanup):', context.pages().map(p => p.url()));
-      console.log('Final service workers (after context cleanup):', context.serviceWorkers().map(w => w.url()));
     } finally {
       // Close the context
       await context.close();

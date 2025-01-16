@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import React from 'react';
+const { useState } = React;
+const { createRoot } = ReactDOM;
 import { AdminPanel } from '../components/AdminPanel';
 import { ClientSection } from '../components/ClientSection';
 import { HealthCheck } from '../components/HealthCheck';

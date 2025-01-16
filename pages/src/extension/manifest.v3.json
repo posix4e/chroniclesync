@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChronicleSync",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhm3X7qutsrskke84ltbxhvBZo71GUxuuALJvV1LnDuN+0HsWa0xj5kB7988NSqI7EhHB3OjFPXEF7Mb0Wr1f0OYHqT+D/4+H+4smyWa9A4PQgpGTFjNmTEJkKHiQ4HUZZEHDVAMEcps2YtUHXrOXXg3ZDaRBWvGNaHqcVzqX+pFEBxk4V9dX1yJ0fErHh4i/h2g+Kcho1yQxCmY0JkpBLT8lRMEn6Uuq9i4b3bHHM+SAsCHhQrF+55fMSr0BvNEF9EyJUqKooXhz6VvhR9xNHwGsxUVERVgEH5SO+YvdGrbw5+Qb+uoXCx9NcwJqLH4TYh7wP4/Zj/aGj9KLWQhzKQIDAQAB",
   "version": "1.0.0",
   "description": "Sync browser history across devices using ChronicleSync",
   "permissions": [

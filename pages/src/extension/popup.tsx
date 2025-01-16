@@ -1,6 +1,5 @@
-import React from 'react';
-const { useState } = React;
-const { createRoot } = ReactDOM;
+import React, { useState } from 'react';
+import * as ReactDOM from 'react-dom';
 import { AdminPanel } from '../components/AdminPanel';
 import { ClientSection } from '../components/ClientSection';
 import { HealthCheck } from '../components/HealthCheck';
@@ -21,5 +20,5 @@ const PopupApp = (): JSX.Element => {
 };
 
 const container = document.getElementById('root');
-const root = createRoot(container!);
+const root = ReactDOM.createRoot(container!);
 root.render(<PopupApp />);

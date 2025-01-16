@@ -10,7 +10,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "validate:manifests": "node scripts/validate-manifests.js",
-    "build:extensions": "npm run validate:manifests && BROWSER=${BROWSER:-chrome} vite build --mode extension",
+    "build:extensions": "npm run validate:manifests && BROWSER=${BROWSER:-chrome} vite build --mode extension && BROWSER=${BROWSER:-chrome} vite build -c vite.background.config.ts",
     "package:chrome": "cd dist/chrome && rm -f ../../chroniclesync-chrome.zip && zip -r ../../chroniclesync-chrome.zip *",
     "package:firefox": "cd dist/firefox && rm -f ../../chroniclesync-firefox.zip && zip -r ../../chroniclesync-firefox.zip *",
     "package:safari": "bash -e ./scripts/build-safari-extension-direct.sh",

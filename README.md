@@ -1,146 +1,96 @@
 # ChronicleSync
 
-## Browser Extensions
+ChronicleSync is your go-to tool for syncing browser data across devices. Simple, fast, and reliable.
 
-ChronicleSync is available as a browser extension for:
-- Chrome/Chromium-based browsers
-- Firefox
-- Safari
+---
 
-### Installation
+## Table of Contents
 
-#### Chrome
-1. Download the latest `chroniclesync-chrome.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Go to `chrome://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extracted extension folder
+1. [Overview](#overview)
+2. [Core Features](#core-features)
+3. [Quick Start](#quick-start)
+4. [Browser Extension](#browser-extension)
+5. [For Developers](#for-developers)
+6. [Help and Support](#help-and-support)
+7. [License](#license)
 
-#### Firefox
-1. Download the latest `chroniclesync-firefox.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Go to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on" and select the downloaded zip file
+---
 
-#### Safari
-1. Download the latest `chroniclesync-safari.zip` from the [Releases](https://github.com/yourusername/chroniclesync/releases) page
-2. Extract the zip file
-3. Double-click the `.app` file to install
-4. Open Safari Preferences > Extensions and enable ChronicleSync
+## Overview
 
-IndexedDB synchronization service using Cloudflare Workers and Pages. Sync your client-side data across browsers and devices.
+ChronicleSync works across multiple platforms, including Chrome, Firefox, and Safari. It helps you keep your data consistent, whether you're offline or switching between devices. No more manual transfers—just smooth syncing.
+
+---
+
+## Core Features
+
+- **Offline-First**: Work offline without interruptions. Sync happens automatically when you're back online.
+- **Manual Sync**: Need control? Sync your data on demand.
+- **Secure by Design**: Uses HTTPS to keep your data private and safe.
+- **Admin Tools**: Effortlessly monitor and manage data.
+
+---
 
 ## Quick Start
 
-1. **Initialize Client**
-   ```javascript
-   // Initialize with your unique client ID
-   await initializeClient('your-client-id');
-   ```
+ChronicleSync is easy to use whether you're a casual user or a developer. Here's how to get started:
 
-2. **Save Data**
-   ```javascript
-   // Save data locally
-   await saveData({ key: 'value' });
-   ```
+### Browser Extension
 
-3. **Sync with Server**
-   ```javascript
-   // Sync local data with cloud
-   await syncData();
-   ```
+Install ChronicleSync for your favorite browser:
+- **Chrome**: Download the extension and add it to your browser.
+- **Firefox**: Grab the Firefox version and follow the setup.
+- **Safari**: Install the Safari version from the releases page.
 
-## Features
+### Developers: NPM Package
 
-- 📱 **Offline-First**: Work offline, sync when online
-- 🔄 **Manual Sync**: Explicit sync when needed
-- 🔒 **Basic Security**: HTTPS and access controls
-- 📊 **Admin Panel**: Monitor and manage client data
-- ❤️ **Health Checks**: Real-time system monitoring
-
-## Installation
-
+Integrate ChronicleSync into your project:
 ```bash
 npm install chroniclesync
 ```
 
-## Basic Usage
+---
 
-```html
-<script type="module">
-  import { initializeClient } from 'chroniclesync';
+## For Developers
 
-  // Initialize with your client ID
-  await initializeClient('your-client-id');
+### Start Syncing
 
-  // Save data locally
-  await saveData({
-    notes: 'Meeting notes',
-    timestamp: new Date()
-  });
+#### Initialize the Client
+```javascript
+import { initializeClient } from 'chroniclesync';
 
-  // Manually sync when needed
-  document.getElementById('syncButton').onclick = async () => {
-    await syncData();
-  };
-</script>
+// Start with your unique client ID
+await initializeClient('your-client-id');
 ```
 
-## API Reference
-
-### Client Operations
-
+#### Save Data Locally
 ```javascript
-// Initialize client
-await initializeClient('client-123');
-
-// Save data
 await saveData({
-  title: 'Note 1',
-  content: 'Content here'
+  notes: 'Meeting notes',
+  timestamp: new Date(),
 });
-
-// Sync with server
-await syncData();
-
-// Check system health
-await checkHealth();
 ```
 
-### Admin Operations
-
+#### Sync Data
 ```javascript
-// Login as admin
-await loginAdmin('your-admin-password');
-
-// Get client statistics
-await refreshStats();
-
-// Delete client data
-await deleteClient('client-123');
+await syncData();
 ```
 
-## Common Issues
+---
 
-1. **Sync Failed**
-   - Check your internet connection
-   - Verify client ID is correct
-   - Ensure data is valid JSON
+## Help and Support
 
-2. **Access Denied**
-   - Verify admin credentials
-   - Check your permissions
-   - Ensure you're using HTTPS
+Need help? We’re here for you:
+- **Issues**: [Report problems here](https://github.com/posix4e/chroniclesync/issues).
+- **Docs**: Check out the [DEVELOPMENT.md](pages/DEVELOPMENT.md) file for more details.
 
-3. **Data Not Saving**
-   - Check browser storage permissions
-   - Verify data format
-   - Clear browser cache if needed
-
-## Support
-
-For help and bug reports, please:
-- Open an issue: https://github.com/posix4e/chroniclesync/issues
-- See the [DEVELOPMENT.md](pages/DEVELOPMENT.md) file for technical details on the pages code
+---
 
 ## License
 
 MIT © [OpenHands]
+
+---
+
+ChronicleSync: Simplify your data syncing. Enjoy the freedom of seamless browsing.
+

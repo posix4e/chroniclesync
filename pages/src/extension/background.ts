@@ -24,10 +24,12 @@ if (typeof browser === 'undefined') {
       history: {
         search: (query: HistoryQuery) => new Promise<HistoryItem[]>((resolve) => 
           chrome.history.search(query, (result) => resolve(result.map(item => ({
-            ...item,
+            id: `${item.id || Date.now()}`,
             url: item.url || '',
-            title: item.title || ''
-          })) as HistoryItem[]))
+            title: item.title || '',
+            lastVisitTime: item.lastVisitTime,
+            visitCount: item.visitCount
+          }))))
         ),
         addUrl: (details: HistoryUrlDetails) => new Promise<void>((resolve) => 
           chrome.history.addUrl(details, () => resolve())
@@ -35,10 +37,12 @@ if (typeof browser === 'undefined') {
         onVisited: {
           addListener: (callback: (_result: HistoryItem) => void) => 
             chrome.history.onVisited.addListener((item) => callback({
-              ...item,
+              id: `${item.id || Date.now()}`,
               url: item.url || '',
-              title: item.title || ''
-            } as HistoryItem)),
+              title: item.title || '',
+              lastVisitTime: item.lastVisitTime,
+              visitCount: item.visitCount
+            })),
         },
       },
     };
@@ -128,6 +132,7 @@ async function syncHistory(startTime: number): Promise<void> {
     // Add local history (newer entries)
     for (const item of historyItems) {
       mergedHistory.set(item.url, {
+        id: `${item.id || Date.now()}`,
         url: item.url,
         title: item.title,
         lastVisitTime: item.lastVisitTime,

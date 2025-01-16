@@ -10,7 +10,7 @@ export { initialize };
 // Set up browser polyfill if needed
 if (typeof browser === 'undefined') {
   if (typeof chrome !== 'undefined') {
-    (globalThis as typeof global).browser = {
+    const browserPolyfill = {
       storage: {
         local: {
           get: (keys: string[]) => new Promise<StorageData>((resolve) => 
@@ -23,17 +23,33 @@ if (typeof browser === 'undefined') {
       },
       history: {
         search: (query: HistoryQuery) => new Promise<HistoryItem[]>((resolve) => 
-          chrome.history.search(query, (result) => resolve(result))
+          chrome.history.search(query, (result) => resolve(result.map(item => ({
+            ...item,
+            url: item.url || '',
+            title: item.title || ''
+          })) as HistoryItem[]))
         ),
         addUrl: (details: HistoryUrlDetails) => new Promise<void>((resolve) => 
           chrome.history.addUrl(details, () => resolve())
         ),
         onVisited: {
           addListener: (callback: (_result: HistoryItem) => void) => 
-            chrome.history.onVisited.addListener(callback),
+            chrome.history.onVisited.addListener((item) => callback({
+              ...item,
+              url: item.url || '',
+              title: item.title || ''
+            } as HistoryItem)),
         },
       },
     };
+
+    // Add the polyfill to globalThis
+    Object.defineProperty(globalThis, 'browser', {
+      value: browserPolyfill,
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
   } else {
     throw new Error('No compatible browser API found');
   }

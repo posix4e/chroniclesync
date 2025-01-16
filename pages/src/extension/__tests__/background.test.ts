@@ -1,25 +1,25 @@
 // Import types
-import type { StorageData, HistoryItem, HistoryQuery, HistoryUrlDetails } from '../types';
+import type { StorageData } from '../types';
 
 // Mock browser API before any imports
-const mockChrome = {
+const mockChrome: Partial<typeof chrome> = {
   storage: {
     local: {
-      get: jest.fn<void, [string[], (_result: StorageData) => void]>(),
-      set: jest.fn<void, [Partial<StorageData>, () => void]>(),
+      get: jest.fn<void, [{ [key: string]: unknown }, (_result: StorageData) => void]>(),
+      set: jest.fn<void, [{ [key: string]: unknown }, () => void]>(),
     },
   },
   history: {
-    search: jest.fn<void, [HistoryQuery, (_result: HistoryItem[]) => void]>(),
-    addUrl: jest.fn<void, [HistoryUrlDetails, () => void]>(),
+    search: jest.fn<void, [chrome.history.HistoryQuery, (_results: chrome.history.HistoryItem[]) => void]>(),
+    addUrl: jest.fn<void, [chrome.history.HistoryUrlDetails, () => void]>(),
     onVisited: {
-      addListener: jest.fn<void, [(_result: HistoryItem) => void]>(),
+      addListener: jest.fn<void, [(_result: chrome.history.HistoryItem) => void]>(),
     },
   },
 };
 
 // Mock chrome API
-(globalThis as typeof global).chrome = mockChrome;
+(globalThis as typeof global & { chrome: typeof chrome }).chrome = mockChrome;
 
 // Mock the browser-polyfill module
 jest.mock('../browser-polyfill.js', () => ({}));

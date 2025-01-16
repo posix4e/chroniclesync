@@ -4,11 +4,9 @@ export interface StorageData {
   lastSync?: number;
 }
 
-export interface HistoryItem {
-  url: string;
-  title: string;
-  lastVisitTime?: number;
-  visitCount?: number;
+export interface HistoryItem extends chrome.history.HistoryItem {
+  url: string; // Override to make it required
+  title: string; // Override to make it required
 }
 
 export interface Tab {

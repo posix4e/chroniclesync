@@ -1,38 +1,56 @@
 // Mock browser polyfill first
-jest.mock('../browser-polyfill.js', () => ({}));
+jest.mock('../browser-polyfill.js', () => {});
+
+// Set test environment
+process.env.NODE_ENV = 'test';
 
 // Import the module under test
-import { initialize, storageGet, storageSet } from '../background';
+import { initialize, storageGet, storageSet, syncHistory } from '../background';
 
-// Mock browser API
-const mockBrowser = {
-  storage: {
-    local: {
-      get: jest.fn(),
-      set: jest.fn()
-    }
-  },
-  history: {
-    search: jest.fn(),
-    addUrl: jest.fn(),
-    onVisited: {
-      addListener: jest.fn()
-    }
-  }
+// Helper function to wait for async operations
+const waitForAsync = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to initialize and wait
+const initializeAndWait = async () => {
+  const initPromise = initialize().catch(error => {
+    console.error('Initialization failed:', error);
+    throw error;
+  });
+  await waitForAsync();
+  await initPromise;
 };
 
-// Mock browser global
-(global as any).browser = mockBrowser;
-
-// Mock fetch with proper response structure
-const mockFetch = jest.fn(() => 
-  Promise.resolve({
-    json: () => Promise.resolve({ history: [] })
-  })
-);
-(global as any).fetch = mockFetch;
-
 describe('Background Script', () => {
+  // Mock browser API
+  const mockBrowser = {
+    storage: {
+      local: {
+        get: jest.fn(),
+        set: jest.fn()
+      }
+    },
+    history: {
+      search: jest.fn(),
+      addUrl: jest.fn(),
+      onVisited: {
+        addListener: jest.fn()
+      }
+    }
+  };
+
+  // Mock fetch with proper response structure
+  const mockFetch = jest.fn(() => 
+    Promise.resolve({
+      json: () => Promise.resolve({ history: [] })
+    })
+  );
+
+  // Define global types
+  declare global {
+    var browser: typeof mockBrowser;
+    var fetch: typeof mockFetch;
+  }
+
   beforeEach(() => {
     // Reset module state
     jest.resetModules();
@@ -47,7 +65,15 @@ describe('Background Script', () => {
     mockFetch.mockReset();
 
     // Default mock implementations
-    mockBrowser.storage.local.get.mockResolvedValue({});
+    mockBrowser.storage.local.get.mockImplementation(async (keys: string[]) => {
+      if (keys.includes('clientId')) {
+        return {
+          clientId: 'test-123',
+          lastSync: 1234567890
+        };
+      }
+      return {};
+    });
     mockBrowser.storage.local.set.mockResolvedValue(undefined);
     mockBrowser.history.search.mockResolvedValue([]);
     mockBrowser.history.addUrl.mockResolvedValue(undefined);
@@ -56,6 +82,10 @@ describe('Background Script', () => {
         json: () => Promise.resolve({ history: [] })
       })
     );
+
+    // Set up global mocks
+    global.browser = mockBrowser;
+    global.fetch = mockFetch;
   });
 
   describe('Storage Operations', () => {
@@ -85,6 +115,9 @@ describe('Background Script', () => {
       originalMathRandom = Math.random;
       Date.now = jest.fn(() => 1234567890);
       Math.random = jest.fn(() => 0.123456789);
+
+      // Mock empty storage for initialization tests
+      mockBrowser.storage.local.get.mockResolvedValue({});
     });
 
     afterEach(() => {
@@ -94,12 +127,8 @@ describe('Background Script', () => {
     });
 
     it('should generate a new client ID if none exists', async () => {
-      // Mock empty storage
-      mockBrowser.storage.local.get.mockResolvedValue({});
-
       // Initialize and wait for storage operations
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0)); // Let async operations complete
+      await initializeAndWait();
 
       // Verify storage operations
       expect(mockBrowser.storage.local.get).toHaveBeenCalledWith(['clientId', 'lastSync']);
@@ -116,8 +145,7 @@ describe('Background Script', () => {
       });
 
       // Initialize and wait for storage operations
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0)); // Let async operations complete
+      await initializeAndWait();
 
       // Verify storage operations
       expect(mockBrowser.storage.local.get).toHaveBeenCalledWith(['clientId', 'lastSync']);
@@ -127,15 +155,8 @@ describe('Background Script', () => {
     });
 
     it('should set up history sync listener', async () => {
-      // Mock storage to avoid initialization issues
-      mockBrowser.storage.local.get.mockResolvedValue({
-        clientId: 'test-123',
-        lastSync: 1234567890
-      });
-
       // Initialize and wait for all async operations
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0)); // Let async operations complete
+      await initializeAndWait();
 
       // Verify listener setup
       expect(mockBrowser.history.onVisited.addListener).toHaveBeenCalled();
@@ -146,6 +167,9 @@ describe('Background Script', () => {
     let consoleError: jest.SpyInstance;
 
     beforeEach(() => {
+      // Mock console.error
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       // Mock storage with test client ID
       mockBrowser.storage.local.get.mockImplementation(async (keys: string[]) => {
         if (keys.includes('clientId')) {
@@ -156,9 +180,6 @@ describe('Background Script', () => {
         }
         return {};
       });
-
-      // Mock console.error
-      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -191,8 +212,7 @@ describe('Background Script', () => {
       );
 
       // Initialize and wait for sync
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await initializeAndWait();
 
       // Should fetch remote history
       expect(mockFetch).toHaveBeenCalledWith(
@@ -216,8 +236,7 @@ describe('Background Script', () => {
       mockFetch.mockRejectedValue(networkError);
 
       // Initialize and wait for sync
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await initializeAndWait();
 
       // Should log the error
       expect(consoleError).toHaveBeenCalledWith(
@@ -259,11 +278,15 @@ describe('Background Script', () => {
       );
 
       // Initialize and wait for sync
-      await initialize();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await initializeAndWait();
+
+      // Get the last POST request
+      const postCalls = mockFetch.mock.calls.filter(call => call[1]?.method === 'POST');
+      expect(postCalls.length).toBeGreaterThan(0);
 
       // Should use local version for overlapping URLs
-      const syncedData = JSON.parse(mockFetch.mock.calls[1][1].body);
+      const lastPostCall = postCalls[postCalls.length - 1];
+      const syncedData = JSON.parse(lastPostCall[1].body);
       expect(syncedData.history).toContainEqual(expect.objectContaining({
         url: 'https://example.com',
         title: 'Example (Local)'

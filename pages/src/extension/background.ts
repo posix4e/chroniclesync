@@ -6,7 +6,7 @@ import './browser-polyfill.js';
 const API_URL = 'https://api.chroniclesync.xyz';
 
 // Export for testing
-export { initialize };
+export { initialize, syncHistory };
 
 let isInitialized = false;
 let clientId: string | undefined = undefined;
@@ -28,30 +28,38 @@ export { storageGet, storageSet };
 async function initialize(): Promise<void> {
   if (isInitialized) return;
   
-  // Get or generate unique client ID
-  const storage = await storageGet(['clientId', 'lastSync']);
-  clientId = storage.clientId;
-  if (!clientId) {
-    clientId = 'browser_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    await storageSet({ clientId });
+  try {
+    // Get or generate unique client ID
+    const storage = await storageGet(['clientId', 'lastSync']);
+    clientId = storage.clientId;
+    if (!clientId) {
+      clientId = 'browser_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      await storageSet({ clientId });
+    }
+
+    const lastSync = storage.lastSync || Date.now() - (24 * 60 * 60 * 1000);
+
+    // Initial sync
+    await syncHistory(lastSync);
+    
+    // Set up periodic sync (only in production)
+    if (process.env.NODE_ENV !== 'test') {
+      setInterval(async () => {
+        await syncHistory(await getLastSync());
+      }, 5 * 60 * 1000); // Sync every 5 minutes
+    }
+
+    // Set up event listeners
+    const onVisited = async () => {
+      await syncHistory(await getLastSync());
+    };
+    browser.history.onVisited.addListener(onVisited);
+
+    isInitialized = true;
+  } catch (error) {
+    console.error('Error initializing extension:', error);
+    throw error;
   }
-
-  const lastSync = storage.lastSync || Date.now() - (24 * 60 * 60 * 1000);
-
-  // Initial sync
-  await syncHistory(lastSync);
-  
-  // Set up periodic sync
-  setInterval(async () => {
-    await syncHistory(await getLastSync());
-  }, 5 * 60 * 1000); // Sync every 5 minutes
-
-  // Set up event listeners
-  browser.history.onVisited.addListener(async () => {
-    await syncHistory(await getLastSync());
-  });
-
-  isInitialized = true;
 }
 
 interface RemoteData {
@@ -117,18 +125,19 @@ async function syncHistory(startTime: number): Promise<void> {
     await storageSet({ lastSync: Date.now() });
 
     // Add any new remote entries to local history
-    for (const item of mergedHistory.values()) {
-      try {
-        await browser.history.addUrl({
-          url: item.url,
-          title: item.title
-        });
-      } catch (e) {
+    const addPromises = Array.from(mergedHistory.values()).map(item => 
+      browser.history.addUrl({
+        url: item.url,
+        title: item.title
+      }).catch(e => {
         console.warn('Could not add history item:', e);
-      }
-    }
+      })
+    );
+
+    await Promise.all(addPromises);
   } catch (error) {
     console.error('Error syncing history:', error);
+    throw error; // Re-throw for testing
   }
 }
 
@@ -137,5 +146,7 @@ async function getLastSync(): Promise<number> {
   return storage.lastSync || 0;
 }
 
-// Initialize the extension
-initialize();
+// Initialize the extension only in production
+if (process.env.NODE_ENV !== 'test') {
+  initialize();
+}

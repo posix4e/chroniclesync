@@ -1,9 +1,34 @@
 // Import types
 import type { HistoryItem, StorageData } from './types';
-import './browser-polyfill.js';
 
 // Configuration
 const API_URL = 'https://api.chroniclesync.xyz';
+
+// Export for testing
+export { initialize };
+
+// Set up browser polyfill if needed
+if (typeof browser === 'undefined') {
+  if (typeof chrome !== 'undefined') {
+    (globalThis as any).browser = {
+      storage: {
+        local: {
+          get: (keys: string[]) => new Promise((resolve) => chrome.storage.local.get(keys, (result) => resolve(result))),
+          set: (items: any) => new Promise((resolve) => chrome.storage.local.set(items, () => resolve(undefined))),
+        },
+      },
+      history: {
+        search: (query: any) => new Promise((resolve) => chrome.history.search(query, (result) => resolve(result))),
+        addUrl: (details: any) => new Promise((resolve) => chrome.history.addUrl(details, () => resolve(undefined))),
+        onVisited: {
+          addListener: (callback: any) => chrome.history.onVisited.addListener(callback),
+        },
+      },
+    };
+  } else {
+    throw new Error('No compatible browser API found');
+  }
+}
 
 let isInitialized = false;
 let clientId: string | undefined = undefined;

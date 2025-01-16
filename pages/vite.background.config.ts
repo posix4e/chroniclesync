@@ -6,9 +6,12 @@ export default defineConfig({
     outDir: `dist/${process.env.BROWSER || 'chrome'}`,
     emptyOutDir: false,
     rollupOptions: {
-      input: resolve(__dirname, 'src/extension/background.ts'),
+      input: {
+        background: resolve(__dirname, 'src/extension/background.ts'),
+        polyfill: resolve(__dirname, 'src/extension/browser-polyfill.js')
+      },
       output: {
-        entryFileNames: 'background.js',
+        entryFileNames: '[name].js',
         format: 'iife',
         dir: `dist/${process.env.BROWSER || 'chrome'}`,
         globals: {

@@ -12,10 +12,10 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Test storage operations
-    const clientId = await backgroundPage.evaluate(() => {
-      return browser.storage.local.get('clientId');
+    const storage = await backgroundPage.evaluate(() => {
+      return browser.storage.local.get(['clientId']);
     });
-    expect(clientId).toBeTruthy();
+    expect(storage.clientId).toBeTruthy();
 
     // Visit a test page
     const page = await context.newPage();
@@ -58,10 +58,10 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Extension should still be functional
-    const lastSync = await backgroundPage.evaluate(() => {
-      return browser.storage.local.get('lastSync');
+    const storage = await backgroundPage.evaluate(() => {
+      return browser.storage.local.get(['lastSync']);
     });
-    expect(lastSync).toBeTruthy();
+    expect(storage.lastSync).toBeTruthy();
 
     await page.close();
   });
@@ -77,8 +77,8 @@ test.describe('Chrome Extension', () => {
         
         request.onerror = () => reject(request.error);
         
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
+        request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+          const db = (event.target as IDBOpenDBRequest).result;
           db.createObjectStore('testStore', { keyPath: 'id' });
         };
         

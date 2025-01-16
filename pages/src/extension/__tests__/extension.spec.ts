@@ -174,7 +174,7 @@ test.describe('Chrome Extension', () => {
     
     // Test local development URL
     await page.goto('http://localhost:5173');
-    let apiUrl = await page.evaluate(() => {
+    const apiUrl = await page.evaluate(() => {
       return window.location.hostname === 'localhost' ? 'http://localhost:8787' : '';
     });
     expect(apiUrl).toBe('http://localhost:8787');

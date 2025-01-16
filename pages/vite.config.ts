@@ -119,7 +119,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]',
-          format: 'iife',
+          format: 'es',
           dir: `dist/${browser}`,
           manualChunks: undefined,
           inlineDynamicImports: false,
@@ -127,8 +127,7 @@ export default defineConfig(({ mode }) => {
             'browser-polyfill': 'browser',
             'react': 'React',
             'react-dom': 'ReactDOM'
-          },
-          external: ['browser-polyfill', 'react', 'react-dom']
+          }
         }
       } : undefined,
       cssCodeSplit: false,

@@ -4,6 +4,7 @@ import { AdminPanel } from '../components/AdminPanel';
 import { ClientSection } from '../components/ClientSection';
 import { HealthCheck } from '../components/HealthCheck';
 import { DB } from '../utils/db';
+import '../styles.css';
 
 const PopupApp = (): JSX.Element => {
   const [db] = useState(() => new DB());

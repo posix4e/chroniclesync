@@ -115,7 +115,8 @@ export default defineConfig(({ mode }) => {
         external: ['browser-polyfill', 'react', 'react-dom']
       } : undefined,
       cssCodeSplit: false,
-      sourcemap: true
+      sourcemap: true,
+      target: 'es2015'
     },
     server: {
       port: 3000,

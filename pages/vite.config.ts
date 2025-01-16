@@ -111,11 +111,18 @@ export default defineConfig(({ mode }) => {
       outDir: isExtension ? `dist/${browser}` : 'dist/web',
       emptyOutDir: true,
       rollupOptions: isExtension ? {
-        input: resolve(__dirname, 'src/extension/popup.tsx'),
+        input: {
+          background: resolve(__dirname, 'src/extension/background.ts'),
+          popup: resolve(__dirname, 'src/extension/popup.tsx')
+        },
         output: {
-          entryFileNames: 'popup.js',
-          format: 'iife',
+          entryFileNames: '[name].js',
+          chunkFileNames: '[name].js',
+          assetFileNames: '[name].[ext]',
+          format: 'es',
           dir: `dist/${browser}`,
+          manualChunks: undefined,
+          inlineDynamicImports: false,
           globals: {
             'browser-polyfill': 'browser',
             'react': 'React',

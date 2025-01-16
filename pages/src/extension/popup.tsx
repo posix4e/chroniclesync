@@ -20,5 +20,5 @@ const PopupApp = (): JSX.Element => {
 };
 
 const container = document.getElementById('root');
-const root = ReactDOM.createRoot(container!);
-root.render(<PopupApp />);
+if (!container) throw new Error('Root element not found');
+ReactDOM.render(<PopupApp />, container);

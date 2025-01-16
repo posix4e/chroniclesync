@@ -5,11 +5,19 @@ test.describe('Chrome Extension', () => {
     test.setTimeout(60000); // Increase timeout to 1 minute
 
     // Create a background page to access extension's background script
-    const backgroundPages = await context.backgroundPages();
-    const backgroundPage = backgroundPages[0] || await context.waitForEvent('backgroundpage');
-    
-    // Wait for the extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    let backgroundPage = (await context.backgroundPages())[0];
+    if (!backgroundPage) {
+      // Wait for the background page to be created with a more specific timeout
+      backgroundPage = await Promise.race([
+        context.waitForEvent('backgroundpage'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Background page creation timeout')), 10000))
+      ]) as any;
+    }
+
+    // Wait for the extension to initialize and verify it's ready
+    await backgroundPage.waitForFunction(() => {
+      return typeof browser !== 'undefined' && browser.storage && browser.history;
+    }, { timeout: 10000 });
 
     // Test storage operations
     const storage = await backgroundPage.evaluate(() => {
@@ -42,8 +50,19 @@ test.describe('Chrome Extension', () => {
   });
 
   test('background script should handle sync failures gracefully', async ({ context }) => {
-    const backgroundPages = await context.backgroundPages();
-    const backgroundPage = backgroundPages[0] || await context.waitForEvent('backgroundpage');
+    test.setTimeout(60000); // Increase timeout to match first test
+
+    let backgroundPage = (await context.backgroundPages())[0];
+    if (!backgroundPage) {
+      backgroundPage = await Promise.race([
+        context.waitForEvent('backgroundpage'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Background page creation timeout')), 10000))
+      ]) as any;
+    }
+
+    await backgroundPage.waitForFunction(() => {
+      return typeof browser !== 'undefined' && browser.storage;
+    }, { timeout: 10000 });
 
     // Mock API failure
     await backgroundPage.route('https://api.chroniclesync.xyz**', route => 
@@ -108,15 +127,30 @@ test.describe('Chrome Extension', () => {
   test('API URL resolution should work correctly', async ({ context }) => {
     const page = await context.newPage();
     
-    // Test production URL
-    await page.goto('https://chroniclesync.xyz');
+    // Mock the responses for both URLs to avoid DNS issues
+    await context.route('**/*.chroniclesync.xyz', route => {
+      route.fulfill({
+        status: 200,
+        body: '<html><body>Mocked response</body></html>'
+      });
+    });
+
+    await context.route('**/*.pages.dev', route => {
+      route.fulfill({
+        status: 200,
+        body: '<html><body>Mocked response</body></html>'
+      });
+    });
+
+    // Test production URL with mocked response
+    await page.goto('https://chroniclesync.xyz', { waitUntil: 'networkidle' });
     let apiUrl = await page.evaluate(() => {
       return window.location.hostname === 'chroniclesync.xyz' ? 'https://api.chroniclesync.xyz' : '';
     });
     expect(apiUrl).toBe('https://api.chroniclesync.xyz');
 
-    // Test staging URL
-    await page.goto('https://my-branch.chroniclesync.pages.dev');
+    // Test staging URL with mocked response
+    await page.goto('https://my-branch.chroniclesync.pages.dev', { waitUntil: 'networkidle' });
     apiUrl = await page.evaluate(() => {
       return window.location.hostname.endsWith('.pages.dev') ? 'https://api-staging.chroniclesync.xyz' : '';
     });

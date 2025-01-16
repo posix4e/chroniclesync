@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]',
-          format: 'es',
+          format: 'iife',
           inlineDynamicImports: true,
           globals: {
             'browser-polyfill': 'browser',
@@ -123,6 +123,10 @@ export default defineConfig(({ mode }) => {
         include: [/node_modules/],
         exclude: ['browser-polyfill', 'react', 'react-dom']
       }
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+      exclude: ['browser-polyfill']
     },
     server: {
       port: 3000,

@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]',
-          format: 'es',
+          format: 'iife',
           inlineDynamicImports: true,
           globals: {
             'browser-polyfill': 'browser',
@@ -119,7 +119,8 @@ export default defineConfig(({ mode }) => {
       target: 'es2015',
       minify: false,
       commonjsOptions: {
-        transformMixedEsModules: true
+        transformMixedEsModules: true,
+        include: [/node_modules/]
       }
     },
     server: {

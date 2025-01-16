@@ -117,7 +117,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]',
-          format: 'system',
+          format: 'amd',
           inlineDynamicImports: true,
           globals: {
             'browser-polyfill': 'browser',

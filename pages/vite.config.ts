@@ -113,7 +113,9 @@ export default defineConfig(({ mode }) => {
           }
         },
         external: ['browser-polyfill', 'react', 'react-dom']
-      } : undefined
+      } : undefined,
+      cssCodeSplit: false,
+      sourcemap: true
     },
     server: {
       port: 3000,

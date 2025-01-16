@@ -164,8 +164,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         'react': resolve(__dirname, 'node_modules/react/umd/react.development.js'),
         'react-dom': resolve(__dirname, 'node_modules/react-dom/umd/react-dom.development.js'),
-        'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime.js'),
-        'react-dom/client': resolve(__dirname, 'node_modules/react-dom/client.js')
+        'react/jsx-runtime': 'react',
+        'react-dom/client': 'react-dom'
       }
     },
     define: {

@@ -19,8 +19,6 @@ export default defineConfig(({ mode }) => {
             const staticFiles = [
               [browser === 'chrome' ? 'manifest.v3.json' : 'manifest.v2.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
-              ['background.ts', 'background.js'],
-              ['popup.js', 'popup.js'],
               ['browser-polyfill.js', 'browser-polyfill.js']
             ].map(([src, dest]) => [
               resolve(__dirname, `src/extension/${src}`),

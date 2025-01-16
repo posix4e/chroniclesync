@@ -113,21 +113,38 @@ export default defineConfig(({ mode }) => {
           background: resolve(__dirname, 'src/extension/background.ts'),
           popup: resolve(__dirname, 'src/extension/popup.tsx')
         },
-        output: {
-          entryFileNames: '[name].js',
-          chunkFileNames: '[name].js',
-          assetFileNames: '[name].[ext]',
-          format: 'iife',
-          inlineDynamicImports: true,
-          globals: {
-            'browser-polyfill': 'browser',
-            'react': 'React',
-            'react-dom': 'ReactDOM',
-            'react/jsx-runtime': 'React',
-            'react-dom/client': 'ReactDOM'
+        output: [
+          {
+            name: 'background',
+            entryFileNames: '[name].js',
+            chunkFileNames: '[name].js',
+            assetFileNames: '[name].[ext]',
+            format: 'iife',
+            dir: `dist/${browser}`,
+            inlineDynamicImports: true,
+            globals: {
+              'browser-polyfill': 'browser'
+            },
+            external: ['browser-polyfill']
+          },
+          {
+            name: 'popup',
+            entryFileNames: '[name].js',
+            chunkFileNames: '[name].js',
+            assetFileNames: '[name].[ext]',
+            format: 'iife',
+            dir: `dist/${browser}`,
+            inlineDynamicImports: true,
+            globals: {
+              'browser-polyfill': 'browser',
+              'react': 'React',
+              'react-dom': 'ReactDOM',
+              'react/jsx-runtime': 'React',
+              'react-dom/client': 'ReactDOM'
+            },
+            external: ['browser-polyfill', 'react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
           }
-        },
-        external: ['browser-polyfill', 'react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
+        ]
       } : undefined,
       cssCodeSplit: false,
       sourcemap: true,

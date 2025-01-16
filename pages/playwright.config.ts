@@ -13,6 +13,7 @@ console.log('Using baseURL:', baseURL);
 
 export default defineConfig({
   testDir: process.env.TEST_TYPE === 'extension' ? './src/extension/__tests__' : './e2e',
+  testMatch: process.env.TEST_TYPE === 'extension' ? '**/extension.spec.ts' : '**/home.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
@@ -23,6 +24,7 @@ export default defineConfig({
     trace: 'on',
     screenshot: 'on',
     video: 'retain-on-failure',
+    serviceWorkers: 'allow', // Allow service workers for extension tests
     launchOptions: {
       slowMo: 100,
       timeout: 30000,

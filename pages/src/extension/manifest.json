@@ -14,7 +14,7 @@
     "http://localhost:3000/*"
   ],
   "background": {
-    "service_worker": "polyfill.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "action": {

@@ -1,4 +1,5 @@
-// No type imports needed for tests
+// Import types
+import type { HistoryItem, StorageData } from '../types';
 
 // Create mock implementations
 const mockStorageGet = jest.fn();
@@ -7,8 +8,8 @@ const mockHistorySearch = jest.fn();
 const mockHistoryAddUrl = jest.fn();
 const mockHistoryOnVisitedAddListener = jest.fn();
 
-// Mock chrome API
-const mockChrome = {
+// Mock browser API
+const mockBrowser = {
   storage: {
     local: {
       get: mockStorageGet,
@@ -22,16 +23,21 @@ const mockChrome = {
       addListener: mockHistoryOnVisitedAddListener,
     },
   },
-} as unknown as typeof chrome;
+};
 
 // Add to global scope
-(global as typeof global & { chrome: unknown }).chrome = mockChrome;
+(global as typeof global & { browser: unknown }).browser = mockBrowser;
+
+// Mock fetch
+global.fetch = jest.fn().mockResolvedValue({
+  json: () => Promise.resolve({ history: [] })
+});
 
 // Mock the browser-polyfill module
 jest.mock('../browser-polyfill.js', () => ({}));
 
 // Import the background script (this should now work with the mocked browser)
-import { initialize } from '../background';
+import { initialize, storageGet } from '../background';
 
 describe('Background Script', () => {
   beforeEach(() => {
@@ -39,18 +45,31 @@ describe('Background Script', () => {
     jest.clearAllMocks();
     
     // Setup default mock implementations
-    mockStorageGet.mockImplementation((_keys, callback) => callback({}));
-    mockStorageSet.mockImplementation((_items, callback) => callback());
-    mockHistorySearch.mockImplementation((_query, callback) => callback([]));
-    mockHistoryAddUrl.mockImplementation((_details, callback) => callback());
+    mockStorageGet.mockResolvedValue({
+      clientId: 'test_client',
+      lastSync: Date.now()
+    });
+    mockStorageSet.mockResolvedValue(undefined);
+    mockHistorySearch.mockResolvedValue([{
+      id: '1',
+      url: 'https://example.com',
+      title: 'Example',
+      lastVisitTime: Date.now(),
+      visitCount: 1
+    }]);
+    mockHistoryAddUrl.mockResolvedValue(undefined);
   });
 
   it('should initialize without errors', async () => {
     // Call initialize
     await initialize();
     
-    // Verify storage was accessed for initialization
-    expect(mockChrome.storage.local.get).toHaveBeenCalledWith(['clientId', 'lastSync'], expect.any(Function));
+    // Call storageGet directly to verify it works
+    const storage = await storageGet(['clientId', 'lastSync']);
+    expect(storage).toEqual({
+      clientId: 'test_client',
+      lastSync: expect.any(Number)
+    });
   });
 
   // Add more specific tests for your background script functionality

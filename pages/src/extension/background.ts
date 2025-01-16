@@ -1,5 +1,6 @@
 // Import types
 import type { HistoryItem, StorageData, HistoryQuery, HistoryUrlDetails } from './types';
+import './browser-polyfill.js';
 
 // Configuration
 const API_URL = 'https://api.chroniclesync.xyz';
@@ -7,69 +8,21 @@ const API_URL = 'https://api.chroniclesync.xyz';
 // Export for testing
 export { initialize };
 
-// Set up browser polyfill if needed
-if (typeof browser === 'undefined') {
-  if (typeof chrome !== 'undefined') {
-    const browserPolyfill = {
-      storage: {
-        local: {
-          get: (keys: string[]) => new Promise<StorageData>((resolve) => 
-            chrome.storage.local.get(keys, (result) => resolve(result as StorageData))
-          ),
-          set: (items: Partial<StorageData>) => new Promise<void>((resolve) => 
-            chrome.storage.local.set(items, () => resolve())
-          ),
-        },
-      },
-      history: {
-        search: (query: HistoryQuery) => new Promise<HistoryItem[]>((resolve) => 
-          chrome.history.search(query, (result) => resolve(result.map(item => ({
-            id: `${item.id || Date.now()}`,
-            url: item.url || '',
-            title: item.title || '',
-            lastVisitTime: item.lastVisitTime,
-            visitCount: item.visitCount
-          }))))
-        ),
-        addUrl: (details: HistoryUrlDetails) => new Promise<void>((resolve) => 
-          chrome.history.addUrl(details, () => resolve())
-        ),
-        onVisited: {
-          addListener: (callback: (_result: HistoryItem) => void) => 
-            chrome.history.onVisited.addListener((item) => callback({
-              id: `${item.id || Date.now()}`,
-              url: item.url || '',
-              title: item.title || '',
-              lastVisitTime: item.lastVisitTime,
-              visitCount: item.visitCount
-            })),
-        },
-      },
-    };
-
-    // Add the polyfill to globalThis
-    Object.defineProperty(globalThis, 'browser', {
-      value: browserPolyfill,
-      writable: true,
-      enumerable: true,
-      configurable: true
-    });
-  } else {
-    throw new Error('No compatible browser API found');
-  }
-}
-
 let isInitialized = false;
 let clientId: string | undefined = undefined;
 
 // Helper function to handle storage operations
 async function storageGet(keys: string[]): Promise<StorageData> {
-  return browser.storage.local.get(keys) as Promise<StorageData>;
+  const result = await browser.storage.local.get(keys);
+  return result as StorageData || {};
 }
 
 async function storageSet(items: StorageData): Promise<void> {
   return browser.storage.local.set(items);
 }
+
+// For testing
+export { storageGet, storageSet };
 
 // Initialize the extension
 async function initialize(): Promise<void> {
@@ -93,6 +46,11 @@ async function initialize(): Promise<void> {
     await syncHistory(await getLastSync());
   }, 5 * 60 * 1000); // Sync every 5 minutes
 
+  // Set up event listeners
+  browser.history.onVisited.addListener(async () => {
+    await syncHistory(await getLastSync());
+  });
+
   isInitialized = true;
 }
 
@@ -112,7 +70,7 @@ async function syncHistory(startTime: number): Promise<void> {
       text: '',
       startTime,
       maxResults: 1000
-    });
+    }) || [];
 
     // Get remote history
     const remoteData = await fetch(`${API_URL}?clientId=${clientId}`, {
@@ -178,11 +136,6 @@ async function getLastSync(): Promise<number> {
   const storage = await storageGet(['lastSync']);
   return storage.lastSync || 0;
 }
-
-// Set up event listeners
-browser.history.onVisited.addListener(async () => {
-  await syncHistory(await getLastSync());
-});
 
 // Initialize the extension
 initialize();

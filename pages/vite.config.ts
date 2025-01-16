@@ -19,7 +19,8 @@ export default defineConfig(({ mode }) => {
             const staticFiles = [
               [browser === 'chrome' ? 'manifest.v3.json' : 'manifest.v2.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
-              ['browser-polyfill.js', 'browser-polyfill.js']
+              ['browser-polyfill.js', 'browser-polyfill.js'],
+              ['background.ts', 'background.js']
             ].map(([src, dest]) => [
               resolve(__dirname, `src/extension/${src}`),
               resolve(__dirname, `dist/${browser}/${dest}`)
@@ -103,7 +104,8 @@ export default defineConfig(({ mode }) => {
         output: {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
-          assetFileNames: '[name].[ext]'
+          assetFileNames: '[name].[ext]',
+          format: 'iife'
         }
       } : undefined
     },

@@ -38,6 +38,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zip unzip
 
+      - name: Set Version from Git Tag
+        run: ./scripts/set-version.sh
+
       - name: Install and Build Pages
         working-directory: pages
         run: |
@@ -80,21 +83,21 @@ jobs:
           ls -la chroniclesync-*.zip
 
       - name: Upload Chrome Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-chrome
           path: pages/chroniclesync-chrome.zip
           if-no-files-found: error
 
       - name: Upload Firefox Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-firefox
           path: pages/chroniclesync-firefox.zip
           if-no-files-found: error
 
       - name: Upload Safari Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-safari
           path: pages/chroniclesync-safari.zip

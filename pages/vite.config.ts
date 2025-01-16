@@ -134,6 +134,10 @@ export default defineConfig(({ mode }) => {
         'react-dom': 'https://unpkg.com/react-dom@18/umd/react-dom.development.js'
       }
     },
+    define: {
+      'process.env.NODE_ENV': '"development"',
+      'process.env.BROWSER': `"${browser}"`
+    },
     server: {
       port: 3000,
     }

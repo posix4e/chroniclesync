@@ -54,6 +54,19 @@ export default defineConfig(({ mode }) => {
               fs.copyFileSync(src, dest);
             }
 
+            // Copy React dependencies
+            const reactFiles = [
+              ['node_modules/react/umd/react.development.js', 'react.js'],
+              ['node_modules/react-dom/umd/react-dom.development.js', 'react-dom.js']
+            ].map(([src, dest]) => [
+              resolve(__dirname, src),
+              resolve(__dirname, `dist/${browser}/${dest}`)
+            ]);
+
+            for (const [src, dest] of reactFiles) {
+              fs.copyFileSync(src, dest);
+            }
+
             // Copy browser-specific files
             if (browser === 'safari') {
               fs.writeFileSync(
@@ -104,7 +117,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]',
-          format: 'es',
+          format: 'iife',
           inlineDynamicImports: true,
           globals: {
             'browser-polyfill': 'browser',
@@ -130,8 +143,8 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        'react': 'https://unpkg.com/react@18/umd/react.development.js',
-        'react-dom': 'https://unpkg.com/react-dom@18/umd/react-dom.development.js'
+        'react': resolve(__dirname, 'node_modules/react/umd/react.development.js'),
+        'react-dom': resolve(__dirname, 'node_modules/react-dom/umd/react-dom.development.js')
       }
     },
     define: {

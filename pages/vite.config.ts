@@ -128,6 +128,12 @@ export default defineConfig(({ mode }) => {
       include: ['react', 'react-dom'],
       exclude: ['browser-polyfill']
     },
+    resolve: {
+      alias: {
+        'react': 'https://unpkg.com/react@18/umd/react.development.js',
+        'react-dom': 'https://unpkg.com/react-dom@18/umd/react-dom.development.js'
+      }
+    },
     server: {
       port: 3000,
     }

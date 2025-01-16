@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react(),
+      react({
+        jsxRuntime: 'classic'
+      }),
       {
         name: 'extension-manifest',
         writeBundle: () => {

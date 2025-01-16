@@ -115,36 +115,20 @@ export default defineConfig(({ mode }) => {
           background: resolve(__dirname, 'src/extension/background.ts'),
           popup: resolve(__dirname, 'src/extension/popup.tsx')
         },
-        output: [
-          {
-            name: 'background',
-            entryFileNames: '[name].js',
-            chunkFileNames: '[name].js',
-            assetFileNames: '[name].[ext]',
-            format: 'iife',
-            dir: `dist/${browser}`,
-            inlineDynamicImports: true,
-            globals: {
-              'browser-polyfill': 'browser'
-            },
-            external: ['browser-polyfill']
+        output: {
+          entryFileNames: '[name].js',
+          chunkFileNames: '[name].js',
+          assetFileNames: '[name].[ext]',
+          format: 'iife',
+          dir: `dist/${browser}`,
+          manualChunks: undefined,
+          globals: {
+            'browser-polyfill': 'browser',
+            'react': 'React',
+            'react-dom': 'ReactDOM'
           },
-          {
-            name: 'popup',
-            entryFileNames: '[name].js',
-            chunkFileNames: '[name].js',
-            assetFileNames: '[name].[ext]',
-            format: 'iife',
-            dir: `dist/${browser}`,
-            inlineDynamicImports: true,
-            globals: {
-              'browser-polyfill': 'browser',
-              'react': 'React',
-              'react-dom': 'ReactDOM'
-            },
-            external: ['browser-polyfill', 'react', 'react-dom']
-          }
-        ]
+          external: ['browser-polyfill', 'react', 'react-dom']
+        }
       } : undefined,
       cssCodeSplit: false,
       sourcemap: true,

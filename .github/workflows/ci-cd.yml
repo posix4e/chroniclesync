@@ -24,6 +24,8 @@ jobs:
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history and tags
       
       - uses: actions/setup-node@v3
         with:
@@ -37,6 +39,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y zip unzip
+
+      - name: Set Version from Git Tag
+        run: ./scripts/set-version.sh
 
       - name: Install and Build Pages
         working-directory: pages
@@ -80,21 +85,21 @@ jobs:
           ls -la chroniclesync-*.zip
 
       - name: Upload Chrome Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-chrome
           path: pages/chroniclesync-chrome.zip
           if-no-files-found: error
 
       - name: Upload Firefox Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-firefox
           path: pages/chroniclesync-firefox.zip
           if-no-files-found: error
 
       - name: Upload Safari Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-safari
           path: pages/chroniclesync-safari.zip

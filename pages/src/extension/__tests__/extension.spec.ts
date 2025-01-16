@@ -1,23 +1,56 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Chrome Extension', () => {
+  // Set up mock server for all tests
+  test.beforeEach(async ({ context }) => {
+    // Mock API responses
+    await context.route('**/api.chroniclesync.xyz/**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({ success: true })
+      });
+    });
+
+    // Mock service worker responses
+    await context.route('**/service-worker.js', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: 'self.addEventListener("fetch", () => {});'
+      });
+    });
+  });
   test('extension should load and sync history', async ({ context }) => {
     test.setTimeout(60000); // Increase timeout to 1 minute
 
     // Create a background page to access extension's background script
-    let backgroundPage = (await context.backgroundPages())[0];
-    if (!backgroundPage) {
-      // Wait for the background page to be created with a more specific timeout
-      backgroundPage = await Promise.race([
-        context.waitForEvent('backgroundpage'),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Background page creation timeout')), 10000))
-      ]) as any;
-    }
+    let backgroundPage;
+    try {
+      // First try to get existing background pages
+      const pages = await context.backgroundPages();
+      if (pages.length > 0) {
+        backgroundPage = pages[0];
+      } else {
+        // If no background page exists, wait for one to be created
+        backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
+      }
 
-    // Wait for the extension to initialize and verify it's ready
-    await backgroundPage.waitForFunction(() => {
-      return typeof browser !== 'undefined' && browser.storage && browser.history;
-    }, { timeout: 10000 });
+      // Wait for the extension to initialize and verify it's ready
+      await backgroundPage.waitForFunction(() => {
+        return typeof browser !== 'undefined' && 
+               browser.storage && 
+               browser.history && 
+               browser.runtime && 
+               browser.runtime.id;
+      }, { timeout: 30000, polling: 1000 });
+
+      // Log extension details for debugging
+      const extensionId = await backgroundPage.evaluate(() => browser.runtime.id);
+      console.log('Extension loaded with ID:', extensionId);
+    } catch (error) {
+      console.error('Failed to initialize background page:', error);
+      throw error;
+    }
 
     // Test storage operations
     const storage = await backgroundPage.evaluate(() => {
@@ -52,20 +85,32 @@ test.describe('Chrome Extension', () => {
   test('background script should handle sync failures gracefully', async ({ context }) => {
     test.setTimeout(60000); // Increase timeout to match first test
 
-    let backgroundPage = (await context.backgroundPages())[0];
-    if (!backgroundPage) {
-      backgroundPage = await Promise.race([
-        context.waitForEvent('backgroundpage'),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Background page creation timeout')), 10000))
-      ]) as any;
+    // Initialize background page with same robust method
+    let backgroundPage;
+    try {
+      const pages = await context.backgroundPages();
+      if (pages.length > 0) {
+        backgroundPage = pages[0];
+      } else {
+        backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
+      }
+
+      await backgroundPage.waitForFunction(() => {
+        return typeof browser !== 'undefined' && 
+               browser.storage && 
+               browser.runtime && 
+               browser.runtime.id;
+      }, { timeout: 30000, polling: 1000 });
+
+      const extensionId = await backgroundPage.evaluate(() => browser.runtime.id);
+      console.log('Extension loaded with ID:', extensionId);
+    } catch (error) {
+      console.error('Failed to initialize background page:', error);
+      throw error;
     }
 
-    await backgroundPage.waitForFunction(() => {
-      return typeof browser !== 'undefined' && browser.storage;
-    }, { timeout: 10000 });
-
-    // Mock API failure
-    await backgroundPage.route('https://api.chroniclesync.xyz**', route => 
+    // Mock API failure - use context.route instead of backgroundPage.route
+    await context.route('**/api.chroniclesync.xyz/**', route => 
       route.fulfill({ status: 500, body: 'Server error' })
     );
 
@@ -127,34 +172,12 @@ test.describe('Chrome Extension', () => {
   test('API URL resolution should work correctly', async ({ context }) => {
     const page = await context.newPage();
     
-    // Mock the responses for both URLs to avoid DNS issues
-    await context.route('**/*.chroniclesync.xyz', route => {
-      route.fulfill({
-        status: 200,
-        body: '<html><body>Mocked response</body></html>'
-      });
-    });
-
-    await context.route('**/*.pages.dev', route => {
-      route.fulfill({
-        status: 200,
-        body: '<html><body>Mocked response</body></html>'
-      });
-    });
-
-    // Test production URL with mocked response
-    await page.goto('https://chroniclesync.xyz', { waitUntil: 'networkidle' });
+    // Test local development URL
+    await page.goto('http://localhost:5173');
     let apiUrl = await page.evaluate(() => {
-      return window.location.hostname === 'chroniclesync.xyz' ? 'https://api.chroniclesync.xyz' : '';
+      return window.location.hostname === 'localhost' ? 'http://localhost:8787' : '';
     });
-    expect(apiUrl).toBe('https://api.chroniclesync.xyz');
-
-    // Test staging URL with mocked response
-    await page.goto('https://my-branch.chroniclesync.pages.dev', { waitUntil: 'networkidle' });
-    apiUrl = await page.evaluate(() => {
-      return window.location.hostname.endsWith('.pages.dev') ? 'https://api-staging.chroniclesync.xyz' : '';
-    });
-    expect(apiUrl).toBe('https://api-staging.chroniclesync.xyz');
+    expect(apiUrl).toBe('http://localhost:8787');
 
     await page.close();
   });

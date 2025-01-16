@@ -1,14 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 
-// Get the base URL from environment or construct from branch name
-const branchName = process.env.GITHUB_HEAD_REF || 'main';
-console.log('Branch name:', branchName);
-const baseURL = process.env.BASE_URL || (
-  branchName === 'main'
-    ? 'https://chroniclesync-pages.pages.dev'
-    : `https://${branchName}.chroniclesync-pages.pages.dev`
-);
+// Use local dev server for testing
+const baseURL = process.env.BASE_URL || 'http://localhost:5173';
 console.log('Using baseURL:', baseURL);
 
 export default defineConfig({

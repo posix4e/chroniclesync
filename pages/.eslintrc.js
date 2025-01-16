@@ -31,6 +31,7 @@ module.exports = {
     'no-unused-vars': ['error', { 'varsIgnorePattern': '^(DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)$' }],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'react/react-in-jsx-scope': 'off', // Not needed with React 17+
+    'react/no-deprecated': 'off', // Allow ReactDOM.render for compatibility
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-function-return-type': ['warn', {
       allowExpressions: true,

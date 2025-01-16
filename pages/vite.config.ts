@@ -107,10 +107,12 @@ export default defineConfig(({ mode }) => {
           format: 'iife',
           inlineDynamicImports: true,
           globals: {
-            'browser-polyfill': 'browser'
+            'browser-polyfill': 'browser',
+            'react': 'React',
+            'react-dom': 'ReactDOM'
           }
         },
-        external: ['browser-polyfill']
+        external: ['browser-polyfill', 'react', 'react-dom']
       } : undefined
     },
     server: {

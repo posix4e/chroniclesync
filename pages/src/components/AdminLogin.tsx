@@ -4,10 +4,10 @@ interface AdminLoginProps {
   onLogin: () => void;
 }
 
-export function AdminLogin({ onLogin }: AdminLoginProps) {
+export function AdminLogin({ onLogin }: AdminLoginProps): JSX.Element {
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = (): void => {
     if (password === 'francesisthebest') {
       onLogin();
     } else {

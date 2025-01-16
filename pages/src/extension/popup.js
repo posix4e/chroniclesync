@@ -1,6 +1,6 @@
 // Wait for DOM and browser polyfill to be ready
 document.addEventListener('DOMContentLoaded', () => {
-  function openUrl(url) {
+  function openUrl(url: string): Promise<void> | void {
     // Check if running as extension with browser API available
     if (typeof browser !== 'undefined' && browser.tabs) {
       return browser.tabs.create({ url });

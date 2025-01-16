@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react(),
+      react({
+        jsxRuntime: 'classic'
+      }),
       {
         name: 'extension-manifest',
         writeBundle: () => {
@@ -19,8 +21,6 @@ export default defineConfig(({ mode }) => {
             const staticFiles = [
               [browser === 'chrome' ? 'manifest.v3.json' : 'manifest.v2.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
-              ['background.js', 'background.js'],
-              ['popup.js', 'popup.js'],
               ['browser-polyfill.js', 'browser-polyfill.js']
             ].map(([src, dest]) => [
               resolve(__dirname, `src/extension/${src}`),
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
 
             // For Safari, we need to ensure all JS files are CommonJS modules
             if (browser === 'safari') {
-              const jsFiles = ['background.js', 'popup.js', 'browser-polyfill.js'];
+              const jsFiles = ['background.ts', 'popup.js', 'browser-polyfill.js'];
               for (const file of jsFiles) {
                 const srcPath = resolve(__dirname, `src/extension/${file}`);
                 const destPath = resolve(__dirname, `dist/${browser}/${file}`);
@@ -53,6 +53,19 @@ export default defineConfig(({ mode }) => {
             console.log('Files to copy:', staticFiles);
 
             for (const [src, dest] of staticFiles) {
+              fs.copyFileSync(src, dest);
+            }
+
+            // Copy React dependencies
+            const reactFiles = [
+              ['node_modules/react/umd/react.development.js', 'react.js'],
+              ['node_modules/react-dom/umd/react-dom.development.js', 'react-dom.js']
+            ].map(([src, dest]) => [
+              resolve(__dirname, src),
+              resolve(__dirname, `dist/${browser}/${dest}`)
+            ]);
+
+            for (const [src, dest] of reactFiles) {
               fs.copyFileSync(src, dest);
             }
 
@@ -99,15 +112,47 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       rollupOptions: isExtension ? {
         input: {
-          background: resolve(__dirname, 'src/extension/background.js'),
+          background: resolve(__dirname, 'src/extension/background.ts'),
           popup: resolve(__dirname, 'src/extension/popup.tsx')
         },
         output: {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
-          assetFileNames: '[name].[ext]'
+          assetFileNames: '[name].[ext]',
+          format: 'es',
+          dir: `dist/${browser}`,
+          manualChunks: undefined,
+          inlineDynamicImports: false,
+          globals: {
+            'browser-polyfill': 'browser',
+            'react': 'React',
+            'react-dom': 'ReactDOM'
+          }
         }
-      } : undefined
+      } : undefined,
+      cssCodeSplit: false,
+      sourcemap: true,
+      target: 'es2015',
+      minify: false,
+      commonjsOptions: {
+        transformMixedEsModules: true,
+        include: [/node_modules/],
+        exclude: ['browser-polyfill', 'react', 'react-dom']
+      }
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+      exclude: ['browser-polyfill']
+    },
+    resolve: {
+      alias: {
+        'react': resolve(__dirname, 'node_modules/react/umd/react.development.js'),
+        'react-dom': resolve(__dirname, 'node_modules/react-dom/umd/react-dom.development.js')
+      }
+    },
+    define: {
+      'process.env.NODE_ENV': '"development"',
+      'process.env.BROWSER': `"${browser}"`
     },
     server: {
       port: 3000,

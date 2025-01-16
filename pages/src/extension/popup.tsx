@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import * as ReactDOM from 'react-dom';
 import { AdminPanel } from '../components/AdminPanel';
 import { ClientSection } from '../components/ClientSection';
 import { HealthCheck } from '../components/HealthCheck';
 import { DB } from '../utils/db';
 import '../styles.css';
 
-const PopupApp = () => {
+const PopupApp = (): JSX.Element => {
   const [db] = useState(() => new DB());
 
   return (
@@ -20,5 +20,5 @@ const PopupApp = () => {
 };
 
 const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<PopupApp />);
+if (!container) throw new Error('Root element not found');
+ReactDOM.render(<PopupApp />, container);

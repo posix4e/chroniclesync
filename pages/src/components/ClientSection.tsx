@@ -6,12 +6,12 @@ interface ClientSectionProps {
   db: DB;
 }
 
-export function ClientSection({ db }: ClientSectionProps) {
+export function ClientSection({ db }: ClientSectionProps): JSX.Element {
   const [clientId, setClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const initializeClient = async () => {
+  const initializeClient = async (): Promise<void> => {
     if (!clientId) {
       alert('Please enter a client ID');
       return;
@@ -28,7 +28,7 @@ export function ClientSection({ db }: ClientSectionProps) {
     }
   };
 
-  const saveData = async () => {
+  const saveData = async (): Promise<void> => {
     try {
       const parsedData = JSON.parse(data);
       await db.setData(parsedData);
@@ -38,7 +38,7 @@ export function ClientSection({ db }: ClientSectionProps) {
     }
   };
 
-  const syncData = async () => {
+  const syncData = async (): Promise<void> => {
     try {
       const currentData = await db.getData();
       const response = await fetch(`${API_URL}?clientId=${db.clientId}`, {

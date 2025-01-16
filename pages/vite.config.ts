@@ -122,6 +122,7 @@ export default defineConfig(({ mode }) => {
           format: 'iife',
           dir: `dist/${browser}`,
           manualChunks: undefined,
+          inlineDynamicImports: false,
           globals: {
             'browser-polyfill': 'browser',
             'react': 'React',

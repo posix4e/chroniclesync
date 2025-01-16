@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Run linting checks before push
+echo "Running pre-push linting checks..."
+
+# Run your linting commands here
+# Example: Using flake8 for Python linting
+if command -v flake8 >/dev/null 2>&1; then
+    echo "Running flake8..."
+    flake8 .
+    if [ $? -ne 0 ]; then
+        echo "❌ Linting failed. Please fix the issues before pushing."
+        exit 1
+    fi
+fi
+
+# Add any other linting tools you use
+# Example: black for Python formatting check
+if command -v black >/dev/null 2>&1; then
+    echo "Running black check..."
+    black --check .
+    if [ $? -ne 0 ]; then
+        echo "❌ Black formatting check failed. Please run 'black .' to format your code."
+        exit 1
+    fi
+fi
+
+echo "✅ All linting checks passed!"
+exit 0

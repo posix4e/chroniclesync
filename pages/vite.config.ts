@@ -120,7 +120,8 @@ export default defineConfig(({ mode }) => {
       minify: false,
       commonjsOptions: {
         transformMixedEsModules: true,
-        include: [/node_modules/]
+        include: [/node_modules/],
+        exclude: ['browser-polyfill', 'react', 'react-dom']
       }
     },
     server: {

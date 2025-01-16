@@ -123,10 +123,11 @@ export default defineConfig(({ mode }) => {
             'browser-polyfill': 'browser',
             'react': 'React',
             'react-dom': 'ReactDOM',
-            'react/jsx-runtime': 'React'
+            'react/jsx-runtime': 'React',
+            'react-dom/client': 'ReactDOM'
           }
         },
-        external: ['browser-polyfill', 'react', 'react-dom', 'react/jsx-runtime']
+        external: ['browser-polyfill', 'react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
       } : undefined,
       cssCodeSplit: false,
       sourcemap: true,
@@ -146,7 +147,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         'react': resolve(__dirname, 'node_modules/react/umd/react.development.js'),
         'react-dom': resolve(__dirname, 'node_modules/react-dom/umd/react-dom.development.js'),
-        'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime')
+        'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),
+        'react-dom/client': resolve(__dirname, 'node_modules/react-dom/client')
       }
     },
     define: {

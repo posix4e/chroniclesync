@@ -117,7 +117,10 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: false,
       sourcemap: true,
       target: 'es2015',
-      minify: false
+      minify: false,
+      commonjsOptions: {
+        transformMixedEsModules: true
+      }
     },
     server: {
       port: 3000,

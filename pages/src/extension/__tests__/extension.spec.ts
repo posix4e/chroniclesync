@@ -74,14 +74,13 @@ test.describe('Chrome Extension', () => {
       // Wait for the extension to initialize
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Get the extension ID from the background page URL
-      const pages = await context.pages();
-      const extensionPages = pages.filter(p => p.url().startsWith('chrome-extension://'));
-      if (extensionPages.length === 0) {
-        throw new Error('No extension pages found');
+      // Get the extension ID from the service worker
+      const targets = await context.browser().targets();
+      const serviceWorker = targets.find(t => t.type() === 'service_worker');
+      if (!serviceWorker) {
+        throw new Error('No service worker found');
       }
-      const extensionUrl = extensionPages[0].url();
-      const extensionId = extensionUrl.split('/')[2];
+      const extensionId = serviceWorker.url().split('/')[2];
       console.log('Extension ID:', extensionId);
 
       // Navigate to the extension popup

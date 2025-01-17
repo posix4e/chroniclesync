@@ -15,8 +15,8 @@
     "package:firefox": "cd dist/firefox && rm -f ../../chroniclesync-firefox.zip && zip -r ../../chroniclesync-firefox.zip *",
     "package:safari": "bash -e ./scripts/build-safari-extension-direct.sh",
     "preview": "vite preview",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\" --fix",
     "deploy": "wrangler pages deploy dist/web --project-name chroniclesync-pages"
   },
   "dependencies": {

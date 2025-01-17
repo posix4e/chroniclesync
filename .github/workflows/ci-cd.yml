@@ -43,14 +43,19 @@ jobs:
       - name: Set Version from Git Tag
         run: ./scripts/set-version.sh
 
-      - name: Install and Build Pages
+      - name: First Validation Pass - Pages
         working-directory: pages
         run: |
+          echo "🔍 First validation pass - Pages..."
+          
           echo "Installing dependencies..."
           npm ci
 
           echo "Running linting..."
           npm run lint
+
+          echo "Running TypeScript checks..."
+          npx tsc --noEmit
 
           echo "Running tests..."
           npm run test
@@ -80,9 +85,47 @@ jobs:
             fi
           done
 
-          echo "✓ Build completed successfully"
+          echo "✓ First pass completed successfully"
+
+      - name: First Validation Pass - Worker
+        working-directory: worker
+        run: |
+          echo "🔍 First validation pass - Worker..."
+          npm ci && npm run lint && npm run test:coverage
+
+      - name: Second Validation Pass - Pages
+        working-directory: pages
+        run: |
+          echo "🔍 Second validation pass - Pages..."
+          
+          echo "Running linting again..."
+          npm run lint
+
+          echo "Running TypeScript checks again..."
+          npx tsc --noEmit
+
+          echo "Running tests again..."
+          npm run test
+
+          echo "Building web app again..."
+          npm run build:web
+
+          echo "Building and packaging extensions again..."
+          for BROWSER in chrome firefox safari; do
+            echo "Building $BROWSER extension..."
+            BROWSER=$BROWSER npm run build:extensions
+            npm run "package:$BROWSER"
+          done
+
+          echo "✓ Second pass completed successfully"
           echo "Generated artifacts:"
           ls -la chroniclesync-*.zip
+
+      - name: Second Validation Pass - Worker
+        working-directory: worker
+        run: |
+          echo "🔍 Second validation pass - Worker..."
+          npm run lint && npm run test:coverage
 
       - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v4
@@ -104,10 +147,6 @@ jobs:
           name: chroniclesync-safari
           path: pages/chroniclesync-safari.zip
           if-no-files-found: error
-
-      - name: Test Worker
-        working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
 
       - name: Delete Old Beta Releases and Tags
         if: github.ref == 'refs/heads/main'

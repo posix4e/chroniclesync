@@ -20,24 +20,66 @@ declare global {
 }
 
 test.describe('Chrome Extension', () => {
+  // Helper function to wait for extension initialization
+  const waitForExtension = async (backgroundPage: any, timeout = 30000) => {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      try {
+        const isReady = await backgroundPage.evaluate(() => {
+          return typeof window.browser !== 'undefined' && 
+                 window.browser.storage?.local?.get &&
+                 window.browser.history?.search &&
+                 window.browser.runtime?.id;
+        });
+        if (isReady) return true;
+      } catch (e) {
+        // Ignore evaluation errors and continue polling
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error(`Extension not ready after ${timeout}ms`);
+  };
+
   // Set up mock server for all tests
   test.beforeEach(async ({ context }) => {
     // Mock API responses
     await context.route('**/api.chroniclesync.xyz/**', route => {
       route.fulfill({
         status: 200,
-        body: JSON.stringify({ success: true })
+        body: JSON.stringify({ 
+          success: true,
+          history: [],
+          lastSync: Date.now()
+        })
       });
     });
 
-    // Mock service worker responses
+    // Mock service worker responses with proper registration
     await context.route('**/service-worker.js', route => {
       route.fulfill({
         status: 200,
         contentType: 'application/javascript',
-        body: 'self.addEventListener("fetch", () => {});'
+        body: `
+          self.addEventListener('install', (event) => {
+            event.waitUntil(self.skipWaiting());
+          });
+          self.addEventListener('activate', (event) => {
+            event.waitUntil(self.clients.claim());
+          });
+          self.addEventListener('fetch', (event) => {
+            event.respondWith(fetch(event.request));
+          });
+        `
       });
     });
+
+    // Wait for any existing service workers to be removed
+    const pages = context.pages();
+    for (const page of pages) {
+      await page.evaluate(() => navigator.serviceWorker?.getRegistrations()
+        .then(regs => Promise.all(regs.map(reg => reg.unregister())))
+      );
+    }
   });
 
   test('extension should load and sync history', async ({ context }) => {
@@ -55,18 +97,17 @@ test.describe('Chrome Extension', () => {
         backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
       }
 
-      // Wait for the extension to initialize and verify it's ready
-      await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage && 
-               window.browser.history && 
-               window.browser.runtime && 
-               window.browser.runtime.id;
-      }, { timeout: 30000, polling: 1000 });
+      // Wait for the extension to initialize with our helper
+      await waitForExtension(backgroundPage);
 
       // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
       console.log('Extension loaded with ID:', extensionId);
+
+      // Wait for service worker registration
+      await backgroundPage.waitForFunction(() => {
+        return navigator.serviceWorker?.controller !== null;
+      }, { timeout: 30000 });
     } catch (error) {
       console.error('Failed to initialize background page:', error);
       throw error;
@@ -84,8 +125,9 @@ test.describe('Chrome Extension', () => {
     const title = await page.title();
     expect(title).toBe('Example Domain');
 
-    // Wait for history sync
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait for history sync with longer timeout in CI
+    const syncTimeout = process.env.CI ? 10000 : 2000;
+    await new Promise(resolve => setTimeout(resolve, syncTimeout));
 
     // Verify history was recorded
     const history = await backgroundPage.evaluate(() => {
@@ -116,15 +158,17 @@ test.describe('Chrome Extension', () => {
         backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
       }
 
-      await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage && 
-               window.browser.runtime && 
-               window.browser.runtime.id;
-      }, { timeout: 30000, polling: 1000 });
+      // Wait for the extension to initialize with our helper
+      await waitForExtension(backgroundPage);
 
+      // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
       console.log('Extension loaded with ID:', extensionId);
+
+      // Wait for service worker registration
+      await backgroundPage.waitForFunction(() => {
+        return navigator.serviceWorker?.controller !== null;
+      }, { timeout: 30000 });
     } catch (error) {
       console.error('Failed to initialize background page:', error);
       throw error;

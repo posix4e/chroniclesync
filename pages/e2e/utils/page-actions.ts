@@ -1,14 +1,18 @@
 import { Page } from '@playwright/test';
 
 export class PageActions {
-  constructor(private page: Page) {}
+  private readonly page: Page;
 
-  async waitForPageLoad() {
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  async waitForPageLoad(): Promise<void> {
     await this.page.waitForLoadState('networkidle');
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async takeScreenshot(name: string) {
+  async takeScreenshot(name: string): Promise<void> {
     await this.page.screenshot({
       path: `./test-results/${name}.png`,
       fullPage: true
@@ -16,19 +20,19 @@ export class PageActions {
   }
 
   async getPageTitle(): Promise<string> {
-    return await this.page.title();
+    return this.page.title();
   }
 
   async getElementText(selector: string): Promise<string | null> {
     const element = await this.page.locator(selector).first();
-    return await element.textContent();
+    return element.textContent();
   }
 
-  async clickButton(name: string) {
+  async clickButton(name: string): Promise<void> {
     await this.page.getByRole('button', { name }).click();
   }
 
-  async waitForText(text: string) {
+  async waitForText(text: string): Promise<void> {
     await this.page.getByText(text).waitFor({ state: 'visible' });
   }
 }

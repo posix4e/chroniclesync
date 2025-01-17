@@ -4,20 +4,23 @@ import { PageActions } from '../utils/page-actions';
 export class HomePage {
   private actions: PageActions;
 
-  constructor(private page: Page) {
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
     this.actions = new PageActions(page);
   }
 
-  async navigate() {
+  async navigate(): Promise<void> {
     await this.page.goto('/', { timeout: 30000 });
     await this.actions.waitForPageLoad();
   }
 
-  async verifyTitle() {
-    return await this.actions.getPageTitle();
+  async verifyTitle(): Promise<string> {
+    return this.actions.getPageTitle();
   }
 
-  async checkHealthStatus() {
+  async checkHealthStatus(): Promise<void> {
     await this.actions.clickButton('Check Health');
     
     // Wait for the network request to complete and status to update
@@ -43,10 +46,10 @@ export class HomePage {
     }
     
     // Get just the time value
-    return await lastCheckSpan.textContent();
+    return lastCheckSpan.textContent();
   }
 
-  async takePageScreenshot(name: string) {
+  async takePageScreenshot(name: string): Promise<void> {
     await this.actions.takeScreenshot(name);
   }
 }

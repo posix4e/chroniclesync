@@ -60,9 +60,111 @@ export class ExtensionPage {
     return dbResult;
   }
 
+  async deleteHistoryItem(url: string): Promise<void> {
+    const backgroundPage = await this.getBackgroundPage();
+    await backgroundPage.evaluate((testUrl: string) => {
+      return new Promise<void>((resolve) => {
+        chrome.history.deleteUrl({ url: testUrl }, () => resolve());
+      });
+    }, url);
+  }
+
   async mockAPIError(): Promise<void> {
     await this.context.route('**/api*.chroniclesync.xyz/**', route =>
       route.fulfill({ status: 500, body: 'Server error' })
     );
+  }
+
+  async mockNetworkDelay(delay: number): Promise<void> {
+    await this.context.route('**/*', route => 
+      new Promise(resolve => setTimeout(() => resolve(route.continue()), delay))
+    );
+  }
+
+  async mockOffline(): Promise<void> {
+    await this.context.setOffline(true);
+  }
+
+  async mockOnline(): Promise<void> {
+    await this.context.setOffline(false);
+  }
+
+  async injectScript(script: string): Promise<void> {
+    await this.page.evaluate((code: string) => {
+      const scriptEl = document.createElement('script');
+      scriptEl.textContent = code;
+      document.head.appendChild(scriptEl);
+    }, script);
+  }
+
+  async getCspViolations(): Promise<SecurityPolicyViolationEvent[]> {
+    return this.page.evaluate(() => {
+      return new Promise<SecurityPolicyViolationEvent[]>((resolve) => {
+        const violations: SecurityPolicyViolationEvent[] = [];
+        document.addEventListener('securitypolicyviolation', (e) => {
+          violations.push(e);
+        });
+        // Trigger a CSP violation
+        const script = document.createElement('script');
+        script.src = 'https://example.com/unsafe.js';
+        document.head.appendChild(script);
+        setTimeout(() => resolve(violations), 1000);
+      });
+    });
+  }
+
+  async mockInvalidCertificate(): Promise<void> {
+    await this.context.route('**/*', route => {
+      if (route.request().url().startsWith('https://')) {
+        return route.abort('failed');
+      }
+      return route.continue();
+    });
+  }
+
+  async navigateWithError(url: string): Promise<string> {
+    try {
+      await this.page.goto(url);
+      return '';
+    } catch (error) {
+      return error.message;
+    }
+  }
+
+  async mockCrossOriginRequest(): Promise<void> {
+    await this.context.route('**/*', route => {
+      const origin = new URL(route.request().url()).origin;
+      if (origin !== process.env.BASE_URL) {
+        return route.fulfill({
+          status: 403,
+          headers: {
+            'Access-Control-Allow-Origin': process.env.BASE_URL || '*'
+          },
+          body: 'CORS error'
+        });
+      }
+      return route.continue();
+    });
+  }
+
+  async getCorsViolations(): Promise<Error[]> {
+    return this.page.evaluate(() => {
+      return new Promise<Error[]>((resolve) => {
+        const errors: Error[] = [];
+        const originalError = console.error;
+        console.error = (...args) => {
+          if (args[0]?.includes?.('CORS')) {
+            errors.push(new Error(args[0]));
+          }
+          originalError.apply(console, args);
+        };
+        // Trigger a CORS error
+        fetch('https://example.com/api').catch(() => {});
+        setTimeout(() => {
+          console.error = originalError;
+          resolve(errors);
+        }, 1000);
+      });
+    });
   }
 }

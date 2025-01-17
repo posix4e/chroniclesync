@@ -281,7 +281,7 @@ describe('Background Script', () => {
 
       // Get the last POST request
       const postCalls = mockFetch.mock.calls
-        .map(call => {
+        .map((call: unknown[]) => {
           if (!Array.isArray(call) || call.length < 2) return null;
           const init = call[1];
           if (typeof init !== 'object' || init === null) return null;

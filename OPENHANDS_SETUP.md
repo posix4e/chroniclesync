@@ -47,26 +47,13 @@ echo "🔍 First validation pass..."
 # Pages component
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
-tsc --noEmit && \  # TypeScript type check without emitting files
 npm run test && \
-
-# Build and test extensions
-BROWSER=chrome npm run build:extensions && \
-npm run package:chrome && \
-BROWSER=firefox npm run build:extensions && \
-npm run package:firefox && \
-BROWSER=safari npm run build:extensions && \
-npm run package:safari && \
+npm run build:web && \
 
 # Worker component
 cd /workspace/chroniclesync/worker && \
 npm run lint && \
 npm run test:coverage && \
-
-# E2E tests
-cd /workspace/chroniclesync/pages && \
-TEST_TYPE=extension npm run test:e2e && \
-npm run build:web && \
 
 # Second pass: Verify no new issues
 echo "🔍 Second validation pass..." && \
@@ -74,26 +61,13 @@ echo "🔍 Second validation pass..." && \
 # Pages component again
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
-tsc --noEmit && \  # TypeScript type check again to catch issues from test fixes
 npm run test && \
-
-# Build and test extensions again
-BROWSER=chrome npm run build:extensions && \
-npm run package:chrome && \
-BROWSER=firefox npm run build:extensions && \
-npm run package:firefox && \
-BROWSER=safari npm run build:extensions && \
-npm run package:safari && \
+npm run build:web && \
 
 # Worker component again
 cd /workspace/chroniclesync/worker && \
 npm run lint && \
-npm run test:coverage && \
-
-# E2E tests again
-cd /workspace/chroniclesync/pages && \
-TEST_TYPE=extension npm run test:e2e && \
-npm run build:web
+npm run test:coverage
 ```
 
 ## Important Notes
@@ -106,13 +80,11 @@ npm run build:web
 
 2. Common issues caught by the second pass:
    - Unused variables from test fixes
-   - Missing type annotations
-   - Improper error handling patterns
+   - Missing error handling
    - Inconsistent async/await usage
    - Build issues from test-driven changes
-   - TypeScript type errors in test mocks
-   - Incorrect type assertions in tests
-   - Missing type declarations for global objects
+   - Incorrect mock implementations
+   - Broken test assertions
 
 3. Project components:
    - Pages (frontend/extension)

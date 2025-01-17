@@ -106,15 +106,32 @@ For complete extension testing:
 
 ## Environment Variables
 
-Required for full testing:
+For local testing:
 ```bash
-# Set these before running tests
+# Only for Playwright debugging
+export DEBUG="pw:api*"
+```
+
+## Deployment Commands (Do Not Run in OpenHands)
+
+OpenHands cannot deploy to Cloudflare. These commands must be run in your local environment or via GitHub Actions:
+
+```bash
+# Pages deployment (run locally or in CI)
+cd pages && npm run deploy -- --branch YOUR_BRANCH
+
+# Worker deployment (run locally or in CI)
+cd worker && npm run deploy -- --env staging
+
+# Required environment variables for deployment:
 export CLOUDFLARE_API_TOKEN="your_token"
 export CLOUDFLARE_ACCOUNT_ID="your_account_id"
-
-# Optional: Enable debug logging
-export DEBUG="pw:api*"  # For Playwright debugging
 ```
+
+⚠️ **Important**: 
+- OpenHands should NOT run deployment commands
+- Let GitHub Actions handle deployments to staging/production
+- For local testing, run these commands in your own environment
 
 ## Clean State Testing
 

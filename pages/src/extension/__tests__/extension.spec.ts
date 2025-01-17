@@ -83,41 +83,14 @@ test.describe('Chrome Extension', () => {
     return backgroundPage;
   }
 
-  // Set up mock server for all tests
+  // Set up test environment
   test.beforeEach(async ({ context }) => {
-    // Mock API responses
-    await context.route('**/api*.chroniclesync.xyz/**', route => {
-      const method = route.request().method();
-
-      if (method === 'GET') {
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            history: [],
-            lastSync: Date.now()
-          })
-        });
-      } else if (method === 'POST') {
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            message: 'History synced successfully'
-          })
-        });
-      }
-    });
-
-    // Also mock the staging API and test page
-    await context.route('http://localhost:8787/**', route => {
-      route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: '<html><head><title>ChronicleSync Test Page</title></head><body>Test page</body></html>'
-      });
+    // No need to mock API responses - using real staging environment
+    
+    // Log requests for debugging
+    await context.route('**/*', route => {
+      console.log(`${route.request().method()} ${route.request().url()}`);
+      route.continue();
     });
   });
 

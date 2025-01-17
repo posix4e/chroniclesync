@@ -1,9 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 
-// Use local dev server for testing
-const baseURL = process.env.BASE_URL || 'http://localhost:5173';
+// Use staging environment for E2E tests, local for unit tests
+const isE2E = process.env.TEST_TYPE === 'e2e';
+const baseURL = process.env.BASE_URL || (isE2E ? 'https://staging.chroniclesync.xyz' : 'http://localhost:5173');
 console.log('Using baseURL:', baseURL);
+
+// Get the API URL based on environment
+const apiURL = process.env.API_URL || (isE2E ? 'https://api-staging.chroniclesync.xyz' : 'http://localhost:8787');
+console.log('Using API URL:', apiURL);
 
 export default defineConfig({
   testDir: process.env.TEST_TYPE === 'extension' ? './src/extension/__tests__' : './e2e',

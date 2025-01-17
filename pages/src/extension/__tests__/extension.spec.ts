@@ -24,7 +24,8 @@ test.describe('Chrome Extension', () => {
   test.beforeEach(async ({ context }) => {
     // Mock API responses
     await context.route('**/api*.chroniclesync.xyz/**', route => {
-      const url = route.request().url();
+      // Get request details
+      const _url = route.request().url();
       const method = route.request().method();
       
       if (method === 'GET') {

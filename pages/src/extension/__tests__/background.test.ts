@@ -281,13 +281,9 @@ describe('Background Script', () => {
 
       // Get the last POST request
       const postCalls = mockFetch.mock.calls
-        .map(call => call[1])
-        .filter((init): init is { method: string; body: string } => 
-          typeof init === 'object' && 
-          init !== null && 
-          'method' in init && 
-          init.method === 'POST'
-        );
+        .filter(call => Array.isArray(call) && call.length > 1)
+        .map(call => call[1] as { method: string; body: string })
+        .filter(init => init && init.method === 'POST');
       expect(postCalls.length).toBeGreaterThan(0);
 
       // Should use local version for overlapping URLs

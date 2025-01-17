@@ -5,19 +5,24 @@ jest.mock('../browser-polyfill.js', () => {});
 process.env.NODE_ENV = 'test';
 
 // Import the module under test
-import { initialize, storageGet, storageSet, syncHistory } from '../background';
+let initialize: typeof import('../background').initialize;
+let storageGet: typeof import('../background').storageGet;
+let storageSet: typeof import('../background').storageSet;
 
 // Helper function to wait for async operations
-const waitForAsync = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
+const waitForAsync = (ms = 500): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper function to initialize and wait
-const initializeAndWait = async () => {
-  const initPromise = initialize().catch(error => {
+const initializeAndWait = async (): Promise<void> => {
+  try {
+    const initPromise = initialize();
+    await waitForAsync(100); // Wait for async operations to start
+    await initPromise;
+    await waitForAsync(100); // Wait for any post-init operations
+  } catch (error) {
     console.error('Initialization failed:', error);
     throw error;
-  });
-  await waitForAsync();
-  await initPromise;
+  }
 };
 
 describe('Background Script', () => {
@@ -47,13 +52,17 @@ describe('Background Script', () => {
 
   // Define global types
   declare global {
-    var browser: typeof mockBrowser;
-    var fetch: typeof mockFetch;
+    let browser: typeof mockBrowser;
+    let fetch: typeof mockFetch;
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset module state
     jest.resetModules();
+    const module = await import('../background');
+    initialize = module.initialize;
+    storageGet = module.storageGet;
+    storageSet = module.storageSet;
 
     // Clear all mocks
     jest.clearAllMocks();
@@ -63,6 +72,10 @@ describe('Background Script', () => {
     mockBrowser.history.addUrl.mockReset();
     mockBrowser.history.onVisited.addListener.mockReset();
     mockFetch.mockReset();
+
+    // Set up global mocks
+    global.browser = mockBrowser;
+    global.fetch = mockFetch;
 
     // Default mock implementations
     mockBrowser.storage.local.get.mockImplementation(async (keys: string[]) => {
@@ -117,7 +130,7 @@ describe('Background Script', () => {
       Math.random = jest.fn(() => 0.123456789);
 
       // Mock empty storage for initialization tests
-      mockBrowser.storage.local.get.mockResolvedValue({});
+      mockBrowser.storage.local.get.mockImplementation(async () => ({}));
     });
 
     afterEach(() => {
@@ -139,10 +152,10 @@ describe('Background Script', () => {
 
     it('should use existing client ID if available', async () => {
       // Mock existing client ID
-      mockBrowser.storage.local.get.mockResolvedValue({
+      mockBrowser.storage.local.get.mockImplementation(async () => ({
         clientId: 'existing-123',
         lastSync: 1234567890
-      });
+      }));
 
       // Initialize and wait for storage operations
       await initializeAndWait();
@@ -231,9 +244,14 @@ describe('Background Script', () => {
     });
 
     it('should handle sync failures gracefully', async () => {
+      // Mock existing client ID to avoid initialization errors
+      mockBrowser.storage.local.get.mockImplementation(async () => ({
+        clientId: 'test-123',
+        lastSync: 1234567890
+      }));
+
       // Mock a failed fetch
-      const networkError = new Error('Network error');
-      mockFetch.mockRejectedValue(networkError);
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       // Initialize and wait for sync
       await initializeAndWait();

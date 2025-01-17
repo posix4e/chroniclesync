@@ -28,6 +28,10 @@ export { storageGet, storageSet };
 async function initialize(): Promise<void> {
   if (isInitialized) return;
   
+  // Reset state
+  isInitialized = false;
+  clientId = undefined;
+  
   try {
     // Get or generate unique client ID
     const storage = await storageGet(['clientId', 'lastSync']);
@@ -50,13 +54,15 @@ async function initialize(): Promise<void> {
     }
 
     // Set up event listeners
-    const onVisited = async () => {
+    const onVisited = async (): Promise<void> => {
       await syncHistory(await getLastSync());
     };
     browser.history.onVisited.addListener(onVisited);
-
     isInitialized = true;
+
   } catch (error) {
+    isInitialized = false;
+    clientId = undefined;
     console.error('Error initializing extension:', error);
     throw error;
   }
@@ -137,7 +143,8 @@ async function syncHistory(startTime: number): Promise<void> {
     await Promise.all(addPromises);
   } catch (error) {
     console.error('Error syncing history:', error);
-    throw error; // Re-throw for testing
+    // Update last sync time even on error to prevent continuous retries
+    await storageSet({ lastSync: Date.now() });
   }
 }
 

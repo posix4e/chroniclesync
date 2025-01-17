@@ -53,6 +53,9 @@ npm install chroniclesync
 
 ## For Developers
 
+### Development Setup
+For a comprehensive guide on setting up the development environment and running tests, see our [OpenHands Setup Guide](OPENHANDS_SETUP.md).
+
 ### Start Syncing
 
 #### Initialize the Client

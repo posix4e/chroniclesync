@@ -2,6 +2,13 @@
 
 This guide contains the setup and testing commands for working with the ChronicleSync repository.
 
+⚠️ **IMPORTANT: Run the validation sequence TWICE** ⚠️
+
+When making changes, you must run the full validation sequence twice because:
+1. Fixing test failures often involves adding new code or modifying existing code
+2. These fixes can introduce new linting issues
+3. Running lint->test->lint catches issues that would be missed by a single pass
+
 ## Environment Setup
 
 ```bash
@@ -31,13 +38,18 @@ mkdir -p test-results playwright-report
 
 ## Testing and Validation Commands
 
+You MUST run this sequence TWICE to ensure no regressions:
+
 ```bash
-# Start with Pages testing
+# First pass: Initial validation
+echo "🔍 First validation pass..."
+
+# Pages component
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
 npm run test && \
 
-# Build and test extensions for all browsers
+# Build and test extensions
 BROWSER=chrome npm run build:extensions && \
 npm run package:chrome && \
 BROWSER=firefox npm run build:extensions && \
@@ -45,39 +57,72 @@ npm run package:firefox && \
 BROWSER=safari npm run build:extensions && \
 npm run package:safari && \
 
-# Worker tests with coverage
+# Worker component
 cd /workspace/chroniclesync/worker && \
 npm run lint && \
 npm run test:coverage && \
 
-# E2E tests for extension
+# E2E tests
 cd /workspace/chroniclesync/pages && \
 TEST_TYPE=extension npm run test:e2e && \
+npm run build:web && \
 
-# Build web app
+# Second pass: Verify no new issues
+echo "🔍 Second validation pass..." && \
+
+# Pages component again
+cd /workspace/chroniclesync/pages && \
+npm run lint && \
+npm run test && \
+
+# Build and test extensions again
+BROWSER=chrome npm run build:extensions && \
+npm run package:chrome && \
+BROWSER=firefox npm run build:extensions && \
+npm run package:firefox && \
+BROWSER=safari npm run build:extensions && \
+npm run package:safari && \
+
+# Worker component again
+cd /workspace/chroniclesync/worker && \
+npm run lint && \
+npm run test:coverage && \
+
+# E2E tests again
+cd /workspace/chroniclesync/pages && \
+TEST_TYPE=extension npm run test:e2e && \
 npm run build:web
 ```
 
 ## Important Notes
 
-1. The project has two main components:
+1. Why run everything twice?
+   - Fixing test failures often requires code changes
+   - These changes can introduce new linting issues
+   - Example: Adding a new variable to fix a test might create an unused variable warning
+   - Running the sequence twice catches these cascading issues
+
+2. Common issues caught by the second pass:
+   - Unused variables from test fixes
+   - Missing type annotations
+   - Improper error handling patterns
+   - Inconsistent async/await usage
+   - Build issues from test-driven changes
+
+3. Project components:
    - Pages (frontend/extension)
    - Worker (backend service worker)
 
-2. Testing includes:
-   - Linting for both components
-   - Unit tests for both components
-   - E2E tests for the extension
-   - Coverage reporting for the worker
+4. Testing coverage:
+   - Linting for code quality
+   - Unit tests for functionality
+   - E2E tests for integration
+   - Coverage reporting for completeness
 
-3. The build process includes:
-   - Web app build
-   - Extension builds for Chrome, Firefox, and Safari
-   - Extension packaging
+5. Build artifacts:
+   - Web app
+   - Chrome extension
+   - Firefox extension
+   - Safari extension
 
-4. Each command in the chains ensures:
-   - All dependencies are properly installed
-   - Tests are run in a logical order
-   - Each step must succeed before moving to the next
-   - Maximum test coverage is achieved through multiple test types
-   - All browser extensions are properly built and tested
+Remember: A single pass might give you passing tests but leave linting issues. Always run the full sequence twice!

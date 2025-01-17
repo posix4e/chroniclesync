@@ -1,5 +1,14 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 
+// Define types for Chrome history items
+interface HistoryItem {
+  id: string;
+  url: string;
+  title?: string;
+  lastVisitTime: number;
+  visitCount: number;
+}
+
 export class ExtensionPage {
   constructor(private page: Page, private context: BrowserContext) {}
 
@@ -20,7 +29,7 @@ export class ExtensionPage {
   async verifyHistorySync(url: string) {
     const backgroundPage = await this.getBackgroundPage();
     const history = await backgroundPage.evaluate(() => {
-      return new Promise((resolve) => {
+      return new Promise<HistoryItem[]>((resolve) => {
         chrome.history.search({
           text: '',
           startTime: 0,
@@ -33,14 +42,14 @@ export class ExtensionPage {
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBeGreaterThan(0);
 
-    const testPageHistory = history.find(h => h.url.includes(url));
+    const testPageHistory = history.find((h: HistoryItem) => h.url.includes(url));
     expect(testPageHistory).toBeTruthy();
     return history;
   }
 
   async verifyIndexedDB() {
     const dbResult = await this.page.evaluate(async () => {
-      return new Promise((resolve, reject) => {
+      return new Promise<boolean>((resolve, reject) => {
         const request = window.indexedDB.open('chroniclesync', 1);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(true);

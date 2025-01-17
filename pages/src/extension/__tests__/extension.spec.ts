@@ -20,11 +20,18 @@ declare global {
 }
 
 test.describe('Chrome Extension', () => {
+  // Helper function to check browser API readiness
+  const isBrowserAPIReady = () => {
+    return typeof window.browser !== 'undefined' && 
+           typeof window.browser.storage?.local?.get === 'function' &&
+           typeof window.browser.history?.search === 'function' &&
+           typeof window.browser.runtime?.id === 'string';
+  };
+
   // Set up mock server for all tests
   test.beforeEach(async ({ context }) => {
     // Mock API responses
     await context.route('**/api*.chroniclesync.xyz/**', route => {
-
       const method = route.request().method();
       
       if (method === 'GET') {
@@ -93,13 +100,8 @@ test.describe('Chrome Extension', () => {
         backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
       }
 
-      // Wait for the extension to initialize with our helper
-      await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage?.local?.get &&
-               window.browser.history?.search &&
-               window.browser.runtime?.id;
-      }, { timeout: 30000, polling: 1000 });
+      // Wait for the extension to initialize
+      await backgroundPage.waitForFunction(isBrowserAPIReady, { timeout: 30000, polling: 1000 });
 
       // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
@@ -159,13 +161,8 @@ test.describe('Chrome Extension', () => {
         backgroundPage = await context.waitForEvent('backgroundpage', { timeout: 30000 });
       }
 
-      // Wait for the extension to initialize with our helper
-      await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage?.local?.get &&
-               window.browser.history?.search &&
-               window.browser.runtime?.id;
-      }, { timeout: 30000, polling: 1000 });
+      // Wait for the extension to initialize
+      await backgroundPage.waitForFunction(isBrowserAPIReady, { timeout: 30000, polling: 1000 });
 
       // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);

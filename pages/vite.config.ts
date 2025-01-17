@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
           if (isExtension) {
             // Copy static files
             const staticFiles = [
-              [browser === 'chrome' ? 'manifest.v3.json' : 'manifest.v2.json', 'manifest.json'],
+              [process.env.MANIFEST_VERSION === 'v2' ? 'manifest.v2.json' : 'manifest.v3.json', 'manifest.json'],
               ['popup.html', 'popup.html'],
               ['browser-polyfill.js', 'browser-polyfill.js']
             ].map(([src, dest]) => [
@@ -109,8 +109,20 @@ export default defineConfig(({ mode }) => {
     ],
     build: {
       outDir: isExtension ? `dist/${browser}` : 'dist/web',
-      emptyOutDir: true,
-      rollupOptions: isExtension ? {
+      emptyOutDir: !(process.env.MANIFEST_VERSION === 'v2' && process.env.ENTRY === 'popup'),
+      rollupOptions: isExtension ? (process.env.MANIFEST_VERSION === 'v2' ? {
+        input: process.env.ENTRY === 'popup' ? resolve(__dirname, 'src/extension/popup.tsx') : resolve(__dirname, 'src/extension/background.ts'),
+        output: {
+          entryFileNames: process.env.ENTRY === 'popup' ? 'popup.js' : 'background.js',
+          format: 'iife',
+          dir: `dist/${browser}`,
+          globals: {
+            'browser-polyfill': 'browser',
+            'react': 'React',
+            'react-dom': 'ReactDOM'
+          }
+        }
+      } : {
         input: {
           background: resolve(__dirname, 'src/extension/background.ts'),
           popup: resolve(__dirname, 'src/extension/popup.tsx')
@@ -129,7 +141,7 @@ export default defineConfig(({ mode }) => {
             'react-dom': 'ReactDOM'
           }
         }
-      } : undefined,
+      }) : undefined,
       cssCodeSplit: false,
       sourcemap: true,
       target: 'es2015',

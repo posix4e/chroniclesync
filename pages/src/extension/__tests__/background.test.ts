@@ -13,16 +13,50 @@ let storageSet: typeof import('../background').storageSet;
 import { createMockResponse } from './mock-response';
 import type { HistoryItem } from '../types';
 
+// Mock browser API
+const mockBrowser = {
+  storage: {
+    local: {
+      get: jest.fn(),
+      set: jest.fn()
+    }
+  },
+  history: {
+    search: jest.fn(),
+    addUrl: jest.fn(),
+    onVisited: {
+      addListener: jest.fn()
+    }
+  }
+};
+
 // Helper function to wait for async operations
-const waitForAsync = (ms = 500): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const waitForAsync = async (condition: () => boolean | Promise<boolean>, timeout = 2000): Promise<void> => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (await condition()) return;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error(`Timeout waiting for condition after ${timeout}ms`);
+};
 
 // Helper function to initialize and wait
 const initializeAndWait = async (): Promise<void> => {
   try {
     const initPromise = initialize();
-    await waitForAsync(100); // Wait for async operations to start
+    
+    // Wait for storage operations to complete
+    await waitForAsync(async () => {
+      const calls = mockBrowser.storage.local.get.mock.calls.length;
+      return calls > 0;
+    });
+    
     await initPromise;
-    await waitForAsync(100); // Wait for any post-init operations
+    
+    // Wait for history listener to be set up
+    await waitForAsync(() => 
+      mockBrowser.history.onVisited.addListener.mock.calls.length > 0
+    );
   } catch (error) {
     console.error('Initialization failed:', error);
     throw error;
@@ -30,22 +64,6 @@ const initializeAndWait = async (): Promise<void> => {
 };
 
 describe('Background Script', () => {
-  // Mock browser API
-  const mockBrowser = {
-    storage: {
-      local: {
-        get: jest.fn(),
-        set: jest.fn()
-      }
-    },
-    history: {
-      search: jest.fn(),
-      addUrl: jest.fn(),
-      onVisited: {
-        addListener: jest.fn()
-      }
-    }
-  };
 
   // Mock fetch with proper response structure
   const mockFetch = jest.fn(() => Promise.resolve(createMockResponse({ history: [] })));

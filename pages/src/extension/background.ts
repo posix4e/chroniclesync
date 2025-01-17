@@ -86,10 +86,18 @@ async function syncHistory(startTime: number): Promise<void> {
       maxResults: 1000
     }) || [];
 
-    // Get remote history
+    // Get remote history with better error handling
     const remoteData = await fetch(`${API_URL}?clientId=${clientId}`, {
       method: 'GET'
-    }).then(r => r.json()).catch(() => ({ history: [] } as RemoteData));
+    }).then(async response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    }).catch(error => {
+      console.warn('Failed to fetch remote history:', error);
+      return { history: [] } as RemoteData;
+    });
 
     // Merge local and remote history
     const mergedHistory = new Map<string, HistoryItem>();

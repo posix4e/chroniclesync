@@ -47,6 +47,7 @@ echo "🔍 First validation pass..."
 # Pages component
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
+tsc --noEmit && \  # TypeScript type check without emitting files
 npm run test && \
 
 # Build and test extensions
@@ -73,6 +74,7 @@ echo "🔍 Second validation pass..." && \
 # Pages component again
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
+tsc --noEmit && \  # TypeScript type check again to catch issues from test fixes
 npm run test && \
 
 # Build and test extensions again
@@ -108,6 +110,9 @@ npm run build:web
    - Improper error handling patterns
    - Inconsistent async/await usage
    - Build issues from test-driven changes
+   - TypeScript type errors in test mocks
+   - Incorrect type assertions in tests
+   - Missing type declarations for global objects
 
 3. Project components:
    - Pages (frontend/extension)

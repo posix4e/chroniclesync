@@ -11,7 +11,6 @@ let storageSet: typeof import('../background').storageSet;
 
 // Import test helpers
 import { createMockResponse } from './mock-response';
-import type { HistoryItem } from '../types';
 
 // Helper function to wait for async operations
 const waitForAsync = (ms = 500): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
@@ -51,13 +50,13 @@ describe('Background Script', () => {
   const mockFetch = jest.fn(() => Promise.resolve(createMockResponse({ history: [] })));
 
   // Define global types
-  declare global {
-    interface Window {
-      browser: typeof mockBrowser;
-    }
-    let browser: typeof mockBrowser;
-    let fetch: jest.Mock<Promise<Response>>;
+declare global {
+  interface Window {
+    browser: typeof mockBrowser;
   }
+  var browser: typeof mockBrowser;
+  var fetch: jest.Mock<Promise<Response>>;
+}
 
   beforeEach(async () => {
     // Reset module state
@@ -93,7 +92,15 @@ describe('Background Script', () => {
     mockBrowser.storage.local.set.mockResolvedValue(undefined);
     mockBrowser.history.search.mockResolvedValue([]);
     mockBrowser.history.addUrl.mockResolvedValue(undefined);
-    mockFetch.mockImplementation(() => Promise.resolve(createMockResponse({ history: [] })));
+    mockFetch.mockImplementation(() => 
+      Promise.resolve({
+        json: () => Promise.resolve({ history: [] })
+      })
+    );
+
+    // Set up global mocks
+    global.browser = mockBrowser;
+    global.fetch = mockFetch;
   });
 
   describe('Storage Operations', () => {
@@ -179,10 +186,15 @@ describe('Background Script', () => {
       consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock storage with test client ID
-      mockBrowser.storage.local.get.mockImplementation(async () => ({
-        clientId: 'test-123',
-        lastSync: 1234567890
-      }));
+      mockBrowser.storage.local.get.mockImplementation(async (keys: string[]) => {
+        if (keys.includes('clientId')) {
+          return {
+            clientId: 'test-123',
+            lastSync: 1234567890
+          };
+        }
+        return {};
+      });
     });
 
     afterEach(() => {
@@ -191,7 +203,7 @@ describe('Background Script', () => {
 
     it('should sync local history with remote', async () => {
       // Mock local history
-      const localHistory: HistoryItem[] = [{
+      const localHistory = [{
         id: '1',
         url: 'https://example.com',
         title: 'Example',
@@ -201,14 +213,18 @@ describe('Background Script', () => {
       mockBrowser.history.search.mockResolvedValue(localHistory);
 
       // Mock remote history
-      const remoteHistory: HistoryItem[] = [{
+      const remoteHistory = [{
         id: '2',
         url: 'https://example.org',
         title: 'Another Example',
         lastVisitTime: 1234567890,
         visitCount: 1
       }];
-      mockFetch.mockImplementation(() => Promise.resolve(createMockResponse({ history: remoteHistory })));
+      mockFetch.mockImplementation(() => 
+        Promise.resolve({
+          json: () => Promise.resolve({ history: remoteHistory })
+        })
+      );
 
       // Initialize and wait for sync
       await initializeAndWait();
@@ -259,14 +275,14 @@ describe('Background Script', () => {
 
     it('should merge local and remote history correctly', async () => {
       // Mock overlapping history items
-      const localHistory: HistoryItem[] = [{
+      const localHistory = [{
         id: '1',
         url: 'https://example.com',
         title: 'Example (Local)',
         lastVisitTime: 1234567890,
         visitCount: 1
       }];
-      const remoteHistory: HistoryItem[] = [{
+      const remoteHistory = [{
         id: '2',
         url: 'https://example.com',
         title: 'Example (Remote)',
@@ -275,7 +291,11 @@ describe('Background Script', () => {
       }];
 
       mockBrowser.history.search.mockResolvedValue(localHistory);
-      mockFetch.mockImplementation(() => Promise.resolve(createMockResponse({ history: remoteHistory })));
+      mockFetch.mockImplementation(() => 
+        Promise.resolve({
+          json: () => Promise.resolve({ history: remoteHistory })
+        })
+      );
 
       // Initialize and wait for sync
       await initializeAndWait();

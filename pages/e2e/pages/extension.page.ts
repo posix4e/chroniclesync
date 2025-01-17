@@ -1,13 +1,8 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
+import type { History } from 'chrome';
 
-// Define types for Chrome history items
-interface HistoryItem {
-  id: string;
-  url: string;
-  title?: string;
-  lastVisitTime: number;
-  visitCount: number;
-}
+// Use Chrome's own type definitions
+type HistoryItem = History.HistoryItem;
 
 export class ExtensionPage {
   constructor(private page: Page, private context: BrowserContext) {}
@@ -42,7 +37,7 @@ export class ExtensionPage {
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBeGreaterThan(0);
 
-    const testPageHistory = history.find((h: HistoryItem) => h.url.includes(url));
+    const testPageHistory = history.find((h: HistoryItem) => h.url?.includes(url));
     expect(testPageHistory).toBeTruthy();
     return history;
   }

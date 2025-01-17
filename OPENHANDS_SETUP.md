@@ -56,3 +56,22 @@ npm run test:coverage
 ```
 
 All commands must succeed. A failure at any step means the code needs more work.
+
+## Platform-Specific Extension Testing
+
+OpenHands runs on Linux and can test:
+- Chrome extension (fully)
+- Firefox extension (fully)
+- Web app (fully)
+- Service worker (fully)
+
+Cannot test:
+- Safari extension (macOS only)
+- Browser-specific extension signing
+- Extension store submissions
+
+For complete extension testing:
+1. Linux/Windows: Test Chrome and Firefox builds
+2. macOS: Test Safari build
+3. CI will test all platforms
+4. Extension store submissions must be done manually on each platform

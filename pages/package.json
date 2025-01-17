@@ -7,6 +7,7 @@
     "build": "npm run build:web && npm run build:extensions",
     "build:web": "tsc && vite build",
     "test:e2e": "TEST_TYPE=${TEST_TYPE:-e2e} playwright test --trace on",
+    "test:extension": "MANIFEST_VERSION=v2 ENTRY=background npm run build:extensions && MANIFEST_VERSION=v2 ENTRY=popup npm run build:extensions && MANIFEST_VERSION=v2 TEST_TYPE=extension playwright test --trace on",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "validate:manifests": "node scripts/validate-manifests.js",

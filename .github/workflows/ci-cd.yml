@@ -183,6 +183,11 @@ jobs:
           echo "Running web app E2E tests against staging..."
           TEST_TYPE=e2e npm run test:e2e
 
+          # Build and test extension
+          echo "Building and testing extension against staging..."
+          BROWSER=chrome npm run build:extensions
+          TEST_TYPE=extension npm run test:e2e
+
           # Create test report directory
           mkdir -p test-results playwright-report
         env:

@@ -51,7 +51,7 @@ describe('Background Script', () => {
   const mockFetch = jest.fn(() => Promise.resolve(createMockResponse({ history: [] })));
 
   // Mock global objects
-  const globalAny = global as any;
+  const globalAny = global as unknown;
   globalAny.browser = mockBrowser;
   globalAny.fetch = mockFetch;
 
@@ -279,7 +279,7 @@ describe('Background Script', () => {
       // Get the last POST request
       const postCalls = mockFetch.mock.calls
         .map(call => call[1])
-        .filter((init): init is RequestInit => init?.method === 'POST');
+        .filter((init): init is { method: string; body: string } => init?.method === 'POST');
       expect(postCalls.length).toBeGreaterThan(0);
 
       // Should use local version for overlapping URLs

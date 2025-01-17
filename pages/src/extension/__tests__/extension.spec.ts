@@ -6,11 +6,11 @@ declare global {
     browser: {
       storage: {
         local: {
-          get(keys: string[]): Promise<Record<string, any>>;
+          get(_keys: string[]): Promise<Record<string, unknown>>;
         };
       };
       history: {
-        search(params: { text: string; startTime: number; maxResults: number }): Promise<any[]>;
+        search(_params: { text: string; startTime: number; maxResults: number }): Promise<unknown[]>;
       };
       runtime: {
         id: string;

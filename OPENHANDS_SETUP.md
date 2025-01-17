@@ -28,19 +28,25 @@ If you modify package.json:
    ```
 3. Run tests to verify the updates don't break anything
 
-## Why Complete Test Sequence Matters
+## Test Sequence and Validation
 
-When fixing tests, the sequence of validation is crucial:
+When fixing tests, the sequence of validation is crucial and must be run twice:
 
 ```
-lint -> test -> build
+First Pass:  lint -> test -> build
+Second Pass: lint -> test -> build
 ```
 
-This sequence must complete without errors because:
+This double validation is required because:
 1. Fixing a test often means adding/changing code
-2. Those changes can break linting rules
-3. A failing lint check means the code isn't ready to push
-4. Skipping any step risks pushing broken code
+2. Those changes can break linting rules or introduce new test failures
+3. Running the sequence once might pass, but subsequent runs could fail
+4. Double validation catches cascading issues and ensures stability
+
+For example:
+- First pass: Fix a test by adding error handling
+- Second pass: Verify the fix didn't break other tests or linting
+- If both passes succeed, the changes are stable
 
 Example:
 ```typescript
@@ -70,20 +76,52 @@ async function getData() {
 
 ## Validation Commands
 
+Each component must be validated twice to ensure stability:
+
 ```bash
-# Pages component
+# First Pass - Pages Component
 cd /workspace/chroniclesync/pages && \
 npm run lint && \
 npm run test && \
 npm run build:web && \
+npm run test:extension  # Test browser extensions
 
-# Worker component
+# First Pass - Worker Component
+cd /workspace/chroniclesync/worker && \
+npm run lint && \
+npm run test:coverage
+
+# Second Pass - Pages Component
+cd /workspace/chroniclesync/pages && \
+npm run lint && \
+npm run test && \
+npm run build:web && \
+npm run test:extension  # Verify extension tests still pass
+
+# Second Pass - Worker Component
 cd /workspace/chroniclesync/worker && \
 npm run lint && \
 npm run test:coverage
 ```
 
-All commands must succeed. A failure at any step means the code needs more work.
+All commands must succeed in both passes. A failure at any step means the code needs more work.
+
+### Extension Testing Requirements
+
+The extension tests (`npm run test:extension`) include:
+- Service worker functionality
+- Background script behavior
+- Content script integration
+- Cross-origin messaging
+- IndexedDB operations
+- Browser API interactions
+
+Common extension test failures:
+- Race conditions in service worker registration
+- Async/await timing issues
+- Cross-origin permission problems
+- IndexedDB transaction conflicts
+- Browser API mock inconsistencies
 
 ## Platform-Specific Extension Testing
 
@@ -137,14 +175,31 @@ export CLOUDFLARE_ACCOUNT_ID="your_account_id"
 
 Before running tests, ensure clean state:
 ```bash
-# Clear previous builds
+# Clear previous builds and test artifacts
 cd /workspace/chroniclesync/pages
-rm -rf dist/* test-results/* playwright-report/*
+rm -rf dist/* test-results/* playwright-report/* coverage/*
 
 # Clear dependency caches
 cd /workspace/chroniclesync/pages && npm ci
 cd /workspace/chroniclesync/worker && npm ci
 
-# Run the validation sequence
-npm run lint && npm run test && npm run build:web
+# Clear browser test profiles
+rm -rf ~/.config/chromium-test-profile
+rm -rf ~/.mozilla/firefox-test-profile
+
+# Run both validation passes
+echo "First validation pass..."
+npm run lint && npm run test && npm run build:web && npm run test:extension
+
+echo "Second validation pass..."
+npm run lint && npm run test && npm run build:web && npm run test:extension
 ```
+
+### Common Test Environment Issues
+
+If tests fail in CI but pass locally:
+1. Clear all caches and artifacts (as shown above)
+2. Ensure Node.js version matches CI (v18)
+3. Check for race conditions with `DEBUG="pw:api*"`
+4. Verify browser versions match CI environment
+5. Run tests multiple times to catch intermittent failures

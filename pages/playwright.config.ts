@@ -20,8 +20,12 @@ export default defineConfig({
     video: 'retain-on-failure',
     serviceWorkers: 'allow', // Allow service workers for extension tests
     launchOptions: {
-      slowMo: 100,
-      timeout: 30000,
+      slowMo: process.env.CI ? 500 : 100,
+      timeout: process.env.CI ? 60000 : 30000,
+    },
+    contextOptions: {
+      acceptDownloads: true,
+      bypassCSP: true,
     }
   },
   projects: [

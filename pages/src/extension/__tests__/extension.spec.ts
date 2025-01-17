@@ -20,41 +20,45 @@ declare global {
 }
 
 test.describe('Chrome Extension', () => {
-  // Helper function to wait for extension initialization
-  const waitForExtension = async (backgroundPage: any, timeout = 30000) => {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeout) {
-      try {
-        const isReady = await backgroundPage.evaluate(() => {
-          return typeof window.browser !== 'undefined' && 
-                 window.browser.storage?.local?.get &&
-                 window.browser.history?.search &&
-                 window.browser.runtime?.id;
-        });
-        if (isReady) return true;
-      } catch (e) {
-        // Ignore evaluation errors and continue polling
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    throw new Error(`Extension not ready after ${timeout}ms`);
-  };
-
   // Set up mock server for all tests
   test.beforeEach(async ({ context }) => {
     // Mock API responses
-    await context.route('**/api.chroniclesync.xyz/**', route => {
+    await context.route('**/api*.chroniclesync.xyz/**', route => {
+      const url = route.request().url();
+      const method = route.request().method();
+      
+      if (method === 'GET') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            history: [],
+            lastSync: Date.now()
+          })
+        });
+      } else if (method === 'POST') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            message: 'History synced successfully'
+          })
+        });
+      }
+    });
+    
+    // Also mock the staging API and test page
+    await context.route('http://localhost:8787/**', route => {
       route.fulfill({
         status: 200,
-        body: JSON.stringify({ 
-          success: true,
-          history: [],
-          lastSync: Date.now()
-        })
+        contentType: 'text/html',
+        body: '<html><head><title>ChronicleSync Test Page</title></head><body>Test page</body></html>'
       });
     });
 
-    // Mock service worker responses with proper registration
+    // Mock service worker with proper lifecycle events
     await context.route('**/service-worker.js', route => {
       route.fulfill({
         status: 200,
@@ -72,14 +76,6 @@ test.describe('Chrome Extension', () => {
         `
       });
     });
-
-    // Wait for any existing service workers to be removed
-    const pages = context.pages();
-    for (const page of pages) {
-      await page.evaluate(() => navigator.serviceWorker?.getRegistrations()
-        .then(regs => Promise.all(regs.map(reg => reg.unregister())))
-      );
-    }
   });
 
   test('extension should load and sync history', async ({ context }) => {
@@ -98,7 +94,12 @@ test.describe('Chrome Extension', () => {
       }
 
       // Wait for the extension to initialize with our helper
-      await waitForExtension(backgroundPage);
+      await backgroundPage.waitForFunction(() => {
+        return typeof window.browser !== 'undefined' && 
+               window.browser.storage?.local?.get &&
+               window.browser.history?.search &&
+               window.browser.runtime?.id;
+      }, { timeout: 30000, polling: 1000 });
 
       // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
@@ -119,11 +120,11 @@ test.describe('Chrome Extension', () => {
     });
     expect(storage.clientId).toBeTruthy();
 
-    // Visit a test page
+    // Visit a test page that matches our host permissions
     const page = await context.newPage();
-    await page.goto('https://example.com');
+    await page.goto('http://localhost:8787/test');
     const title = await page.title();
-    expect(title).toBe('Example Domain');
+    expect(title).toBe('ChronicleSync Test Page');
 
     // Wait for history sync with longer timeout in CI
     const syncTimeout = process.env.CI ? 10000 : 2000;
@@ -132,14 +133,14 @@ test.describe('Chrome Extension', () => {
     // Verify history was recorded
     const history = await backgroundPage.evaluate(() => {
       return window.browser.history.search({
-        text: 'example.com',
+        text: 'localhost:8787',
         startTime: 0,
         maxResults: 1
       });
     });
     expect(history).toHaveLength(1);
     const historyItem = history[0] as { url: string };
-    expect(historyItem.url).toContain('example.com');
+    expect(historyItem.url).toContain('localhost:8787');
 
     // Close the page
     await page.close();
@@ -159,7 +160,12 @@ test.describe('Chrome Extension', () => {
       }
 
       // Wait for the extension to initialize with our helper
-      await waitForExtension(backgroundPage);
+      await backgroundPage.waitForFunction(() => {
+        return typeof window.browser !== 'undefined' && 
+               window.browser.storage?.local?.get &&
+               window.browser.history?.search &&
+               window.browser.runtime?.id;
+      }, { timeout: 30000, polling: 1000 });
 
       // Log extension details for debugging
       const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
@@ -174,17 +180,18 @@ test.describe('Chrome Extension', () => {
       throw error;
     }
 
-    // Mock API failure - use context.route instead of backgroundPage.route
-    await context.route('**/api.chroniclesync.xyz/**', route => 
+    // Mock API failure
+    await context.route('**/api*.chroniclesync.xyz/**', route => 
       route.fulfill({ status: 500, body: 'Server error' })
     );
 
     // Trigger a sync by visiting a page
     const page = await context.newPage();
-    await page.goto('https://example.org');
+    await page.goto('http://localhost:8787/test');
     
     // Wait for sync attempt
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const syncTimeout = process.env.CI ? 10000 : 2000;
+    await new Promise(resolve => setTimeout(resolve, syncTimeout));
 
     // Extension should still be functional
     const storage = await backgroundPage.evaluate(() => {
@@ -197,7 +204,7 @@ test.describe('Chrome Extension', () => {
 
   test('IndexedDB operations should work correctly', async ({ context }) => {
     const page = await context.newPage();
-    await page.goto('https://example.com');
+    await page.goto('http://localhost:8787/test');
 
     // Test IndexedDB operations
     const dbResult = await page.evaluate(async () => {
@@ -238,7 +245,7 @@ test.describe('Chrome Extension', () => {
     const page = await context.newPage();
     
     // Test local development URL
-    await page.goto('http://localhost:5173');
+    await page.goto('http://localhost:8787/test');
     const apiUrl = await page.evaluate(() => {
       return window.location.hostname === 'localhost' ? 'http://localhost:8787' : '';
     });

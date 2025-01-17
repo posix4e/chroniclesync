@@ -96,7 +96,8 @@ test.describe('Chrome Extension', () => {
       });
     });
     expect(history).toHaveLength(1);
-    expect(history[0].url).toContain('example.com');
+    const historyItem = history[0] as { url: string };
+    expect(historyItem.url).toContain('example.com');
 
     // Close the page
     await page.close();

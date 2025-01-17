@@ -1,5 +1,33 @@
 # OpenHands Setup Guide for ChronicleSync
 
+## Initial Setup
+
+```bash
+# Install system dependencies
+sudo apt-get update && sudo apt-get install -y zip unzip
+
+# Install Node.js 18
+nvm install 18 && nvm use 18
+
+# Install dependencies for both components
+cd /workspace/chroniclesync/pages && npm ci
+cd /workspace/chroniclesync/worker && npm ci
+
+# Install Playwright for E2E tests
+cd /workspace/chroniclesync/pages && npx playwright install chromium --with-deps
+```
+
+## Package Management
+
+If you modify package.json:
+1. Run `npm install` (not `npm ci`) to update package-lock.json
+2. Commit both files:
+   ```bash
+   git add package.json package-lock.json
+   git commit -m "Update dependencies: DESCRIBE_CHANGES"
+   ```
+3. Run tests to verify the updates don't break anything
+
 ## Why Complete Test Sequence Matters
 
 When fixing tests, the sequence of validation is crucial:
@@ -75,3 +103,31 @@ For complete extension testing:
 2. macOS: Test Safari build
 3. CI will test all platforms
 4. Extension store submissions must be done manually on each platform
+
+## Environment Variables
+
+Required for full testing:
+```bash
+# Set these before running tests
+export CLOUDFLARE_API_TOKEN="your_token"
+export CLOUDFLARE_ACCOUNT_ID="your_account_id"
+
+# Optional: Enable debug logging
+export DEBUG="pw:api*"  # For Playwright debugging
+```
+
+## Clean State Testing
+
+Before running tests, ensure clean state:
+```bash
+# Clear previous builds
+cd /workspace/chroniclesync/pages
+rm -rf dist/* test-results/* playwright-report/*
+
+# Clear dependency caches
+cd /workspace/chroniclesync/pages && npm ci
+cd /workspace/chroniclesync/worker && npm ci
+
+# Run the validation sequence
+npm run lint && npm run test && npm run build:web
+```

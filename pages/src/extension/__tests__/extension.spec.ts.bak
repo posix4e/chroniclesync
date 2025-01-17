@@ -1,24 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Add type for browser global
-declare global {
-  interface Window {
-    browser: {
-      storage: {
-        local: {
-          get(keys: string[]): Promise<Record<string, any>>;
-        };
-      };
-      history: {
-        search(params: { text: string; startTime: number; maxResults: number }): Promise<any[]>;
-      };
-      runtime: {
-        id: string;
-      };
-    };
-  }
-}
-
 test.describe('Chrome Extension', () => {
   // Set up mock server for all tests
   test.beforeEach(async ({ context }) => {
@@ -39,7 +20,6 @@ test.describe('Chrome Extension', () => {
       });
     });
   });
-
   test('extension should load and sync history', async ({ context }) => {
     test.setTimeout(60000); // Increase timeout to 1 minute
 
@@ -57,15 +37,15 @@ test.describe('Chrome Extension', () => {
 
       // Wait for the extension to initialize and verify it's ready
       await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage && 
-               window.browser.history && 
-               window.browser.runtime && 
-               window.browser.runtime.id;
+        return typeof browser !== 'undefined' && 
+               browser.storage && 
+               browser.history && 
+               browser.runtime && 
+               browser.runtime.id;
       }, { timeout: 30000, polling: 1000 });
 
       // Log extension details for debugging
-      const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
+      const extensionId = await backgroundPage.evaluate(() => browser.runtime.id);
       console.log('Extension loaded with ID:', extensionId);
     } catch (error) {
       console.error('Failed to initialize background page:', error);
@@ -74,7 +54,7 @@ test.describe('Chrome Extension', () => {
 
     // Test storage operations
     const storage = await backgroundPage.evaluate(() => {
-      return window.browser.storage.local.get(['clientId']);
+      return browser.storage.local.get(['clientId']);
     });
     expect(storage.clientId).toBeTruthy();
 
@@ -89,7 +69,7 @@ test.describe('Chrome Extension', () => {
 
     // Verify history was recorded
     const history = await backgroundPage.evaluate(() => {
-      return window.browser.history.search({
+      return browser.history.search({
         text: 'example.com',
         startTime: 0,
         maxResults: 1
@@ -116,13 +96,13 @@ test.describe('Chrome Extension', () => {
       }
 
       await backgroundPage.waitForFunction(() => {
-        return typeof window.browser !== 'undefined' && 
-               window.browser.storage && 
-               window.browser.runtime && 
-               window.browser.runtime.id;
+        return typeof browser !== 'undefined' && 
+               browser.storage && 
+               browser.runtime && 
+               browser.runtime.id;
       }, { timeout: 30000, polling: 1000 });
 
-      const extensionId = await backgroundPage.evaluate(() => window.browser.runtime.id);
+      const extensionId = await backgroundPage.evaluate(() => browser.runtime.id);
       console.log('Extension loaded with ID:', extensionId);
     } catch (error) {
       console.error('Failed to initialize background page:', error);
@@ -143,7 +123,7 @@ test.describe('Chrome Extension', () => {
 
     // Extension should still be functional
     const storage = await backgroundPage.evaluate(() => {
-      return window.browser.storage.local.get(['lastSync']);
+      return browser.storage.local.get(['lastSync']);
     });
     expect(storage.lastSync).toBeTruthy();
 

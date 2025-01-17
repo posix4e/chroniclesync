@@ -50,14 +50,10 @@ describe('Background Script', () => {
   // Mock fetch with proper response structure
   const mockFetch = jest.fn(() => Promise.resolve(createMockResponse({ history: [] })));
 
-  // Define global types
-  declare global {
-    interface Window {
-      browser: typeof mockBrowser;
-    }
-    let browser: typeof mockBrowser;
-    let fetch: jest.Mock<Promise<Response>>;
-  }
+  // Mock global objects
+  const globalAny = global as any;
+  globalAny.browser = mockBrowser;
+  globalAny.fetch = mockFetch;
 
   beforeEach(async () => {
     // Reset module state
@@ -77,8 +73,8 @@ describe('Background Script', () => {
     mockFetch.mockReset();
 
     // Set up global mocks
-    global.browser = mockBrowser;
-    global.fetch = mockFetch;
+    globalAny.browser = mockBrowser;
+    globalAny.fetch = mockFetch;
 
     // Default mock implementations
     mockBrowser.storage.local.get.mockImplementation(async (keys: string[]) => {
@@ -281,12 +277,14 @@ describe('Background Script', () => {
       await initializeAndWait();
 
       // Get the last POST request
-      const postCalls = mockFetch.mock.calls.filter(call => call[1]?.method === 'POST');
+      const postCalls = mockFetch.mock.calls
+        .map(call => call[1])
+        .filter((init): init is RequestInit => init?.method === 'POST');
       expect(postCalls.length).toBeGreaterThan(0);
 
       // Should use local version for overlapping URLs
       const lastPostCall = postCalls[postCalls.length - 1];
-      const syncedData = JSON.parse(lastPostCall[1].body);
+      const syncedData = JSON.parse(lastPostCall.body as string);
       expect(syncedData.history).toContainEqual(expect.objectContaining({
         url: 'https://example.com',
         title: 'Example (Local)'

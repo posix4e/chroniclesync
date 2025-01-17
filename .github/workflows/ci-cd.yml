@@ -168,25 +168,26 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
+      - name: Run Integration Tests
+        working-directory: pages
+        run: |
+          echo "Running integration tests..."
+          npm run test:integration
+
       - name: Run E2E Tests Against Staging
         if: github.event.pull_request.base.ref == 'main'
         working-directory: pages
         run: |
           # Install Playwright
-          npx playwright install chromium firefox --with-deps
+          npx playwright install chromium --with-deps
 
           # Deploy to staging first (using previous step's deployment)
           echo "Waiting for staging deployment to be ready..."
           sleep 30  # Give CF Pages time to deploy
 
-          # Run web app E2E tests
-          echo "Running web app E2E tests against staging..."
-          TEST_TYPE=e2e npm run test:e2e
-
-          # Build and test extension
-          echo "Building and testing extension against staging..."
-          BROWSER=chrome npm run build:extensions
-          TEST_TYPE=extension npm run test:e2e
+          # Run E2E tests with extension
+          echo "Running E2E tests against staging..."
+          npm run test:e2e
 
           # Create test report directory
           mkdir -p test-results playwright-report

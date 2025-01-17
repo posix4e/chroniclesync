@@ -29,8 +29,7 @@ export default defineConfig({
       timeout: process.env.CI ? 60000 : 30000,
     },
     contextOptions: {
-      acceptDownloads: true,
-      bypassCSP: true,
+      acceptDownloads: true
     }
   },
   projects: [
@@ -48,7 +47,6 @@ export default defineConfig({
               '--disable-setuid-sandbox',
               '--enable-automation',
               '--remote-debugging-port=0',
-              '--allow-insecure-localhost',
               '--enable-features=NetworkService,NetworkServiceInProcess',
               '--enable-logging=stderr',
               '--v=1',
@@ -57,24 +55,13 @@ export default defineConfig({
               '--disable-background-timer-throttling',
               '--disable-backgrounding-occluded-windows',
               '--disable-renderer-backgrounding',
-              '--enable-automation',
-              '--enable-features=NetworkService,NetworkServiceInProcess',
-              '--allow-insecure-localhost',
-              '--allow-running-insecure-content',
-              '--allow-file-access-from-files',
-              '--allow-file-access',
-              '--allow-legacy-extension-manifests',
-              '--allow-external-pages',
-              '--allow-chrome-urls',
             ],
             slowMo: 100,
             timeout: 60000,
           },
           contextOptions: {
             acceptDownloads: true,
-            bypassCSP: true,
             viewport: { width: 1280, height: 720 },
-            ignoreHTTPSErrors: true,
           },
         } : {}),
       },

@@ -18,7 +18,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     await homePage.navigate();
   });
 
-  test('should load web app with extension and verify basic functionality', async ({ page }) => {
+  test('should load web app with extension and verify basic functionality @basic', async ({ page }) => {
     test.setTimeout(60000); // Increase timeout to 1 minute
 
     // Verify web app loads correctly
@@ -40,7 +40,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     await page.screenshot({ path: 'test-results/app-with-extension.png', fullPage: true });
   });
 
-  test('should sync history with multiple URLs and timestamps', async ({ page }) => {
+  test('should sync history with multiple URLs and timestamps @history', async ({ page }) => {
     // Visit multiple pages with different timestamps
     const testUrl = process.env.BASE_URL || 'staging.chroniclesync.xyz';
     const urls = [
@@ -72,7 +72,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(uniqueTimestamps.size).toBe(urls.length);
   });
 
-  test('should handle history sync conflicts and deletions', async ({ page, context }) => {
+  test('should handle history sync conflicts and deletions @history', async ({ page, context }) => {
     const testUrl = process.env.BASE_URL || 'staging.chroniclesync.xyz';
     
     // Create conflicting history entries
@@ -100,7 +100,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(updatedHistory.find(h => h.url?.includes('conflict-test'))).toBeFalsy();
   });
 
-  test('should handle network issues and timeouts', async ({ page }) => {
+  test('should handle network issues and timeouts @network', async ({ page }) => {
     // Test timeout handling
     await extensionPage.mockNetworkDelay(5000);
     const testUrl = process.env.BASE_URL || 'staging.chroniclesync.xyz';
@@ -122,7 +122,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(history.find(h => h.url?.includes('offline-test'))).toBeTruthy();
   });
 
-  test('should handle large history sync operations', async ({ page }) => {
+  test('should handle large history sync operations @history', async ({ page }) => {
     test.setTimeout(120000); // 2 minutes for large sync
 
     // Create many history entries
@@ -142,7 +142,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(syncedUrls).toBeGreaterThanOrEqual(urls.length);
   });
 
-  test('should enforce security policies', async ({ page }) => {
+  test('should enforce security policies @security', async ({ page }) => {
     // Test CSP violations
     await extensionPage.injectScript('alert("test")');
     const violations = await extensionPage.getCspViolations();
@@ -160,7 +160,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(corsError.length).toBeGreaterThan(0);
   });
 
-  test('should handle API errors gracefully', async ({ page }) => {
+  test('should handle API errors gracefully @network', async ({ page }) => {
     // Mock API error
     await extensionPage.mockAPIError();
 

@@ -34,36 +34,106 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'basic',
+      testMatch: /.*@basic.*/,
       use: { 
         ...devices['Desktop Chrome'],
-        ...(process.env.TEST_TYPE === 'extension' ? {
-          // Launch options for Chrome with the extension
-          launchOptions: {
-            args: [
-              `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
-              `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--enable-automation',
-              '--remote-debugging-port=0',
-              '--enable-features=NetworkService,NetworkServiceInProcess',
-              '--enable-logging=stderr',
-              '--v=1',
-              '--enable-logging',
-              '--log-level=0',
-              '--disable-background-timer-throttling',
-              '--disable-backgrounding-occluded-windows',
-              '--disable-renderer-backgrounding',
-            ],
-            slowMo: 100,
-            timeout: 60000,
-          },
-          contextOptions: {
-            acceptDownloads: true,
-            viewport: { width: 1280, height: 720 },
-          },
-        } : {}),
+        launchOptions: {
+          args: [
+            `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
+            `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--enable-automation',
+            '--remote-debugging-port=0',
+            '--enable-features=NetworkService,NetworkServiceInProcess',
+            '--enable-logging=stderr',
+            '--v=1',
+            '--enable-logging',
+            '--log-level=0',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+          ],
+          slowMo: 100,
+          timeout: 60000,
+        },
+        contextOptions: {
+          acceptDownloads: true,
+          viewport: { width: 1280, height: 720 },
+        },
+      },
+    },
+    {
+      name: 'history',
+      testMatch: /.*@history.*/,
+      use: { 
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
+            `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--enable-automation',
+            '--remote-debugging-port=0',
+            '--enable-features=NetworkService,NetworkServiceInProcess',
+          ],
+          slowMo: 100,
+          timeout: 120000, // 2 minutes for history tests
+        },
+        contextOptions: {
+          acceptDownloads: true,
+          viewport: { width: 1280, height: 720 },
+        },
+      },
+    },
+    {
+      name: 'network',
+      testMatch: /.*@network.*/,
+      use: { 
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
+            `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--enable-automation',
+            '--remote-debugging-port=0',
+            '--enable-features=NetworkService,NetworkServiceInProcess',
+          ],
+          slowMo: 100,
+          timeout: 90000, // 90 seconds for network tests
+        },
+        contextOptions: {
+          acceptDownloads: true,
+          viewport: { width: 1280, height: 720 },
+        },
+      },
+    },
+    {
+      name: 'security',
+      testMatch: /.*@security.*/,
+      use: { 
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            `--disable-extensions-except=${path.join(__dirname, 'dist/chrome')}`,
+            `--load-extension=${path.join(__dirname, 'dist/chrome')}`,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--enable-automation',
+            '--remote-debugging-port=0',
+            '--enable-features=NetworkService,NetworkServiceInProcess',
+          ],
+          slowMo: 100,
+          timeout: 30000, // 30 seconds for security tests
+        },
+        contextOptions: {
+          acceptDownloads: true,
+          viewport: { width: 1280, height: 720 },
+        },
       },
     },
   ],

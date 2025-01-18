@@ -187,16 +187,16 @@ jobs:
           echo "Running E2E tests against staging..."
           
           # Basic functionality tests
-          TEST_GROUP=basic npm run test:e2e -- --grep "@basic" --retries=2 --reporter=junit,html || true
+          TEST_GROUP=basic npm run test:e2e -- --project=basic --retries=2 --reporter=junit,html || true
           
           # History sync tests
-          TEST_GROUP=history npm run test:e2e -- --grep "@history" --retries=2 --reporter=junit,html || true
+          TEST_GROUP=history npm run test:e2e -- --project=history --retries=2 --reporter=junit,html || true
           
           # Network tests
-          TEST_GROUP=network npm run test:e2e -- --grep "@network" --retries=2 --reporter=junit,html || true
+          TEST_GROUP=network npm run test:e2e -- --project=network --retries=2 --reporter=junit,html || true
           
           # Security tests (allow some failures)
-          TEST_GROUP=security npm run test:e2e -- --grep "@security" --retries=1 --reporter=junit,html || true
+          TEST_GROUP=security npm run test:e2e -- --project=security --retries=1 --reporter=junit,html || true
 
           # Merge test reports
           junit-merge --dir test-results --out test-results/combined-report.xml

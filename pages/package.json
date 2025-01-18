@@ -8,7 +8,7 @@
     "build:web": "tsc && vite build",
     "test": "tsc -p tsconfig.test.json --noEmit && jest",
     "test:coverage": "tsc -p tsconfig.test.json --noEmit && jest --coverage",
-    "test:e2e": "tsc -p tsconfig.test.json --noEmit && BROWSER=chrome npm run build:extensions && playwright test --trace on",
+    "test:e2e": "tsc -p tsconfig.test.json --noEmit && BROWSER=chrome npm run build:extensions && playwright test --trace on --project=${TEST_GROUP:-basic}",
     "validate:manifests": "node scripts/validate-manifests.js",
     "build:extensions": "npm run validate:manifests && BROWSER=${BROWSER:-chrome} MANIFEST_VERSION=${MANIFEST_VERSION:-v3} vite build --mode extension",
     "package:chrome": "cd dist/chrome && rm -f ../../chroniclesync-chrome.zip && zip -r ../../chroniclesync-chrome.zip *",

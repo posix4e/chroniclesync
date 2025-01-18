@@ -142,7 +142,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     expect(syncedUrls).toBeGreaterThanOrEqual(urls.length);
   });
 
-  test('should enforce security policies @security', async ({ page }) => {
+  test('should enforce security policies @security', async () => {
     // Test CSP violations
     await extensionPage.injectScript('alert("test")');
     const violations = await extensionPage.getCspViolations();

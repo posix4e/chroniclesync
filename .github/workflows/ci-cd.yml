@@ -35,6 +35,19 @@ jobs:
           npx playwright install chromium --with-deps
           npm run test:extension
 
+      - name: Package Chrome Extension
+        working-directory: pages
+        run: |
+          cd ..
+          zip -r chrome-extension.zip extension/
+
+      - name: Upload Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chrome-extension
+          path: chrome-extension.zip
+          retention-days: 14
+
       - name: Test Worker
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage

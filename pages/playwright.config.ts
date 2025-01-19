@@ -9,9 +9,8 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'chrome-extension://[extension-id]/',
     trace: 'on-first-retry',
-    headless: false,
+    headless: true,
   },
   projects: [
     {

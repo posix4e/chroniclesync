@@ -20,12 +20,12 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    // Get the extension ID from the background page URL
-    const backgroundPages = context.backgroundPages();
-    const extensionId = backgroundPages.length ? 
-      backgroundPages[0].url().split('/')[2] : 
-      'unknown-extension-id';
-    
+    // Get the extension ID from the extension path
+    const pathToExtension = path.join(__dirname, '../../../extension');
+    const manifestPath = path.join(pathToExtension, 'manifest.json');
+    const manifest = require(manifestPath);
+    const extensionId = manifest.key || 'test-extension-id';
+    process.env.EXTENSION_ID = extensionId;
     await use(extensionId);
   },
 });

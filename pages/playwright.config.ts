@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     trace: 'on-first-retry',
-    headless: false, // Required for proper password manager integration testing
+    headless: true,
   },
   projects: [
     {
@@ -18,10 +18,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          args: [
-            '--disable-extensions-except=../extension',
-            '--load-extension=../extension',
-          ],
+          args: [],
         },
       },
     },

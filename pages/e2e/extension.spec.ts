@@ -11,7 +11,7 @@ test.describe('Chrome Extension', () => {
 
     // Check for specific app content
     await expect(page.locator('h1')).toHaveText('ChronicleSync');
-    await expect(page.locator('#adminLogin h2')).toHaveText('Admin Login');
+    await expect(page.locator('#adminLogin > h2')).toHaveText('Admin Login');
     await expect(page.locator('#adminLogin')).toBeVisible();
 
     // Check for React-specific attributes and content

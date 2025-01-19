@@ -32,8 +32,6 @@ jobs:
           npm run test
           npm run build
           npm run build:extension
-          npx playwright install chromium --with-deps
-          npm run test:extension
 
       - name: Package Chrome Extension
         working-directory: pages
@@ -46,26 +44,6 @@ jobs:
         with:
           name: chrome-extension
           path: chrome-extension.zip
-          retention-days: 14
-
-      - name: Package Test Screenshots
-        working-directory: pages
-        run: |
-          mkdir -p test-results
-          cd test-results
-          if [ -f extension-popup.png ]; then
-            zip -r ../test-screenshots.zip *.png
-          else
-            echo "No screenshots found"
-            touch empty.txt
-            zip -r ../test-screenshots.zip empty.txt
-          fi
-
-      - name: Upload Test Screenshots Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-screenshots
-          path: pages/test-screenshots.zip
           retention-days: 14
 
       - name: Test Worker
@@ -88,21 +66,43 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
+
       - name: Run E2E Tests Against Staging
         if: github.event.pull_request.base.ref == 'main'
-        working-directory: extension
+        working-directory: pages
         env:
           STAGING_URL: ${{ secrets.STAGING_URL }}
           STAGING_WORKER_URL: ${{ secrets.STAGING_WORKER_URL }}
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          npm run test:e2e:staging
+          npx playwright test
 
       - name: Upload E2E Test Results
         if: always() && github.event.pull_request.base.ref == 'main'
         uses: actions/upload-artifact@v3
         with:
           name: playwright-report
-          path: extension/playwright-report/
+          path: pages/playwright-report/
           retention-days: 30
+
+      - name: Package Test Screenshots
+        working-directory: pages
+        run: |
+          mkdir -p test-results
+          cd test-results
+          if [ -f extension-popup.png ]; then
+            zip -r ../test-screenshots.zip *.png
+          else
+            echo "No screenshots found"
+            touch empty.txt
+            zip -r ../test-screenshots.zip empty.txt
+          fi
+
+      - name: Upload Test Screenshots Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-screenshots
+          path: pages/test-screenshots.zip
+          retention-days: 14
+

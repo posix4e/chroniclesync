@@ -1,24 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ChronicleSync Extension</title>
+  <title>ChronicleSync</title>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      width: 400px;
-      height: 600px;
+      width: 200px;
+      height: 50px;
       margin: 0;
-      padding: 0;
+      padding: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    #root {
+    button {
       width: 100%;
       height: 100%;
+      cursor: pointer;
+      border: none;
+      background: #4a90e2;
+      color: white;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #357abd;
     }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <button id="openApp">Open ChronicleSync</button>
   <script src="dist/popup.js"></script>
 </body>
 </html>

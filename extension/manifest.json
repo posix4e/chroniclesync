@@ -8,9 +8,14 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:*/*"
-  ]
+  ],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  }
 }

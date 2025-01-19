@@ -1,0 +1,50 @@
+name: Staging E2E Tests
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Staging"]
+    types:
+      - completed
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          cd extension && npm ci
+          cd ../pages && npm ci
+          cd ../worker && npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        
+      - name: Build extension
+        run: cd extension && npm run build
+        
+      - name: Build pages
+        run: cd pages && npm run build
+        
+      - name: Run Playwright tests against staging
+        run: cd extension && npm run test:e2e:staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+          STAGING_WORKER_URL: ${{ secrets.STAGING_WORKER_URL }}
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: extension/playwright-report/
+          retention-days: 30

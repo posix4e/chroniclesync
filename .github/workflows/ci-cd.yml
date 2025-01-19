@@ -26,7 +26,14 @@ jobs:
 
       - name: Test Pages
         working-directory: pages
-        run: npm ci && npm run lint && npm run test && npm run build
+        run: |
+          npm ci
+          npm run lint
+          npm run test
+          npm run build
+          npm run build:extension
+          npx playwright install chromium --with-deps
+          npm run test:extension
 
       - name: Test Worker
         working-directory: worker

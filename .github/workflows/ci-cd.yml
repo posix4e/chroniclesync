@@ -48,6 +48,26 @@ jobs:
           path: chrome-extension.zip
           retention-days: 14
 
+      - name: Package Test Screenshots
+        working-directory: pages
+        run: |
+          mkdir -p test-results
+          cd test-results
+          if [ -f extension-popup.png ]; then
+            zip -r ../test-screenshots.zip *.png
+          else
+            echo "No screenshots found"
+            touch empty.txt
+            zip -r ../test-screenshots.zip empty.txt
+          fi
+
+      - name: Upload Test Screenshots Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-screenshots
+          path: pages/test-screenshots.zip
+          retention-days: 14
+
       - name: Test Worker
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage

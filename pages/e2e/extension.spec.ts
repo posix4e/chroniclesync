@@ -54,5 +54,11 @@ test.describe('Chrome Extension', () => {
     });
     await popupPage.waitForTimeout(1000);
     expect(errors).toEqual([]);
+
+    // Take a screenshot of the popup
+    await popupPage.screenshot({
+      path: 'test-results/extension-popup.png',
+      fullPage: true
+    });
   });
 });

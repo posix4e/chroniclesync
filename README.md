@@ -35,8 +35,10 @@ ChronicleSync consists of three main components:
 
 2. **Chrome Extension**
    - Seamless browser integration
-   - Quick access popup interface
+   - Dedicated window interface
+   - Password manager integration
    - Direct IndexedDB management
+   - Optimized for 1Password and other password managers
 
 3. **Backend (Cloudflare Worker)**
    - Serverless architecture
@@ -96,10 +98,38 @@ ChronicleSync consists of three main components:
 ChronicleSync includes comprehensive testing across all components:
 
 ### Prerequisites
-For E2E tests, you need to install Playwright browsers first:
+For E2E tests, you need:
+
+1. Playwright browsers:
 ```bash
 npx playwright install chromium
 ```
+
+2. X Virtual Frame Buffer (Xvfb) for running tests in environments without a display server:
+```bash
+# On Debian/Ubuntu
+sudo apt-get install -y xvfb
+
+# On CentOS/RHEL
+sudo yum install -y xorg-x11-server-Xvfb
+
+# On macOS (not needed as it has a display server)
+# No installation required
+
+# On Windows (WSL)
+sudo apt-get install -y xvfb
+```
+
+To run tests with Xvfb:
+```bash
+# Run a single test
+xvfb-run npm run test:e2e
+
+# Run tests in watch mode
+xvfb-run npm run test:e2e -- --watch
+```
+
+Note: Xvfb is required because the Chrome extension opens in a new window and needs to interact with password managers, which requires a display server. Running in headless mode would limit our ability to test these interactions.
 
 ### Running Tests
 ```bash
@@ -115,6 +145,56 @@ npm run test:coverage
 cd pages
 npm run test:e2e
 ```
+
+### Manual Testing
+
+The extension requires manual testing for password manager integration:
+
+1. Build and load the extension:
+```bash
+cd pages
+npm run build:extension
+
+# In Chrome:
+# 1. Open chrome://extensions
+# 2. Enable "Developer mode"
+# 3. Click "Load unpacked"
+# 4. Select the /workspace/chroniclesync/extension directory
+```
+
+2. Test window behavior:
+   - Click extension icon
+   - Verify window opens (not popup)
+   - Window should be 400x600 pixels
+   - Window should appear on right side of screen
+   - Content should be properly styled and centered
+
+3. Test password manager integration:
+   - Open extension window
+   - Verify password manager icon appears in password field
+   - Test autofill with 1Password or other password managers
+   - Verify form submission works with autofilled credentials
+
+### Password Manager Integration
+
+The extension is optimized for password managers with:
+
+1. Semantic HTML structure:
+   - Proper `<form>` element with `method="post"`
+   - Explicit labels with `for` attributes
+   - Standard field names (`username`, `password`)
+
+2. Password Manager Hints:
+   - `autocomplete="username"` and `autocomplete="current-password"`
+   - ARIA labels for accessibility
+   - Consistent field IDs and names
+   - Standard form submission behavior
+
+3. Window Behavior:
+   - Opens in dedicated window for better detection
+   - Fixed dimensions and positioning
+   - Clean DOM structure
+   - No iframes or complex overlays
 
 ### Test Coverage
 - Frontend: Unit tests for React components, hooks, and utility functions
@@ -166,7 +246,24 @@ npm run test:e2e
      - `STAGING_URL` and `STAGING_WORKER_URL` for E2E tests
      - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for deployments
 
-2. **Existing CI Configurations**
+2. **Extension Testing in CI**
+   - The Chrome extension requires a display server for testing window interactions
+   - CI environments typically don't have a display server installed
+   - Install and use Xvfb in CI pipelines:
+     ```yaml
+     # Example GitHub Actions workflow step
+     - name: Install Xvfb
+       run: |
+         sudo apt-get update
+         sudo apt-get install -y xvfb
+
+     - name: Run E2E tests
+       run: xvfb-run npm run test:e2e
+     ```
+   - This setup is crucial for testing password manager integration and window behavior
+   - Alternative: Use headless mode with `playwright.config.ts`, but this limits testing capabilities
+
+3. **Existing CI Configurations**
    - Playwright is configured with CI-specific settings:
      ```typescript
      // playwright.config.ts

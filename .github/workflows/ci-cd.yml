@@ -67,6 +67,12 @@ jobs:
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
 
+      - name: Install Xvfb
+        if: github.event.pull_request.base.ref == 'main'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
       - name: Run E2E Tests Against Staging
         if: github.event.pull_request.base.ref == 'main'
         working-directory: pages
@@ -76,7 +82,7 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          npx playwright test
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
 
       - name: Upload E2E Test Results
         if: always() && github.event.pull_request.base.ref == 'main'

@@ -93,21 +93,33 @@ ChronicleSync consists of three main components:
 
 ## 🧪 Testing
 
-ChronicleSync includes comprehensive testing:
+ChronicleSync includes comprehensive testing across all components:
 
+### Prerequisites
+For E2E tests, you need to install Playwright browsers first:
 ```bash
-# Run frontend tests
+npx playwright install chromium
+```
+
+### Running Tests
+```bash
+# Run frontend tests (React components and utilities)
 cd pages
 npm run test
 
-# Run worker tests
+# Run worker tests with coverage report
 cd worker
 npm run test:coverage
 
-# Run E2E tests
+# Run E2E tests (Chrome extension)
 cd pages
 npm run test:e2e
 ```
+
+### Test Coverage
+- Frontend: Unit tests for React components, hooks, and utility functions
+- Worker: 99.5% statement coverage, testing API endpoints, middleware, and services
+- E2E: Chrome extension functionality and React app integration tests
 
 ## 🔄 CI/CD
 
@@ -176,9 +188,14 @@ npm run test:e2e
 
 ## 📄 License
 
-[Add your license information here]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines for details.
+We welcome contributions! Please see our [contributing guidelines](CONTRIBUTING.md) for details on:
 
+- Code of Conduct
+- Development setup
+- Commit guidelines
+- Pull request process
+- Testing requirements

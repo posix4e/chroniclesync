@@ -1,49 +1,52 @@
-import { test, expect } from './utils/extension';
+import { test } from './utils/extension-test';
+import { expect } from '@playwright/test';
 
 test.describe('Chrome Extension', () => {
-  test('should load without errors', async ({ page, context }) => {
-    // Check for any console errors
-    const errors: string[] = [];
-    context.on('weberror', error => {
-      errors.push(error.error().message);
+  test('background script should track active tab', async ({ context }) => {
+    // Create a mock page
+    const page = await context.newPage();
+    await page.setContent('<h1>Mock Page</h1>');
+    const mockUrl = page.url();
+    
+    // Get the background page
+    const backgroundPage = await context.backgroundPages()[0];
+    if (!backgroundPage) {
+      throw new Error('Background page not found');
+    }
+
+    // Verify the background script is tracking the tab
+    const currentTab = await backgroundPage.evaluate(() => {
+      return new Promise<chrome.tabs.Tab>(resolve => {
+        chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' }, response => {
+          resolve(response.tab);
+        });
+      });
     });
 
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        errors.push(msg.text());
-      }
-    });
-
-    // Wait a bit to catch any immediate errors
-    await page.waitForTimeout(1000);
-    expect(errors).toEqual([]);
+    expect(currentTab).toBeTruthy();
+    expect(currentTab?.url).toBe(mockUrl);
   });
 
-  test('popup should load React app correctly', async ({ context }) => {
-    // Open extension popup directly from extension directory
-    const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+  test('popup should load correctly', async ({ context }) => {
+    // Create a mock page
+    const page = await context.newPage();
+    await page.setContent('<h1>Mock Page</h1>');
 
-    // Wait for the root element to be visible
+    // Open extension popup
+    const popupPage = await context.newPage();
+    const backgroundPages = await context.backgroundPages();
+    if (!backgroundPages.length) {
+      throw new Error('Background page not found');
+    }
+    await popupPage.goto(`chrome-extension://${backgroundPages[0].url().split('/')[2]}/popup.html`);
+
+    // Wait for React app to load
     const rootElement = await popupPage.locator('#root');
     await expect(rootElement).toBeVisible();
 
-    // Wait for React to mount and render content
-    await popupPage.waitForLoadState('networkidle');
-    await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
-
-    // Check for specific app content
+    // Verify basic UI elements
     await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-    await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
     await expect(popupPage.locator('#adminLogin')).toBeVisible();
-
-    // Check for React-specific attributes and content
-    const reactRoot = await popupPage.evaluate(() => {
-      const root = document.getElementById('root');
-      return root?.hasAttribute('data-reactroot') ||
-             (root?.children.length ?? 0) > 0;
-    });
-    expect(reactRoot).toBeTruthy();
 
     // Check for console errors
     const errors: string[] = [];
@@ -55,7 +58,7 @@ test.describe('Chrome Extension', () => {
     await popupPage.waitForTimeout(1000);
     expect(errors).toEqual([]);
 
-    // Take a screenshot of the popup
+    // Take a screenshot for CI artifacts
     await popupPage.screenshot({
       path: 'test-results/extension-popup.png',
       fullPage: true

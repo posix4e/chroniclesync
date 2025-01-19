@@ -9,8 +9,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
+    baseURL: 'chrome-extension://[extension-id]/',
     trace: 'on-first-retry',
-    headless: true,
+    headless: false,
   },
   projects: [
     {
@@ -18,7 +19,10 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          args: [],
+          args: [
+            '--disable-extensions-except=../extension',
+            '--load-extension=../extension',
+          ],
         },
       },
     },

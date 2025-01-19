@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { HomePage } from './pages/home.page';
 import { ExtensionPage } from './pages/extension.page';
 
-test.describe('ChronicleSync Web App with Extension', () => {
+test.describe('@basic ChronicleSync Web App with Extension', () => {
   let homePage: HomePage;
   let extensionPage: ExtensionPage;
 
@@ -18,7 +18,7 @@ test.describe('ChronicleSync Web App with Extension', () => {
     await homePage.navigate();
   });
 
-  test('should load web app with extension and verify basic functionality @basic', async ({ page }) => {
+  test('@basic should load web app with extension and verify basic functionality', async ({ page }) => {
     test.setTimeout(60000); // Increase timeout to 1 minute
 
     // Verify web app loads correctly

@@ -33,25 +33,27 @@ npm run build
 
 ### Development Workflow
 
-#### Running Development Servers
+#### Building Components
 
-1. Pages Development Server:
+1. Pages:
 ```bash
 cd pages
-npm run dev  # Runs on http://localhost:50800
+npm run build
 ```
 
-2. Worker Development Server:
+2. Worker:
 ```bash
 cd worker
-npm run dev  # Runs on http://localhost:55440
+npm run build
 ```
 
-3. Extension Development:
+3. Extension:
 ```bash
 cd extension
-npm run dev  # Watches for changes and rebuilds
+npm run build
 ```
+
+Note: Running development servers locally is not recommended as they require an interactive terminal and specific environment setup. Instead, use the staging environment for testing.
 
 #### Testing
 

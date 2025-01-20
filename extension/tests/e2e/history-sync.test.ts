@@ -1,35 +1,62 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect, chromium, BrowserContext } from '@playwright/test';
 import path from 'path';
 
+async function setupExtension(): Promise<BrowserContext> {
+  const extensionPath = path.join(__dirname, '../../dist');
+  console.log('Extension path:', extensionPath);
+  
+  const context = await chromium.launchPersistentContext('', {
+    headless: false,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+    ],
+  });
+
+  // Wait for extension to be loaded
+  const extensions = await context.backgroundPages();
+  console.log('Loaded extensions:', extensions.length);
+  if (extensions.length === 0) {
+    throw new Error('Extension not loaded properly');
+  }
+  
+  return context;
+}
+
 test.describe('History Sync', () => {
-  test('should sync browser history', async ({ context }) => {
-    // Load the extension
-    const extensionPath = path.join(__dirname, '../../dist');
-    const context = await chromium.launchPersistentContext('', {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
-      ],
-    });
+  test('should sync browser history', async () => {
+    const context = await setupExtension();
 
     // Create a new page and visit some URLs
     const page = await context.newPage();
     
+    // Create screenshot directories
+    await page.evaluate(() => {
+      const fs = require('fs');
+      fs.mkdirSync('../pages/test-results', { recursive: true });
+      fs.mkdirSync('test-results', { recursive: true });
+    });
+
     // Visit test pages and capture screenshots
+    console.log('Visiting example.com...');
     await page.goto('https://example.com');
     await page.screenshot({ path: '../pages/test-results/history-first-visit.png' });
+    await page.screenshot({ path: 'test-results/history-first-visit.png' });
     
+    console.log('Visiting test.com...');
     await page.goto('https://test.com');
     await page.screenshot({ path: '../pages/test-results/history-second-visit.png' });
+    await page.screenshot({ path: 'test-results/history-second-visit.png' });
     
     // Wait for history sync to complete
-    // We'll need to implement a way to check this, possibly through extension storage
+    console.log('Waiting for sync...');
     await page.waitForTimeout(1000);
     
     // Open Chrome History page to verify entries
+    console.log('Opening Chrome History...');
     await page.goto('chrome://history');
     await page.screenshot({ path: '../pages/test-results/chrome-history-page.png' });
+    await page.screenshot({ path: 'test-results/chrome-history-page.png' });
 
     // Get the extension background page
     const backgroundPages = context.backgroundPages();
@@ -70,16 +97,8 @@ test.describe('History Sync', () => {
     await context.close();
   });
 
-  test('should encrypt history data', async ({ context }) => {
-    // Load the extension
-    const extensionPath = path.join(__dirname, '../../dist');
-    const context = await chromium.launchPersistentContext('', {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
-      ],
-    });
+  test('should encrypt history data', async () => {
+    const context = await setupExtension();
 
     const page = await context.newPage();
     
@@ -122,6 +141,7 @@ test.describe('History Sync', () => {
       </pre>
     `);
     await storagePage.screenshot({ path: '../pages/test-results/encrypted-storage-data.png' });
+    await storagePage.screenshot({ path: 'test-results/encrypted-storage-data.png' });
 
     await context.close();
   });

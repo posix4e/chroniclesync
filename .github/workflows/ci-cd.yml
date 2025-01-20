@@ -24,26 +24,25 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
-      - name: Test Pages
+      - name: Build and Test
         working-directory: pages
         run: |
           npm ci
           npm run lint
           npm run test
-          npm run build
-          npm run build:extension
+          npm run build:all
 
       - name: Package Chrome Extension
         working-directory: pages
         run: |
-          cd ..
-          zip -r chrome-extension.zip extension/
+          cd dist
+          zip -r ../chrome-extension.zip extension/
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v3
         with:
           name: chrome-extension
-          path: chrome-extension.zip
+          path: pages/chrome-extension.zip
           retention-days: 14
 
       - name: Test Worker

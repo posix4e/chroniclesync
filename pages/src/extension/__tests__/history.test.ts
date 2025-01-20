@@ -19,7 +19,7 @@ describe('HistoryManager', () => {
   });
 
   it('should sync history items', async () => {
-    (chrome.history.search as jest.Mock).mockImplementation((options, callback) => {
+    (chrome.history.search as jest.Mock).mockImplementation((_, callback) => {
       callback(mockHistoryItems);
     });
 
@@ -40,7 +40,7 @@ describe('HistoryManager', () => {
   });
 
   it('should handle empty history', async () => {
-    (chrome.history.search as jest.Mock).mockImplementation((options, callback) => {
+    (chrome.history.search as jest.Mock).mockImplementation((_, callback) => {
       callback([]);
     });
 
@@ -51,8 +51,9 @@ describe('HistoryManager', () => {
   });
 
   it('should handle search errors', async () => {
-    (chrome.history.search as jest.Mock).mockImplementation((options, callback) => {
-      throw new Error('Search failed');
+    const mockError = new Error('Search failed');
+    (chrome.history.search as jest.Mock).mockImplementation(() => {
+      throw mockError;
     });
 
     await expect(historyManager.syncHistory()).rejects.toThrow('Search failed');

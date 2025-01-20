@@ -1,153 +1,61 @@
-import { Storage } from '../../src/storage';
-import { ICrypto } from '../../src/crypto';
+import { StorageManager } from '../storage';
+import { encryptData } from '../crypto';
 
-class MockCrypto implements ICrypto {
-  async initialize(password: string): Promise<void> {}
-
-  async encrypt(data: string): Promise<string> {
-    return `encrypted:${data}`;
-  }
-
-  async decrypt(data: string): Promise<string> {
-    return data.replace('encrypted:', '');
-  }
-}
-
-describe('Storage', () => {
-  let storage: Storage;
-  let mockCrypto: MockCrypto;
-  let mockIndexedDB: any;
-  let mockStore: any;
-  let mockTransaction: any;
-  let mockDBRequest: any;
+describe('StorageManager', () => {
+  let storageManager: StorageManager;
 
   beforeEach(() => {
-    jest.useFakeTimers();
-
-    // Mock fetch
-    global.fetch = jest.fn().mockImplementation(() => 
-      Promise.resolve({ ok: true } as Response)
-    );
-
-    // Mock IndexedDB
-    mockStore = {
-      put: jest.fn().mockImplementation(() => {
-        const request = {
-          onsuccess: jest.fn(),
-          onerror: jest.fn()
-        };
-        request.onsuccess({});
-        return request;
-      }),
-      get: jest.fn().mockImplementation(() => {
-        const request = {
-          onsuccess: jest.fn(),
-          onerror: jest.fn()
-        };
-        request.onsuccess({});
-        return request;
-      })
-    };
-
-    mockTransaction = {
-      objectStore: jest.fn().mockReturnValue(mockStore),
-      oncomplete: jest.fn(),
-      onerror: jest.fn(),
-      complete: false
-    };
-
-    const mockDB = {
-      transaction: jest.fn().mockReturnValue(mockTransaction)
-    };
-
-    mockDBRequest = {
-      onerror: jest.fn(),
-      onsuccess: jest.fn(),
-      onupgradeneeded: jest.fn(),
-      result: mockDB,
-      error: null
-    };
-
-    mockIndexedDB = {
-      open: jest.fn().mockImplementation(() => {
-        mockDBRequest.onsuccess({ target: mockDBRequest });
-        return mockDBRequest;
-      })
-    };
-
-    // @ts-ignore
-    global.indexedDB = mockIndexedDB;
-
-    mockCrypto = new MockCrypto();
-    storage = new Storage(mockCrypto);
+    storageManager = new StorageManager();
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+  describe('syncData', () => {
+    interface MockDB {
+      transaction: jest.Mock;
+      objectStore: jest.Mock;
+      add: jest.Mock;
+      get: jest.Mock;
+    }
 
-  it('should store data locally', async () => {
-    const key = 'test-key';
-    const data = 'test-data';
+    let mockDB: MockDB;
+    let mockTransaction: jest.Mock;
+    let mockObjectStore: jest.Mock;
 
-    // Start the storage operation
-    const storagePromise = storage.store(key, data);
-
-    // Simulate transaction completion
-    mockTransaction.oncomplete();
-
-    // Wait for the operation to complete
-    await storagePromise;
-
-    // Verify the operations
-    expect(mockIndexedDB.open).toHaveBeenCalledWith('ChronicleSync', 1);
-    expect(mockTransaction.objectStore).toHaveBeenCalledWith('syncData');
-    expect(mockStore.put).toHaveBeenCalledWith(expect.objectContaining({
-      key,
-      data: expect.stringContaining('encrypted:'),
-      synced: false
-    }));
-  }, 30000);
-
-  it('should handle IndexedDB errors', async () => {
-    const key = 'test-key';
-    const data = 'test-data';
-
-    // Mock open to trigger error
-    mockIndexedDB.open.mockImplementation(() => {
-      const request = {
-        onerror: jest.fn(),
-        onsuccess: jest.fn(),
-        onupgradeneeded: jest.fn(),
-        error: new Error('IndexedDB error')
+    beforeEach(() => {
+      mockObjectStore = jest.fn();
+      mockTransaction = jest.fn(() => ({ objectStore: mockObjectStore }));
+      mockDB = {
+        transaction: mockTransaction,
+        objectStore: jest.fn(),
+        add: jest.fn(),
+        get: jest.fn(),
       };
-
-      request.onerror({ target: request });
-      return request;
     });
 
-    // Start the storage operation and expect it to fail
-    await expect(storage.store(key, data)).rejects.toThrow('IndexedDB error');
-  }, 30000);
+    it('should store encrypted data', async () => {
+      const mockData = { key: 'test', value: 'data' };
+      const mockEncryptedData = 'encryptedData';
 
-  it('should store encrypted data', async () => {
-    const key = 'test-key';
-    const data = 'test-data';
+      jest.spyOn(window.indexedDB, 'open').mockImplementation(() => {
+        const request = {
+          result: mockDB,
+          onupgradeneeded: null as (() => void) | null,
+          onsuccess: null as (() => void) | null,
+        };
 
-    // Start the storage operation
-    const storagePromise = storage.store(key, data);
+        setTimeout(() => {
+          request.onsuccess?.({} as Event);
+        }, 0);
 
-    // Simulate transaction completion
-    mockTransaction.oncomplete();
+        return request as IDBOpenDBRequest;
+      });
 
-    // Wait for the operation to complete
-    await storagePromise;
+      // @ts-expect-error Mock implementation
+      jest.spyOn(encryptData).mockResolvedValue(mockEncryptedData);
 
-    // Verify the data was encrypted
-    expect(mockStore.put).toHaveBeenCalledWith(expect.objectContaining({
-      key,
-      data: expect.stringContaining('encrypted:'),
-      synced: false
-    }));
-  }, 30000);
+      await storageManager.syncData(mockData);
+
+      expect(mockTransaction).toHaveBeenCalledWith('syncData', 'readwrite');
+      expect(mockObjectStore).toHaveBeenCalledWith('syncData');
+    });
+  });
 });

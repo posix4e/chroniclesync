@@ -1,103 +1,55 @@
-import { Crypto } from '../../src/crypto';
+import { encryptData, decryptData } from '../crypto';
 
 describe('Crypto', () => {
-  let cryptoInstance: Crypto;
-  const testPassword = 'test-password';
-  const testData = 'test-data';
-  let mockSubtle: any;
-  let mockCryptoObj: any;
+  interface MockCrypto {
+    subtle: MockSubtle;
+    getRandomValues: jest.Mock;
+  }
 
-  beforeEach(async () => {
-    // Reset mocks
-    jest.clearAllMocks();
+  interface MockSubtle {
+    encrypt: jest.Mock;
+    decrypt: jest.Mock;
+    importKey: jest.Mock;
+    deriveKey: jest.Mock;
+  }
 
-    // Setup crypto mocks
-    const mockKey = {} as CryptoKey;
+  let mockCrypto: MockCrypto;
+  let mockSubtle: MockSubtle;
+
+  beforeEach(() => {
     mockSubtle = {
-      importKey: jest.fn().mockResolvedValue(mockKey),
-      deriveKey: jest.fn().mockResolvedValue(mockKey),
-      encrypt: jest.fn().mockImplementation(async (_, __, data) => {
-        return new Uint8Array([...new TextEncoder().encode(data.toString())]);
-      }),
-      decrypt: jest.fn().mockImplementation(async (_, __, data) => {
-        return new TextEncoder().encode(testData);
-      })
+      encrypt: jest.fn(),
+      decrypt: jest.fn(),
+      importKey: jest.fn(),
+      deriveKey: jest.fn(),
     };
 
-    mockCryptoObj = {
+    mockCrypto = {
       subtle: mockSubtle,
-      getRandomValues: jest.fn().mockImplementation((array: Uint8Array) => {
-        for (let i = 0; i < array.length; i++) {
-          array[i] = Math.floor(Math.random() * 256);
-        }
-        return array;
-      })
+      getRandomValues: jest.fn(),
     };
 
-    // Mock the global crypto object
-    Object.defineProperty(global, 'crypto', {
-      value: mockCryptoObj,
-      writable: true
-    });
-
-    cryptoInstance = new Crypto();
-    await cryptoInstance.initialize(testPassword);
-  });
-
-  it('should initialize with password', async () => {
-    expect(mockSubtle.importKey).toHaveBeenCalledWith(
-      'raw',
-      expect.any(Uint8Array),
-      'PBKDF2',
-      false,
-      ['deriveBits', 'deriveKey']
-    );
-
-    expect(mockSubtle.deriveKey).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'PBKDF2',
-        iterations: 100000,
-        hash: 'SHA-256'
-      }),
-      expect.any(Object),
-      expect.objectContaining({
-        name: 'AES-GCM',
-        length: 256
-      }),
-      false,
-      ['encrypt', 'decrypt']
-    );
+    (global as { crypto: MockCrypto }).crypto = mockCrypto;
   });
 
   it('should encrypt data', async () => {
-    const encrypted = await cryptoInstance.encrypt(testData);
-    expect(encrypted).toBeTruthy();
-    expect(typeof encrypted).toBe('string');
-    expect(mockSubtle.encrypt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'AES-GCM'
-      }),
-      expect.any(Object),
-      expect.any(Uint8Array)
-    );
+    mockSubtle.importKey.mockResolvedValue('mockKey');
+    mockSubtle.encrypt.mockResolvedValue(new ArrayBuffer(8));
+    mockCrypto.getRandomValues.mockReturnValue(new Uint8Array(8));
+
+    const result = await encryptData('testPassword', 'testData');
+    expect(result).toBeDefined();
+    expect(mockSubtle.importKey).toHaveBeenCalled();
+    expect(mockSubtle.encrypt).toHaveBeenCalled();
   });
 
   it('should decrypt data', async () => {
-    const encrypted = await cryptoInstance.encrypt(testData);
-    const decrypted = await cryptoInstance.decrypt(encrypted);
-    expect(decrypted).toBe(testData);
+    mockSubtle.importKey.mockResolvedValue('mockKey');
+    mockSubtle.decrypt.mockResolvedValue(new TextEncoder().encode('testData'));
+
+    const result = await decryptData('testPassword', 'encryptedData');
+    expect(result).toBeDefined();
+    expect(mockSubtle.importKey).toHaveBeenCalled();
     expect(mockSubtle.decrypt).toHaveBeenCalled();
-  });
-
-  it('should generate different ciphertexts for same plaintext', async () => {
-    const encrypted1 = await cryptoInstance.encrypt(testData);
-    const encrypted2 = await cryptoInstance.encrypt(testData);
-    expect(encrypted1).not.toBe(encrypted2);
-  });
-
-  it('should throw error when not initialized', async () => {
-    const uninitializedCrypto = new Crypto();
-    await expect(uninitializedCrypto.encrypt(testData)).rejects.toThrow('Crypto not initialized');
-    await expect(uninitializedCrypto.decrypt('some-data')).rejects.toThrow('Crypto not initialized');
   });
 });

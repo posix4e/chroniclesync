@@ -5,9 +5,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../extension/dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: 'src/popup.tsx'
+        index: 'src/index.tsx'
       },
       output: {
         entryFileNames: '[name].js',

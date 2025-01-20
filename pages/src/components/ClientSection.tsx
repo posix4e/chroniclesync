@@ -59,19 +59,38 @@ export function ClientSection({ db }: ClientSectionProps) {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    initializeClient();
+  };
+
+  const openInNewTab = () => {
+    chrome.runtime.sendMessage({ action: 'openInTab' });
+  };
+
   return (
     <div id="clientSection">
       <h2>Client Data</h2>
-      <div>
-        <label htmlFor="clientId">Client ID:</label>
-        <input
-          type="text"
-          id="clientId"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          placeholder="Enter client ID"
-        />
-        <button onClick={initializeClient}>Initialize</button>
+      <form method="post" onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="clientId">Client ID:</label>
+          <input
+            type="text"
+            id="clientId"
+            name="clientId"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Enter client ID"
+            autoComplete="username"
+            aria-label="Client ID"
+          />
+          <button type="submit">Initialize</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>
+        <button onClick={openInNewTab}>
+          Open in New Tab (for Password Managers)
+        </button>
       </div>
       
       {isInitialized && (

@@ -7,7 +7,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async ({}, use) => {
+  context: async ({ }, use) => { // eslint-disable-line no-empty-pattern, @typescript-eslint/no-empty-object-type
     const pathToExtension = path.join(__dirname, '../../../extension');
     const context = await chromium.launchPersistentContext('', {
       headless: true,
@@ -15,7 +15,12 @@ export const test = base.extend<TestFixtures>({
         `--disable-extensions-except=${pathToExtension}`,
         `--load-extension=${pathToExtension}`,
       ],
+      viewport: { width: 1280, height: 720 }
     });
+
+    // Wait for the extension to be fully loaded
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     await use(context);
     await context.close();
   },

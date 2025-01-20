@@ -59,20 +59,30 @@ export function ClientSection({ db }: ClientSectionProps) {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    initializeClient();
+  };
+
   return (
     <div id="clientSection">
       <h2>Client Data</h2>
-      <div>
-        <label htmlFor="clientId">Client ID:</label>
-        <input
-          type="text"
-          id="clientId"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          placeholder="Enter client ID"
-        />
-        <button onClick={initializeClient}>Initialize</button>
-      </div>
+      <form method="post" onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="clientId">Client ID:</label>
+          <input
+            type="text"
+            id="clientId"
+            name="clientId"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Enter client ID"
+            autoComplete="username"
+            aria-label="Client ID"
+          />
+          <button type="submit">Initialize</button>
+        </div>
+      </form>
       
       {isInitialized && (
         <div id="dataSection">

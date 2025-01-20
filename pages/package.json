@@ -5,14 +5,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "tsc && vite build --config vite.config.extension.ts",
+    "build:extension": "tsc -p tsconfig.extension.json && vite build --config vite.config.extension.ts",
+    "build:all": "npm run build && npm run build:extension",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:extension": "playwright test e2e/extension.spec.ts",
+    "test:extension": "playwright test e2e/extension/**/*.ts",
+    "test:all": "npm run test && npm run test:e2e",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "deploy": "wrangler pages deploy dist --project-name chroniclesync-pages"

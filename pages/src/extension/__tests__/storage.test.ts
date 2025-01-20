@@ -2,7 +2,7 @@ import { Storage } from '../../src/storage';
 import { ICrypto } from '../../src/crypto';
 
 class MockCrypto implements ICrypto {
-  async initialize(password: string): Promise<void> {}
+  async initialize(_password: string): Promise<void> {}
 
   async encrypt(data: string): Promise<string> {
     return `encrypted:${data}`;
@@ -16,10 +16,10 @@ class MockCrypto implements ICrypto {
 describe('Storage', () => {
   let storage: Storage;
   let mockCrypto: MockCrypto;
-  let mockIndexedDB: any;
-  let mockStore: any;
-  let mockTransaction: any;
-  let mockDBRequest: any;
+  let mockIndexedDB: IDBFactory;
+  let mockStore: IDBObjectStore;
+  let mockTransaction: IDBTransaction;
+  let mockDBRequest: IDBOpenDBRequest;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -75,7 +75,7 @@ describe('Storage', () => {
       })
     };
 
-    // @ts-ignore
+    // @ts-expect-error Mock indexedDB for testing
     global.indexedDB = mockIndexedDB;
 
     mockCrypto = new MockCrypto();

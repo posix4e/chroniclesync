@@ -4,8 +4,8 @@ describe('Crypto', () => {
   let cryptoInstance: Crypto;
   const testPassword = 'test-password';
   const testData = 'test-data';
-  let mockSubtle: any;
-  let mockCryptoObj: any;
+  let mockSubtle: SubtleCrypto;
+  let mockCryptoObj: Crypto;
 
   beforeEach(async () => {
     // Reset mocks
@@ -16,10 +16,10 @@ describe('Crypto', () => {
     mockSubtle = {
       importKey: jest.fn().mockResolvedValue(mockKey),
       deriveKey: jest.fn().mockResolvedValue(mockKey),
-      encrypt: jest.fn().mockImplementation(async (_, __, data) => {
+      encrypt: jest.fn().mockImplementation(async (_algorithm, _key, data) => {
         return new Uint8Array([...new TextEncoder().encode(data.toString())]);
       }),
-      decrypt: jest.fn().mockImplementation(async (_, __, data) => {
+      decrypt: jest.fn().mockImplementation(async (_algorithm, _key, _data) => {
         return new TextEncoder().encode(testData);
       })
     };

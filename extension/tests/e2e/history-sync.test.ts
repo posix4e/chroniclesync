@@ -16,13 +16,20 @@ test.describe('History Sync', () => {
     // Create a new page and visit some URLs
     const page = await context.newPage();
     
-    // Visit test pages
+    // Visit test pages and capture screenshots
     await page.goto('https://example.com');
+    await page.screenshot({ path: 'test-results/history-first-visit.png' });
+    
     await page.goto('https://test.com');
+    await page.screenshot({ path: 'test-results/history-second-visit.png' });
     
     // Wait for history sync to complete
     // We'll need to implement a way to check this, possibly through extension storage
     await page.waitForTimeout(1000);
+    
+    // Open Chrome History page to verify entries
+    await page.goto('chrome://history');
+    await page.screenshot({ path: 'test-results/chrome-history-page.png' });
 
     // Get the extension background page
     const backgroundPages = context.backgroundPages();
@@ -106,6 +113,15 @@ test.describe('History Sync', () => {
       // Encrypted data should not contain the URL in plaintext
       expect(item.data).not.toContain('example.com');
     }
+
+    // Take a screenshot of the storage data for verification
+    const storagePage = await context.newPage();
+    await storagePage.setContent(`
+      <pre style="white-space: pre-wrap; word-wrap: break-word;">
+        ${JSON.stringify(storageData, null, 2)}
+      </pre>
+    `);
+    await storagePage.screenshot({ path: 'test-results/encrypted-storage-data.png' });
 
     await context.close();
   });

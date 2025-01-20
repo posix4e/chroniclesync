@@ -18,10 +18,10 @@ test.describe('History Sync', () => {
     
     // Visit test pages and capture screenshots
     await page.goto('https://example.com');
-    await page.screenshot({ path: 'test-results/history-first-visit.png' });
+    await page.screenshot({ path: '../pages/test-results/history-first-visit.png' });
     
     await page.goto('https://test.com');
-    await page.screenshot({ path: 'test-results/history-second-visit.png' });
+    await page.screenshot({ path: '../pages/test-results/history-second-visit.png' });
     
     // Wait for history sync to complete
     // We'll need to implement a way to check this, possibly through extension storage
@@ -29,7 +29,7 @@ test.describe('History Sync', () => {
     
     // Open Chrome History page to verify entries
     await page.goto('chrome://history');
-    await page.screenshot({ path: 'test-results/chrome-history-page.png' });
+    await page.screenshot({ path: '../pages/test-results/chrome-history-page.png' });
 
     // Get the extension background page
     const backgroundPages = context.backgroundPages();
@@ -121,7 +121,7 @@ test.describe('History Sync', () => {
         ${JSON.stringify(storageData, null, 2)}
       </pre>
     `);
-    await storagePage.screenshot({ path: 'test-results/encrypted-storage-data.png' });
+    await storagePage.screenshot({ path: '../pages/test-results/encrypted-storage-data.png' });
 
     await context.close();
   });

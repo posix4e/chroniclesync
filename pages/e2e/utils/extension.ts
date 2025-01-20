@@ -8,7 +8,7 @@ export type TestFixtures = {
 
 export const test = base.extend<TestFixtures>({
   context: async ({}, use) => {
-    const pathToExtension = path.join(__dirname, '../../../extension');
+    const pathToExtension = path.join(__dirname, '../../dist/extension');
     const context = await chromium.launchPersistentContext('', {
       headless: true,
       args: [

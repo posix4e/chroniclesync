@@ -15,5 +15,9 @@
   ],
   "host_permissions": [
     "http://localhost:*/*"
-  ]
+  ],
+  "web_accessible_resources": [{
+    "resources": ["index.html"],
+    "matches": ["http://localhost:*/*"]
+  }]
 }

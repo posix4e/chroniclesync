@@ -3,12 +3,15 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
-  "action": {
-    "default_popup": "popup.html"
+  "action": {},
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:*/*"

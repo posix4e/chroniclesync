@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../extension/dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         index: 'src/index.tsx'

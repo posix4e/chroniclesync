@@ -19,26 +19,26 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
-  test('popup should load React app correctly', async ({ context }) => {
-    // Open extension popup directly from extension directory
-    const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+  test('extension window should load React app correctly', async ({ context }) => {
+    // Open extension window directly from extension directory
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`file://${process.cwd()}/../extension/index.html`);
 
     // Wait for the root element to be visible
-    const rootElement = await popupPage.locator('#root');
+    const rootElement = await extensionPage.locator('#root');
     await expect(rootElement).toBeVisible();
 
     // Wait for React to mount and render content
-    await popupPage.waitForLoadState('networkidle');
-    await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
+    await extensionPage.waitForLoadState('networkidle');
+    await extensionPage.waitForTimeout(1000); // Give React a moment to hydrate
 
     // Check for specific app content
-    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-    await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-    await expect(popupPage.locator('#adminLogin')).toBeVisible();
+    await expect(extensionPage.locator('h1')).toHaveText('ChronicleSync');
+    await expect(extensionPage.locator('#adminLogin h2')).toHaveText('Admin Login');
+    await expect(extensionPage.locator('#adminLogin')).toBeVisible();
 
     // Check for React-specific attributes and content
-    const reactRoot = await popupPage.evaluate(() => {
+    const reactRoot = await extensionPage.evaluate(() => {
       const root = document.getElementById('root');
       return root?.hasAttribute('data-reactroot') ||
              (root?.children.length ?? 0) > 0;
@@ -47,17 +47,17 @@ test.describe('Chrome Extension', () => {
 
     // Check for console errors
     const errors: string[] = [];
-    popupPage.on('console', msg => {
+    extensionPage.on('console', msg => {
       if (msg.type() === 'error') {
         errors.push(msg.text());
       }
     });
-    await popupPage.waitForTimeout(1000);
+    await extensionPage.waitForTimeout(1000);
     expect(errors).toEqual([]);
 
-    // Take a screenshot of the popup
-    await popupPage.screenshot({
-      path: 'test-results/extension-popup.png',
+    // Take a screenshot of the extension window
+    await extensionPage.screenshot({
+      path: 'test-results/extension-window.png',
       fullPage: true
     });
   });

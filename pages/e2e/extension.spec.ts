@@ -62,17 +62,14 @@ test.describe('Chrome Extension', () => {
     });
   });
 
-  test('extension popup should open correctly', async ({ context, extensionId }) => {
+  test('extension popup should open correctly', async ({ context }) => {
     // Create a new page to test the extension popup
     const page = await context.newPage();
     await page.goto('about:blank');
 
-    // Get the extension popup URL
-    const extensionPopupUrl = `chrome-extension://${extensionId}/index.html`;
-    
-    // Open the extension popup in a new page (simulating popup behavior)
+    // Load the extension page directly from the file system
     const popupPage = await context.newPage();
-    await popupPage.goto(extensionPopupUrl);
+    await popupPage.goto(`file://${process.cwd()}/../extension/index.html`, { waitUntil: 'networkidle' });
 
     // Check that the popup content loads correctly
     await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');

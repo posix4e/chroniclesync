@@ -15,7 +15,12 @@ export const test = base.extend<TestFixtures>({
         `--disable-extensions-except=${pathToExtension}`,
         `--load-extension=${pathToExtension}`,
       ],
+      viewport: { width: 1280, height: 720 }
     });
+
+    // Wait for the extension to be fully loaded
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     await use(context);
     await context.close();
   },

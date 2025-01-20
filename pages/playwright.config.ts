@@ -11,7 +11,7 @@ export default defineConfig({
   use: {
     baseURL: 'chrome-extension://[extension-id]/',
     trace: 'on-first-retry',
-    headless: false,
+    headless: true,
   },
   projects: [
     {
@@ -20,8 +20,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         launchOptions: {
           args: [
-            '--disable-extensions-except=../extension',
-            '--load-extension=../extension',
+            `--disable-extensions-except=${path.join(__dirname, '../extension')}`,
+            `--load-extension=${path.join(__dirname, '../extension')}`,
           ],
         },
       },

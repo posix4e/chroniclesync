@@ -7,7 +7,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async ({ }, use) => {
+  context: async ({ }, use) => { // eslint-disable-line no-empty-pattern, @typescript-eslint/no-empty-object-type
     const pathToExtension = path.join(__dirname, '../../../extension');
     const context = await chromium.launchPersistentContext('', {
       headless: true,

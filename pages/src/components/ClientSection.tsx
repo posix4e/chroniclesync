@@ -64,6 +64,10 @@ export function ClientSection({ db }: ClientSectionProps) {
     initializeClient();
   };
 
+  const openInNewTab = () => {
+    chrome.runtime.sendMessage({ action: 'openInTab' });
+  };
+
   return (
     <div id="clientSection">
       <h2>Client Data</h2>
@@ -83,6 +87,11 @@ export function ClientSection({ db }: ClientSectionProps) {
           <button type="submit">Initialize</button>
         </div>
       </form>
+      <div style={{ marginTop: '1rem' }}>
+        <button onClick={openInNewTab}>
+          Open in New Tab (for Password Managers)
+        </button>
+      </div>
       
       {isInitialized && (
         <div id="dataSection">

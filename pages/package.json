@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "tsc && vite build --config vite.config.extension.ts",
+    "build:extension": "tsc && vite build && rm -rf ../extension/app/* && cp -r dist/* ../extension/app/",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

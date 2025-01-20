@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChronicleSync Extension",
+  "name": "ChronicleSync",
   "version": "1.0",
-  "description": "ChronicleSync Chrome Extension",
+  "description": "ChronicleSync - IndexedDB Synchronization Service",
   "action": {
     "default_popup": "index.html"
   },
@@ -11,15 +11,10 @@
     "type": "module"
   },
   "permissions": [
-    "activeTab",
-    "scripting",
     "storage"
   ],
-  "host_permissions": [
-    "http://localhost:*/*"
-  ],
   "web_accessible_resources": [{
-    "resources": ["index.html"],
-    "matches": ["http://localhost:*/*"]
+    "resources": ["app/*"],
+    "matches": ["<all_urls>"]
   }]
 }

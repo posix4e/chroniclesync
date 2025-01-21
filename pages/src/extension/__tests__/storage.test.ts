@@ -4,7 +4,8 @@ import 'fake-indexeddb/auto';
 
 // Add structuredClone polyfill
 if (typeof structuredClone === 'undefined') {
-  global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+  (global as { structuredClone?: (obj: unknown) => unknown }).structuredClone = 
+    (obj: unknown) => JSON.parse(JSON.stringify(obj));
 }
 
 class MockCrypto implements ICrypto {
@@ -22,6 +23,7 @@ class MockCrypto implements ICrypto {
 describe('Storage', () => {
   let storage: Storage;
   let mockCrypto: MockCrypto;
+  let originalIndexedDB: IDBFactory;
 
   beforeEach(() => {
     // Mock fetch to fail
@@ -33,8 +35,20 @@ describe('Storage', () => {
     mockCrypto = new MockCrypto();
     storage = new Storage(mockCrypto);
 
-    // Reset indexedDB before each test
-    indexedDB = new IDBFactory();
+    // Save original indexedDB and create a new instance
+    originalIndexedDB = indexedDB;
+    Object.defineProperty(window, 'indexedDB', {
+      value: new IDBFactory(),
+      configurable: true
+    });
+  });
+
+  afterEach(() => {
+    // Restore original indexedDB
+    Object.defineProperty(window, 'indexedDB', {
+      value: originalIndexedDB,
+      configurable: true
+    });
   });
 
   // Increase timeout for all tests

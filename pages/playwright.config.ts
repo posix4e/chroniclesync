@@ -20,12 +20,12 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         launchOptions: {
           args: [
-            '--disable-extensions-except=../extension',
-            '--load-extension=../extension',
+            '--disable-extensions-except=dist/extension',
+            '--load-extension=dist/extension',
           ],
         },
       },
     },
   ],
-  globalSetup: './e2e/global-setup.ts',
+  globalSetup: './e2e/setup/global-setup.ts',
 });

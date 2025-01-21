@@ -22,7 +22,7 @@ test.describe('Chrome Extension', () => {
   test('popup should load React app correctly', async ({ context }) => {
     // Open extension popup directly from extension directory
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(`file://${process.cwd()}/dist/extension/popup.html`);
 
     // Wait for the root element to be visible
     const rootElement = await popupPage.locator('#root');

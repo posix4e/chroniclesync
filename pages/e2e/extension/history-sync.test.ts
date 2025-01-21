@@ -1,14 +1,10 @@
 import { test, expect } from '../utils/extension';
 
 test.describe('History Sync', () => {
-  test.beforeEach(async ({ context }) => {
-    // Create test-results directory
-    const page = await context.newPage();
-    await page.evaluate(() => {
-      const fs = require('fs');
-      fs.mkdirSync('test-results', { recursive: true });
-    });
-    await page.close();
+  test.beforeEach(async () => {
+    // Create test-results directory using Node's fs module
+    const fs = require('fs');
+    fs.mkdirSync('test-results', { recursive: true });
   });
 
   test('should sync browser history', async ({ context }) => {

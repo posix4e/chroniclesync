@@ -39,7 +39,7 @@ jobs:
           zip -r ../chrome-extension.zip extension/
 
       - name: Upload Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
           path: pages/chrome-extension.zip
@@ -85,14 +85,14 @@ jobs:
 
       - name: Upload E2E Test Results
         if: always() && github.event.pull_request.base.ref == 'main'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: pages/playwright-report/
           retention-days: 30
 
       - name: Upload Test Screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-screenshots
           path: |

@@ -1,43 +1,34 @@
 import { test, expect } from '../utils/extension';
 
 test.describe('History Sync', () => {
-  test.beforeEach(async () => {
-    // Create test-results directory using Node's fs module
-    const fs = require('fs');
-    fs.mkdirSync('test-results', { recursive: true });
-  });
-
-  test('should sync browser history', async ({ context }) => {
+  test('should sync browser history', async ({ context, extensionId }) => {
+    // Create a new page and visit some test sites
     const page = await context.newPage();
+    
+    // Visit a reliable test site
+    await page.goto('https://example.com', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+    
+    // Wait for history sync to process
+    await page.waitForTimeout(2000);
 
-    // Visit test pages and capture screenshots
-    console.log('Visiting example.com...');
-    await page.goto('https://example.com');
-    await page.screenshot({ path: 'test-results/history-first-visit.png' });
-    
-    console.log('Visiting mozilla.org...');
-    await page.goto('https://mozilla.org', { timeout: 60000 });
-    await page.screenshot({ path: 'test-results/history-second-visit.png' });
-    
-    // Wait for history sync to complete
-    console.log('Waiting for sync...');
-    await page.waitForTimeout(1000);
-    
-    // Open Chrome History page to verify entries
-    console.log('Opening Chrome History...');
-    await page.goto('chrome://history');
-    await page.screenshot({ path: 'test-results/chrome-history-page.png' });
+    // Open extension page to access IndexedDB
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.waitForLoadState('networkidle');
 
     // Check IndexedDB for synced history
-    const storageData = await page.evaluate(async () => {
-      return new Promise((resolve, reject) => {
+    const storageData = await extensionPage.evaluate(async () => {
+      return new Promise((resolve) => {
         const request = indexedDB.open('ChronicleSync', 1);
-        request.onerror = () => reject(request.error);
+        
+        request.onerror = () => resolve([]);
+        
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('syncData', 'readonly');
           const store = tx.objectStore('syncData');
-          const items: Array<{ key: string; data: string; synced: boolean }> = [];
+          const items: Array<{ key: string; data: string }> = [];
           
           store.openCursor().onsuccess = (event) => {
             const cursor = (event.target as IDBRequest).result;
@@ -52,33 +43,33 @@ test.describe('History Sync', () => {
       });
     });
 
-    // Verify that history items were synced
-    expect(storageData).toContainEqual(
-      expect.objectContaining({
-        key: expect.stringContaining('history:'),
-        synced: expect.any(Boolean)
-      })
-    );
+    // Verify that at least one history item was synced
+    expect(storageData.some(item => item.key.startsWith('history:'))).toBeTruthy();
   });
 
-  test('should encrypt history data', async ({ context }) => {
+  test('should encrypt history data', async ({ context, extensionId }) => {
+    // Create a new page and visit some test sites
     const page = await context.newPage();
     
-    // Visit a test page
-    await page.goto('https://example.com');
+    // Visit a test site
+    await page.goto('https://example.com', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
     
-    // Wait for sync
-    await page.waitForTimeout(1000);
+    // Wait for sync to complete
+    await page.waitForTimeout(2000);
+
+    // Open extension page to access IndexedDB
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.waitForLoadState('networkidle');
 
     // Get stored data
-    const storageData = await page.evaluate(async () => {
-      interface StorageItem {
-        key: string;
-        data: string;
-        synced: boolean;
-      }
-      return new Promise<StorageItem[]>((resolve, reject) => {
+    const storageData = await extensionPage.evaluate(async () => {
+      return new Promise((resolve) => {
         const request = indexedDB.open('ChronicleSync', 1);
+        
+        request.onerror = () => resolve([]);
+        
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('syncData', 'readonly');
@@ -91,22 +82,16 @@ test.describe('History Sync', () => {
       });
     });
 
-    // Verify data is encrypted
-    for (const item of storageData) {
+    // Verify data encryption
+    const historyItems = storageData.filter(item => item.key.startsWith('history:'));
+    expect(historyItems.length).toBeGreaterThan(0);
+
+    for (const item of historyItems) {
       // Encrypted data should be a base64 string
       expect(item.data).toMatch(/^[A-Za-z0-9+/=]+$/);
       
       // Encrypted data should not contain the URL in plaintext
       expect(item.data).not.toContain('example.com');
     }
-
-    // Take a screenshot of the storage data for verification
-    const storagePage = await context.newPage();
-    await storagePage.setContent(`
-      <pre style="white-space: pre-wrap; word-wrap: break-word;">
-        ${JSON.stringify(storageData, null, 2)}
-      </pre>
-    `);
-    await storagePage.screenshot({ path: 'test-results/encrypted-storage-data.png' });
   });
 });

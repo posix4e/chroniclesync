@@ -8,7 +8,9 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "history",
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:*/*"

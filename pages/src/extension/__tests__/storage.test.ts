@@ -23,8 +23,6 @@ class MockCrypto implements ICrypto {
 describe('Storage', () => {
   let storage: Storage;
   let mockCrypto: MockCrypto;
-  let originalIndexedDB: IDBFactory;
-
   beforeEach(() => {
     // Mock fetch to fail
     global.fetch = jest.fn().mockImplementation(() => 
@@ -34,21 +32,6 @@ describe('Storage', () => {
     // Create a new instance of Storage and MockCrypto
     mockCrypto = new MockCrypto();
     storage = new Storage(mockCrypto);
-
-    // Save original indexedDB and create a new instance
-    originalIndexedDB = indexedDB;
-    Object.defineProperty(window, 'indexedDB', {
-      value: new IDBFactory(),
-      configurable: true
-    });
-  });
-
-  afterEach(() => {
-    // Restore original indexedDB
-    Object.defineProperty(window, 'indexedDB', {
-      value: originalIndexedDB,
-      configurable: true
-    });
   });
 
   // Increase timeout for all tests

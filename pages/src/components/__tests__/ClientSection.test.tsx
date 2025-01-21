@@ -8,13 +8,13 @@ import React from 'react';
 
 // Mock the DB class
 const mockDb = {
-    init: jest.fn(),
-    getData: jest.fn().mockResolvedValue({ key: 'value' }),
-    setData: jest.fn(),
-    clientId: '123',
-    db: {},
-    _clientId: '123',
-  } as unknown as DB;
+  init: jest.fn(),
+  getData: jest.fn().mockResolvedValue({ key: 'value' }),
+  setData: jest.fn(),
+  clientId: '123',
+  db: {},
+  _clientId: '123',
+} as unknown as DB;
 
 global.fetch = jest.fn();
 global.alert = jest.fn();
@@ -83,8 +83,8 @@ describe('ClientSection Component', () => {
     await waitFor(() => expect(mockDb.getData).toHaveBeenCalled());
   
     fireEvent.change(screen.getByRole('textbox', { name: '' }), {
-        target: { value: '{invalidJson}' },
-      });
+      target: { value: '{invalidJson}' },
+    });
       
   
     fireEvent.click(screen.getByText('Save Data'));

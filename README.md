@@ -175,26 +175,6 @@ npm run build:extension
    - Test autofill with 1Password or other password managers
    - Verify form submission works with autofilled credentials
 
-### Password Manager Integration
-
-The extension is optimized for password managers with:
-
-1. Semantic HTML structure:
-   - Proper `<form>` element with `method="post"`
-   - Explicit labels with `for` attributes
-   - Standard field names (`username`, `password`)
-
-2. Password Manager Hints:
-   - `autocomplete="username"` and `autocomplete="current-password"`
-   - ARIA labels for accessibility
-   - Consistent field IDs and names
-   - Standard form submission behavior
-
-3. Window Behavior:
-   - Opens in dedicated window for better detection
-   - Fixed dimensions and positioning
-   - Clean DOM structure
-   - No iframes or complex overlays
 
 ### Test Coverage
 - Frontend: Unit tests for React components, hooks, and utility functions

@@ -17,12 +17,22 @@ describe('Crypto', () => {
       importKey: jest.fn().mockResolvedValue(mockKey),
       deriveKey: jest.fn().mockResolvedValue(mockKey),
       encrypt: jest.fn().mockImplementation(async (_algorithm, _key, data) => {
-        return new Uint8Array([...new TextEncoder().encode(data.toString())]);
+        const encoder = new TextEncoder();
+        return encoder.encode(data.toString());
       }),
       decrypt: jest.fn().mockImplementation(async (_algorithm, _key, _data) => {
-        return new TextEncoder().encode(testData);
-      })
-    };
+        const encoder = new TextEncoder();
+        return encoder.encode(testData);
+      }),
+      deriveBits: jest.fn(),
+      digest: jest.fn(),
+      exportKey: jest.fn(),
+      generateKey: jest.fn(),
+      sign: jest.fn(),
+      unwrapKey: jest.fn(),
+      verify: jest.fn(),
+      wrapKey: jest.fn()
+    } as SubtleCrypto;
 
     mockCryptoObj = {
       subtle: mockSubtle,
@@ -32,7 +42,7 @@ describe('Crypto', () => {
         }
         return array;
       })
-    };
+    } as unknown as Crypto;
 
     // Mock the global crypto object
     Object.defineProperty(global, 'crypto', {

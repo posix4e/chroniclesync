@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "tsc -p tsconfig.extension.json && vite build --config vite.config.extension.ts",
+    "build:extension": "tsc -p tsconfig.extension.json && vite build --config vite.config.extension.ts && vite build --config vite.config.background.ts",
     "build:all": "npm run build && npm run build:extension",
     "preview": "vite preview",
     "test": "jest",

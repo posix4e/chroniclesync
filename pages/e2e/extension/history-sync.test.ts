@@ -41,10 +41,10 @@ test.describe('History Sync', () => {
           const db = request.result;
           const tx = db.transaction('syncData', 'readonly');
           const store = tx.objectStore('syncData');
-          const items = [];
+          const items: Array<{ key: string; data: string; synced: boolean }> = [];
           
           store.openCursor().onsuccess = (event) => {
-            const cursor = event.target.result;
+            const cursor = (event.target as IDBRequest).result;
             if (cursor) {
               items.push(cursor.value);
               cursor.continue();
@@ -76,7 +76,12 @@ test.describe('History Sync', () => {
 
     // Get stored data
     const storageData = await page.evaluate(async () => {
-      return new Promise((resolve, reject) => {
+      interface StorageItem {
+        key: string;
+        data: string;
+        synced: boolean;
+      }
+      return new Promise<StorageItem[]>((resolve, reject) => {
         const request = indexedDB.open('ChronicleSync', 1);
         request.onsuccess = () => {
           const db = request.result;
@@ -84,7 +89,7 @@ test.describe('History Sync', () => {
           const store = tx.objectStore('syncData');
           
           store.getAll().onsuccess = (event) => {
-            resolve(event.target.result);
+            resolve((event.target as IDBRequest).result);
           };
         };
       });

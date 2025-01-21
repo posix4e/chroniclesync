@@ -27,14 +27,11 @@ export default defineConfig({
   build: {
     outDir: 'dist/extension',
     rollupOptions: {
-      input: {
-        popup: 'src/popup.tsx',
-        background: 'src/extension/background.ts'
-      },
+      input: 'src/popup.tsx',
       output: {
-        entryFileNames: '[name].js',
+        entryFileNames: 'popup.js',
         format: 'iife',
-        inlineDynamicImports: true
+        dir: 'dist/extension'
       }
     }
   }

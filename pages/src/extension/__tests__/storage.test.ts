@@ -1,5 +1,5 @@
-import { Storage } from '../../src/storage';
-import { ICrypto } from '../../src/crypto';
+import { Storage } from '../storage';
+import { ICrypto } from '../crypto';
 
 class MockCrypto implements ICrypto {
   async initialize(_password: string): Promise<void> {}
@@ -36,7 +36,6 @@ describe('Storage', () => {
           onsuccess: jest.fn(),
           onerror: jest.fn()
         };
-        request.onsuccess({});
         return request;
       }),
       get: jest.fn().mockImplementation(() => {
@@ -44,21 +43,20 @@ describe('Storage', () => {
           onsuccess: jest.fn(),
           onerror: jest.fn()
         };
-        request.onsuccess({});
         return request;
       })
-    };
+    } as unknown as IDBObjectStore;
 
     mockTransaction = {
       objectStore: jest.fn().mockReturnValue(mockStore),
-      oncomplete: jest.fn(),
-      onerror: jest.fn(),
+      oncomplete: null,
+      onerror: null,
       complete: false
-    };
+    } as unknown as IDBTransaction;
 
     const mockDB = {
       transaction: jest.fn().mockReturnValue(mockTransaction)
-    };
+    } as unknown as IDBDatabase;
 
     mockDBRequest = {
       onerror: jest.fn(),
@@ -66,14 +64,13 @@ describe('Storage', () => {
       onupgradeneeded: jest.fn(),
       result: mockDB,
       error: null
-    };
+    } as unknown as IDBOpenDBRequest;
 
     mockIndexedDB = {
       open: jest.fn().mockImplementation(() => {
-        mockDBRequest.onsuccess({ target: mockDBRequest });
         return mockDBRequest;
       })
-    };
+    } as unknown as IDBFactory;
 
     // @ts-expect-error Mock indexedDB for testing
     global.indexedDB = mockIndexedDB;
@@ -93,8 +90,18 @@ describe('Storage', () => {
     // Start the storage operation
     const storagePromise = storage.store(key, data);
 
+    // Simulate IndexedDB open success
+    if (mockDBRequest.onsuccess) {
+      mockDBRequest.onsuccess({ target: mockDBRequest } as Event);
+    }
+
     // Simulate transaction completion
-    mockTransaction.oncomplete();
+    if (mockTransaction.oncomplete) {
+      mockTransaction.oncomplete({} as Event);
+    }
+
+    // Advance timers
+    jest.advanceTimersByTime(1000);
 
     // Wait for the operation to complete
     await storagePromise;
@@ -107,7 +114,7 @@ describe('Storage', () => {
       data: expect.stringContaining('encrypted:'),
       synced: false
     }));
-  }, 30000);
+  });
 
   it('should handle IndexedDB errors', async () => {
     const key = 'test-key';
@@ -120,15 +127,19 @@ describe('Storage', () => {
         onsuccess: jest.fn(),
         onupgradeneeded: jest.fn(),
         error: new Error('IndexedDB error')
-      };
+      } as unknown as IDBOpenDBRequest;
 
-      request.onerror({ target: request });
+      // Trigger error immediately
+      if (request.onerror) {
+        request.onerror({ target: request } as Event);
+      }
+
       return request;
     });
 
     // Start the storage operation and expect it to fail
     await expect(storage.store(key, data)).rejects.toThrow('IndexedDB error');
-  }, 30000);
+  });
 
   it('should store encrypted data', async () => {
     const key = 'test-key';
@@ -137,8 +148,18 @@ describe('Storage', () => {
     // Start the storage operation
     const storagePromise = storage.store(key, data);
 
+    // Simulate IndexedDB open success
+    if (mockDBRequest.onsuccess) {
+      mockDBRequest.onsuccess({ target: mockDBRequest } as Event);
+    }
+
     // Simulate transaction completion
-    mockTransaction.oncomplete();
+    if (mockTransaction.oncomplete) {
+      mockTransaction.oncomplete({} as Event);
+    }
+
+    // Advance timers
+    jest.advanceTimersByTime(1000);
 
     // Wait for the operation to complete
     await storagePromise;
@@ -149,5 +170,5 @@ describe('Storage', () => {
       data: expect.stringContaining('encrypted:'),
       synced: false
     }));
-  }, 30000);
+  });
 });

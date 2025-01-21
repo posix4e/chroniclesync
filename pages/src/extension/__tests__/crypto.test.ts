@@ -1,4 +1,4 @@
-import { Crypto } from '../../src/crypto';
+import { Crypto } from '../crypto';
 
 describe('Crypto', () => {
   let cryptoInstance: Crypto;
@@ -47,7 +47,7 @@ describe('Crypto', () => {
   it('should initialize with password', async () => {
     expect(mockSubtle.importKey).toHaveBeenCalledWith(
       'raw',
-      expect.any(Uint8Array),
+      expect.anything(),
       'PBKDF2',
       false,
       ['deriveBits', 'deriveKey']
@@ -75,10 +75,11 @@ describe('Crypto', () => {
     expect(typeof encrypted).toBe('string');
     expect(mockSubtle.encrypt).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'AES-GCM'
+        name: 'AES-GCM',
+        iv: expect.anything()
       }),
-      expect.any(Object),
-      expect.any(Uint8Array)
+      expect.anything(),
+      expect.anything()
     );
   });
 

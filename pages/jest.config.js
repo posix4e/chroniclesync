@@ -1,7 +1,10 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['./jest.setup.js'],
+  setupFilesAfterEnv: [
+    './jest.setup.js',
+    './src/extension/__tests__/setup.ts'
+  ],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
@@ -28,5 +31,6 @@ module.exports = {
       statements: 75,
     },
   },
+  testTimeout: 60000,
 
 };

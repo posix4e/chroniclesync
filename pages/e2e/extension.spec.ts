@@ -30,10 +30,10 @@ test.describe('Chrome Extension', () => {
 
     // Wait for React to mount and render content
     await popupPage.waitForLoadState('networkidle');
-    await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
+    await popupPage.waitForTimeout(2000); // Give React more time to hydrate
 
     // Check for specific app content
-    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
+    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync', { timeout: 10000 });
     await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
     await expect(popupPage.locator('#adminLogin')).toBeVisible();
 

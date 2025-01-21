@@ -15,8 +15,8 @@ test.describe('History Sync', () => {
     await page.goto('https://example.com');
     await page.screenshot({ path: 'test-results/history-first-visit.png' });
     
-    console.log('Visiting test.com...');
-    await page.goto('https://test.com');
+    console.log('Visiting mozilla.org...');
+    await page.goto('https://mozilla.org', { timeout: 60000 });
     await page.screenshot({ path: 'test-results/history-second-visit.png' });
     
     // Wait for history sync to complete

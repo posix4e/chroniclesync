@@ -9,9 +9,15 @@ const chrome = {
 };
 
 // Add Chrome to global scope
-(global as any).chrome = chrome;
+interface ExtendedGlobal extends NodeJS.Global {
+  chrome: typeof chrome;
+  TextEncoder: typeof TextEncoder;
+  TextDecoder: typeof TextDecoder;
+}
+
+(global as ExtendedGlobal).chrome = chrome;
 
 // Add TextEncoder/TextDecoder
-const { TextEncoder, TextDecoder } = require('util');
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+import { TextEncoder, TextDecoder } from 'util';
+(global as ExtendedGlobal).TextEncoder = TextEncoder;
+(global as ExtendedGlobal).TextDecoder = TextDecoder;

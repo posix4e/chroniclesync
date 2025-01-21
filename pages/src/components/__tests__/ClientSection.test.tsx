@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ClientSection } from '../ClientSection';
 import { DB } from '../../utils/db';
 import { API_URL } from '../../utils/api';
+import React from 'react';
+
 
 // Mock the DB class
 const mockDb = {

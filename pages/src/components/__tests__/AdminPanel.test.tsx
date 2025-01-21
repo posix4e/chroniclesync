@@ -2,6 +2,8 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AdminPanel } from '../AdminPanel';
 import { API_URL } from '../../utils/api';
+import React from 'react';
+
 
 global.fetch = jest.fn() as jest.Mock;
 

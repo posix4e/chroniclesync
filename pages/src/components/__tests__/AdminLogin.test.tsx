@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AdminLogin } from '../AdminLogin';
+import React from 'react';
+
 
 describe('AdminLogin Component', () => {
   it('renders input and button correctly', () => {

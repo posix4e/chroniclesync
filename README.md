@@ -21,6 +21,8 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
   - Administrative dashboard
   - Cross-browser compatibility
   - Chrome extension support
+  - Browser history synchronization
+  - Offline history tracking
 
 ## 🏗️ Architecture
 
@@ -39,12 +41,39 @@ ChronicleSync consists of three main components:
    - Password manager integration
    - Direct IndexedDB management
    - Optimized for 1Password and other password managers
+   - Real-time history synchronization
+   - History API integration (pushState, replaceState)
+   - Offline history tracking and merge
 
 3. **Backend (Cloudflare Worker)**
    - Serverless architecture
    - Efficient data synchronization
    - Metadata management
    - Security middleware
+
+### History Architecture
+
+The history synchronization system is built on several key components:
+
+1. **Background Service**
+   - Service worker-based background script
+   - Real-time history event monitoring
+   - Cross-browser state management
+   - Conflict resolution for concurrent updates
+
+2. **History Management**
+   - Full History API integration
+   - IndexedDB-based storage
+   - Offline-first approach
+   - Automatic state reconciliation
+   - Cross-browser synchronization
+
+3. **Testing Infrastructure**
+   - Comprehensive unit tests for sync logic
+   - Visual regression testing
+   - Multi-browser scenario testing
+   - Network condition simulation
+   - Automated screenshot comparisons
 
 ## 🚀 Getting Started
 

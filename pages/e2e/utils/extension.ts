@@ -9,7 +9,7 @@ export type TestFixtures = {
 
 export const test = base.extend<TestFixtures>({
   context: async ({}, use) => {
-    const pathToExtension = path.join(__dirname, '../../../extension');
+    const pathToExtension = path.join(__dirname, '../../../extension/dist');
     const userDataDir = path.join(__dirname, '../../../test-user-data');
 
     // Clean up user data directory
@@ -29,13 +29,18 @@ export const test = base.extend<TestFixtures>({
     });
 
     // Wait for the extension to be loaded
+    console.log('Extension path:', pathToExtension);
+    console.log('User data dir:', userDataDir);
     let extensionLoaded = false;
     let extensionId = '';
     for (let i = 0; i < 10; i++) {
       // Check if the extension directory exists in the user data directory
+      console.log('Checking for extension directory...');
       const extensionsDir = path.join(userDataDir, 'Default', 'Extensions');
       if (fs.existsSync(extensionsDir)) {
+        console.log('Extensions directory found:', extensionsDir);
         const extensions = fs.readdirSync(extensionsDir);
+        console.log('Extensions found:', extensions);
         if (extensions.length > 0) {
           extensionId = extensions[0];
           extensionLoaded = true;

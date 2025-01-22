@@ -1,4 +1,5 @@
 # Dependencies
+test-user-data/
 node_modules/
 .pnp/
 .pnp.js

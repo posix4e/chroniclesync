@@ -8,7 +8,7 @@ global.chrome = {
   runtime: {
     sendMessage: mockSendMessage
   }
-} as Partial<typeof chrome>;
+} as unknown as typeof chrome;
 
 // Mock window.history
 const mockPushState = vi.fn();

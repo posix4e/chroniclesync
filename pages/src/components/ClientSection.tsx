@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DB } from '../utils/db';
 import { API_URL } from '../utils/api';
+import { HistorySection } from './HistorySection';
 
 interface ClientSectionProps {
   db: DB;
@@ -87,6 +88,7 @@ export function ClientSection({ db }: ClientSectionProps) {
           <br />
           <button onClick={saveData}>Save Data</button>
           <button onClick={syncData}>Sync with Server</button>
+          {isInitialized && <HistorySection db={db} />}
         </div>
       )}
     </div>

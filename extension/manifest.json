@@ -8,9 +8,21 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "history",
+    "storage",
+    "unlimitedStorage",
+    "tabs"
   ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "host_permissions": [
-    "http://localhost:*/*"
-  ]
+    "http://localhost:*/*",
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

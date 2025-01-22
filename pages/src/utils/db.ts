@@ -1,3 +1,14 @@
+export interface HistoryEntry {
+  timestamp: number;
+  action: string;
+  data: {
+    url?: string;
+    [key: string]: unknown;
+  };
+  clientId: string;
+  synced?: boolean;
+}
+
 export class DB {
   private db: IDBDatabase | null = null;
   private _clientId: string | null = null;
@@ -8,20 +19,28 @@ export class DB {
 
   async init(clientId: string): Promise<void> {
     this._clientId = clientId;
+
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(`sync_${clientId}`, 1);
+      const request = indexedDB.open('chronicleSync', 1);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains('data')) {
           db.createObjectStore('data');
         }
+        if (!db.objectStoreNames.contains('history')) {
+          const historyStore = db.createObjectStore('history', { keyPath: 'timestamp' });
+          historyStore.createIndex('action', 'action', { unique: false });
+          historyStore.createIndex('clientId', 'clientId', { unique: false });
+          historyStore.createIndex('synced', 'synced', { unique: false });
+        }
+      };
+
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
       };
     });
   }
@@ -52,7 +71,8 @@ export class DB {
         timestamp: Date.now(),
         action: 'setData',
         data,
-        clientId: this._clientId
+        clientId: this._clientId,
+        synced: false
       };
 
       request.onerror = () => reject(request.error);
@@ -61,6 +81,40 @@ export class DB {
         historyRequest.onerror = () => reject(historyRequest.error);
         historyRequest.onsuccess = () => resolve();
       };
+    });
+  }
+
+  async getHistory(): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['history'], 'readonly');
+      const store = transaction.objectStore('history');
+      const request = store.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+  }
+
+  async addHistoryEntry(action: string, data: any): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['history'], 'readwrite');
+      const store = transaction.objectStore('history');
+
+      const entry: HistoryEntry = {
+        timestamp: Date.now(),
+        action,
+        data,
+        clientId: this._clientId!,
+        synced: false
+      };
+
+      const request = store.add(entry);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
     });
   }
 
@@ -76,13 +130,13 @@ export class DB {
 
       timestamps.forEach(timestamp => {
         const request = store.get(timestamp);
-        
+
         request.onsuccess = () => {
           const entry = request.result;
           if (entry) {
             entry.synced = true;
             const updateRequest = store.put(entry);
-            
+
             updateRequest.onsuccess = () => {
               completed++;
               if (completed + errors === timestamps.length) {
@@ -93,7 +147,7 @@ export class DB {
                 }
               }
             };
-            
+
             updateRequest.onerror = () => {
               errors++;
               if (completed + errors === timestamps.length) {
@@ -102,7 +156,7 @@ export class DB {
             };
           }
         };
-        
+
         request.onerror = () => {
           errors++;
           if (completed + errors === timestamps.length) {

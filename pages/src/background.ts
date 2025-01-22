@@ -1,14 +1,13 @@
-interface HistoryEntry {
+import { HistoryEntry } from './utils/db';
+
+interface ChromeHistoryEntry {
   url: string;
   title: string;
-  timestamp: number;
-  favicon?: string;
-  visitCount: number;
   lastVisitTime: number;
 }
 
 interface SyncedData {
-  history?: { [url: string]: HistoryEntry };
+  history?: HistoryEntry[];
 }
 
 // Initialize the extension
@@ -25,7 +24,7 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'https://api-staging.chroniclesync.xyz';
 
 // Keep track of our synced history
-let syncedHistory: { [url: string]: HistoryEntry } = {};
+let syncedHistory: HistoryEntry[] = [];
 
 // Function to sync with the worker
 async function syncWithWorker() {
@@ -45,24 +44,23 @@ async function syncWithWorker() {
 
 // Listen for history changes
 chrome.history.onVisited.addListener(async (result) => {
-  // Get the favicon URL
-  let faviconUrl: string | undefined;
-  try {
-    const domain = new URL(result.url).origin;
-    faviconUrl = `${domain}/favicon.ico`;
-  } catch {
-    // Failed to get favicon URL
-  }
+  if (!result.url) return;
 
-  // Update our synced history
-  syncedHistory[result.url] = {
-    url: result.url,
-    title: result.title || '',
+  // Create history entry
+  const entry: HistoryEntry = {
     timestamp: Date.now(),
-    favicon: faviconUrl,
-    visitCount: (syncedHistory[result.url]?.visitCount || 0) + 1,
-    lastVisitTime: Date.now()
+    action: 'navigation',
+    data: {
+      url: result.url,
+      title: result.title || '',
+      lastVisitTime: result.lastVisitTime
+    },
+    clientId: chrome.runtime.id,
+    synced: false
   };
+
+  // Add to synced history
+  syncedHistory.push(entry);
 
   // Send to worker using existing API
   try {
@@ -88,7 +86,8 @@ chrome.history.onVisited.addListener(async (result) => {
     try {
       chrome.runtime.sendMessage(clientId, {
         type: 'HISTORY_UPDATED',
-        data: syncedHistory[result.url]
+        action: 'navigation',
+        data: entry.data
       });
     } catch (error) {
       console.error(`Failed to send history update to client ${clientId}:`, error);
@@ -117,14 +116,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Get history from both local browser and synced data
     Promise.all([
       // Get local browser history
-      new Promise((resolve) => {
+      new Promise<HistoryEntry[]>((resolve) => {
         chrome.history.search({ text: '', maxResults: 100 }, (results) => {
           resolve(results.map(result => ({
-            url: result.url,
-            title: result.title || '',
-            timestamp: result.lastVisitTime,
-            visitCount: 1,
-            lastVisitTime: result.lastVisitTime
+            timestamp: result.lastVisitTime || Date.now(),
+            action: 'navigation',
+            data: {
+              url: result.url || '',
+              title: result.title || '',
+              lastVisitTime: result.lastVisitTime
+            },
+            clientId: chrome.runtime.id,
+            synced: false
           })));
         });
       }),
@@ -132,12 +135,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       syncWithWorker()
     ]).then(([localHistory]) => {
       // Merge local history with synced history
-      localHistory.forEach((entry: HistoryEntry) => {
-        if (!syncedHistory[entry.url] || entry.lastVisitTime > syncedHistory[entry.url].lastVisitTime) {
-          syncedHistory[entry.url] = entry;
+      const mergedHistory = [...syncedHistory];
+      for (const entry of localHistory) {
+        const existingEntry = mergedHistory.find(e => 
+          e.data && typeof e.data === 'object' && 'url' in e.data && 
+          entry.data && typeof entry.data === 'object' && 'url' in entry.data &&
+          (e.data as { url: string }).url === (entry.data as { url: string }).url
+        );
+        if (!existingEntry) {
+          mergedHistory.push(entry);
         }
-      });
-      sendResponse(Object.values(syncedHistory));
+      }
+      sendResponse(mergedHistory);
     }).catch(error => {
       console.error('Failed to get history:', error);
       sendResponse([]);
@@ -153,7 +162,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }),
       // Delete from synced data
       (async () => {
-        delete syncedHistory[message.url];
+        syncedHistory = syncedHistory.filter(entry => 
+          !(entry.data && typeof entry.data === 'object' && 'url' in entry.data && 
+            (entry.data as { url: string }).url === message.url)
+        );
         await fetch(`${API_URL}?clientId=${chrome.runtime.id}`, {
           method: 'POST',
           headers: {
@@ -181,7 +193,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }),
       // Clear synced data
       (async () => {
-        syncedHistory = {};
+        syncedHistory = [];
         await fetch(`${API_URL}?clientId=${chrome.runtime.id}`, {
           method: 'POST',
           headers: {

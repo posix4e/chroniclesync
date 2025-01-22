@@ -129,15 +129,21 @@ ChronicleSync includes comprehensive testing across all components:
 ### Prerequisites
 For E2E tests, you need:
 
-1. Playwright browsers:
+1. Build the extension first:
+```bash
+cd pages
+npm run build:extension
+```
+
+2. Playwright browsers:
 ```bash
 npx playwright install chromium
 ```
 
-2. X Virtual Frame Buffer (Xvfb) for running tests in environments without a display server:
+3. X Virtual Frame Buffer (Xvfb) for running tests in environments without a display server:
 ```bash
 # On Debian/Ubuntu
-sudo apt-get install -y xvfb
+sudo apt-get install -y xvfb libevent-2.1*
 
 # On CentOS/RHEL
 sudo yum install -y xorg-x11-server-Xvfb
@@ -149,16 +155,30 @@ sudo yum install -y xorg-x11-server-Xvfb
 sudo apt-get install -y xvfb
 ```
 
+⚠️ IMPORTANT TESTING REQUIREMENTS:
+1. ALWAYS build the extension before running tests
+2. NEVER use headless mode (it breaks extension functionality)
+3. ALWAYS use Xvfb for environments without a display server
+4. Visual tests require a display server for screenshot comparisons
+
 To run tests with Xvfb:
 ```bash
-# Run a single test
+# Build extension first
+cd pages
+npm run build:extension
+
+# Then run tests with Xvfb
 xvfb-run npm run test:e2e
 
 # Run tests in watch mode
 xvfb-run npm run test:e2e -- --watch
 ```
 
-Note: Xvfb is required because the Chrome extension opens in a new window and needs to interact with password managers, which requires a display server. Running in headless mode would limit our ability to test these interactions.
+Note: Xvfb is required because:
+1. The Chrome extension opens in a new window
+2. Visual tests need to capture screenshots
+3. Password manager integration requires a display server
+4. Running in headless mode would break these functionalities
 
 ### Running Tests
 ```bash

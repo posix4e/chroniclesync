@@ -69,3 +69,7 @@ worker-configuration.json
 
 # Yarn Integrity file
 .yarn-integrity
+
+extension/assets/
+extension/background.js
+extension/popup.js

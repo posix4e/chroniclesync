@@ -32,24 +32,21 @@ export function HistorySection({ db }: HistorySectionProps) {
   useEffect(() => {
     if (db.clientId && !historyManager) {
       const manager = new HistoryManager(db);
-      manager.init().then(() => {
-        setHistoryManager(manager);
-        // Connect to background script
-        chrome.runtime.sendMessage({ type: 'CONNECT_CLIENT' });
-        setSyncStatus(prev => ({ ...prev, status: 'synced' }));
-      }).catch(() => {
-        setSyncStatus(prev => ({ ...prev, status: 'error' }));
-      });
+      setHistoryManager(manager);
+      // Connect to background script
+      chrome.runtime.sendMessage({ type: 'CONNECT_CLIENT' });
+      setSyncStatus(prev => ({ ...prev, status: 'synced' }));
 
       // Update sync status based on online/offline state
       const handleOnline = () => {
         setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
-        manager.syncPendingChanges().then(() => {
+        manager.getHistory().then(entries => {
+          setHistory(entries);
           setSyncStatus(prev => ({ 
             ...prev, 
             status: 'synced',
             lastSyncTime: Date.now(),
-            pendingChanges: 0
+            pendingChanges: entries.filter(e => !e.synced).length
           }));
         });
       };

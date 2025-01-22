@@ -2,12 +2,14 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    outDir: '../extension/dist',
+    outDir: '../extension',
+    emptyOutDir: false,
     rollupOptions: {
       input: 'src/background.ts',
       output: {
         entryFileNames: 'background.js',
-        format: 'iife'
+        format: 'iife',
+        inlineDynamicImports: true
       }
     }
   }

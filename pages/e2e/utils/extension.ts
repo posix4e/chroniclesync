@@ -9,7 +9,7 @@ export type TestFixtures = {
 
 export const test = base.extend<TestFixtures>({
   context: async ({}, use) => {
-    const pathToExtension = path.join(__dirname, '../../../extension/dist');
+    const pathToExtension = path.join(__dirname, '../../../extension');
     const userDataDir = path.join(__dirname, '../../../test-user-data');
 
     // Clean up user data directory
@@ -19,12 +19,15 @@ export const test = base.extend<TestFixtures>({
 
     // Create a new browser context with the extension
     const context = await chromium.launchPersistentContext(userDataDir, {
-      headless: true,
+      headless: false,  // Never use headless mode for extension testing
       args: [
         `--disable-extensions-except=${pathToExtension}`,
         `--load-extension=${pathToExtension}`,
         '--no-sandbox',
         '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
       ],
     });
 

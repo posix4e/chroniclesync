@@ -7,6 +7,14 @@ export default defineConfig({
     baseURL: 'chrome-extension://[extension-id]/',
     trace: 'on-first-retry',
     headless: false,
+    screenshot: 'on',
+    video: 'retain-on-failure',
+  },
+  
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
   },
   projects: [
     {

@@ -34,43 +34,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!sender.id) return;
 
   switch (message.type) {
-    case 'CONNECT_CLIENT':
-      connectedClients.add(sender.id);
-      sendResponse({ success: true });
-      break;
+  case 'CONNECT_CLIENT':
+    connectedClients.add(sender.id);
+    sendResponse({ success: true });
+    break;
 
-    case 'DISCONNECT_CLIENT':
-      connectedClients.delete(sender.id);
-      sendResponse({ success: true });
-      break;
+  case 'DISCONNECT_CLIENT':
+    connectedClients.delete(sender.id);
+    sendResponse({ success: true });
+    break;
 
-    case 'GET_HISTORY':
-      chrome.history.search({ text: '', maxResults: 100 }, (results) => {
-        sendResponse(results.map(result => ({
-          action: 'navigation',
-          data: { url: result.url },
-          timestamp: result.lastVisitTime,
-          clientId: 'browser'
-        })));
-      });
-      return true;
+  case 'GET_HISTORY':
+    chrome.history.search({ text: '', maxResults: 100 }, (results) => {
+      sendResponse(results.map(result => ({
+        action: 'navigation',
+        data: { url: result.url },
+        timestamp: result.lastVisitTime,
+        clientId: 'browser'
+      })));
+    });
+    return true;
 
-    case 'SYNC_HISTORY':
-      // Sync history between clients
-      Array.from(connectedClients).forEach(clientId => {
-        if (clientId !== sender.id) {
-          try {
-            chrome.runtime.sendMessage(clientId, {
-              type: 'HISTORY_SYNC',
-              entries: message.entries
-            });
-          } catch (error) {
-            console.error(`Failed to sync history to client ${clientId}:`, error);
-            connectedClients.delete(clientId);
-          }
+  case 'SYNC_HISTORY':
+    // Sync history between clients
+    Array.from(connectedClients).forEach(clientId => {
+      if (clientId !== sender.id) {
+        try {
+          chrome.runtime.sendMessage(clientId, {
+            type: 'HISTORY_SYNC',
+            entries: message.entries
+          });
+        } catch (error) {
+          console.error(`Failed to sync history to client ${clientId}:`, error);
+          connectedClients.delete(clientId);
         }
-      });
-      sendResponse({ success: true });
-      break;
+      }
+    });
+    sendResponse({ success: true });
+    break;
   }
 });

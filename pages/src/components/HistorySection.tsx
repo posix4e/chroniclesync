@@ -118,7 +118,7 @@ export function HistorySection({ db }: HistorySectionProps) {
               status: 'synced',
               lastSyncTime: Date.now()
             }));
-          } catch (error) {
+          } catch {
             setSyncStatus(prev => ({ ...prev, status: 'error' }));
           }
         }
@@ -171,16 +171,16 @@ export function HistorySection({ db }: HistorySectionProps) {
 
   const getEntryClass = (action: string) => {
     switch (action) {
-      case 'navigation':
-        return 'history-entry-navigation';
-      case 'pushState':
-        return 'history-entry-push';
-      case 'replaceState':
-        return 'history-entry-replace';
-      case 'popstate':
-        return 'history-entry-pop';
-      default:
-        return '';
+    case 'navigation':
+      return 'history-entry-navigation';
+    case 'pushState':
+      return 'history-entry-push';
+    case 'replaceState':
+      return 'history-entry-replace';
+    case 'popstate':
+      return 'history-entry-pop';
+    default:
+      return '';
     }
   };
 
@@ -197,8 +197,8 @@ export function HistorySection({ db }: HistorySectionProps) {
               borderRadius: '50%',
               backgroundColor: 
                 syncStatus.status === 'synced' ? '#4CAF50' :
-                syncStatus.status === 'syncing' ? '#2196F3' :
-                syncStatus.status === 'offline' ? '#FF9800' : '#f44336'
+                  syncStatus.status === 'syncing' ? '#2196F3' :
+                    syncStatus.status === 'offline' ? '#FF9800' : '#f44336'
             }}
           />
           <span style={{ fontSize: '0.9em', color: '#666' }}>
@@ -246,8 +246,8 @@ export function HistorySection({ db }: HistorySectionProps) {
               margin: '4px 0',
               borderLeft: '4px solid',
               borderLeftColor: entry.action === 'navigation' ? '#4CAF50' : 
-                             entry.action === 'pushState' ? '#2196F3' :
-                             entry.action === 'replaceState' ? '#FF9800' : '#9C27B0',
+                entry.action === 'pushState' ? '#2196F3' :
+                  entry.action === 'replaceState' ? '#FF9800' : '#9C27B0',
               cursor: 'pointer',
               backgroundColor: selectedEntry === entry ? '#f5f5f5' : 'transparent',
               transition: 'background-color 0.2s ease'
@@ -262,11 +262,11 @@ export function HistorySection({ db }: HistorySectionProps) {
                 padding: '2px 6px',
                 borderRadius: '12px',
                 backgroundColor: entry.action === 'navigation' ? '#E8F5E9' :
-                               entry.action === 'pushState' ? '#E3F2FD' :
-                               entry.action === 'replaceState' ? '#FFF3E0' : '#F3E5F5',
+                  entry.action === 'pushState' ? '#E3F2FD' :
+                    entry.action === 'replaceState' ? '#FFF3E0' : '#F3E5F5',
                 color: entry.action === 'navigation' ? '#2E7D32' :
-                       entry.action === 'pushState' ? '#1565C0' :
-                       entry.action === 'replaceState' ? '#EF6C00' : '#6A1B9A'
+                  entry.action === 'pushState' ? '#1565C0' :
+                    entry.action === 'replaceState' ? '#EF6C00' : '#6A1B9A'
               }}>
                 {entry.action}
               </div>

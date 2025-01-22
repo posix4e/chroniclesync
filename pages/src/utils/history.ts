@@ -131,12 +131,12 @@ export class HistoryManager {
       const isFiveMinutesOld = Date.now() - entry.timestamp < 5 * 60 * 1000;
       if (isFiveMinutesOld) {
         switch (entry.action) {
-          case 'pushState':
-            history.pushState(entry.data.state, entry.data.title, entry.data.url);
-            break;
-          case 'replaceState':
-            history.replaceState(entry.data.state, entry.data.title, entry.data.url);
-            break;
+        case 'pushState':
+          history.pushState(entry.data.state, entry.data.title, entry.data.url);
+          break;
+        case 'replaceState':
+          history.replaceState(entry.data.state, entry.data.title, entry.data.url);
+          break;
           // For popstate, we don't automatically navigate as it might be disruptive
         }
       }

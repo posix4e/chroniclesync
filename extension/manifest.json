@@ -8,9 +8,20 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "history",
+    "storage",
+    "unlimitedStorage"
   ],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
   "host_permissions": [
-    "http://localhost:*/*"
-  ]
+    "http://localhost:*/*",
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

@@ -1,15 +1,13 @@
 import '@testing-library/jest-dom';
+import 'fake-indexeddb/auto';
 
-// Mock IndexedDB
-const indexedDB = {
-  open: jest.fn(),
-  deleteDatabase: jest.fn(),
-};
+// Add structuredClone if not available
+if (typeof structuredClone !== 'function') {
+  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+}
 
-Object.defineProperty(window, 'indexedDB', {
-  value: indexedDB,
-  writable: true,
-});
+// Increase default timeout
+jest.setTimeout(10000);
 
 // Mock fetch
 global.fetch = jest.fn();

@@ -180,6 +180,41 @@ npm run build:extension
 - Frontend: Unit tests for React components, hooks, and utility functions
 - Worker: 99.5% statement coverage, testing API endpoints, middleware, and services
 - E2E: Chrome extension functionality and React app integration tests
+- Visual Testing: Automated screenshots for history sync verification
+
+#### Visual Testing
+The test suite includes automated visual testing with screenshots captured at key points:
+
+1. Browser History Sync:
+   - Initial history state in both browsers
+   - Offline state showing divergent histories
+   - Final state after history merge
+   - Screenshots stored in `test-results/browser-history/`
+
+2. History API Integration:
+   - Initial history state
+   - State after back/forward navigation
+   - State after pushState/replaceState operations
+
+Screenshots are automatically generated during test runs and can be found in:
+```
+test-results/
+├── browser-history/
+│   ├── browser1-initial-history.png
+│   ├── browser2-initial-history.png
+│   ├── browser1-offline-state.png
+│   ├── browser2-offline-state.png
+│   ├── browser1-after-merge.png
+│   └── browser2-after-merge.png
+├── history-api-initial.png
+└── history-api-after-back.png
+```
+
+These screenshots help verify:
+- Correct history display across browsers
+- Proper handling of offline/online states
+- Visual consistency of history entries
+- Navigation state visualization
 
 ## 🔄 CI/CD
 

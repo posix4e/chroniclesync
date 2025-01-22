@@ -22,54 +22,6 @@ export class DB {
         if (!db.objectStoreNames.contains('data')) {
           db.createObjectStore('data');
         }
-        if (!db.objectStoreNames.contains('history')) {
-          const historyStore = db.createObjectStore('history', { keyPath: 'timestamp' });
-          historyStore.createIndex('action', 'action', { unique: false });
-        }
-      };
-    });
-  }
-
-  async addHistoryEntry(action: string, data: unknown): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['history'], 'readwrite');
-      const store = transaction.objectStore('history');
-      const entry = {
-        timestamp: Date.now(),
-        action,
-        data,
-        clientId: this._clientId
-      };
-      const request = store.add(entry);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
-    });
-  }
-
-  async getHistory(since?: number): Promise<Array<{ timestamp: number; action: string; data: unknown; clientId: string }>> {
-    if (!this.db) throw new Error('Database not initialized');
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['history'], 'readonly');
-      const store = transaction.objectStore('history');
-      const request = since 
-        ? store.openCursor(IDBKeyRange.lowerBound(since))
-        : store.openCursor();
-
-      const entries: Array<{ timestamp: number; action: string; data: unknown; clientId: string }> = [];
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result;
-        if (cursor) {
-          entries.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(entries);
-        }
       };
     });
   }
@@ -91,32 +43,12 @@ export class DB {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['data', 'history'], 'readwrite');
+      const transaction = this.db!.transaction(['data'], 'readwrite');
       const store = transaction.objectStore('data');
-      const historyStore = transaction.objectStore('history');
-
       const request = store.put(data, 'userData');
-      const historyEntry = {
-        timestamp: Date.now(),
-        action: 'setData',
-        data,
-        clientId: this._clientId
-      };
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const historyRequest = historyStore.add(historyEntry);
-        historyRequest.onerror = () => reject(historyRequest.error);
-        historyRequest.onsuccess = () => resolve();
-      };
+      request.onsuccess = () => resolve();
     });
-  }
-
-  close(): void {
-    if (this.db) {
-      this.db.close();
-      this.db = null;
-      this._clientId = null;
-    }
   }
 }

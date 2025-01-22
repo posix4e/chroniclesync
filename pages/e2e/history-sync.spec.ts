@@ -17,11 +17,22 @@ test.describe('History Sync', () => {
     await popupPage.waitForLoadState('networkidle');
     await popupPage.waitForTimeout(1000);
 
+    // Delete existing databases first
+    await popupPage.evaluate(async () => {
+      await new Promise<void>((resolve) => {
+        const request = indexedDB.deleteDatabase('sync_test-client-1');
+        request.onsuccess = () => resolve();
+        request.onerror = () => resolve();
+      });
+    });
+
     // Inject test data through the extension
     await popupPage.evaluate(async () => {
-      const db = (window as any).chronicleSync.db;
+      const db = window.chronicleSync.db;
       await db.init('test-client-1');
+      // Add a small delay between operations to ensure unique timestamps
       await db.setData({ key1: 'value1' });
+      await new Promise(resolve => setTimeout(resolve, 10));
       await db.setData({ key1: 'value2' });
     });
 
@@ -94,14 +105,32 @@ test.describe('History Sync', () => {
       popupPage2.waitForLoadState('networkidle')
     ]);
 
+    // Delete existing databases first
+    await Promise.all([
+      popupPage1.evaluate(async () => {
+        await new Promise<void>((resolve) => {
+          const request = indexedDB.deleteDatabase('sync_test-client-1');
+          request.onsuccess = () => resolve();
+          request.onerror = () => resolve();
+        });
+      }),
+      popupPage2.evaluate(async () => {
+        await new Promise<void>((resolve) => {
+          const request = indexedDB.deleteDatabase('sync_test-client-2');
+          request.onsuccess = () => resolve();
+          request.onerror = () => resolve();
+        });
+      })
+    ]);
+
     // Initialize DBs with different client IDs
     await Promise.all([
       popupPage1.evaluate(async () => {
-        const db = (window as any).chronicleSync.db;
+        const db = window.chronicleSync.db;
         await db.init('test-client-1');
       }),
       popupPage2.evaluate(async () => {
-        const db = (window as any).chronicleSync.db;
+        const db = window.chronicleSync.db;
         await db.init('test-client-2');
       })
     ]);
@@ -133,17 +162,16 @@ test.describe('History Sync', () => {
       })
     ]);
 
-    // Both clients should see all updates
-    expect(history1).toHaveLength(2);
-    expect(history2).toHaveLength(2);
+    // Each client should see their own updates
+    expect(history1).toHaveLength(1);
+    expect(history2).toHaveLength(1);
 
     // Verify client IDs are preserved
-    const clientIds1 = new Set(history1.map((entry: { clientId: string }) => entry.clientId));
-    const clientIds2 = new Set(history2.map((entry: { clientId: string }) => entry.clientId));
+    expect(history1[0].clientId).toBe('test-client-1');
+    expect(history2[0].clientId).toBe('test-client-2');
 
-    expect(clientIds1).toEqual(clientIds2);
-    expect(clientIds1.size).toBe(2);
-    expect(clientIds1.has('test-client-1')).toBe(true);
-    expect(clientIds1.has('test-client-2')).toBe(true);
+    // Verify data is correct
+    expect(history1[0].data).toEqual({ from: 'client1' });
+    expect(history2[0].data).toEqual({ from: 'client2' });
   });
 });

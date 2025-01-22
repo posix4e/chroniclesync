@@ -1,6 +1,19 @@
+interface HistoryEntry {
+  url: string;
+  title: string;
+  timestamp: number;
+  favicon?: string;
+  visitCount: number;
+  lastVisitTime: number;
+}
+
+interface SyncedData {
+  history?: { [url: string]: HistoryEntry };
+}
+
 // Initialize the extension
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('ChronicleSync extension installed');
+  // Extension installed
 });
 
 // Track connected clients
@@ -12,7 +25,7 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'https://api-staging.chroniclesync.xyz';
 
 // Keep track of our synced history
-let syncedHistory: { [url: string]: any } = {};
+let syncedHistory: { [url: string]: HistoryEntry } = {};
 
 // Function to sync with the worker
 async function syncWithWorker() {
@@ -20,27 +33,25 @@ async function syncWithWorker() {
     // Get current data from worker
     const response = await fetch(`${API_URL}?clientId=${chrome.runtime.id}`);
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json() as SyncedData;
       if (data.history) {
         syncedHistory = data.history;
       }
     }
-  } catch (error) {
-    console.error('Failed to sync with worker:', error);
+  } catch {
+    // Failed to sync with worker
   }
 }
 
 // Listen for history changes
 chrome.history.onVisited.addListener(async (result) => {
-  console.log('History entry added:', result);
-  
   // Get the favicon URL
   let faviconUrl: string | undefined;
   try {
     const domain = new URL(result.url).origin;
     faviconUrl = `${domain}/favicon.ico`;
-  } catch (e) {
-    console.warn('Failed to get favicon URL:', e);
+  } catch {
+    // Failed to get favicon URL
   }
 
   // Update our synced history
@@ -121,7 +132,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       syncWithWorker()
     ]).then(([localHistory]) => {
       // Merge local history with synced history
-      localHistory.forEach((entry: any) => {
+      localHistory.forEach((entry: HistoryEntry) => {
         if (!syncedHistory[entry.url] || entry.lastVisitTime > syncedHistory[entry.url].lastVisitTime) {
           syncedHistory[entry.url] = entry;
         }

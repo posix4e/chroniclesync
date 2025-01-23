@@ -15,7 +15,8 @@ export default defineConfig(({ command }) => {
         input: isExtension ? paths.popup : 'src/index.tsx',
         output: {
           format: isExtension ? 'iife' : 'es',
-          inlineDynamicImports: isExtension
+          entryFileNames: '[name].js',
+          assetFileNames: 'assets/[name].[ext]'
         }
       }
     },

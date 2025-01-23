@@ -5,9 +5,9 @@ test.describe('Extension-Page Integration', () => {
     // Load the web page
     await page.goto('/');
     
-    // Open extension popup
+    // Open extension popup directly from extension directory
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
     // Wait for React to mount and render content
     await extensionPage.waitForLoadState('networkidle');

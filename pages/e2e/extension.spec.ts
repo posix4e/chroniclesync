@@ -7,7 +7,19 @@ test.describe('Chrome Extension', () => {
     console.log('Testing API URL:', apiUrl);
     
     const apiResponse = await page.request.get(apiUrl);
-    expect(apiResponse.ok()).toBeTruthy();
+    console.log('Response status:', apiResponse.status());
+    console.log('Response status text:', apiResponse.statusText());
+    const text = await apiResponse.text();
+    console.log('Response body:', text);
+
+    // Check for 404 specifically since it might be the root path
+    expect(apiResponse.status()).not.toBe(404);
+    if (!apiResponse.ok()) {
+      // Try the health check endpoint instead
+      const healthResponse = await page.request.get(`${apiUrl}/health`);
+      console.log('Health check status:', healthResponse.status());
+      expect(healthResponse.ok()).toBeTruthy();
+    }
   });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors

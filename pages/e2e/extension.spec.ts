@@ -19,7 +19,7 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
-  test('background script should be healthy', async ({ context, extensionId }) => {
+  test('background script should be healthy', async ({ context }) => {
     // Create a page to test background script communication
     const page = await context.newPage();
     await page.goto('about:blank');

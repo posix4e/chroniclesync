@@ -24,10 +24,12 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
-      - name: Install X11 dependencies
+      - name: Install X11 and font dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xfonts-encodings xfonts-utils xauth
+          sudo apt-get install -y xvfb xfonts-encodings xfonts-utils xauth \
+            fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf \
+            fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
 
       - name: Test Pages and Extension
         working-directory: pages

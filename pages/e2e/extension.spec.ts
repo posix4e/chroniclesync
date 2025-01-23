@@ -19,14 +19,32 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
-  test('should have consistent extension ID', async ({ context, extensionId }) => {
+  test('background script should be healthy', async ({ context, extensionId }) => {
+    // Create a page to test background script communication
+    const page = await context.newPage();
+    await page.goto('about:blank');
+
+    // Inject a script to communicate with the background script
+    const health = await page.evaluate(async (extId) => {
+      const response = await chrome.runtime.sendMessage(extId, { type: 'health_check' });
+      return response;
+    }, extensionId);
+
+    expect(health).toBeDefined();
+    expect(health.status).toBe('healthy');
+    expect(typeof health.timestamp).toBe('number');
+  });
+
+  test('should have valid extension ID', async ({ context, extensionId }) => {
     expect(extensionId).not.toBe('unknown-extension-id');
     
-    // Verify extension ID is consistent across background pages
-    const backgroundPages = context.backgroundPages();
-    for (const page of backgroundPages) {
-      expect(page.url()).toContain(extensionId);
-    }
+    // Open popup and verify it loads with the correct extension ID
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    
+    // Verify the popup loads correctly with this ID
+    const rootElement = await popupPage.locator('#root');
+    await expect(rootElement).toBeVisible();
   });
 
   test('popup should load React app correctly', async ({ context }) => {

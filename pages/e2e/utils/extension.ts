@@ -20,10 +20,19 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    // Get the extension ID from the background page URL
-    const backgroundPages = context.backgroundPages();
-    const extensionId = backgroundPages.length ? 
-      backgroundPages[0].url().split('/')[2] : 
+    // Get the extension ID from the service worker
+    const targets = context.serviceWorkers();
+    if (!targets.length) {
+      // If no service worker, try to get ID from extension URL
+      const [page] = await Promise.all([
+        context.newPage(),
+        context.waitForEvent('serviceworker')
+      ]);
+      await page.goto('chrome://extensions');
+    }
+    const targets2 = context.serviceWorkers();
+    const extensionId = targets2.length ? 
+      targets2[0].url().split('/')[2] : 
       'unknown-extension-id';
     
     await use(extensionId);

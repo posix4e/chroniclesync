@@ -47,3 +47,4 @@ export const test = base.extend<TestFixtures>({
 });
 
 export const expect = test.expect;
+export { chromium };

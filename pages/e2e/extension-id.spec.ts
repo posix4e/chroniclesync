@@ -1,4 +1,4 @@
-import { test, expect } from './utils/extension';
+import { test, expect, chromium } from './utils/extension';
 
 test.describe('Extension ID Detection', () => {
   test('should have valid extension ID', async ({ extensionId }) => {

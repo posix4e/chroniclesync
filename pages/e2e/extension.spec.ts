@@ -22,10 +22,10 @@ test.describe('Chrome Extension', () => {
   test('background script should be healthy', async ({ context }) => {
     // Service worker should already be available from the context setup
     const workers = context.serviceWorkers();
-    expect(workers.length).toBeGreaterThan(0, 'No service workers found');
+    expect(workers.length, 'No service workers found').toBeGreaterThan(0);
     
     const backgroundWorker = workers[0];
-    expect(backgroundWorker.url()).toContain('chrome-extension://', 'Invalid service worker URL');
+    expect(backgroundWorker.url(), 'Invalid service worker URL').toContain('chrome-extension://');
     
     // Create a page to test background script communication
     const page = await context.newPage();
@@ -51,7 +51,7 @@ test.describe('Chrome Extension', () => {
         // eslint-disable-next-line no-unused-vars
         sendMessage: (message: 'health_check') => Promise<HealthCheck>;
       };
-      return (window as ExtendedWindow).sendMessage('health_check');
+      return (window as unknown as ExtendedWindow).sendMessage('health_check');
     });
 
     expect(health).toBeDefined();
@@ -63,11 +63,11 @@ test.describe('Chrome Extension', () => {
   test('should have valid extension ID', async ({ context }) => {
     // Service worker should already be available from the context setup
     const workers = context.serviceWorkers();
-    expect(workers.length).toBeGreaterThan(0, 'No service workers found');
+    expect(workers.length, 'No service workers found').toBeGreaterThan(0);
     
     const backgroundWorker = workers[0];
     const url = backgroundWorker.url();
-    expect(url).toBeTruthy('Service worker URL is empty');
+    expect(url, 'Service worker URL is empty').toBeTruthy();
     expect(url).toContain('chrome-extension://');
     
     // Extract extension ID from URL

@@ -16,6 +16,25 @@ export const test = base.extend<TestFixtures>({
         `--load-extension=${pathToExtension}`,
       ],
     });
+
+    // Wait for service worker to be registered
+    await new Promise<void>((resolve, reject) => {
+      const startTime = Date.now();
+      const timeout = 10000; // 10 seconds timeout
+
+      const checkWorker = () => {
+        const workers = context.serviceWorkers();
+        if (workers.length > 0) {
+          resolve();
+        } else if (Date.now() - startTime > timeout) {
+          reject(new Error('Timeout waiting for service worker to be registered'));
+        } else {
+          setTimeout(checkWorker, 100);
+        }
+      };
+      checkWorker();
+    });
+
     await use(context);
     await context.close();
   },

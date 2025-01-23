@@ -20,12 +20,12 @@ test.describe('Chrome Extension', () => {
   });
 
   test('background script should be healthy', async ({ context }) => {
-    // Get the background service worker
+    // Service worker should already be available from the context setup
     const workers = context.serviceWorkers();
-    expect(workers.length).toBeGreaterThan(0);
+    expect(workers.length).toBeGreaterThan(0, 'No service workers found');
     
     const backgroundWorker = workers[0];
-    expect(backgroundWorker.url()).toContain('chrome-extension://');
+    expect(backgroundWorker.url()).toContain('chrome-extension://', 'Invalid service worker URL');
     
     // Create a page to test background script communication
     const page = await context.newPage();
@@ -56,12 +56,13 @@ test.describe('Chrome Extension', () => {
   });
 
   test('should have valid extension ID', async ({ context }) => {
-    // Get the background service worker
+    // Service worker should already be available from the context setup
     const workers = context.serviceWorkers();
-    expect(workers.length).toBeGreaterThan(0);
+    expect(workers.length).toBeGreaterThan(0, 'No service workers found');
     
     const backgroundWorker = workers[0];
     const url = backgroundWorker.url();
+    expect(url).toBeTruthy('Service worker URL is empty');
     expect(url).toContain('chrome-extension://');
     
     // Extract extension ID from URL

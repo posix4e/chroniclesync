@@ -1,0 +1,88 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            worker/package-lock.json
+
+      - name: Install Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Test Pages and Run E2E Tests
+        working-directory: pages
+        env:
+          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
+        run: |
+          npm ci
+          npm run lint
+          npm run test
+          npx playwright install --with-deps chromium
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
+          npm run build:web
+          npm run build:extension
+
+      - name: Upload E2E Results and Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            pages/playwright-report/
+            pages/test-results/*.png
+          retention-days: 30
+
+      - name: Package and Upload Chrome Extension
+        working-directory: pages
+        run: |
+          cd ..
+          zip -r chrome-extension.zip extension/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: chrome-extension.zip
+          retention-days: 14
+
+      - name: Test Worker
+        working-directory: worker
+        run: npm ci && npm run lint && npm run test:coverage
+
+      - name: Deploy
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          IS_MAIN="${{ github.ref == 'refs/heads/main' }}"
+          cd pages
+          if [ "$IS_MAIN" = "true" ]; then
+            npm run deploy -- --branch main --commit-dirty=true
+          else
+            npm run deploy -- --branch ${{ github.head_ref }} --commit-dirty=true
+          fi
+          cd ../worker
+          if [ "$IS_MAIN" = "true" ]; then
+            npm run deploy -- --env production
+          else
+            npm run deploy -- --env staging
+          fi

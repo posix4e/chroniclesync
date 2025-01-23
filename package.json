@@ -1,0 +1,19 @@
+{
+  "name": "chroniclesync",
+  "version": "1.0.0",
+  "description": "Browser history synchronization extension",
+  "scripts": {
+    "test": "jest tests/worker.test.js",
+    "test:e2e": "playwright test tests/extension.spec.js",
+    "start": "node worker/app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.20.0",
+    "jest": "^27.4.7",
+    "supertest": "^6.1.6"
+  }
+}

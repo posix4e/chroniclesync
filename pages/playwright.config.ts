@@ -23,9 +23,7 @@ export default defineConfig({
       },
     },
   ],
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
+  forbidOnly: true,  // Always prevent .only tests
+  workers: 1,  // Consistent, predictable test execution
   globalSetup: './e2e/global-setup.ts',
 });

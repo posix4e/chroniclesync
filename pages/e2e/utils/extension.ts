@@ -20,21 +20,16 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    // Create a page to get the extension ID
-    const page = await context.newPage();
-    
-    // Inject a script to get the extension ID
-    const extensionId = await page.evaluate(async () => {
-      // Find our extension by manifest properties
-      const extensions = await chrome.management.getAll();
-      const ourExtension = extensions.find(ext => 
-        ext.name === 'ChronicleSync Extension' && 
-        ext.installType === 'development'
-      );
-      return ourExtension?.id || 'unknown-extension-id';
-    });
-
-    await page.close();
+    // Get the extension ID from the background service worker URL
+    let extensionId = 'unknown-extension-id';
+    const workers = context.serviceWorkers();
+    if (workers.length > 0) {
+      const backgroundUrl = workers[0].url();
+      const match = backgroundUrl.match(/chrome-extension:\/\/([^/]+)/);
+      if (match) {
+        extensionId = match[1];
+      }
+    }
     await use(extensionId);
   },
 });

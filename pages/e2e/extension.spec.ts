@@ -20,22 +20,33 @@ test.describe('Chrome Extension', () => {
   });
 
   test('background script should be healthy', async ({ context }) => {
+    // Get the background service worker
+    const workers = context.serviceWorkers();
+    expect(workers.length).toBeGreaterThan(0);
+    
+    const backgroundWorker = workers[0];
+    expect(backgroundWorker.url()).toContain('chrome-extension://');
+    
     // Create a page to test background script communication
     const page = await context.newPage();
     await page.goto('about:blank');
-
-    // Inject a script to communicate with the background script
-    const health = await page.evaluate(async () => {
-      // Retry a few times in case the background script isn't ready
-      for (let i = 0; i < 3; i++) {
-        try {
-          const response = await chrome.runtime.sendMessage({ type: 'health_check' });
-          return response;
-        } catch (e) {
-          if (i === 2) throw e; // Last attempt, throw the error
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+    
+    // Add the extension background script to the page
+    await page.addScriptTag({
+      content: `
+        window.sendMessage = async (type) => {
+          return new Promise((resolve) => {
+            chrome.runtime.sendMessage({ type }, response => {
+              resolve(response);
+            });
+          });
         }
-      }
+      `
+    });
+
+    // Test the health check
+    const health = await page.evaluate(async () => {
+      return window.sendMessage('health_check');
     });
 
     expect(health).toBeDefined();
@@ -44,8 +55,19 @@ test.describe('Chrome Extension', () => {
     await page.close();
   });
 
-  test('should have valid extension ID', async ({ context, extensionId }) => {
-    expect(extensionId).not.toBe('unknown-extension-id');
+  test('should have valid extension ID', async ({ context }) => {
+    // Get the background service worker
+    const workers = context.serviceWorkers();
+    expect(workers.length).toBeGreaterThan(0);
+    
+    const backgroundWorker = workers[0];
+    const url = backgroundWorker.url();
+    expect(url).toContain('chrome-extension://');
+    
+    // Extract extension ID from URL
+    const match = url.match(/chrome-extension:\/\/([^/]+)/);
+    expect(match).toBeTruthy();
+    const extensionId = match[1];
     
     // Open popup and verify it loads with the correct extension ID
     const popupPage = await context.newPage();

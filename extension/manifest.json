@@ -11,6 +11,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "http://localhost:*/*"
+    "http://localhost:*/*",
+    "https://api.chroniclesync.xyz/*",
+    "https://api-staging.chroniclesync.xyz/*"
   ]
 }

@@ -10,70 +10,58 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 - **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
-## Quick Start
+## Development
 
 ### Prerequisites
-- Node.js 18+
-- npm
-- Cloudflare account
+- GitHub account with repository access
+- Cloudflare account for deployments
 
-### Installation
+### Getting Started
 
-1. Clone and install dependencies:
-```bash
-git clone https://github.com/yourusername/chroniclesync.git
-cd chroniclesync
+1. **Fork & Clone**: Fork this repository and clone your fork
+2. **Create a Branch**: Create a new branch for your changes
+3. **Make Changes**: Modify code in your branch
+4. **Open PR**: Create a pull request to the main branch
 
-# Install dependencies
-cd pages && npm install
-cd ../worker && npm install
-```
+Our [GitHub Actions workflow](.github/workflows/ci-cd.yml) will automatically:
+- Install all dependencies
+- Run linting and tests
+- Build the extension and web app
+- Deploy preview environments
+- Run E2E tests
 
-2. Start development servers:
-```bash
-# In pages directory
-npm run dev
+### Development Workflow
 
-# In worker directory
-npm run dev
-```
+Each pull request triggers our CI/CD pipeline which:
 
-3. Build Chrome extension:
-```bash
-cd pages
-npm run build:extension
-```
+1. **Build & Test** ([view action](../../actions/workflows/ci-cd.yml))
+   - Installs dependencies
+   - Runs linting
+   - Executes unit tests
+   - Builds extension and web app
+   - Runs E2E tests with Playwright
 
-### Load Extension in Chrome
+2. **Preview Deployment**
+   - Creates preview environment
+   - Deploys frontend to: `https://$BRANCH.chroniclesync.pages.dev`
+   - Deploys API to: `https://api-staging.chroniclesync.xyz`
 
-1. Open `chrome://extensions`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `/workspace/chroniclesync/extension` directory
+3. **Extension Testing**
+   - Builds Chrome extension
+   - Uploads extension artifact
+   - Runs automated tests
+   - Provides test report with screenshots
 
-## Testing
+### Loading the Extension
 
-The project includes unit, integration, and E2E tests:
-
-```bash
-# Frontend tests
-cd pages && npm run test
-
-# Worker tests
-cd worker && npm run test:coverage
-
-# E2E tests (requires Playwright and Xvfb)
-cd pages && npm run test:e2e
-```
-
-For E2E tests, install prerequisites:
-```bash
-# Install Playwright
-npx playwright install chromium
-
-# Install Xvfb (Linux/WSL only)
-sudo apt-get update && sudo apt-get install -y xvfb
-```
+After each successful build, download the extension artifact from the [Actions tab](../../actions):
+1. Find your PR's workflow run
+2. Download the `chrome-extension.zip` artifact
+3. Unzip and load in Chrome:
+   - Open `chrome://extensions`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the unzipped directory
 
 ## Architecture
 

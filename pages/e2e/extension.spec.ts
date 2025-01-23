@@ -2,24 +2,18 @@ import { test, expect } from './utils/extension';
 import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
-  test('API endpoint should be accessible', async ({ page }) => {
+  test('API health check should be successful', async ({ page }) => {
     const apiUrl = process.env.API_URL || server.apiUrl;
-    console.log('Testing API URL:', apiUrl);
+    console.log('Testing API health at:', `${apiUrl}/health`);
     
-    const apiResponse = await page.request.get(apiUrl);
-    console.log('Response status:', apiResponse.status());
-    console.log('Response status text:', apiResponse.statusText());
-    const text = await apiResponse.text();
-    console.log('Response body:', text);
-
-    // Check for 404 specifically since it might be the root path
-    expect(apiResponse.status()).not.toBe(404);
-    if (!apiResponse.ok()) {
-      // Try the health check endpoint instead
-      const healthResponse = await page.request.get(`${apiUrl}/health`);
-      console.log('Health check status:', healthResponse.status());
-      expect(healthResponse.ok()).toBeTruthy();
-    }
+    const healthResponse = await page.request.get(`${apiUrl}/health`);
+    console.log('Health check status:', healthResponse.status());
+    
+    const responseBody = await healthResponse.json();
+    console.log('Health check response:', responseBody);
+    
+    expect(healthResponse.ok()).toBeTruthy();
+    expect(responseBody.healthy).toBeTruthy();
   });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors

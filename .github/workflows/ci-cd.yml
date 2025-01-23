@@ -81,7 +81,7 @@ jobs:
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --env production; else npm run deploy -- --env staging; fi
 
       - name: Upload Test Results
-        if: always() && github.event.pull_request.base.ref == 'main'
+        if: always()  # Always upload test results for better debugging
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -89,23 +89,3 @@ jobs:
             pages/playwright-report/
             pages/test-results/
           retention-days: 30
-
-      - name: Package Test Screenshots
-        working-directory: pages
-        run: |
-          mkdir -p test-results
-          cd test-results
-          if [ -f extension-popup.png ]; then
-            zip -r ../test-screenshots.zip *.png
-          else
-            echo "No screenshots found"
-            touch empty.txt
-            zip -r ../test-screenshots.zip empty.txt
-          fi
-
-      - name: Upload Test Screenshots Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-screenshots
-          path: pages/test-screenshots.zip
-          retention-days: 14

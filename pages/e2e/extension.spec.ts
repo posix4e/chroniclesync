@@ -46,7 +46,7 @@ test.describe('Chrome Extension', () => {
 
     // Test the health check
     const health = await page.evaluate(async () => {
-      return window.sendMessage('health_check');
+      return (window as any).sendMessage('health_check');
     });
 
     expect(health).toBeDefined();
@@ -67,6 +67,9 @@ test.describe('Chrome Extension', () => {
     // Extract extension ID from URL
     const match = url.match(/chrome-extension:\/\/([^/]+)/);
     expect(match).toBeTruthy();
+    if (!match) {
+      throw new Error('Failed to extract extension ID from URL');
+    }
     const extensionId = match[1];
     
     // Open popup and verify it loads with the correct extension ID

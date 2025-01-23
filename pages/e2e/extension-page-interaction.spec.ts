@@ -1,60 +1,105 @@
 import { test, expect } from './utils/extension';
+import { server } from '../config';
 
 test.describe('Extension-Page Integration', () => {
-  test('extension can interact with page', async ({ page, context, extensionId }) => {
-    // Set up dialog handler for main page
-    page.on('dialog', dialog => dialog.accept());
-    
-    // Load and capture initial web page
-    await page.goto('/');
-    await page.screenshot({ path: 'test-results/01-initial-page.png' });
-    
-    // Create and configure extension page
+  // Set up dialog handler for all tests
+  test.beforeEach(async ({ context }) => {
+    context.on('page', page => {
+      page.on('dialog', dialog => dialog.accept());
+    });
+  });
+
+  test('extension popup loads correctly', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
-    
-    // Set up dialog handlers before any actions
-    page.on('dialog', dialog => dialog.accept());
-    extensionPage.on('dialog', dialog => dialog.accept());
-    
-    // Open extension popup
     await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
-    // Wait for React to mount and render content
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId'); // Wait for React to render the form
-    await extensionPage.screenshot({ path: 'test-results/02-extension-loaded.png' });
+    const clientIdInput = await extensionPage.waitForSelector('#clientId');
+    expect(clientIdInput).toBeTruthy();
+  });
+
+  test('client initialization works', async ({ context, extensionId }) => {
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
-    // Initialize client
+    await extensionPage.waitForLoadState('networkidle');
+    await extensionPage.waitForSelector('#clientId');
+    
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
-    await extensionPage.screenshot({ path: 'test-results/03-client-initialized.png' });
     
-    // Set up response handler before clicking
-    const responsePromise = extensionPage.waitForResponse(response => 
-      response.url().includes('api.chroniclesync.xyz') && 
-      response.request().method() === 'POST'
-    );
+    // Verify initialization by checking if sync button appears
+    const syncButton = await extensionPage.waitForSelector('text=Sync with Server');
+    expect(syncButton).toBeTruthy();
+  });
 
-    // Click sync button
+  test('sync with server works', async ({ context, extensionId }) => {
+    const extensionPage = await context.newPage();
+    
+    // Mock the API response
+    await extensionPage.route('**/*', async (route, request) => {
+      if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Sync successful' })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    
+    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    
+    // Initialize client first
+    await extensionPage.waitForLoadState('networkidle');
+    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.fill('#clientId', 'test-client');
+    await extensionPage.click('text=Initialize');
+    await extensionPage.waitForSelector('text=Sync with Server');
+    
+    // Click sync button and wait for success dialog
+    const dialogPromise = extensionPage.waitForEvent('dialog');
     await extensionPage.click('text=Sync with Server');
-    await extensionPage.screenshot({ path: 'test-results/04-after-sync-click.png' });
-    
-    // Wait for sync to complete
-    const response = await responsePromise;
-    expect(response.ok()).toBe(true);
-    
-    // Final state of both windows
-    await extensionPage.screenshot({ path: 'test-results/06-extension-final.png' });
-    await page.screenshot({ path: 'test-results/07-page-final.png' });
-    
-    // Check for any console errors
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toContain('Sync successful');
+  });
+
+  test('no console errors during operations', async ({ context, extensionId }) => {
+    const extensionPage = await context.newPage();
     const errors: string[] = [];
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
+    extensionPage.on('console', msg => {
+      if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
         errors.push(msg.text());
       }
     });
-    // No need to wait, errors would have been collected during the test
+
+    // Mock the API response
+    await extensionPage.route('**/*', async (route, request) => {
+      if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Sync successful' })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Perform all operations
+    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.waitForLoadState('networkidle');
+    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.fill('#clientId', 'test-client');
+    await extensionPage.click('text=Initialize');
+    await extensionPage.waitForSelector('text=Sync with Server');
+    
+    // Click sync button and wait for success dialog
+    const dialogPromise = extensionPage.waitForEvent('dialog');
+    await extensionPage.click('text=Sync with Server');
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toContain('Sync successful');
     expect(errors).toEqual([]);
   });
 

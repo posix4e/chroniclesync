@@ -95,7 +95,7 @@ ChronicleSync consists of three main components:
 
 ## 🧪 Testing
 
-ChronicleSync includes comprehensive testing across all components. For detailed information about our testing configuration setup, please see [Testing Configuration Guide](docs/testing-configuration.md).
+ChronicleSync includes comprehensive testing across all components:
 
 ### Prerequisites
 For E2E tests, you need:

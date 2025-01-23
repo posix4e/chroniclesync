@@ -1,6 +1,14 @@
 import { test, expect } from './utils/extension';
+import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
+  test('API endpoints should be accessible', async ({ page }) => {
+    const apiResponse = await page.request.get(server.apiUrl);
+    expect(apiResponse.ok()).toBeTruthy();
+
+    const workerResponse = await page.request.get(server.workerUrl);
+    expect(workerResponse.ok()).toBeTruthy();
+  });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors
     const errors: string[] = [];

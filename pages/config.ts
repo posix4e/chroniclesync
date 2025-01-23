@@ -8,5 +8,7 @@ export const paths = {
 };
 
 export const server = {
-  port: 3000
+  port: 3000,
+  apiUrl: process.env.API_URL || 'http://localhost:3000',
+  workerUrl: process.env.WORKER_URL || 'http://localhost:8787'
 };

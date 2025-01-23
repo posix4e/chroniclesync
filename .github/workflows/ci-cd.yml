@@ -24,10 +24,10 @@ jobs:
             pages/package-lock.json
             worker/package-lock.json
 
-      - name: Install Xvfb
+      - name: Install X11 dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb
+          sudo apt-get install -y xvfb xfonts-encodings xfonts-utils xauth
 
       - name: Test Pages and Extension
         working-directory: pages

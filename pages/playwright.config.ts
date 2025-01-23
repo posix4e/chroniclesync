@@ -5,7 +5,9 @@ export default defineConfig({
   testDir: './e2e',
   use: {
     headless: false,
-    baseURL: 'chrome-extension://[extension-id]/',
+    // Base URL for page tests, can be overridden in individual tests
+    baseURL: process.env.API_URL || 'http://localhost:8787',
+    screenshot: 'on',  // Always capture screenshots
   },
   projects: [
     {
@@ -13,6 +15,8 @@ export default defineConfig({
       use: {
         launchOptions: {
           args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
             `--disable-extensions-except=${paths.extension}`,
             `--load-extension=${paths.extension}`,
           ],
@@ -20,5 +24,8 @@ export default defineConfig({
       },
     },
   ],
+  forbidOnly: true,  // Always prevent .only tests
+  workers: 1,  // Consistent, predictable test execution
+  reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
   globalSetup: './e2e/global-setup.ts',
 });

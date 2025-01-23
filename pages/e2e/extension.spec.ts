@@ -1,6 +1,20 @@
 import { test, expect } from './utils/extension';
+import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
+  test('API health check should be successful', async ({ page }) => {
+    const apiUrl = process.env.API_URL || server.apiUrl;
+    console.log('Testing API health at:', `${apiUrl}/health`);
+    
+    const healthResponse = await page.request.get(`${apiUrl}/health`);
+    console.log('Health check status:', healthResponse.status());
+    
+    const responseBody = await healthResponse.json();
+    console.log('Health check response:', responseBody);
+    
+    expect(healthResponse.ok()).toBeTruthy();
+    expect(responseBody.healthy).toBeTruthy();
+  });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors
     const errors: string[] = [];

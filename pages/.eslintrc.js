@@ -24,6 +24,7 @@ module.exports = {
     }
   },
   rules: {
+    'no-empty-pattern': ['error', { allowObjectPatternsAsParameters: true }],
     'indent': ['error', 2],
     'linebreak-style': ['error', 'unix'],
     'quotes': ['error', 'single'],

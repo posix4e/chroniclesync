@@ -3,10 +3,13 @@ import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
   test('API endpoints should be accessible', async ({ page }) => {
-    const apiResponse = await page.request.get(server.apiUrl);
+    console.log('Testing API URL:', process.env.API_URL || server.apiUrl);
+    console.log('Testing Worker URL:', process.env.WORKER_URL || server.workerUrl);
+    
+    const apiResponse = await page.request.get(process.env.API_URL || server.apiUrl);
     expect(apiResponse.ok()).toBeTruthy();
 
-    const workerResponse = await page.request.get(server.workerUrl);
+    const workerResponse = await page.request.get(process.env.WORKER_URL || server.workerUrl);
     expect(workerResponse.ok()).toBeTruthy();
   });
   test('should load without errors', async ({ page, context }) => {

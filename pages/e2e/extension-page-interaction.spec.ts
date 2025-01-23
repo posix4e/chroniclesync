@@ -14,22 +14,19 @@ test.describe('Extension-Page Integration', () => {
     await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
     await extensionPage.waitForLoadState('networkidle');
-    const clientIdInput = await extensionPage.waitForSelector('#clientId');
-    expect(clientIdInput).toBeTruthy();
+    const historySync = await extensionPage.waitForSelector('.history-sync');
+    expect(historySync).toBeTruthy();
   });
 
-  test('client initialization works', async ({ context, extensionId }) => {
+  test('history sync works', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
     await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.waitForSelector('.history-sync');
     
-    await extensionPage.fill('#clientId', 'test-client');
-    await extensionPage.click('text=Initialize');
-    
-    // Verify initialization by checking if sync button appears
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server');
+    // Verify sync button is present
+    const syncButton = await extensionPage.waitForSelector('text=Sync History');
     expect(syncButton).toBeTruthy();
   });
 
@@ -44,6 +41,12 @@ test.describe('Extension-Page Integration', () => {
           contentType: 'application/json',
           body: JSON.stringify({ message: 'Sync successful' })
         });
+      } else if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ items: [] })
+        });
       } else {
         await route.continue();
       }
@@ -51,18 +54,14 @@ test.describe('Extension-Page Integration', () => {
     
     await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
     
-    // Initialize client first
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId');
-    await extensionPage.fill('#clientId', 'test-client');
-    await extensionPage.click('text=Initialize');
-    await extensionPage.waitForSelector('text=Sync with Server');
+    await extensionPage.waitForSelector('.history-sync');
     
     // Click sync button and wait for success dialog
     const dialogPromise = extensionPage.waitForEvent('dialog');
-    await extensionPage.click('text=Sync with Server');
+    await extensionPage.click('text=Sync History');
     const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Sync successful');
+    expect(dialog.message()).toContain('History sync completed successfully');
   });
 
   test('no console errors during operations', async ({ context, extensionId }) => {

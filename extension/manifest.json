@@ -8,8 +8,15 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "history",
+    "storage",
+    "identity"
   ],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",

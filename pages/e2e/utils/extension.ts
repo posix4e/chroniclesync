@@ -29,3 +29,10 @@ export const test = base.extend<TestFixtures>({
 });
 
 export const expect = test.expect;
+
+export async function getExtensionId(context: BrowserContext): Promise<string> {
+  const backgroundPages = context.backgroundPages();
+  return backgroundPages.length ? 
+    backgroundPages[0].url().split('/')[2] : 
+    'unknown-extension-id';
+}

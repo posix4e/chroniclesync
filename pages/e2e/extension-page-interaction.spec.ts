@@ -2,8 +2,9 @@ import { test, expect } from './utils/extension';
 
 test.describe('Extension-Page Integration', () => {
   test('extension can interact with page', async ({ page, context, extensionId }) => {
-    // Load the web page
+    // Load and capture initial web page
     await page.goto('/');
+    await page.screenshot({ path: 'test-results/01-initial-page.png' });
     
     // Open extension popup directly from extension directory
     const extensionPage = await context.newPage();
@@ -12,22 +13,26 @@ test.describe('Extension-Page Integration', () => {
     // Wait for React to mount and render content
     await extensionPage.waitForLoadState('networkidle');
     await extensionPage.waitForTimeout(1000); // Give React a moment to hydrate
+    await extensionPage.screenshot({ path: 'test-results/02-extension-loaded.png' });
     
-    // Take screenshot of initial state (both extension and page)
-    await extensionPage.screenshot({ path: 'test-results/extension-sync-start.png' });
-    await page.screenshot({ path: 'test-results/page-sync-start.png' });
-    
-    // Interact with extension
+    // Verify sync button is present
     await expect(extensionPage.locator('#syncButton')).toBeVisible();
+    await extensionPage.screenshot({ path: 'test-results/03-sync-button-visible.png' });
+    
+    // Click sync button
     await extensionPage.click('#syncButton');
+    await extensionPage.screenshot({ path: 'test-results/04-after-sync-click.png' });
     
     // Verify the effect on the main page
     await expect(page.locator('#syncStatus')).toBeVisible();
-    await expect(page.locator('#syncComplete')).toBeVisible();
+    await page.screenshot({ path: 'test-results/05-sync-status-visible.png' });
     
-    // Take screenshot of final state (both extension and page)
-    await extensionPage.screenshot({ path: 'test-results/extension-sync-complete.png' });
-    await page.screenshot({ path: 'test-results/page-sync-complete.png' });
+    await expect(page.locator('#syncComplete')).toBeVisible();
+    await page.screenshot({ path: 'test-results/06-sync-complete.png' });
+    
+    // Final state of both windows
+    await extensionPage.screenshot({ path: 'test-results/07-extension-final.png' });
+    await page.screenshot({ path: 'test-results/08-page-final.png' });
     
     // Check for any console errors
     const errors: string[] = [];

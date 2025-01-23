@@ -30,8 +30,7 @@ jobs:
           npm ci
           npm run lint
           npm run test
-          CI=true npm run build # CI=true for web build
-          CI=false npm run build # CI=false for extension build
+          npm run build
 
       - name: Package Chrome Extension
         working-directory: pages

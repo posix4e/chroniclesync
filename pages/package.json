@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "CI=true vite",
-    "dev:extension": "CI=false vite",
+    "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "jest",

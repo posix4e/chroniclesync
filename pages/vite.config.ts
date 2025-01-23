@@ -5,16 +5,25 @@ import { paths, server } from './config';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: process.env.CI ? paths.webDist : paths.extensionDist,
+    outDir: paths.webDist,
     rollupOptions: {
       input: {
+        index: 'src/index.tsx',
         popup: paths.popup
       },
-      output: {
-        entryFileNames: '[name].js',
-        format: 'iife',
-        inlineDynamicImports: true
-      }
+      output: [
+        {
+          dir: paths.webDist,
+          entryFileNames: '[name].js',
+          format: 'es'
+        },
+        {
+          dir: paths.extensionDist,
+          entryFileNames: '[name].js',
+          format: 'iife',
+          inlineDynamicImports: true
+        }
+      ]
     }
   },
   server: {

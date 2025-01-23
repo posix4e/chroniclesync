@@ -20,11 +20,27 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    // Get the extension ID from the background page URL
-    const backgroundPages = context.backgroundPages();
-    const extensionId = backgroundPages.length ? 
-      backgroundPages[0].url().split('/')[2] : 
-      'unknown-extension-id';
+    let attempts = 0;
+    const maxAttempts = 3;
+    let extensionId = 'unknown-extension-id';
+
+    while (attempts < maxAttempts) {
+      const backgroundPages = context.backgroundPages();
+      if (backgroundPages.length) {
+        const url = backgroundPages[0].url();
+        const match = url.match(/chrome-extension:\/\/([a-p]{32})/);
+        if (match && match[1]) {
+          extensionId = match[1];
+          break;
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      attempts++;
+    }
+
+    if (extensionId === 'unknown-extension-id') {
+      throw new Error('Failed to detect extension ID after multiple attempts');
+    }
     
     await use(extensionId);
   },

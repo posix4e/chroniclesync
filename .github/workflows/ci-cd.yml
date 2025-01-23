@@ -30,7 +30,8 @@ jobs:
           npm ci
           npm run lint
           npm run test
-          npm run build
+          npm run build:web
+          npm run build:extension
 
       - name: Package Chrome Extension
         working-directory: pages

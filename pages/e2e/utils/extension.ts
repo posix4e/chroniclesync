@@ -20,21 +20,21 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    // Get the extension ID from the service worker
-    const targets = context.serviceWorkers();
-    if (!targets.length) {
-      // If no service worker, try to get ID from extension URL
-      const [page] = await Promise.all([
-        context.newPage(),
-        context.waitForEvent('serviceworker')
-      ]);
-      await page.goto('chrome://extensions');
-    }
-    const targets2 = context.serviceWorkers();
-    const extensionId = targets2.length ? 
-      targets2[0].url().split('/')[2] : 
-      'unknown-extension-id';
+    // Create a page to get the extension ID
+    const page = await context.newPage();
     
+    // Inject a script to get the extension ID
+    const extensionId = await page.evaluate(async () => {
+      // Find our extension by manifest properties
+      const extensions = await chrome.management.getAll();
+      const ourExtension = extensions.find(ext => 
+        ext.name === 'ChronicleSync Extension' && 
+        ext.installType === 'development'
+      );
+      return ourExtension?.id || 'unknown-extension-id';
+    });
+
+    await page.close();
     await use(extensionId);
   },
 });

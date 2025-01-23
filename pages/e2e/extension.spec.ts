@@ -25,14 +25,23 @@ test.describe('Chrome Extension', () => {
     await page.goto('about:blank');
 
     // Inject a script to communicate with the background script
-    const health = await page.evaluate(async (extId) => {
-      const response = await chrome.runtime.sendMessage(extId, { type: 'health_check' });
-      return response;
-    }, extensionId);
+    const health = await page.evaluate(async () => {
+      // Retry a few times in case the background script isn't ready
+      for (let i = 0; i < 3; i++) {
+        try {
+          const response = await chrome.runtime.sendMessage({ type: 'health_check' });
+          return response;
+        } catch (e) {
+          if (i === 2) throw e; // Last attempt, throw the error
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        }
+      }
+    });
 
     expect(health).toBeDefined();
     expect(health.status).toBe('healthy');
     expect(typeof health.timestamp).toBe('number');
+    await page.close();
   });
 
   test('should have valid extension ID', async ({ context, extensionId }) => {

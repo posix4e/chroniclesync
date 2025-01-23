@@ -12,7 +12,8 @@
   },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "management"
   ],
   "host_permissions": [
     "http://localhost:*/*"

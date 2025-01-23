@@ -1,12 +1,27 @@
-import { defineConfig } from 'vite';
+import { defineConfig, build } from 'vite';
 import react from '@vitejs/plugin-react';
+import { paths, server } from './config';
 
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist',
-  },
-  server: {
-    port: 3000,
-  },
+export default defineConfig(({ command }) => {
+  const target = process.env.BUILD_TARGET || 'web';
+  const isExtension = target === 'extension';
+
+  return {
+    plugins: [react()],
+    build: {
+      outDir: isExtension ? paths.extensionDist : paths.webDist,
+      emptyOutDir: true,
+      rollupOptions: {
+        input: isExtension ? paths.popup : 'src/index.tsx',
+        output: {
+          format: isExtension ? 'iife' : 'es',
+          entryFileNames: '[name].js',
+          assetFileNames: 'assets/[name].[ext]'
+        }
+      }
+    },
+    server: {
+      port: server.port
+    }
+  };
 });

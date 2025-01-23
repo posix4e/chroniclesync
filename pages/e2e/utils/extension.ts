@@ -1,5 +1,5 @@
 import { test as base, chromium, type BrowserContext } from '@playwright/test';
-import { testConfig } from '../config/test-config';
+import { paths } from '../../config';
 
 export type TestFixtures = {
   context: BrowserContext;
@@ -9,8 +9,11 @@ export type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
-      headless: testConfig.headless,
-      args: testConfig.getExtensionArgs(testConfig.extensionPath),
+      headless: false,
+      args: [
+        `--disable-extensions-except=${paths.extension}`,
+        `--load-extension=${paths.extension}`,
+      ],
     });
     await use(context);
     await context.close();

@@ -3,44 +3,22 @@ import react from '@vitejs/plugin-react';
 import { paths, server } from './config';
 
 export default defineConfig(({ command }) => {
-  if (command === 'build') {
-    // Run two separate builds
-    const target = process.env.BUILD_TARGET || 'both';
-    
-    if (target === 'web' || target === 'both') {
-      console.log('Building web app...');
-      build({
-        build: {
-          outDir: paths.webDist,
-          rollupOptions: {
-            input: 'src/index.tsx',
-            output: {
-              format: 'es'
-            }
-          }
-        }
-      });
-    }
-    
-    if (target === 'extension' || target === 'both') {
-      console.log('Building extension...');
-      build({
-        build: {
-          outDir: paths.extensionDist,
-          rollupOptions: {
-            input: paths.popup,
-            output: {
-              format: 'iife',
-              inlineDynamicImports: true
-            }
-          }
-        }
-      });
-    }
-  }
+  const target = process.env.BUILD_TARGET || 'web';
+  const isExtension = target === 'extension';
 
   return {
     plugins: [react()],
+    build: {
+      outDir: isExtension ? paths.extensionDist : paths.webDist,
+      emptyOutDir: true,
+      rollupOptions: {
+        input: isExtension ? paths.popup : 'src/index.tsx',
+        output: {
+          format: isExtension ? 'iife' : 'es',
+          inlineDynamicImports: isExtension
+        }
+      }
+    },
     server: {
       port: server.port
     }

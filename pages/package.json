@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "vite",
     "dev:extension": "BUILD_TARGET=extension vite",
-    "build": "tsc && BUILD_TARGET=both vite build",
-    "build:web": "tsc && BUILD_TARGET=web vite build",
+    "build:web": "tsc && vite build",
     "build:extension": "tsc && BUILD_TARGET=extension vite build",
     "preview": "vite preview",
     "test": "jest",

@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "dev:extension": "BUILD_TARGET=extension vite",
+    "build": "tsc && BUILD_TARGET=both vite build",
+    "build:web": "tsc && BUILD_TARGET=web vite build",
+    "build:extension": "tsc && BUILD_TARGET=extension vite build",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

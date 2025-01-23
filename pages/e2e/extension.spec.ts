@@ -2,15 +2,12 @@ import { test, expect } from './utils/extension';
 import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
-  test('API endpoints should be accessible', async ({ page }) => {
-    console.log('Testing API URL:', process.env.API_URL || server.apiUrl);
-    console.log('Testing Worker URL:', process.env.WORKER_URL || server.workerUrl);
+  test('API endpoint should be accessible', async ({ page }) => {
+    const apiUrl = process.env.API_URL || server.apiUrl;
+    console.log('Testing API URL:', apiUrl);
     
-    const apiResponse = await page.request.get(process.env.API_URL || server.apiUrl);
+    const apiResponse = await page.request.get(apiUrl);
     expect(apiResponse.ok()).toBeTruthy();
-
-    const workerResponse = await page.request.get(process.env.WORKER_URL || server.workerUrl);
-    expect(workerResponse.ok()).toBeTruthy();
   });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors

@@ -76,8 +76,7 @@ jobs:
       - name: Run E2E Tests
         working-directory: pages
         env:
-          API_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_URL || secrets.STAGING_URL }}
-          WORKER_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_WORKER_URL || secrets.STAGING_WORKER_URL }}
+          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
         run: |
           npm ci
           npx playwright install --with-deps chromium

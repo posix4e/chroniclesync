@@ -4,7 +4,7 @@ import { paths } from './config';
 export default defineConfig({
   testDir: './e2e',
   use: {
-    headless: true,
+    headless: false,
     baseURL: 'chrome-extension://[extension-id]/',
   },
   projects: [

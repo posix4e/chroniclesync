@@ -46,7 +46,12 @@ test.describe('Chrome Extension', () => {
 
     // Test the health check
     const health = await page.evaluate(async () => {
-      return (window as any).sendMessage('health_check');
+      type HealthCheck = { status: string; timestamp: number };
+      type ExtendedWindow = Window & {
+        // eslint-disable-next-line no-unused-vars
+        sendMessage: (message: 'health_check') => Promise<HealthCheck>;
+      };
+      return (window as ExtendedWindow).sendMessage('health_check');
     });
 
     expect(health).toBeDefined();

@@ -7,7 +7,7 @@ export default defineConfig({
     headless: false,
     // Base URL for page tests, can be overridden in individual tests
     baseURL: process.env.API_URL || 'http://localhost:8787',
-    screenshot: 'on',  // Capture screenshots on test failures
+    screenshot: 'only-on-failure',  // Capture screenshots only on test failures
   },
   projects: [
     {

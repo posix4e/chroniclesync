@@ -19,6 +19,16 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
+  test('should have consistent extension ID', async ({ context, extensionId }) => {
+    expect(extensionId).not.toBe('unknown-extension-id');
+    
+    // Verify extension ID is consistent across background pages
+    const backgroundPages = context.backgroundPages();
+    for (const page of backgroundPages) {
+      expect(page.url()).toContain(extensionId);
+    }
+  });
+
   test('popup should load React app correctly', async ({ context }) => {
     // Open extension popup directly from extension directory
     const popupPage = await context.newPage();

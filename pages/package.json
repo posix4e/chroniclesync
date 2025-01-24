@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "dev:extension": "BUILD_TARGET=extension vite",
-    "build:web": "tsc && vite build",
-    "build:extension": "tsc && BUILD_TARGET=extension vite build && vite build -c vite.background.config.ts",
+    "dev:extension": "vite --mode extension",
+    "build": "tsc && vite build",
+    "build:extension": "tsc && vite build --mode extension && ENTRY=background vite build --mode extension",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

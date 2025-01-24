@@ -1,28 +1,48 @@
-import { defineConfig, build } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { paths, server } from './config';
+import { resolve } from 'path';
 
-export default defineConfig(({ command }) => {
-  const target = process.env.BUILD_TARGET || 'web';
-  const isExtension = target === 'extension';
+const paths = {
+  extension: resolve(__dirname, '../extension'),
+  extensionDist: resolve(__dirname, '../extension/dist'),
+  webDist: resolve(__dirname, 'dist'),
+};
+
+export default defineConfig(({ mode, command }) => {
+  const isExtension = mode === 'extension';
+  const isBackground = process.env.ENTRY === 'background';
+  
+  if (isExtension && isBackground) {
+    return {
+      build: {
+        outDir: paths.extensionDist,
+        emptyOutDir: false,
+        lib: {
+          entry: resolve(__dirname, 'src/background.ts'),
+          name: 'background',
+          formats: ['iife'],
+          fileName: () => 'background.js',
+        }
+      }
+    };
+  }
 
   return {
     plugins: [react()],
     build: {
       outDir: isExtension ? paths.extensionDist : paths.webDist,
-      emptyOutDir: true,
+      emptyOutDir: isExtension ? false : true,
       rollupOptions: {
-        input: isExtension ? paths.popup : 'src/index.tsx',
+        input: isExtension ? resolve(__dirname, 'src/popup.tsx') : resolve(__dirname, 'src/index.tsx'),
         output: {
           format: 'iife',
           entryFileNames: '[name].js',
-          assetFileNames: 'assets/[name].[ext]',
-          inlineDynamicImports: false
+          assetFileNames: 'assets/[name].[ext]'
         }
       }
     },
     server: {
-      port: server.port
+      port: 3000
     }
   };
 });

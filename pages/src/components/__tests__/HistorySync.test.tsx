@@ -4,11 +4,33 @@ import { HistorySync } from '../HistorySync';
 
 // Mock chrome.runtime.sendMessage
 const mockSendMessage = jest.fn();
+declare global {
+  interface Window {
+    chrome: typeof chrome;
+  }
+}
+
+// Partial mock of chrome API
 global.chrome = {
   runtime: {
-    sendMessage: mockSendMessage
+    sendMessage: mockSendMessage,
+    id: 'test-extension-id',
+    getManifest: () => ({}),
+    getURL: () => '',
+    getPlatformInfo: () => Promise.resolve({ os: 'linux' }),
+    connect: () => ({ disconnect: () => {} }),
+    onMessage: {
+      addListener: () => {},
+      removeListener: () => {},
+      hasListener: () => false
+    },
+    onConnect: {
+      addListener: () => {},
+      removeListener: () => {},
+      hasListener: () => false
+    }
   }
-} as any;
+} as unknown as typeof chrome;
 
 describe('HistorySync', () => {
   const deviceId = 'test-device-123';

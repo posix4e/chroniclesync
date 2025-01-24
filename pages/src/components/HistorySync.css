@@ -1,0 +1,66 @@
+.history-sync {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.sync-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.sync-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.history-list {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.history-list h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.history-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-title {
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.history-url {
+  color: #3498db;
+  font-size: 14px;
+  margin-bottom: 5px;
+  word-break: break-all;
+}
+
+.history-time {
+  color: #7f8c8d;
+  font-size: 12px;
+}

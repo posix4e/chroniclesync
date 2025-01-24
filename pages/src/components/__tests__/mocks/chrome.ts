@@ -6,6 +6,24 @@ export const mockHistory = {
   deleteRange: jest.fn(),
   deleteAll: jest.fn(),
   getVisits: jest.fn(),
+  onVisited: {
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    hasListener: () => false,
+    hasListeners: () => false,
+    getRules: jest.fn(),
+    removeRules: jest.fn(),
+    addRules: jest.fn(),
+  },
+  onVisitRemoved: {
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    hasListener: () => false,
+    hasListeners: () => false,
+    getRules: jest.fn(),
+    removeRules: jest.fn(),
+    addRules: jest.fn(),
+  },
 };
 export const mockStorage = {
   local: {

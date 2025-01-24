@@ -43,7 +43,7 @@ describe('HistorySync', () => {
     });
 
     const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-    const { container } = render(<HistorySync deviceId={deviceId} />);
+    render(<HistorySync deviceId={deviceId} />);
 
     // Initial render should show empty state
     expect(screen.getByText('No history items found')).toBeInTheDocument();
@@ -122,8 +122,9 @@ describe('HistorySync', () => {
   });
 
   it('shows loading state during sync', async () => {
-    let resolveSync: (value: any) => void;
-    const syncPromise = new Promise(resolve => {
+    // eslint-disable-next-line no-unused-vars
+    let resolveSync: (value: { success: boolean; message: string; history: typeof mockHistoryItems }) => void;
+    const syncPromise = new Promise<{ success: boolean; message: string; history: typeof mockHistoryItems }>(resolve => {
       resolveSync = resolve;
     });
 
@@ -164,8 +165,9 @@ describe('HistorySync', () => {
 
   it('preserves history items between syncs', async () => {
     // First sync
-    let resolveFirstSync: (value: any) => void;
-    const firstSyncPromise = new Promise(resolve => {
+    // eslint-disable-next-line no-unused-vars
+    let resolveFirstSync: (value: { success: boolean; message: string; history: typeof mockHistoryItems }) => void;
+    const firstSyncPromise = new Promise<{ success: boolean; message: string; history: typeof mockHistoryItems }>(resolve => {
       resolveFirstSync = resolve;
     });
     mockSendMessage.mockImplementationOnce(() => firstSyncPromise);
@@ -192,8 +194,9 @@ describe('HistorySync', () => {
     });
 
     // Second sync
-    let resolveSecondSync: (value: any) => void;
-    const secondSyncPromise = new Promise(resolve => {
+    // eslint-disable-next-line no-unused-vars
+    let resolveSecondSync: (value: { success: boolean; message: string; history: typeof mockHistoryItems }) => void;
+    const secondSyncPromise = new Promise<{ success: boolean; message: string; history: typeof mockHistoryItems }>(resolve => {
       resolveSecondSync = resolve;
     });
     mockSendMessage.mockImplementationOnce(() => secondSyncPromise);
@@ -221,8 +224,9 @@ describe('HistorySync', () => {
   });
 
   it('handles empty history response', async () => {
-    let resolveSync: (value: any) => void;
-    const syncPromise = new Promise(resolve => {
+    // eslint-disable-next-line no-unused-vars
+    let resolveSync: (value: { success: boolean; message: string; history: typeof mockHistoryItems }) => void;
+    const syncPromise = new Promise<{ success: boolean; message: string; history: typeof mockHistoryItems }>(resolve => {
       resolveSync = resolve;
     });
     mockSendMessage.mockImplementationOnce(() => syncPromise);

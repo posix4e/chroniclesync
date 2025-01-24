@@ -12,7 +12,10 @@ export default defineConfig(({ command }) => {
       outDir: isExtension ? paths.extensionDist : paths.webDist,
       emptyOutDir: true,
       rollupOptions: {
-        input: isExtension ? paths.popup : 'src/index.tsx',
+        input: isExtension ? {
+          popup: paths.popup,
+          background: paths.background
+        } : 'src/index.tsx',
         output: {
           format: isExtension ? 'iife' : 'es',
           entryFileNames: '[name].js',

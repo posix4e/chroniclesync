@@ -13,7 +13,9 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "history",
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:*/*",

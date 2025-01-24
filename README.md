@@ -2,277 +2,105 @@
 
 A modern, secure IndexedDB synchronization service built with Cloudflare Workers and Pages. ChronicleSync enables seamless data synchronization across browsers and devices while maintaining robust security and offline capabilities.
 
-## 🌟 Features
+## Features
 
-- 📱 **Offline-First Architecture**
-  - Continue working without internet connection
-  - Automatic conflict resolution
-  - Background synchronization when online
+- **Offline-First**: Continue working without internet connection with automatic background sync
+- **Secure**: End-to-end HTTPS encryption and robust access controls
+- **Password Manager Integration**: Works seamlessly with 1Password and other password managers
+- **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
+- **Real-time Monitoring**: Health monitoring and administrative dashboard
 
-- 🔒 **Enterprise-Grade Security**
-  - End-to-end HTTPS encryption
-  - Robust access controls
-  - Password manager integration
-  - Secure cross-device authentication
-
-- 🎯 **Key Capabilities**
-  - Manual synchronization control
-  - Real-time health monitoring
-  - Administrative dashboard
-  - Cross-browser compatibility
-  - Chrome extension support
-
-## 🏗️ Architecture
-
-ChronicleSync consists of three main components:
-
-1. **Frontend (Pages)**
-   - React-based web application
-   - Admin panel interface
-   - Health monitoring dashboard
-   - TypeScript for type safety
-   - Vite for optimal build performance
-
-2. **Chrome Extension**
-   - Seamless browser integration
-   - Dedicated window interface
-   - Password manager integration
-   - Direct IndexedDB management
-   - Optimized for 1Password and other password managers
-
-3. **Backend (Cloudflare Worker)**
-   - Serverless architecture
-   - Efficient data synchronization
-   - Metadata management
-   - Security middleware
-
-## 🚀 Getting Started
+## Development
 
 ### Prerequisites
-- Node.js 18 or higher
-- npm package manager
-- Cloudflare account for deployment
+- GitHub account with repository access
+- Cloudflare account for deployments
 
-### Installation
+### Getting Started
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/chroniclesync.git
-   cd chroniclesync
-   ```
+1. **Fork & Clone**: Fork this repository and clone your fork
+2. **Create a Branch**: Create a new branch for your changes
+3. **Make Changes**: Modify code in your branch
+4. **Open PR**: Create a pull request to the main branch
 
-2. Install dependencies:
-   ```bash
-   # Install Pages dependencies
-   cd pages
-   npm install
+Our [GitHub Actions workflow](.github/workflows/ci-cd.yml) will automatically:
+- Install all dependencies
+- Run linting and unit tests
+- Build the extension and web app
+- Deploy preview environments
+- Run E2E tests
 
-   # Install Worker dependencies
-   cd ../worker
-   npm install
-   ```
+> **Note**: Avoid running Playwright tests locally as they can leave behind zombie processes and are environment-sensitive. Instead, use the [Manual Playwright Testing](#manual-playwright-testing) workflow in GitHub Actions.
 
-3. Configure environment variables:
-   - Set up Cloudflare credentials
-   - Configure deployment settings
+### Development Workflow
 
-### Development
+#### Automated CI/CD
 
-1. Start the development server:
-   ```bash
-   # In the pages directory
-   npm run dev
+Each pull request triggers our CI/CD pipeline which:
 
-   # In the worker directory
-   npm run dev
-   ```
+1. **Build & Test** ([view action](../../actions/workflows/ci-cd.yml))
+   - Installs dependencies
+   - Runs linting
+   - Executes unit tests
+   - Builds extension and web app
 
-2. Build the Chrome extension:
-   ```bash
-   cd pages
-   npm run build:extension
-   ```
+2. **Deployment**
+   - Creates preview environment
+   - Deploys frontend to: `https://$BRANCH.chroniclesync.pages.dev`
+   - Deploys API to: `https://api-staging.chroniclesync.xyz`
+   - Stores current worker version (for rollback)
 
-## 🧪 Testing
+3. **E2E Testing**
+   - Triggers Playwright E2E tests ([separate workflow](../../actions/workflows/playwright-tests.yml))
+   - Waits for test completion
+   - On main branch: rolls back worker deployment if tests fail
+   - Provides test report with screenshots
 
-ChronicleSync includes comprehensive testing across all components:
+4. **Extension Packaging**
+   - Builds Chrome extension
+   - Uploads extension artifact
 
-### Prerequisites
-For E2E tests, you need:
+The CI/CD pipeline automatically triggers the Playwright tests workflow with default settings (Chromium browser, no debug mode). Test results are available in the [Actions tab](../../actions) under the "Playwright Tests" workflow.
 
-1. Playwright browsers:
-```bash
-npx playwright install chromium
-```
+> **Note**: For production deployments (main branch), if Playwright tests fail after worker deployment, the worker is automatically rolled back to the previous version to maintain stability.
 
-2. X Virtual Frame Buffer (Xvfb) for running tests in environments without a display server:
-```bash
-# On Debian/Ubuntu
-sudo apt-get install -y xvfb
+#### Manual Playwright Testing
 
-# On CentOS/RHEL
-sudo yum install -y xorg-x11-server-Xvfb
+For development and debugging, you can run Playwright tests on-demand using our dedicated workflow:
 
-# On macOS (not needed as it has a display server)
-# No installation required
+1. Go to the [Actions tab](../../actions/workflows/playwright-tests.yml)
+2. Click "Run workflow" and configure:
+   - **Browser**: Choose between Chromium, Firefox, or WebKit
+   - **Debug Mode**: Enable for additional logging and debugging info
 
-# On Windows (WSL)
-sudo apt-get install -y xvfb
-```
+The workflow will:
+- Run tests in a clean environment
+- Install only the selected browser
+- Build the extension
+- Run all Playwright tests
+- Upload test results and screenshots as artifacts
 
-To run tests with Xvfb:
-```bash
-# Run a single test
-xvfb-run npm run test:e2e
+This is particularly useful when:
+- Testing browser-specific behavior
+- Debugging test failures
+- Verifying extension functionality
+- Running tests without setting up a local environment
 
-# Run tests in watch mode
-xvfb-run npm run test:e2e -- --watch
-```
+Test artifacts (reports and screenshots) are available for 30 days after each run.
 
-Note: Xvfb is required because the Chrome extension opens in a new window and needs to interact with password managers, which requires a display server. Running in headless mode would limit our ability to test these interactions.
+### Loading the Extension
 
-### Running Tests
-```bash
-# Run frontend tests (React components and utilities)
-cd pages
-npm run test
+After each successful build, download the extension artifact from the [Actions tab](../../actions):
+1. Find your PR's workflow run
+2. Download the `chrome-extension.zip` artifact
+3. Unzip and load in Chrome:
+   - Open `chrome://extensions`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the unzipped directory
 
-# Run worker tests with coverage report
-cd worker
-npm run test:coverage
+## Architecture
 
-# Run E2E tests (Chrome extension)
-cd pages
-npm run test:e2e
-```
-
-### Manual Testing
-
-The extension requires manual testing for password manager integration:
-
-1. Build and load the extension:
-```bash
-cd pages
-npm run build:extension
-
-# In Chrome:
-# 1. Open chrome://extensions
-# 2. Enable "Developer mode"
-# 3. Click "Load unpacked"
-# 4. Select the /workspace/chroniclesync/extension directory
-```
-
-2. Test window behavior:
-   - Click extension icon
-   - Verify window opens (not popup)
-   - Window should be 400x600 pixels
-   - Window should appear on right side of screen
-   - Content should be properly styled and centered
-
-3. Test password manager integration:
-   - Open extension window
-   - Verify password manager icon appears in password field
-   - Test autofill with 1Password or other password managers
-   - Verify form submission works with autofilled credentials
-
-
-### Test Coverage
-- Frontend: Unit tests for React components, hooks, and utility functions
-- Worker: 99.5% statement coverage, testing API endpoints, middleware, and services
-- E2E: Chrome extension functionality and React app integration tests
-
-## 🔄 CI/CD
-
-### Deployment Strategy
-
-1. **Frontend (Pages)**
-   - Production: Deploys from `main` branch to main environment
-   - Feature Branches: Each PR gets its own preview deployment
-     ```bash
-     # For main branch
-     npm run deploy -- --branch main
-     # For feature branches
-     npm run deploy -- --branch $BRANCH_NAME
-     ```
-   - Preview URLs follow the pattern: `https://$BRANCH_NAME.chroniclesync.pages.dev`
-
-2. **Backend (Worker)**
-   - Production: Deploys from `main` branch to `api.chroniclesync.xyz`
-   - Staging: All feature branches deploy to shared staging environment
-   - Staging API endpoint: `api-staging.chroniclesync.xyz`
-   ```bash
-   # For main branch
-   npm run deploy -- --env production
-   # For feature branches
-   npm run deploy -- --env staging
-   ```
-
-### Automated Workflow
-
-- Linting and unit testing for all components
-- Chrome extension packaging and artifact storage
-- Branch-specific Pages deployments
-- Shared staging Worker deployment
-- E2E testing against staging environment
-- Test reports and screenshot preservation
-
-### ⚠️ Important CI Considerations
-
-1. **Wrangler in CI Environment**
-   - The project is configured to avoid running `wrangler dev` directly in CI pipelines
-   - Wrangler expects an interactive console which causes issues in CI environments
-   - CI uses pre-deployed staging environments for E2E tests
-   - Required environment variables:
-     - `STAGING_URL` and `STAGING_WORKER_URL` for E2E tests
-     - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for deployments
-
-2. **Extension Testing in CI**
-   - The Chrome extension requires a display server for testing window interactions
-   - CI environments typically don't have a display server installed
-   - Install and use Xvfb in CI pipelines:
-     ```yaml
-     # Example GitHub Actions workflow step
-     - name: Install Xvfb
-       run: |
-         sudo apt-get update
-         sudo apt-get install -y xvfb
-
-     - name: Run E2E tests
-       run: xvfb-run npm run test:e2e
-     ```
-   - This setup is crucial for testing password manager integration and window behavior
-   - Alternative: Use headless mode with `playwright.config.ts`, but this limits testing capabilities
-
-3. **Existing CI Configurations**
-   - Playwright is configured with CI-specific settings:
-     ```typescript
-     // playwright.config.ts
-     forbidOnly: !!process.env.CI,  // No exclusive tests in CI
-     retries: process.env.CI ? 2 : 0,  // Auto-retry in CI
-     workers: process.env.CI ? 1 : undefined,  // Single worker in CI
-     ```
-   - Separate staging environment in `wrangler.toml`:
-     ```toml
-     [env.staging]
-     name = "chroniclesync-worker-staging"
-     routes = [{ pattern = "api-staging.chroniclesync.xyz" }]
-     ```
-
-3. **Local vs CI Environment**
-   - Local development: Use `npm run dev` for Wrangler interactive mode
-   - CI environment: Uses pre-deployed staging instances
-   - E2E tests automatically use staging URLs in CI
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [contributing guidelines](CONTRIBUTING.md) for details on:
-
-- Code of Conduct
-- Development setup
-- Commit guidelines
-- Pull request process
-- Testing requirements
+- **Frontend**: React + TypeScript + Vite
+- **Chrome Extension**: Custom window interface with password manager integration
+- **Backend**: Cloudflare Worker with serverless architecture

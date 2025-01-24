@@ -1,6 +1,41 @@
 import { test, expect } from './utils/extension';
+import { server } from '../config';
 
 test.describe('Chrome Extension', () => {
+  test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
+    // Verify we got a valid extension ID
+    expect(extensionId).not.toBe('unknown-extension-id');
+    expect(extensionId).toMatch(/^[a-z]{32}$/);
+    console.log('Extension loaded with ID:', extensionId);
+
+    // Open a new page to trigger the background script
+    const testPage = await context.newPage();
+    await testPage.goto('https://example.com');
+    await testPage.waitForTimeout(1000);
+
+    // Check for service workers
+    const workers = await context.serviceWorkers();
+    expect(workers.length).toBe(1);
+
+    // Verify the service worker URL matches our extension
+    const workerUrl = workers[0].url();
+    expect(workerUrl).toContain(extensionId);
+    expect(workerUrl).toContain('background');
+  });
+
+  test('API health check should be successful', async ({ page }) => {
+    const apiUrl = process.env.API_URL || server.apiUrl;
+    console.log('Testing API health at:', `${apiUrl}/health`);
+    
+    const healthResponse = await page.request.get(`${apiUrl}/health`);
+    console.log('Health check status:', healthResponse.status());
+    
+    const responseBody = await healthResponse.json();
+    console.log('Health check response:', responseBody);
+    
+    expect(healthResponse.ok()).toBeTruthy();
+    expect(responseBody.healthy).toBeTruthy();
+  });
   test('should load without errors', async ({ page, context }) => {
     // Check for any console errors
     const errors: string[] = [];

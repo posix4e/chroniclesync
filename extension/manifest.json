@@ -6,11 +6,20 @@
   "action": {
     "default_popup": "popup.html"
   },
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs",
+    "history",
+    "storage"
   ],
   "host_permissions": [
-    "http://localhost:*/*"
+    "http://localhost:*/*",
+    "https://api.chroniclesync.xyz/*",
+    "https://api-staging.chroniclesync.xyz/*"
   ]
 }

@@ -36,3 +36,19 @@ export const test = base.extend<TestFixtures>({
 });
 
 export const expect = test.expect;
+
+export async function loadExtension(context: BrowserContext): Promise<string> {
+  // Open a page to trigger extension loading
+  const page = await context.newPage();
+  await page.goto('https://example.com');
+  await page.waitForTimeout(1000);
+
+  // Get extension ID from service worker
+  const workers = await context.serviceWorkers();
+  const extensionId = workers.length ? 
+    workers[0].url().split('/')[2] : 
+    'unknown-extension-id';
+
+  await page.close();
+  return extensionId;
+}

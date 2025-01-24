@@ -75,3 +75,85 @@ button:hover {
 .health-error { 
   color: #e74c3c; 
 }
+
+.history-sync {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.device-info {
+  margin-bottom: 20px;
+}
+
+.device-info input {
+  margin-left: 10px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+}
+
+.history-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-title {
+  margin-bottom: 5px;
+}
+
+.history-title a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.history-title a:hover {
+  text-decoration: underline;
+}
+
+.history-meta {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.history-meta span {
+  margin-right: 15px;
+}
+
+.device-name {
+  font-weight: bold;
+}
+
+.device-browser::before {
+  content: '🌐';
+  margin-right: 5px;
+}
+
+.device-os::before {
+  content: '💻';
+  margin-right: 5px;
+}
+
+.visit-time::before {
+  content: '🕒';
+  margin-right: 5px;
+}
+
+.error {
+  color: #dc3545;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  background-color: #f8d7da;
+}

@@ -55,9 +55,9 @@ test.describe('Chrome Extension', () => {
   });
 
   test('popup should load React app correctly', async ({ context }) => {
-    // Open extension popup directly from extension directory
+    const extensionId = await loadExtension(context);
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Wait for the root element to be visible
     const rootElement = await popupPage.locator('#root');
@@ -67,10 +67,11 @@ test.describe('Chrome Extension', () => {
     await popupPage.waitForLoadState('networkidle');
     await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
 
-    // Check for specific app content
-    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-    await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-    await expect(popupPage.locator('#adminLogin')).toBeVisible();
+    // Check for history sync components
+    await expect(popupPage.locator('.history-sync')).toBeVisible();
+    await expect(popupPage.locator('.device-info')).toBeVisible();
+    await expect(popupPage.locator('input[type="text"]')).toBeVisible();
+    await expect(popupPage.locator('.history-list')).toBeVisible();
 
     // Check for React-specific attributes and content
     const reactRoot = await popupPage.evaluate(() => {

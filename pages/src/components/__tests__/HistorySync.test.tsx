@@ -42,16 +42,13 @@ describe('HistorySync', () => {
       history: mockHistoryItems
     });
 
-    const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-    render(<HistorySync deviceId={deviceId} />);
+    const { container } = render(<HistorySync deviceId={deviceId} />);
 
     // Initial render should show empty state
     expect(screen.getByText('No history items found')).toBeInTheDocument();
 
     // Click sync button
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sync History'));
-    });
+    fireEvent.click(screen.getByText('Sync History'));
 
     // Wait for sync request
     await waitFor(() => {
@@ -63,42 +60,45 @@ describe('HistorySync', () => {
 
     // Wait for history items to be displayed
     await waitFor(() => {
-      mockHistoryItems.forEach(item => {
-        expect(screen.getByText(item.title)).toBeInTheDocument();
-        expect(screen.getByText(item.url)).toBeInTheDocument();
+      const titles = container.querySelectorAll('.history-title');
+      const urls = container.querySelectorAll('.history-url');
+      mockHistoryItems.forEach((item, index) => {
+        expect(titles[index]).toHaveTextContent(item.title);
+        expect(urls[index]).toHaveTextContent(item.url);
       });
     });
 
     // Check device info is displayed
     await waitFor(() => {
-      const deviceNames = screen.getAllByText(mockDeviceInfo.name);
-      const browserInfos = screen.getAllByText(mockDeviceInfo.browser);
-      const osInfos = screen.getAllByText(`OS: ${mockDeviceInfo.os}`);
+      const deviceNames = container.querySelectorAll('.device-name');
+      const browserInfos = container.querySelectorAll('.device-browser');
+      const osInfos = container.querySelectorAll('.device-os');
 
       expect(deviceNames).toHaveLength(mockHistoryItems.length);
       expect(browserInfos).toHaveLength(mockHistoryItems.length);
       expect(osInfos).toHaveLength(mockHistoryItems.length);
     });
 
-    alertMock.mockRestore();
+    // Check success notification
+    await waitFor(() => {
+      expect(container.querySelector('.notification-success')).toHaveTextContent('History sync completed successfully');
+    });
   });
 
   it('handles sync failure with network error', async () => {
     const networkError = new Error('Network error');
     mockSendMessage.mockRejectedValueOnce(networkError);
     
-    const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-    render(<HistorySync deviceId={deviceId} />);
+    const { container } = render(<HistorySync deviceId={deviceId} />);
     
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sync History'));
-      await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith('Failed to sync history: Network error');
-        expect(screen.getByText('No history items found')).toBeInTheDocument();
-      });
+    // Click sync button
+    fireEvent.click(screen.getByText('Sync History'));
+
+    // Wait for error notification and empty state
+    await waitFor(() => {
+      expect(container.querySelector('.notification-error')).toHaveTextContent('Failed to sync history: Network error');
+      expect(screen.getByText('No history items found')).toBeInTheDocument();
     });
-    
-    alertMock.mockRestore();
   });
 
   it('handles sync failure with server error response', async () => {
@@ -107,18 +107,16 @@ describe('HistorySync', () => {
       message: 'Server error occurred'
     });
     
-    const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-    render(<HistorySync deviceId={deviceId} />);
+    const { container } = render(<HistorySync deviceId={deviceId} />);
     
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sync History'));
-      await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith('Failed to sync history: Server error occurred');
-        expect(screen.getByText('No history items found')).toBeInTheDocument();
-      });
+    // Click sync button
+    fireEvent.click(screen.getByText('Sync History'));
+
+    // Wait for error notification and empty state
+    await waitFor(() => {
+      expect(container.querySelector('.notification-error')).toHaveTextContent('Failed to sync history: Server error occurred');
+      expect(screen.getByText('No history items found')).toBeInTheDocument();
     });
-    
-    alertMock.mockRestore();
   });
 
   it('shows loading state during sync', async () => {
@@ -130,13 +128,11 @@ describe('HistorySync', () => {
 
     mockSendMessage.mockImplementation(() => syncPromise);
     
-    render(<HistorySync deviceId={deviceId} />);
+    const { container } = render(<HistorySync deviceId={deviceId} />);
     const button = screen.getByText('Sync History');
     
     // Click sync button
-    await act(async () => {
-      fireEvent.click(button);
-    });
+    fireEvent.click(button);
 
     // Check loading state
     await waitFor(() => {
@@ -145,20 +141,19 @@ describe('HistorySync', () => {
     });
 
     // Resolve sync
-    await act(async () => {
-      resolveSync!({
-        success: true,
-        message: 'Success',
-        history: mockHistoryItems
-      });
+    resolveSync!({
+      success: true,
+      message: 'Success',
+      history: mockHistoryItems
     });
 
     // Check final state
     await waitFor(() => {
       expect(button).not.toBeDisabled();
       expect(screen.getByText('Sync History')).toBeInTheDocument();
-      mockHistoryItems.forEach(item => {
-        expect(screen.getByText(item.title)).toBeInTheDocument();
+      const titles = container.querySelectorAll('.history-title');
+      mockHistoryItems.forEach((item, index) => {
+        expect(titles[index]).toHaveTextContent(item.title);
       });
     });
   });
@@ -172,25 +167,21 @@ describe('HistorySync', () => {
     });
     mockSendMessage.mockImplementationOnce(() => firstSyncPromise);
 
-    const { rerender } = render(<HistorySync deviceId={deviceId} />);
+    const { container, rerender } = render(<HistorySync deviceId={deviceId} />);
     
     // Click sync button
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sync History'));
-    });
+    fireEvent.click(screen.getByText('Sync History'));
 
     // Resolve first sync
-    await act(async () => {
-      resolveFirstSync!({
-        success: true,
-        message: 'Success',
-        history: [mockHistoryItems[0]]
-      });
+    resolveFirstSync!({
+      success: true,
+      message: 'Success',
+      history: [mockHistoryItems[0]]
     });
 
     // Wait for first sync to complete
     await waitFor(() => {
-      expect(screen.getByText(mockHistoryItems[0].title)).toBeInTheDocument();
+      expect(container.querySelector('.history-title')).toHaveTextContent(mockHistoryItems[0].title);
     });
 
     // Second sync
@@ -202,24 +193,21 @@ describe('HistorySync', () => {
     mockSendMessage.mockImplementationOnce(() => secondSyncPromise);
 
     // Click sync button again
-    await act(async () => {
-      rerender(<HistorySync deviceId={deviceId} />);
-      fireEvent.click(screen.getByText('Sync History'));
-    });
+    rerender(<HistorySync deviceId={deviceId} />);
+    fireEvent.click(screen.getByText('Sync History'));
 
     // Resolve second sync
-    await act(async () => {
-      resolveSecondSync!({
-        success: true,
-        message: 'Success',
-        history: [mockHistoryItems[1], mockHistoryItems[2]]
-      });
+    resolveSecondSync!({
+      success: true,
+      message: 'Success',
+      history: [mockHistoryItems[1], mockHistoryItems[2]]
     });
 
     // Wait for second sync to complete
     await waitFor(() => {
-      expect(screen.getByText(mockHistoryItems[1].title)).toBeInTheDocument();
-      expect(screen.getByText(mockHistoryItems[2].title)).toBeInTheDocument();
+      const titles = container.querySelectorAll('.history-title');
+      expect(titles[0]).toHaveTextContent(mockHistoryItems[1].title);
+      expect(titles[1]).toHaveTextContent(mockHistoryItems[2].title);
     });
   });
 
@@ -231,28 +219,25 @@ describe('HistorySync', () => {
     });
     mockSendMessage.mockImplementationOnce(() => syncPromise);
 
-    render(<HistorySync deviceId={deviceId} />);
+    const { container } = render(<HistorySync deviceId={deviceId} />);
     
     // Initial state should show empty message
     expect(screen.getByText('No history items found')).toBeInTheDocument();
     
     // Click sync button
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sync History'));
-    });
+    fireEvent.click(screen.getByText('Sync History'));
 
     // Resolve sync with empty history
-    await act(async () => {
-      resolveSync!({
-        success: true,
-        message: 'Success',
-        history: []
-      });
+    resolveSync!({
+      success: true,
+      message: 'Success',
+      history: []
     });
 
-    // Should still show empty message
+    // Should still show empty message and success notification
     await waitFor(() => {
       expect(screen.getByText('No history items found')).toBeInTheDocument();
+      expect(container.querySelector('.notification-success')).toHaveTextContent('Success');
     });
   });
 });

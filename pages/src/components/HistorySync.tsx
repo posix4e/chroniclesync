@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Notification } from './Notification';
 import './HistorySync.css';
 
 interface DeviceInfo {
@@ -25,23 +26,26 @@ interface HistorySyncProps {
 export function HistorySync({ deviceId }: HistorySyncProps) {
   const [syncing, setSyncing] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const loadHistory = async () => {
-    if (chrome?.history) {
-      const items = await chrome.history.search({
-        text: '',
-        maxResults: 10,
-        startTime: Date.now() - (24 * 60 * 60 * 1000) // Last 24 hours
-      });
-      
-      setHistoryItems(items.map(item => ({
-        id: item.id || Math.random().toString(36).substring(2),
-        url: item.url || '',
-        title: item.title || 'Untitled',
-        visitTime: item.lastVisitTime || Date.now(),
-        deviceId
-      })));
-    }
+    if (!chrome?.history) return;
+
+    const items = await chrome.history.search({
+      text: '',
+      maxResults: 10,
+      startTime: Date.now() - (24 * 60 * 60 * 1000) // Last 24 hours
+    });
+    
+    const mappedItems = items.map(item => ({
+      id: item.id || Math.random().toString(36).substring(2),
+      url: item.url || '',
+      title: item.title || 'Untitled',
+      visitTime: item.lastVisitTime || Date.now(),
+      deviceId
+    }));
+
+    setHistoryItems(mappedItems);
   };
 
   useEffect(() => {
@@ -50,6 +54,8 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
 
   const handleSync = async () => {
     setSyncing(true);
+    setNotification(null);
+
     try {
       const response = await chrome.runtime.sendMessage({
         type: 'SYNC_HISTORY',
@@ -62,12 +68,13 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
         } else {
           await loadHistory(); // Fallback to loading local history
         }
-        alert(response.message);
+        setNotification({ message: response.message, type: 'success' });
       } else {
         throw new Error(response.message);
       }
     } catch (error) {
-      alert('Failed to sync history: ' + (error as Error).message);
+      setNotification({ message: 'Failed to sync history: ' + (error as Error).message, type: 'error' });
+      setHistoryItems([]); // Clear history on error
     } finally {
       setSyncing(false);
     }
@@ -84,6 +91,14 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
       >
         {syncing ? 'Syncing...' : 'Sync History'}
       </button>
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
       <div className="history-list">
         <h3>Recent History</h3>

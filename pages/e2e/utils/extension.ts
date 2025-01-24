@@ -13,8 +13,13 @@ export const test = base.extend<TestFixtures>({
       args: [
         `--disable-extensions-except=${paths.extension}`,
         `--load-extension=${paths.extension}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--allow-insecure-localhost',
+        '--disable-web-security'
       ],
     });
+    await context.grantPermissions(['tabs']);
     await use(context);
     await context.close();
   },

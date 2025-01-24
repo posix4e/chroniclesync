@@ -17,9 +17,10 @@ export default defineConfig(({ command }) => {
           background: paths.background
         } : 'src/index.tsx',
         output: {
-          format: isExtension ? 'iife' : 'es',
+          format: 'es',
           entryFileNames: '[name].js',
-          assetFileNames: 'assets/[name].[ext]'
+          assetFileNames: 'assets/[name].[ext]',
+          inlineDynamicImports: false
         }
       }
     },

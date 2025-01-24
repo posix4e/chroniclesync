@@ -4,7 +4,8 @@ export const paths = {
   extension: resolve(__dirname, '../extension'),
   extensionDist: resolve(__dirname, '../extension/dist'),
   webDist: resolve(__dirname, 'dist'),
-  popup: resolve(__dirname, 'src/popup.tsx')
+  popup: resolve(__dirname, 'src/popup.tsx'),
+  background: resolve(__dirname, 'src/background.ts')
 };
 
 export const server = {

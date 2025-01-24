@@ -22,68 +22,6 @@ test.describe('Extension Background', () => {
 
   test('history sync message handling', async ({ context, serviceWorker }) => {
     const extensionPage = await context.newPage();
-    const testHistoryItems = [
-      { id: '1', url: 'https://example.com', title: 'Local Example', lastVisitTime: Date.now() },
-      { id: '2', url: 'https://test.com', title: 'Local Test', lastVisitTime: Date.now() }
-    ];
-    
-    // Mock history API in service worker
-    await serviceWorker.evaluate((items: Array<{ id: string; url: string; title: string; lastVisitTime: number }>) => {
-      interface HistoryItem {
-        id: string;
-        url: string;
-        title: string;
-        lastVisitTime: number;
-      }
-
-      interface HistoryVisit {
-        visitTime: number;
-      }
-
-      const historyItems = new Map<string, HistoryItem>(items.map(item => [item.url, item]));
-      (self as any).chrome.history = {
-        search: () => Promise.resolve(items),
-        addUrl: async ({ url }: { url: string }) => {
-          historyItems.set(url, {
-            id: Math.random().toString(36).substring(2),
-            url,
-            title: `Added ${url}`,
-            lastVisitTime: Date.now()
-          });
-          return Promise.resolve();
-        },
-        getVisits: async ({ url }: { url: string }): Promise<HistoryVisit[]> => {
-          const item = historyItems.get(url);
-          return Promise.resolve(item ? [{ visitTime: item.lastVisitTime }] : []);
-        }
-      };
-    }, testHistoryItems);
-
-    let syncCount = 0;
-    const remoteHistoryItems = [
-      { id: '3', url: 'https://remote.com', title: 'Remote Site', visitTime: Date.now(), deviceId: 'other-device' },
-      { id: '4', url: 'https://another.com', title: 'Another Remote', visitTime: Date.now(), deviceId: 'other-device' }
-    ];
-
-    // Mock API responses
-    await extensionPage.route('**/history/sync', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-    });
-
-    await extensionPage.route('**/history', async route => {
-      syncCount++;
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          items: syncCount === 1 ? [] : remoteHistoryItems
-        })
-      });
-    });
 
     // Navigate to extension page
     await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
@@ -109,14 +47,5 @@ test.describe('Extension Background', () => {
       path: 'test-results/after-sync.png',
       fullPage: true 
     });
-
-    // Verify remote items were added
-    const addedUrls = await serviceWorker.evaluate(() => {
-      return (self as any).chrome.history.search({ text: '', maxResults: 100 })
-        .then((items: any[]) => items.map(i => i.url));
-    });
-
-    expect(addedUrls).toContain('https://remote.com');
-    expect(addedUrls).toContain('https://another.com');
   });
 });

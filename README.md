@@ -25,12 +25,16 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 
 Our [GitHub Actions workflow](.github/workflows/ci-cd.yml) will automatically:
 - Install all dependencies
-- Run linting and tests
+- Run linting and unit tests
 - Build the extension and web app
 - Deploy preview environments
 - Run E2E tests
 
+> **Note**: Avoid running Playwright tests locally as they can leave behind zombie processes and are environment-sensitive. Instead, use the [Manual Playwright Testing](#manual-playwright-testing) workflow in GitHub Actions.
+
 ### Development Workflow
+
+#### Automated CI/CD
 
 Each pull request triggers our CI/CD pipeline which:
 
@@ -51,6 +55,30 @@ Each pull request triggers our CI/CD pipeline which:
    - Uploads extension artifact
    - Runs automated tests
    - Provides test report with screenshots
+
+#### Manual Playwright Testing
+
+For development and debugging, you can run Playwright tests on-demand using our dedicated workflow:
+
+1. Go to the [Actions tab](../../actions/workflows/playwright-tests.yml)
+2. Click "Run workflow" and configure:
+   - **Browser**: Choose between Chromium, Firefox, or WebKit
+   - **Debug Mode**: Enable for additional logging and debugging info
+
+The workflow will:
+- Run tests in a clean environment
+- Install only the selected browser
+- Build the extension
+- Run all Playwright tests
+- Upload test results and screenshots as artifacts
+
+This is particularly useful when:
+- Testing browser-specific behavior
+- Debugging test failures
+- Verifying extension functionality
+- Running tests without setting up a local environment
+
+Test artifacts (reports and screenshots) are available for 30 days after each run.
 
 ### Loading the Extension
 

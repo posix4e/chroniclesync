@@ -1,7 +1,21 @@
 import { api } from './utils/api';
 
 // Initialize background script
+// Initialization message is important for debugging
 console.log('ChronicleSync background script initialized');
+
+function getDeviceName(os: string): string {
+  switch (os) {
+  case 'mac':
+    return 'MacOS Device';
+  case 'win':
+    return 'Windows Device';
+  case 'linux':
+    return 'Linux Device';
+  default:
+    return 'Unknown Device';
+  }
+}
 
 interface DeviceInfo {
   id: string;
@@ -33,9 +47,7 @@ async function getDeviceInfo(deviceId: string): Promise<DeviceInfo> {
   
   return {
     id: deviceId,
-    name: platform.os === 'mac' ? 'MacOS Device' : 
-          platform.os === 'win' ? 'Windows Device' : 
-          platform.os === 'linux' ? 'Linux Device' : 'Unknown Device',
+    name: getDeviceName(platform.os),
     browser: `Chrome ${manifest.version}`,
     os: platform.os,
     lastSync: Date.now()

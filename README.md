@@ -43,7 +43,7 @@ Each pull request triggers our CI/CD pipeline which:
    - Runs linting
    - Executes unit tests
    - Builds extension and web app
-   - Runs E2E tests with Playwright
+   - Triggers Playwright E2E tests ([separate workflow](../../actions/workflows/playwright-tests.yml))
 
 2. **Preview Deployment**
    - Creates preview environment
@@ -53,8 +53,9 @@ Each pull request triggers our CI/CD pipeline which:
 3. **Extension Testing**
    - Builds Chrome extension
    - Uploads extension artifact
-   - Runs automated tests
    - Provides test report with screenshots
+
+The CI/CD pipeline automatically triggers the Playwright tests workflow with default settings (Chromium browser, no debug mode). Test results are available in the [Actions tab](../../actions) under the "Playwright Tests" workflow.
 
 #### Manual Playwright Testing
 

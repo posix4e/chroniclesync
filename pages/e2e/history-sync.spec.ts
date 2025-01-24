@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 import { loadExtension } from './utils/extension';
 
 test.describe('History Sync', () => {
+  test.beforeEach(async ({ page }) => {
+    // Verify API endpoint is accessible
+    const apiUrl = process.env.API_URL || 'http://localhost:8787';
+    const response = await page.request.get(`${apiUrl}/health`);
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+    expect(data.healthy).toBeTruthy();
+  });
   test('should sync history across tabs', async ({ context }) => {
     // Load extension in first window
     const extensionId = await loadExtension(context);

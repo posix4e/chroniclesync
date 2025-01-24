@@ -57,12 +57,12 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
       });
       
       if (response.success) {
-        alert(response.message);
         if (response.history) {
           setHistoryItems(response.history);
         } else {
           await loadHistory(); // Fallback to loading local history
         }
+        alert(response.message);
       } else {
         throw new Error(response.message);
       }

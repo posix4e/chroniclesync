@@ -12,6 +12,11 @@ on:
           - chromium
           - firefox
           - webkit
+      api_endpoint:
+        description: 'API endpoint to test against'
+        required: false
+        type: string
+        default: 'https://api-staging.chroniclesync.xyz'
       debug:
         description: 'Enable debug mode'
         required: false
@@ -42,7 +47,7 @@ jobs:
       - name: Build extension
         working-directory: pages
         env:
-          API_URL: 'https://api-staging.chroniclesync.xyz'
+          API_URL: ${{ inputs.api_endpoint }}
         run: npm run build:extension
 
       - name: Run Playwright tests

@@ -1,5 +1,8 @@
 import { api } from './utils/api';
 
+// Initialize background script
+console.log('ChronicleSync background script initialized');
+
 interface HistoryItem {
   id: string;
   url: string;

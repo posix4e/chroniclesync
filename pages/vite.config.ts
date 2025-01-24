@@ -12,12 +12,9 @@ export default defineConfig(({ command }) => {
       outDir: isExtension ? paths.extensionDist : paths.webDist,
       emptyOutDir: true,
       rollupOptions: {
-        input: isExtension ? {
-          popup: paths.popup,
-          background: 'src/background.ts'
-        } : 'src/index.tsx',
+        input: isExtension ? paths.popup : 'src/index.tsx',
         output: {
-          format: 'es',
+          format: 'iife',
           entryFileNames: '[name].js',
           assetFileNames: 'assets/[name].[ext]',
           inlineDynamicImports: false

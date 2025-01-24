@@ -13,6 +13,8 @@ export const test = base.extend<TestFixtures>({
       args: [
         `--disable-extensions-except=${paths.extension}`,
         `--load-extension=${paths.extension}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
       ],
     });
     await use(context);

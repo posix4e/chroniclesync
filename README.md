@@ -43,19 +43,25 @@ Each pull request triggers our CI/CD pipeline which:
    - Runs linting
    - Executes unit tests
    - Builds extension and web app
-   - Triggers Playwright E2E tests ([separate workflow](../../actions/workflows/playwright-tests.yml))
 
-2. **Preview Deployment**
+2. **Deployment**
    - Creates preview environment
    - Deploys frontend to: `https://$BRANCH.chroniclesync.pages.dev`
    - Deploys API to: `https://api-staging.chroniclesync.xyz`
 
-3. **Extension Testing**
-   - Builds Chrome extension
-   - Uploads extension artifact
+3. **E2E Testing**
+   - Triggers Playwright E2E tests ([separate workflow](../../actions/workflows/playwright-tests.yml))
+   - Waits for test completion
+   - On main branch: rolls back worker deployment if tests fail
    - Provides test report with screenshots
 
+4. **Extension Packaging**
+   - Builds Chrome extension
+   - Uploads extension artifact
+
 The CI/CD pipeline automatically triggers the Playwright tests workflow with default settings (Chromium browser, no debug mode). Test results are available in the [Actions tab](../../actions) under the "Playwright Tests" workflow.
+
+> **Note**: For production deployments (main branch), if Playwright tests fail after worker deployment, the worker is automatically rolled back to the previous version to maintain stability.
 
 #### Manual Playwright Testing
 

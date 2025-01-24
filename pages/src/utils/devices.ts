@@ -10,11 +10,11 @@ export function getBrowserInfo(): { browser: string; os: string } {
   const userAgent = navigator.userAgent;
   const browser = userAgent.includes('Chrome') ? 'Chrome' :
     userAgent.includes('Firefox') ? 'Firefox' :
-    userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+      userAgent.includes('Safari') ? 'Safari' : 'Unknown';
 
   const os = userAgent.includes('Windows') ? 'Windows' :
     userAgent.includes('Mac') ? 'macOS' :
-    userAgent.includes('Linux') ? 'Linux' : 'Unknown';
+      userAgent.includes('Linux') ? 'Linux' : 'Unknown';
 
   return { browser, os };
 }
@@ -28,7 +28,7 @@ export async function getDeviceName(): Promise<string> {
     const defaultName = `Device_${Math.random().toString(36).slice(2, 7)}`;
     await chrome.storage.sync.set({ deviceName: defaultName });
     return defaultName;
-  } catch (error) {
+  } catch {
     // Return a random name if storage fails
     return `Device_${Math.random().toString(36).slice(2, 7)}`;
   }

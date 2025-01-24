@@ -19,12 +19,19 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    const backgroundPages = context.backgroundPages();
-    const extensionId = backgroundPages.length ? 
-      backgroundPages[0].url().split('/')[2] : 
+    // Open a page to trigger extension loading
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.waitForTimeout(1000);
+
+    // Get extension ID from service worker
+    const workers = await context.serviceWorkers();
+    const extensionId = workers.length ? 
+      workers[0].url().split('/')[2] : 
       'unknown-extension-id';
-    
+
     await use(extensionId);
+    await page.close();
   },
 });
 

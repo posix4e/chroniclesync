@@ -40,18 +40,20 @@ async function updateDeviceList(): Promise<DeviceInfo[]> {
   );
 
   // Update or add current device
-  const existingDevice = activeDevices.find(d => d.id === db.clientId);
-  if (existingDevice) {
-    existingDevice.name = name;
-    existingDevice.lastSeen = now;
-  } else {
-    activeDevices.push({
-      id: db.clientId,
-      name,
-      browser,
-      os,
-      lastSeen: now
-    });
+  if (db.clientId) {
+    const existingDevice = activeDevices.find(d => d.id === db.clientId);
+    if (existingDevice) {
+      existingDevice.name = name;
+      existingDevice.lastSeen = now;
+    } else {
+      activeDevices.push({
+        id: db.clientId,
+        name,
+        browser,
+        os,
+        lastSeen: now
+      });
+    }
   }
 
   return activeDevices;
@@ -68,7 +70,11 @@ async function syncHistory(url: string, title: string) {
     // Update device list
     const devices = await updateDeviceList();
 
-    // Add new history item
+    // Add new history item if we have a client ID
+    if (!db.clientId) {
+      return;
+    }
+
     const newItem: HistoryItem = {
       id: Math.random().toString(36).slice(2),
       url,

@@ -2,17 +2,17 @@ import { test, expect } from './utils/extension';
 import { getExtensionId } from './utils/extension';
 
 test.describe('Extension Background', () => {
-  test('background script loads correctly', async ({ context }) => {
-    const backgroundPages = context.backgroundPages();
-    expect(backgroundPages.length).toBe(1);
+  test('background script loads correctly', async ({ context, serviceWorker }) => {
+    const workers = context.serviceWorkers();
+    expect(workers.length).toBe(1);
+    expect(workers[0].url()).toContain('background.js');
     
     const extensionId = await getExtensionId(context);
     expect(extensionId).not.toBe('unknown-extension-id');
   });
 
-  test('manifest permissions are correct', async ({ context }) => {
-    const [background] = context.backgroundPages();
-    const manifest = await background.evaluate(() => chrome.runtime.getManifest());
+  test('manifest permissions are correct', async ({ serviceWorker }) => {
+    const manifest = await serviceWorker.evaluate(() => chrome.runtime.getManifest());
     
     expect(manifest.permissions).toContain('history');
     expect(manifest.permissions).toContain('storage');
@@ -20,16 +20,15 @@ test.describe('Extension Background', () => {
     expect(manifest.background && 'service_worker' in manifest.background && manifest.background.service_worker).toBe('dist/background.js');
   });
 
-  test('history sync message handling', async ({ context }) => {
-    const [background] = context.backgroundPages();
+  test('history sync message handling', async ({ context, serviceWorker }) => {
     const extensionPage = await context.newPage();
     const testHistoryItems = [
       { id: '1', url: 'https://example.com', title: 'Local Example', lastVisitTime: Date.now() },
       { id: '2', url: 'https://test.com', title: 'Local Test', lastVisitTime: Date.now() }
     ];
     
-    // Mock history API
-    await background.evaluate((items: Array<{ id: string; url: string; title: string; lastVisitTime: number }>) => {
+    // Mock history API in service worker
+    await serviceWorker.evaluate((items: Array<{ id: string; url: string; title: string; lastVisitTime: number }>) => {
       interface HistoryItem {
         id: string;
         url: string;
@@ -42,7 +41,7 @@ test.describe('Extension Background', () => {
       }
 
       const historyItems = new Map<string, HistoryItem>(items.map(item => [item.url, item]));
-      (window as any).chrome.history = {
+      (self as any).chrome.history = {
         search: () => Promise.resolve(items),
         addUrl: async ({ url }: { url: string }) => {
           historyItems.set(url, {
@@ -112,8 +111,8 @@ test.describe('Extension Background', () => {
     });
 
     // Verify remote items were added
-    const addedUrls = await background.evaluate(() => {
-      return (window as any).chrome.history.search({ text: '', maxResults: 100 })
+    const addedUrls = await serviceWorker.evaluate(() => {
+      return (self as any).chrome.history.search({ text: '', maxResults: 100 })
         .then((items: any[]) => items.map(i => i.url));
     });
 

@@ -4,6 +4,7 @@ import { paths } from '../../config';
 export type TestFixtures = {
   context: BrowserContext;
   extensionId: string;
+  serviceWorker: any;
 };
 
 export const test = base.extend<TestFixtures>({
@@ -21,20 +22,28 @@ export const test = base.extend<TestFixtures>({
     await context.close();
   },
   extensionId: async ({ context }, use) => {
-    const backgroundPages = context.backgroundPages();
-    const extensionId = backgroundPages.length ? 
-      backgroundPages[0].url().split('/')[2] : 
+    // Wait for service worker to be registered
+    await context.waitForEvent('serviceworker');
+    const workers = context.serviceWorkers();
+    const extensionId = workers.length ? 
+      new URL(workers[0].url()).hostname : 
       'unknown-extension-id';
-    
     await use(extensionId);
+  },
+  serviceWorker: async ({ context }, use) => {
+    // Wait for service worker to be registered
+    await context.waitForEvent('serviceworker');
+    const workers = context.serviceWorkers();
+    await use(workers[0]);
   },
 });
 
 export const expect = test.expect;
 
 export async function getExtensionId(context: BrowserContext): Promise<string> {
-  const backgroundPages = context.backgroundPages();
-  return backgroundPages.length ? 
-    backgroundPages[0].url().split('/')[2] : 
+  await context.waitForEvent('serviceworker');
+  const workers = context.serviceWorkers();
+  return workers.length ? 
+    new URL(workers[0].url()).hostname : 
     'unknown-extension-id';
 }

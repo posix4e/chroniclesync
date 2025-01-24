@@ -2,6 +2,7 @@ import { api } from './utils/api';
 
 // Initialize background script
 // Initialization message is important for debugging
+// eslint-disable-next-line no-console
 console.log('ChronicleSync background script initialized');
 
 function getDeviceName(os: string): string {

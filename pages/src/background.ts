@@ -1,22 +1,23 @@
 import { DB } from './utils/db';
+import { DeviceInfo, getBrowserInfo, getDeviceName } from './utils/devices';
+
+interface HistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  visitTime: number;
+  deviceInfo: DeviceInfo;
+}
+
+interface SyncData {
+  history?: HistoryItem[];
+  devices?: DeviceInfo[];
+}
 
 const db = new DB();
 let initialized = false;
-
-async function getDeviceInfo() {
-  const { deviceName } = await chrome.storage.sync.get('deviceName');
-  const userAgent = navigator.userAgent;
-  const browser = userAgent.includes('Chrome') ? 'Chrome' : 'Unknown';
-  const os = userAgent.includes('Windows') ? 'Windows' :
-    userAgent.includes('Mac') ? 'macOS' :
-      userAgent.includes('Linux') ? 'Linux' : 'Unknown';
-
-  return {
-    name: deviceName || `Device_${Math.random().toString(36).slice(2, 7)}`,
-    browser,
-    os
-  };
-}
+const HISTORY_LIMIT = 100;
+const DEVICE_INACTIVE_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
 async function initializeDB() {
   if (!initialized) {
@@ -26,43 +27,99 @@ async function initializeDB() {
   }
 }
 
+async function updateDeviceList(): Promise<DeviceInfo[]> {
+  const data = await db.getData() as SyncData;
+  const devices = data.devices || [];
+  const { browser, os } = getBrowserInfo();
+  const name = await getDeviceName();
+  const now = Date.now();
+
+  // Remove inactive devices
+  const activeDevices = devices.filter(d => 
+    now - d.lastSeen < DEVICE_INACTIVE_THRESHOLD
+  );
+
+  // Update or add current device
+  const existingDevice = activeDevices.find(d => d.id === db.clientId);
+  if (existingDevice) {
+    existingDevice.name = name;
+    existingDevice.lastSeen = now;
+  } else {
+    activeDevices.push({
+      id: db.clientId,
+      name,
+      browser,
+      os,
+      lastSeen: now
+    });
+  }
+
+  return activeDevices;
+}
+
 async function syncHistory(url: string, title: string) {
   try {
     await initializeDB();
-    const deviceInfo = await getDeviceInfo();
-    const data = await db.getData();
-    const history = (data.history || []) as Array<{
-      id: string;
-      url: string;
-      title: string;
-      visitTime: number;
-      deviceInfo: {
-        name: string;
-        browser: string;
-        os: string;
-      };
-    }>;
+    const data = await db.getData() as SyncData;
+    const history = data.history || [];
+    const { browser, os } = getBrowserInfo();
+    const name = await getDeviceName();
 
-    history.unshift({
+    // Update device list
+    const devices = await updateDeviceList();
+
+    // Add new history item
+    const newItem: HistoryItem = {
       id: Math.random().toString(36).slice(2),
       url,
       title,
       visitTime: Date.now(),
-      deviceInfo
-    });
+      deviceInfo: {
+        id: db.clientId,
+        name,
+        browser,
+        os,
+        lastSeen: Date.now()
+      }
+    };
 
-    // Keep only last 100 items
-    if (history.length > 100) {
-      history.pop();
+    // Check for duplicates within last hour
+    const lastHour = Date.now() - 60 * 60 * 1000;
+    const recentDuplicate = history.find(item => 
+      item.url === url && 
+      item.deviceInfo.id === db.clientId &&
+      item.visitTime > lastHour
+    );
+
+    if (!recentDuplicate) {
+      history.unshift(newItem);
+      
+      // Keep only last N items
+      if (history.length > HISTORY_LIMIT) {
+        history.pop();
+      }
     }
 
-    await db.setData({ ...data, history });
+    await db.setData({ ...data, history, devices });
   } catch (error) {
-    // Log error for debugging in extension
-    console.log('Error syncing history:', error);
+    console.error('Error syncing history:', error);
   }
 }
 
+// Update device list periodically
+setInterval(async () => {
+  if (initialized) {
+    try {
+      const devices = await updateDeviceList();
+      const data = await db.getData() as SyncData;
+      await db.setData({ ...data, devices });
+    } catch (error) {
+      console.error('Error updating device list:', error);
+    }
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
+
+// Listen for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url && tab.title) {
     syncHistory(changeInfo.url, tab.title);

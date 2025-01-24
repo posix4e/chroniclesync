@@ -6,6 +6,9 @@ configure({ asyncUtilTimeout: 2000 });
 
 // Configure React 18 concurrent mode
 declare global {
-  let IS_REACT_ACT_ENVIRONMENT: boolean;
+  interface Window {
+    IS_REACT_ACT_ENVIRONMENT: boolean;
+  }
 }
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+(window as any).IS_REACT_ACT_ENVIRONMENT = true;

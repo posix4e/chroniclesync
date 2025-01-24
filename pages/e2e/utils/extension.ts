@@ -1,10 +1,12 @@
 import { test as base, chromium, type BrowserContext } from '@playwright/test';
 import { paths } from '../../config';
 
+import type { Worker } from '@playwright/test';
+
 export type TestFixtures = {
   context: BrowserContext;
   extensionId: string;
-  serviceWorker: any;
+  serviceWorker: Worker;
 };
 
 export const test = base.extend<TestFixtures>({
@@ -30,7 +32,7 @@ export const test = base.extend<TestFixtures>({
       'unknown-extension-id';
     await use(extensionId);
   },
-  serviceWorker: async ({ context }, use) => {
+  serviceWorker: async ({ context }: { context: BrowserContext }, use: (worker: Worker) => Promise<void>) => {
     // Wait for service worker to be registered
     await context.waitForEvent('serviceworker');
     const workers = context.serviceWorkers();

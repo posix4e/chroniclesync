@@ -3,12 +3,21 @@ import { api } from './utils/api';
 // Initialize background script
 console.log('ChronicleSync background script initialized');
 
+interface DeviceInfo {
+  id: string;
+  name: string;
+  browser: string;
+  os: string;
+  lastSync: number;
+}
+
 interface HistoryItem {
   id: string;
   url: string;
   title: string;
   visitTime: number;
   deviceId: string;
+  deviceInfo?: DeviceInfo;
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -18,8 +27,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function syncHistory(deviceId: string): Promise<{ success: boolean; message: string }> {
+async function getDeviceInfo(deviceId: string): Promise<DeviceInfo> {
+  const platform = await chrome.runtime.getPlatformInfo();
+  const manifest = chrome.runtime.getManifest();
+  
+  return {
+    id: deviceId,
+    name: platform.os === 'mac' ? 'MacOS Device' : 
+          platform.os === 'win' ? 'Windows Device' : 
+          platform.os === 'linux' ? 'Linux Device' : 'Unknown Device',
+    browser: `Chrome ${manifest.version}`,
+    os: platform.os,
+    lastSync: Date.now()
+  };
+}
+
+async function syncHistory(deviceId: string): Promise<{ success: boolean; message: string; history?: HistoryItem[] }> {
   try {
+    // Get device info
+    const deviceInfo = await getDeviceInfo(deviceId);
+    
     // Get local history
     const history = await chrome.history.search({
       text: '',
@@ -32,7 +59,8 @@ async function syncHistory(deviceId: string): Promise<{ success: boolean; messag
       url: item.url || '',
       title: item.title || '',
       visitTime: item.lastVisitTime || Date.now(),
-      deviceId
+      deviceId,
+      deviceInfo
     }));
 
     // Send to server
@@ -43,15 +71,20 @@ async function syncHistory(deviceId: string): Promise<{ success: boolean; messag
     const serverItems = response.data.items;
 
     // Add new items from other devices to local history
-    for (const item of serverItems) {
-      if (item.deviceId !== deviceId) {
-        await chrome.history.addUrl({
-          url: item.url
-        });
-      }
-    }
+    const addPromises = serverItems
+      .filter(item => item.deviceId !== deviceId)
+      .map(item => chrome.history.addUrl({ url: item.url }));
+    
+    await Promise.all(addPromises);
 
-    return { success: true, message: 'History sync completed successfully' };
+    // Return all history items with device info
+    const allItems = [...historyItems, ...serverItems.filter(item => item.deviceId !== deviceId)];
+    
+    return { 
+      success: true, 
+      message: 'History sync completed successfully',
+      history: allItems
+    };
   } catch (error) {
     console.error('History sync failed:', error);
     return { success: false, message: 'History sync failed: ' + (error as Error).message };

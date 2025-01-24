@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import './HistorySync.css';
 
+interface DeviceInfo {
+  id: string;
+  name: string;
+  browser: string;
+  os: string;
+  lastSync: number;
+}
+
 interface HistoryItem {
   id: string;
   url: string;
   title: string;
   visitTime: number;
   deviceId: string;
+  deviceInfo?: DeviceInfo;
 }
 
 interface HistorySyncProps {
@@ -49,7 +58,11 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
       
       if (response.success) {
         alert(response.message);
-        await loadHistory(); // Reload history after sync
+        if (response.history) {
+          setHistoryItems(response.history);
+        } else {
+          await loadHistory(); // Fallback to loading local history
+        }
       } else {
         throw new Error(response.message);
       }
@@ -85,6 +98,14 @@ export function HistorySync({ deviceId }: HistorySyncProps) {
                 <div className="history-time">
                   {new Date(item.visitTime).toLocaleString()}
                 </div>
+                {item.deviceInfo && (
+                  <div className="device-info">
+                    <span className="device-name">{item.deviceInfo.name}</span>
+                    <span className="device-browser">{item.deviceInfo.browser}</span>
+                    <span className="device-os">OS: {item.deviceInfo.os}</span>
+                    <span className="device-sync">Last Sync: {new Date(item.deviceInfo.lastSync).toLocaleString()}</span>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

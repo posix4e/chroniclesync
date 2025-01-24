@@ -63,4 +63,42 @@
 .history-time {
   color: #7f8c8d;
   font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.device-info {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.device-info span {
+  color: #6c757d;
+  display: inline-flex;
+  align-items: center;
+}
+
+.device-name {
+  font-weight: bold;
+  color: #2c3e50 !important;
+}
+
+.device-browser::before {
+  content: "🌐";
+  margin-right: 4px;
+}
+
+.device-os::before {
+  content: "💻";
+  margin-right: 4px;
+}
+
+.device-sync::before {
+  content: "🔄";
+  margin-right: 4px;
 }

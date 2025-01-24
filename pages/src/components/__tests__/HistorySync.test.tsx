@@ -103,4 +103,43 @@ describe('HistorySync', () => {
       expect(screen.getByText('Sync History')).toBeInTheDocument();
     });
   });
+
+  it('displays device info after successful sync', async () => {
+    const mockDeviceInfo = {
+      id: deviceId,
+      name: 'Test Device',
+      browser: 'Chrome 120.0',
+      os: 'linux',
+      lastSync: Date.now()
+    };
+
+    const mockHistoryItem = {
+      id: '123',
+      url: 'https://example.com',
+      title: 'Example',
+      visitTime: Date.now(),
+      deviceId,
+      deviceInfo: mockDeviceInfo
+    };
+
+    mockSendMessage.mockResolvedValueOnce({
+      success: true,
+      message: 'History sync completed successfully',
+      history: [mockHistoryItem]
+    });
+
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation();
+    render(<HistorySync deviceId={deviceId} />);
+
+    fireEvent.click(screen.getByText('Sync History'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Device')).toBeInTheDocument();
+      expect(screen.getByText('Chrome 120.0')).toBeInTheDocument();
+      expect(screen.getByText('OS: linux')).toBeInTheDocument();
+      expect(screen.getByText(/Last Sync:/)).toBeInTheDocument();
+    });
+
+    alertMock.mockRestore();
+  });
 });

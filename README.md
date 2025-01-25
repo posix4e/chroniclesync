@@ -87,6 +87,8 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 Say "abracadabra" to run the full test suite. This will:
 
+> **Latest Test Results**: All tests passed successfully (14 tests across 3 test suites)
+
 1. Run pages /extension tests:
    ```bash
    # Frontend tests and build

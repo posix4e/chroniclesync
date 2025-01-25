@@ -86,41 +86,24 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-#### Unit Tests
-- Run `npm test` in either `pages/` or `worker/` directory
-- Tests are written using Jest
-
-#### E2E Tests
-
-> **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
-
-We provide a Python script to run E2E tests through GitHub Actions, which is the recommended approach:
-
+After pushing changes, just run:
 ```bash
-# Set up GitHub token
-export GITHUB_TOKEN=your_token_here
-
-# Run tests and wait for results
-./scripts/run_tests.py --wait
-
-# Run tests with specific browser and debug mode
-./scripts/run_tests.py --browser firefox --debug --wait
-
-# Run tests against custom API endpoint
-./scripts/run_tests.py --api-endpoint https://api-staging.chroniclesync.xyz --wait
-
-# Run tests and download artifacts
-./scripts/run_tests.py --wait --download-artifacts
+./scripts/test.sh
 ```
 
-Available options:
-- `--browser`: Browser to test in (chromium/firefox/webkit)
-- `--api-endpoint`: Custom API endpoint to test against
-- `--debug`: Enable debug mode for troubleshooting
-- `--wait`: Wait for test completion and show results
-- `--download-artifacts`: Download test artifacts after completion
+This will:
+- Watch the tests run live
+- Download artifacts when done
+- Show logs if anything fails
 
-Test artifacts are available for 30 days in the Actions tab and can be downloaded using the script.
+For local testing:
+```bash
+# Frontend tests
+cd pages && npm test
+
+# Backend tests
+cd worker && npm test
+```
 
 ### Extension Development
 

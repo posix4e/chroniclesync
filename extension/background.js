@@ -13,6 +13,7 @@ async function syncHistory() {
   try {
     await historyService.syncHistory(lastSyncTime);
     lastSyncTime = Date.now();
+    console.log('History sync completed');
   } catch (error) {
     console.error('History sync failed:', error);
   }

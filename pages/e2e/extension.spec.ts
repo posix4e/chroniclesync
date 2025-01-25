@@ -98,40 +98,74 @@ test.describe('Chrome Extension', () => {
   });
 
   test('history sync should work correctly', async ({ context, extensionId }) => {
-    // Create a page and navigate to some test URLs
+    // Create a page and navigate to reliable test URLs
     const page = await context.newPage();
+    
+    // Listen for history sync events from the extension
+    const syncPromise = new Promise<void>(resolve => {
+      context.on('console', msg => {
+        if (msg.text().includes('History sync completed')) {
+          resolve();
+        }
+      });
+    });
+
+    // Visit reliable test URLs
     await page.goto('https://example.com');
-    await page.goto('https://test.com');
-    await page.waitForTimeout(1000); // Wait for history to be recorded
+    await page.goto('https://github.com');
+    
+    // Wait for history sync to complete
+    await syncPromise;
 
     // Open extension popup
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
 
-    // Wait for history sync to complete and history list to be visible
-    await popup.waitForSelector('[data-testid="history-list"]');
+    // Wait for history list to be loaded and populated
+    await popup.waitForSelector('[data-testid="history-list"]', { state: 'visible' });
+    await popup.waitForSelector('[data-testid="history-item"]', { state: 'visible' });
 
     // Verify history items are displayed
-    const historyItems = await popup.locator('[data-testid="history-item"]').count();
-    expect(historyItems).toBeGreaterThan(0);
+    const historyItems = await popup.locator('[data-testid="history-item"]').all();
+    expect(historyItems.length).toBeGreaterThan(0);
 
-    // Verify specific history entries
-    const historyUrls = await popup.locator('[data-testid="history-url"]').allTextContents();
+    // Verify specific history entries exist
+    const historyUrls = await Promise.all(
+      historyItems.map(item => item.locator('[data-testid="history-url"]').textContent())
+    );
     expect(historyUrls).toContain('https://example.com');
-    expect(historyUrls).toContain('https://test.com');
+    expect(historyUrls).toContain('https://github.com');
 
-    // Test delete functionality
-    await popup.locator('[data-testid="delete-history-item"]').first().click();
-    const newHistoryItems = await popup.locator('[data-testid="history-item"]').count();
-    expect(newHistoryItems).toBe(historyItems - 1);
+    // Test delete functionality with event waiting
+    const deleteButton = historyItems[0].locator('[data-testid="delete-history-item"]');
+    const deletePromise = popup.waitForResponse(response => 
+      response.url().includes('/history') && response.request().method() === 'DELETE'
+    );
+    await deleteButton.click();
+    await deletePromise;
 
-    // Test clear all functionality
-    await popup.locator('[data-testid="clear-history"]').click();
-    await popup.locator('[data-testid="confirm-clear"]').click();
-    const finalHistoryItems = await popup.locator('[data-testid="history-item"]').count();
-    expect(finalHistoryItems).toBe(0);
+    // Wait for UI to update after deletion
+    await popup.waitForFunction(prevCount => {
+      const currentCount = document.querySelectorAll('[data-testid="history-item"]').length;
+      return currentCount === prevCount - 1;
+    }, historyItems.length);
 
-    // Take a screenshot of the history view
+    // Test clear all functionality with event waiting
+    const clearButton = popup.locator('[data-testid="clear-history"]');
+    const clearPromise = popup.waitForResponse(response =>
+      response.url().includes('/history/clear') && response.request().method() === 'POST'
+    );
+    await clearButton.click();
+    
+    // Confirm clear action
+    const confirmButton = popup.locator('[data-testid="confirm-clear"]');
+    await confirmButton.click();
+    await clearPromise;
+
+    // Wait for history list to be empty
+    await popup.waitForSelector('[data-testid="history-item"]', { state: 'detached' });
+
+    // Take a screenshot of the final state
     await popup.screenshot({
       path: 'test-results/history-view.png',
       fullPage: true

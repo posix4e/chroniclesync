@@ -94,33 +94,14 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 > **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
 
-We provide a Python script to run E2E tests through GitHub Actions, which is the recommended approach:
+Tests are automatically run through GitHub Actions when you push changes. To view test results:
 
 ```bash
-# Set up GitHub token
-export GITHUB_TOKEN=your_token_here
-
-# Run tests and wait for results
-./scripts/run_tests.py --wait
-
-# Run tests with specific browser and debug mode
-./scripts/run_tests.py --browser firefox --debug --wait
-
-# Run tests against custom API endpoint
-./scripts/run_tests.py --api-endpoint https://api-staging.chroniclesync.xyz --wait
-
-# Run tests and download artifacts
-./scripts/run_tests.py --wait --download-artifacts
+# Get the GitHub Actions URL for your current branch
+./scripts/action_url.py
 ```
 
-Available options:
-- `--browser`: Browser to test in (chromium/firefox/webkit)
-- `--api-endpoint`: Custom API endpoint to test against
-- `--debug`: Enable debug mode for troubleshooting
-- `--wait`: Wait for test completion and show results
-- `--download-artifacts`: Download test artifacts after completion
-
-Test artifacts are available for 30 days in the Actions tab and can be downloaded using the script.
+Test artifacts are available for 30 days in the Actions tab.
 
 ### Extension Development
 

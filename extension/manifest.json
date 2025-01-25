@@ -10,6 +10,18 @@
     "service_worker": "dist/background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["test-helper.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["test-helper.js"],
+      "matches": ["https://*/*", "http://*/*"]
+    }
+  ],
   "permissions": [
     "activeTab",
     "scripting",

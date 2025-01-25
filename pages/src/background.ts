@@ -34,7 +34,7 @@ const storeHistoryEntry = async (entry: HistoryEntry) => {
   
   // Sync to server
   try {
-    const response = await fetch(`${process.env.API_URL}/history`, {
+    const response = await fetch(`${process.env.API_URL || 'https://api-staging.chroniclesync.xyz'}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry)
@@ -73,7 +73,7 @@ setInterval(async () => {
 
   const retryPromises = failedSyncs.map(async (entry: HistoryEntry) => {
     try {
-      await fetch(`${process.env.API_URL}/history`, {
+      await fetch(`${process.env.API_URL || 'https://api-staging.chroniclesync.xyz'}/history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)

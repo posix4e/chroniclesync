@@ -31,7 +31,7 @@ const HistoryView: React.FC = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`${server.apiUrl}/history`);
+        const response = await fetch(`${process.env.API_URL || server.apiUrl}/history`);
         if (!response.ok) throw new Error('Failed to fetch history');
         const data = await response.json();
         setHistory(data);

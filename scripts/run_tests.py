@@ -49,7 +49,7 @@ class GitHubTestRunner:
         Returns:
             Workflow run ID
         """
-        url = f'https://api.github.com/repos/{self.repo}/actions/workflows/playwright-tests.yml/dispatches'
+        url = f'https://api.github.com/repos/{self.repo}/actions/workflows/ci-cd-combined.yml/dispatches'
         
         inputs = {
             'browser': browser,
@@ -88,7 +88,7 @@ class GitHubTestRunner:
         runs = json.loads(result.stdout)
         
         for run in runs['workflow_runs']:
-            if run['head_branch'] == branch and 'playwright' in run['name'].lower():
+            if run['head_branch'] == branch and 'ci/cd' in run['name'].lower():
                 return str(run['id'])
         
         raise Exception(f'No Playwright workflow run found for branch {branch}')

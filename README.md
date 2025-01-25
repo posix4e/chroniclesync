@@ -91,17 +91,36 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 - Tests are written using Jest
 
 #### E2E Tests
-> **Important**: Avoid running Playwright tests locally. Use GitHub Actions instead.
 
-To run E2E tests:
-1. Go to Actions → Playwright Tests
-2. Click "Run workflow"
-3. Configure options:
-   - Browser: Chromium/Firefox/WebKit
-   - Debug Mode: Enable for troubleshooting
-   - API Endpoint: Custom endpoint (optional)
+> **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
 
-Test artifacts are available for 30 days in the Actions tab.
+We provide a Python script to run E2E tests through GitHub Actions, which is the recommended approach:
+
+```bash
+# Set up GitHub token
+export GITHUB_TOKEN=your_token_here
+
+# Run tests and wait for results
+./scripts/run_tests.py --wait
+
+# Run tests with specific browser and debug mode
+./scripts/run_tests.py --browser firefox --debug --wait
+
+# Run tests against custom API endpoint
+./scripts/run_tests.py --api-endpoint https://api-staging.chroniclesync.xyz --wait
+
+# Run tests and download artifacts
+./scripts/run_tests.py --wait --download-artifacts
+```
+
+Available options:
+- `--browser`: Browser to test in (chromium/firefox/webkit)
+- `--api-endpoint`: Custom API endpoint to test against
+- `--debug`: Enable debug mode for troubleshooting
+- `--wait`: Wait for test completion and show results
+- `--download-artifacts`: Download test artifacts after completion
+
+Test artifacts are available for 30 days in the Actions tab and can be downloaded using the script.
 
 ### Extension Development
 

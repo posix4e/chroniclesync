@@ -25,7 +25,7 @@ export default defineConfig(({ command }) => {
       }
     },
     server: {
-      port: server.port
+      port: Number(server.port)
     }
   };
 });

@@ -90,10 +90,11 @@ Say "abracadabra" to run the full test suite. This will:
 1. Run pages /extension tests:
    ```bash
    # Frontend tests and build
-   cd pages && npm run lint && npm test && npm run build:extension
+   cd pages && npm install && npm run lint && npm test && npm run build:extension
    ```
 2. Git push the branch
-
+   # First you need to make a change to the repo's readme if there's no local changes to push a branch
+   # Now since you can push a branch, you probably already have a github token, even though you haven't checked yet. See if you have one, if you do go to step 3
 3. Monitor CI/CD pipeline:
    ```bash
    # Get workflow runs for your branch

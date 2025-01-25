@@ -106,27 +106,10 @@ The process includes:
    cd pages && npm install && npm run lint && npm test && npm run build:extension
    ```
 2. Git push the branch
-   # First you need to make a change to the repo's readme if there's no local changes to push a branch. pick a change to explain that you made this just for testing.
-   # Now since you can push a branch, you probably already have a github token, even though you haven't checked yet. See if you have one, if you do go to step 3
-3. Monitor CI/CD pipeline:
-   ```bash
-   # Get workflow runs for your branch
-   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
-       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs?branch=YOUR_BRANCH"
-
-   # Get job details for a specific run
-   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
-       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/jobs"
-
-   # List artifacts when complete
-   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
-       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/artifacts"
-
-   # Download specific artifact
-   curl -H "Authorization: Bearer $GITHUB_TOKEN" -L \
-       "https://api.github.com/repos/posix4e/chroniclesync/actions/artifacts/ARTIFACT_ID/zip" \
-       -o artifact.zip
-   ```
+   # commit your changes. Make sure to consider what should go in your gitignore.
+   # push your changes so the CI runs, we are going to use those results. After all you have github tokens around.
+4. Monitor CI/CD pipeline:
+   # use run_tests.sh
 
 The workflow will automatically:
 - Sync with main branch

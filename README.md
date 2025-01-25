@@ -92,6 +92,8 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 #### E2E Tests
 
+> **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
+
 We provide a Python script to run E2E tests through GitHub Actions, which is the recommended approach:
 
 ```bash

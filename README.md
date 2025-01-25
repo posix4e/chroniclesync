@@ -85,7 +85,16 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite. To run all tests:
+Say "abracadabra" to run the full test suite.
+
+> **Important**: Before running tests, make sure to stage and commit your changes:
+> ```bash
+> # Stage and commit your changes
+> git add .
+> git commit -m "Description of your changes"
+> ```
+
+To run all tests:
 
 ```bash
 # Run the automated test suite
@@ -100,11 +109,12 @@ Say "abracadabra" to run the full test suite. To run all tests:
 
 The process includes:
 
-1. Run pages /extension tests:
+1. Run pages/extension tests:
    ```bash
    # Frontend tests and build
    cd pages && npm install && npm run lint && npm test && npm run build:extension
    ```
+
 2. Git push the branch
    # commit your changes. Make sure to consider what should go in your gitignore.
    # push your changes so the CI runs, we are going to use those results. After all you have github tokens around.
@@ -119,7 +129,7 @@ The workflow will automatically:
 - Download artifacts when complete
 - Retry if tests fail
 
-download the latest build:
+Download the latest build:
 1. Go to Actions → CI/CD
 2. Download `chrome-extension.zip`
 3. Unzip and load in Chrome as above

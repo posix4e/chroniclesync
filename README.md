@@ -86,17 +86,16 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-After pushing changes, just run:
-```bash
-./scripts/test.sh
-```
+Just say "abracadabra" and the assistant will:
+1. Sync your branch with main
+2. Run all local tests (lint, unit tests)
+3. Build the extension
+4. Push changes and create/update PR
+5. Monitor CI/CD pipeline
+6. Download artifacts when complete
+7. Retry if tests fail
 
-This will:
-- Watch the tests run live
-- Download artifacts when done
-- Show logs if anything fails
-
-For local testing:
+For manual testing:
 ```bash
 # Frontend tests
 cd pages && npm test
@@ -137,4 +136,4 @@ Alternatively, download the latest build:
 
 - **Frontend**: React + TypeScript + Vite
 - **Chrome Extension**: Custom window interface with password manager integration
-- **Backend**: Cloudflare Worker with serverless architecture# Test change
+- **Backend**: Cloudflare Worker with serverless architecture

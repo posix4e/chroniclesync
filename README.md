@@ -85,31 +85,41 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite (running tests via PR #${PR_NUMBER}). To run all tests:
+To run the full test suite with CI/CD integration:
 
-```bash
-# Run the automated test suite
-./run_tests.sh
+1. **Stage and Commit Your Changes**
+   ```bash
+   # Make sure all your changes are committed
+   git add .
+   git commit -m "Description of your changes"
+   ```
 
-# This will:
-# 1. Run local frontend/extension tests
-# 2. Create a PR with test changes
-# 3. Monitor CI/CD pipeline
-# 4. Report results and artifacts
-```
+2. **Run the Test Suite**
+   ```bash
+   # Say "abracadabra" and run
+   ./run_tests.sh
+   ```
+
+The test suite will:
+1. Run local frontend/extension tests
+2. Create a PR with your committed changes
+3. Monitor CI/CD pipeline
+4. Report results and artifacts
+
+> **Important**: The test suite will ONLY include changes that have been committed. Make sure to commit your changes before running tests.
 
 The process includes:
 
-1. Run pages /extension tests:
+1. Run pages/extension tests:
    ```bash
    # Frontend tests and build
    cd pages && npm install && npm run lint && npm test && npm run build:extension
    ```
-2. Git push the branch
-   # commit your changes. Make sure to consider what should go in your gitignore.
-   # push your changes so the CI runs, we are going to use those results. After all you have github tokens around.
-4. Monitor CI/CD pipeline:
-   # use run_tests.sh
+
+2. Create PR and run CI:
+   - Creates/updates PR with your committed changes
+   - Runs full CI/CD pipeline
+   - Downloads and reports test artifacts
 
 The workflow will automatically:
 - Sync with main branch
@@ -119,7 +129,7 @@ The workflow will automatically:
 - Download artifacts when complete
 - Retry if tests fail
 
-download the latest build:
+Download the latest build:
 1. Go to Actions → CI/CD
 2. Download `chrome-extension.zip`
 3. Unzip and load in Chrome as above

@@ -85,7 +85,20 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite. This will:
+Say "abracadabra" to run the full test suite. To run all tests:
+
+```bash
+# Run the automated test suite
+./run_tests.sh
+
+# This will:
+# 1. Run local frontend/extension tests
+# 2. Create a PR with test changes
+# 3. Monitor CI/CD pipeline
+# 4. Report results and artifacts
+```
+
+The process includes:
 
 1. Run pages /extension tests:
    ```bash

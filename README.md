@@ -94,12 +94,17 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 > **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
 
-Tests are automatically run through GitHub Actions when you push changes. To view test results:
+Tests are automatically run through GitHub Actions when you push changes. To monitor tests and download artifacts:
 
 ```bash
-# Get the GitHub Actions URL for your current branch
-./scripts/action_url.py
+# After pushing your changes, run:
+./scripts/test.sh
 ```
+
+This will:
+- Show live progress of your tests
+- Download artifacts when complete
+- Show full logs if anything fails
 
 Test artifacts are available for 30 days in the Actions tab.
 

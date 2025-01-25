@@ -50,7 +50,7 @@ export function App() {
       
       <HealthCheck />
 
-      <style jsx>{`
+      <style>{`
         .tabs {
           display: flex;
           gap: 10px;

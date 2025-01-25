@@ -114,7 +114,7 @@ const HistoryView: React.FC = () => {
         ))}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .history-view {
           padding: 20px;
           max-width: 800px;

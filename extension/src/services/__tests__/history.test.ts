@@ -1,5 +1,7 @@
 import { HistoryService, HistoryItem } from '../history';
 import { IndexedDBStore } from '../../storage/indexeddb';
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 
 // Mock chrome.history API
 const mockHistoryItems = [
@@ -29,20 +31,26 @@ global.chrome = {
   }
 } as any;
 
-// Mock IndexedDBStore
-const mockStore = {
-  put: jest.fn(),
-  get: jest.fn(),
-  getAll: jest.fn(),
-  delete: jest.fn(),
-  clear: jest.fn()
-} as unknown as IndexedDBStore;
+// Initialize real IndexedDB store with fake-indexeddb
+const DB_NAME = 'chroniclesync-test';
+const DB_VERSION = 1;
+
+async function createTestStore(): Promise<IndexedDBStore> {
+  // Clear any existing databases
+  indexedDB = new IDBFactory();
+  
+  const store = new IndexedDBStore();
+  await store.init(DB_NAME, DB_VERSION, ['history']);
+  return store;
+}
 
 describe('HistoryService', () => {
   let historyService: HistoryService;
+  let store: IndexedDBStore;
 
-  beforeEach(() => {
-    historyService = new HistoryService(mockStore);
+  beforeEach(async () => {
+    store = await createTestStore();
+    historyService = new HistoryService(store);
     jest.clearAllMocks();
   });
 
@@ -52,7 +60,12 @@ describe('HistoryService', () => {
 
       expect(chrome.history.search).toHaveBeenCalled();
       expect(chrome.history.getVisits).toHaveBeenCalledWith({ url: mockHistoryItems[0].url });
-      expect(mockStore.put).toHaveBeenCalled();
+
+      // Verify items were stored in IndexedDB
+      const storedItems = await historyService.getHistory();
+      expect(storedItems.length).toBe(1);
+      expect(storedItems[0].url).toBe(mockHistoryItems[0].url);
+      expect(storedItems[0].title).toBe(mockHistoryItems[0].title);
     });
 
     it('should use provided startTime', async () => {
@@ -67,29 +80,8 @@ describe('HistoryService', () => {
 
   describe('getHistory', () => {
     it('should return all history items', async () => {
-      const mockItems: HistoryItem[] = [
-        {
-          id: 'test',
-          url: 'https://test.com',
-          title: 'Test',
-          visitTime: Date.now(),
-          lastVisitTime: Date.now(),
-          visitCount: 1,
-          typedCount: 1
-        }
-      ];
-      mockStore.getAll.mockResolvedValue(mockItems);
-
-      const result = await historyService.getHistory();
-      expect(result).toEqual(mockItems);
-      expect(mockStore.getAll).toHaveBeenCalledWith('history');
-    });
-  });
-
-  describe('getHistoryItem', () => {
-    it('should return a specific history item', async () => {
-      const mockItem: HistoryItem = {
-        id: 'test',
+      const testItem: HistoryItem = {
+        id: btoa('https://test.com'),
         url: 'https://test.com',
         title: 'Test',
         visitTime: Date.now(),
@@ -97,25 +89,103 @@ describe('HistoryService', () => {
         visitCount: 1,
         typedCount: 1
       };
-      mockStore.get.mockResolvedValue(mockItem);
 
-      const result = await historyService.getHistoryItem('test');
-      expect(result).toEqual(mockItem);
-      expect(mockStore.get).toHaveBeenCalledWith('history', 'test');
+      // Store test item
+      await store.put('history', testItem);
+
+      const result = await historyService.getHistory();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(testItem);
+    });
+  });
+
+  describe('getHistoryItem', () => {
+    it('should return a specific history item', async () => {
+      const testItem: HistoryItem = {
+        id: btoa('https://test.com'),
+        url: 'https://test.com',
+        title: 'Test',
+        visitTime: Date.now(),
+        lastVisitTime: Date.now(),
+        visitCount: 1,
+        typedCount: 1
+      };
+
+      // Store test item
+      await store.put('history', testItem);
+
+      const result = await historyService.getHistoryItem(testItem.id);
+      expect(result).toEqual(testItem);
+    });
+
+    it('should return undefined for non-existent item', async () => {
+      const result = await historyService.getHistoryItem('non-existent');
+      expect(result).toBeUndefined();
     });
   });
 
   describe('deleteHistoryItem', () => {
     it('should delete a history item', async () => {
-      await historyService.deleteHistoryItem('test');
-      expect(mockStore.delete).toHaveBeenCalledWith('history', 'test');
+      const testItem: HistoryItem = {
+        id: btoa('https://test.com'),
+        url: 'https://test.com',
+        title: 'Test',
+        visitTime: Date.now(),
+        lastVisitTime: Date.now(),
+        visitCount: 1,
+        typedCount: 1
+      };
+
+      // Store and verify item exists
+      await store.put('history', testItem);
+      let result = await historyService.getHistoryItem(testItem.id);
+      expect(result).toEqual(testItem);
+
+      // Delete item
+      await historyService.deleteHistoryItem(testItem.id);
+      
+      // Verify item was deleted
+      result = await historyService.getHistoryItem(testItem.id);
+      expect(result).toBeUndefined();
     });
   });
 
   describe('clearHistory', () => {
     it('should clear all history items', async () => {
+      // Store multiple test items
+      const testItems: HistoryItem[] = [
+        {
+          id: btoa('https://test1.com'),
+          url: 'https://test1.com',
+          title: 'Test 1',
+          visitTime: Date.now(),
+          lastVisitTime: Date.now(),
+          visitCount: 1,
+          typedCount: 1
+        },
+        {
+          id: btoa('https://test2.com'),
+          url: 'https://test2.com',
+          title: 'Test 2',
+          visitTime: Date.now(),
+          lastVisitTime: Date.now(),
+          visitCount: 1,
+          typedCount: 1
+        }
+      ];
+
+      await Promise.all(testItems.map(item => store.put('history', item)));
+
+      // Verify items were stored
+      let items = await historyService.getHistory();
+      expect(items).toHaveLength(2);
+
+      // Clear history
       await historyService.clearHistory();
-      expect(mockStore.clear).toHaveBeenCalledWith('history');
+
+      // Verify all items were deleted
+      items = await historyService.getHistory();
+      expect(items).toHaveLength(0);
     });
   });
 });

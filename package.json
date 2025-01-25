@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.0"
+  }
+}

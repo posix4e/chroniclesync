@@ -86,27 +86,24 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-#### Unit Tests
-- Run `npm test` in either `pages/` or `worker/` directory
-- Tests are written using Jest
-
-#### E2E Tests
-
-> **IMPORTANT**: All extension tests MUST be run in headed mode (not headless) to properly test Chrome extension functionality.
-
-Tests are automatically run through GitHub Actions when you push changes. To monitor tests and download artifacts:
-
+After pushing changes, just run:
 ```bash
-# After pushing your changes, run:
 ./scripts/test.sh
 ```
 
 This will:
-- Show live progress of your tests
-- Download artifacts when complete
-- Show full logs if anything fails
+- Watch the tests run live
+- Download artifacts when done
+- Show logs if anything fails
 
-Test artifacts are available for 30 days in the Actions tab.
+For local testing:
+```bash
+# Frontend tests
+cd pages && npm test
+
+# Backend tests
+cd worker && npm test
+```
 
 ### Extension Development
 

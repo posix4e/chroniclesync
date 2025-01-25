@@ -2,9 +2,8 @@ import { defineConfig } from '@playwright/test';
 import { paths } from './config';
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   use: {
-    headless: false,
     // Base URL for page tests, can be overridden in individual tests
     baseURL: process.env.API_URL || 'http://localhost:8787',
     screenshot: 'on',  // Always capture screenshots
@@ -27,5 +26,5 @@ export default defineConfig({
   forbidOnly: true,  // Always prevent .only tests
   workers: 1,  // Consistent, predictable test execution
   reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
-  globalSetup: './e2e/global-setup.ts',
+  globalSetup: './tests/e2e/global-setup.ts',
 });

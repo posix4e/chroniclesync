@@ -7,6 +7,6 @@ export const paths = {
 };
 
 export const server = {
-  port: 3000,
+  port: process.env.PORT || 51145,
   apiUrl: process.env.API_URL || 'https://api-staging.chroniclesync.xyz'
 };

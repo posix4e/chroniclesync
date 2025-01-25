@@ -15,89 +15,121 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 ### Prerequisites
 - GitHub account with repository access
 - Cloudflare account for deployments
+- Node.js 18 or later
+- npm package manager
 
-### Getting Started
+### Local Development Setup
 
-1. **Fork & Clone**: Fork this repository and clone your fork
-2. **Create a Branch**: Create a new branch for your changes
-3. **Make Changes**: Modify code in your branch
-4. **Open PR**: Create a pull request to the main branch
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/chroniclesync.git
+   cd chroniclesync
+   ```
 
-Our [GitHub Actions workflow](.github/workflows/ci-cd.yml) will automatically:
-- Install all dependencies
-- Run linting and unit tests
-- Build the extension and web app
-- Deploy preview environments
-- Run E2E tests
+2. **Install Dependencies**
+   ```bash
+   # Install frontend dependencies
+   cd pages
+   npm install
 
-> **Note**: Avoid running Playwright tests locally as they can leave behind zombie processes and are environment-sensitive. Instead, use the [Manual Playwright Testing](#manual-playwright-testing) workflow in GitHub Actions.
+   # Install backend dependencies
+   cd ../worker
+   npm install
+   ```
 
-### Development Workflow
+3. **Start Development Servers**
+   ```bash
+   # Start frontend development server
+   cd pages
+   npm run dev
 
-#### Automated CI/CD
+   # Start worker development server (in another terminal)
+   cd worker
+   npm run dev
+   ```
 
-Each pull request triggers our CI/CD pipeline which:
+4. **Run Tests Locally**
+   ```bash
+   # Run frontend tests
+   cd pages
+   npm run test
 
-1. **Build & Test** ([view action](../../actions/workflows/ci-cd.yml))
-   - Installs dependencies
-   - Runs linting
-   - Executes unit tests
-   - Builds extension and web app
+   # Run worker tests
+   cd worker
+   npm run test
+   ```
 
-2. **Deployment**
-   - Creates preview environment
-   - Deploys frontend to: `https://$BRANCH.chroniclesync.pages.dev`
-   - Deploys API to: `https://api-staging.chroniclesync.xyz`
-   - Stores current worker version (for rollback)
+### Project Structure
 
-3. **E2E Testing**
-   - Triggers Playwright E2E tests ([separate workflow](../../actions/workflows/playwright-tests.yml))
-   - Waits for test completion
-   - On main branch: rolls back worker deployment if tests fail
-   - Provides test report with screenshots
+```
+chroniclesync/
+├── pages/          # Frontend React application
+├── worker/         # Cloudflare Worker backend
+└── extension/      # Chrome extension build output
+```
 
-4. **Extension Packaging**
-   - Builds Chrome extension
-   - Uploads extension artifact
+### Continuous Integration
 
-The CI/CD pipeline automatically triggers the Playwright tests workflow with default settings (Chromium browser, no debug mode). Test results are available in the [Actions tab](../../actions) under the "Playwright Tests" workflow.
+Our CI/CD pipeline automatically handles testing, building, and deployment:
 
-> **Note**: For production deployments (main branch), if Playwright tests fail after worker deployment, the worker is automatically rolled back to the previous version to maintain stability.
+1. **On Pull Request**
+   - Runs linting and unit tests
+   - Builds frontend and extension
+   - Creates preview deployments
+   - Runs E2E tests with Playwright
+   - Provides test reports and artifacts
 
-#### Manual Playwright Testing
+2. **On Main Branch**
+   - Performs all PR checks
+   - Deploys to production
+   - Includes automatic rollback if tests fail
 
-For development and debugging, you can run Playwright tests on-demand using our dedicated workflow:
+### Testing
 
-1. Go to the [Actions tab](../../actions/workflows/playwright-tests.yml)
-2. Click "Run workflow" and configure:
-   - **Browser**: Choose between Chromium, Firefox, or WebKit
-   - **Debug Mode**: Enable for additional logging and debugging info
+#### Unit Tests
+- Run `npm test` in either `pages/` or `worker/` directory
+- Tests are written using Jest
 
-The workflow will:
-- Run tests in a clean environment
-- Install only the selected browser
-- Build the extension
-- Run all Playwright tests
-- Upload test results and screenshots as artifacts
+#### E2E Tests
+> **Important**: Avoid running Playwright tests locally. Use GitHub Actions instead.
 
-This is particularly useful when:
-- Testing browser-specific behavior
-- Debugging test failures
-- Verifying extension functionality
-- Running tests without setting up a local environment
+To run E2E tests:
+1. Go to Actions → Playwright Tests
+2. Click "Run workflow"
+3. Configure options:
+   - Browser: Chromium/Firefox/WebKit
+   - Debug Mode: Enable for troubleshooting
+   - API Endpoint: Custom endpoint (optional)
 
-Test artifacts (reports and screenshots) are available for 30 days after each run.
+Test artifacts are available for 30 days in the Actions tab.
 
-### Loading the Extension
+### Extension Development
 
-After each successful build, download the extension artifact from the [Actions tab](../../actions):
-1. Find your PR's workflow run
-2. Download the `chrome-extension.zip` artifact
-3. Unzip and load in Chrome:
+1. **Build the Extension**
+   ```bash
+   cd pages
+   npm run build:extension
+   ```
+
+2. **Load in Chrome**
    - Open `chrome://extensions`
    - Enable "Developer mode"
    - Click "Load unpacked"
-   - Select the unzipped directory
+   - Select the `extension/` directory
+
+Alternatively, download the latest build:
+1. Go to Actions → CI/CD
+2. Download `chrome-extension.zip`
+3. Unzip and load in Chrome as above
+
+### Deployment
+
+- Frontend deploys to: `https://$BRANCH.chroniclesync.pages.dev`
+- API deploys to:
+  - Staging: `https://api-staging.chroniclesync.xyz`
+  - Production: `https://api.chroniclesync.xyz`
+
+> **Note**: Production deployments require approval and passing tests
 
 ## Architecture
 

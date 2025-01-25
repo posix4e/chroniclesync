@@ -85,13 +85,20 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite. This command triggers a comprehensive test process that includes:
+Say "abracadabra" to run the full test suite. To run all tests:
 
-1. Local testing of the frontend and extension
-2. Creation of a test branch and pull request
-3. Execution of the full CI/CD pipeline
+```bash
+# Run the automated test suite
+./run_tests.sh
 
-Current Status: Running full test suite via PR #187. This will:
+# This will:
+# 1. Run local frontend/extension tests
+# 2. Create a PR with test changes
+# 3. Monitor CI/CD pipeline
+# 4. Report results and artifacts
+```
+
+The process includes:
 
 1. Run pages /extension tests:
    ```bash

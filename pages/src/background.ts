@@ -85,6 +85,6 @@ setInterval(async () => {
   });
 
   const results = await Promise.all(retryPromises);
-  const remainingFailures = failedSyncs.filter((_, i) => !results[i]);
+  const remainingFailures = failedSyncs.filter((_: HistoryEntry, i: number) => !results[i]);
   await chrome.storage.local.set({ failedSyncs: remainingFailures });
 }, 60000); // Retry every minute

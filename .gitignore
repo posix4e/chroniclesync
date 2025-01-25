@@ -8,6 +8,12 @@ worker/coverage/
 pages/coverage/
 pages/playwright-report/
 pages/test-results/
+**/browser*-data/
+**/*-data/
+*.png
+playwright/.cache/
+blob-report/
+history-*.png
 
 # Production builds
 dist/

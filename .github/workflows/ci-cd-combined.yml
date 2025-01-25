@@ -131,9 +131,8 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: |
-          # Run all tests in a single command
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-            npx playwright test "**/*.spec.ts" "e2e/**/*.spec.ts" --project=${{ github.event.inputs.browser || 'chromium' }}
+            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
 
       - name: Upload test results
         if: always()

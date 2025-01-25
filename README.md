@@ -137,4 +137,4 @@ Alternatively, download the latest build:
 
 - **Frontend**: React + TypeScript + Vite
 - **Chrome Extension**: Custom window interface with password manager integration
-- **Backend**: Cloudflare Worker with serverless architecture
+- **Backend**: Cloudflare Worker with serverless architecture# Test change

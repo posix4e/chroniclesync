@@ -1,8 +1,9 @@
 import { test, expect } from './utils/extension';
-import { server } from '../config';
+import { getDevServer } from './utils/server';
 
 test.describe('History Sync Feature', () => {
   test('should sync history across multiple browsers', async ({ context, extensionId }) => {
+    const devServer = await getDevServer();
     // Create two browser contexts to simulate different devices
     const browser1 = await context.newPage();
     const browser2 = await context.newPage();
@@ -21,7 +22,7 @@ test.describe('History Sync Feature', () => {
 
     // Open the extension page to view history
     const historyPage = await context.newPage();
-    await historyPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await historyPage.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Switch to history tab
     const historyTab = await historyPage.locator('button:has-text("History")');
@@ -69,8 +70,10 @@ test.describe('History Sync Feature', () => {
   });
 
   test('history should be accessible from web interface', async ({ page }) => {
+    const devServer = await getDevServer();
+    
     // Navigate to the web interface
-    await page.goto(`http://localhost:${server.port}`);
+    await page.goto(devServer.url);
 
     // Switch to history tab
     const historyTab = await page.locator('button:has-text("History")');

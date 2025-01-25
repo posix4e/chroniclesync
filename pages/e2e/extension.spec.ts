@@ -96,4 +96,45 @@ test.describe('Chrome Extension', () => {
       fullPage: true
     });
   });
+
+  test('history sync should work correctly', async ({ context, extensionId }) => {
+    // Create a page and navigate to some test URLs
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.goto('https://test.com');
+    await page.waitForTimeout(1000); // Wait for history to be recorded
+
+    // Open extension popup
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+
+    // Wait for history sync to complete and history list to be visible
+    await popup.waitForSelector('[data-testid="history-list"]');
+
+    // Verify history items are displayed
+    const historyItems = await popup.locator('[data-testid="history-item"]').count();
+    expect(historyItems).toBeGreaterThan(0);
+
+    // Verify specific history entries
+    const historyUrls = await popup.locator('[data-testid="history-url"]').allTextContents();
+    expect(historyUrls).toContain('https://example.com');
+    expect(historyUrls).toContain('https://test.com');
+
+    // Test delete functionality
+    await popup.locator('[data-testid="delete-history-item"]').first().click();
+    const newHistoryItems = await popup.locator('[data-testid="history-item"]').count();
+    expect(newHistoryItems).toBe(historyItems - 1);
+
+    // Test clear all functionality
+    await popup.locator('[data-testid="clear-history"]').click();
+    await popup.locator('[data-testid="confirm-clear"]').click();
+    const finalHistoryItems = await popup.locator('[data-testid="history-item"]').count();
+    expect(finalHistoryItems).toBe(0);
+
+    // Take a screenshot of the history view
+    await popup.screenshot({
+      path: 'test-results/history-view.png',
+      fullPage: true
+    });
+  });
 });

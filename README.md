@@ -91,7 +91,25 @@ Just say "abracadabra" and the assistant will:
 2. Run all local tests (lint, unit tests)
 3. Build the extension
 4. Push changes and create/update PR
-5. Monitor CI/CD pipeline
+5. Monitor CI/CD pipeline using GitHub API:
+   ```bash
+   # Get workflow runs for your branch
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs?branch=YOUR_BRANCH"
+
+   # Get job details for a specific run
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/jobs"
+
+   # List artifacts when complete
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/artifacts"
+
+   # Download specific artifact
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" -L \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/artifacts/ARTIFACT_ID/zip" \
+       -o artifact.zip
+   ```
 6. Download artifacts when complete
 7. Retry if tests fail
 

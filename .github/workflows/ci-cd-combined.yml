@@ -124,26 +124,21 @@ jobs:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: npm run build:extension
 
-      - name: Run extension e2e tests
+      - name: Run Playwright tests
         working-directory: pages
         env:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: |
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+          # Run all tests in a single xvfb session
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c '
+            # Run extension e2e tests first
             npx playwright test e2e/ --project=${{ github.event.inputs.browser || 'chromium' }}
-
-      - name: Run other Playwright tests
-        if: success() || failure()  # Run even if e2e tests fail
-        working-directory: pages
-        env:
-          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
-          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
-          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
-        run: |
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+            
+            # Run other tests (excluding extension tests)
             npx playwright test "**/*.spec.ts" --project=${{ github.event.inputs.browser || 'chromium' }} --grep-invert "^Extension"
+          '
 
       - name: Upload test results
         if: always()

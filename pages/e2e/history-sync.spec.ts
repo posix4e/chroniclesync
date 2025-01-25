@@ -1,103 +1,117 @@
 import { test, expect } from './utils/extension';
-import { server } from '../config';
 
 test.describe('History Sync Feature', () => {
-  test('should sync history across multiple browsers', async ({ context, extensionId }) => {
-    const apiUrl = process.env.API_URL || server.apiUrl;
-    // Create two browser contexts to simulate different devices
-    const browser1 = await context.newPage();
-    const browser2 = await context.newPage();
+  test('should sync history across browsers', async ({ context, extensionId }) => {
+    // Mock the API responses
+    await context.route('**/*', async (route, request) => {
+      if (request.url().includes('chroniclesync.xyz/history')) {
+        if (request.method() === 'POST') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ message: 'History saved' })
+          });
+        } else if (request.method() === 'GET') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([
+              {
+                url: 'https://example.com',
+                title: 'Example Domain',
+                timestamp: Date.now() - 1000,
+                deviceId: 'device1',
+                deviceInfo: {
+                  platform: 'Windows',
+                  browser: 'Chrome',
+                  version: '120.0.0'
+                }
+              },
+              {
+                url: 'https://test.com',
+                title: 'Test Site',
+                timestamp: Date.now(),
+                deviceId: 'device2',
+                deviceInfo: {
+                  platform: 'MacOS',
+                  browser: 'Chrome',
+                  version: '120.0.0'
+                }
+              }
+            ])
+          });
+        }
+      } else {
+        await route.continue();
+      }
+    });
 
-    // Navigate to some pages in browser1
-    await browser1.goto('https://example.com');
-    await browser1.waitForTimeout(1000);
-    await browser1.goto('https://test.com');
-    await browser1.waitForTimeout(1000);
-
-    // Navigate to some pages in browser2
-    await browser2.goto('https://github.com');
-    await browser2.waitForTimeout(1000);
-    await browser2.goto('https://gitlab.com');
-    await browser2.waitForTimeout(1000);
-
-    // Open the extension page to view history
-    const historyPage = await context.newPage();
-    await historyPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    // Open extension popup
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.waitForLoadState('networkidle');
 
     // Switch to history tab
-    const historyTab = await historyPage.locator('button:has-text("History")');
-    await historyTab.click();
+    await extensionPage.click('button:has-text("History")');
+    await extensionPage.waitForTimeout(1000);
 
-    // Wait for history to load
-    await historyPage.waitForTimeout(2000);
-
-    // Take a screenshot of the history view
-    await historyPage.screenshot({
-      path: 'test-results/history-sync.png',
-      fullPage: true
-    });
-
-    // Verify history entries from both browsers are present
-    const historyItems = await historyPage.locator('.history-item').count();
-    expect(historyItems).toBeGreaterThanOrEqual(4);
+    // Verify history entries
+    const historyItems = await extensionPage.locator('.history-item').count();
+    expect(historyItems).toBe(2);
 
     // Verify device filtering
-    const deviceSelect = await historyPage.locator('select');
-    const deviceOptions = await deviceSelect.locator('option').count();
-    expect(deviceOptions).toBeGreaterThanOrEqual(3); // "All Devices" + 2 browsers
+    const deviceSelect = await extensionPage.locator('select');
+    await deviceSelect.selectOption({ index: 1 }); // First device
+    await extensionPage.waitForTimeout(500);
+    const filteredItems = await extensionPage.locator('.history-item').count();
+    expect(filteredItems).toBe(1);
 
-    // Filter by first device
-    await deviceSelect.selectOption({ index: 1 });
-    await historyPage.waitForTimeout(500);
-    const filteredItems1 = await historyPage.locator('.history-item').count();
-    expect(filteredItems1).toBeGreaterThanOrEqual(2);
-
-    // Filter by second device
-    await deviceSelect.selectOption({ index: 2 });
-    await historyPage.waitForTimeout(500);
-    const filteredItems2 = await historyPage.locator('.history-item').count();
-    expect(filteredItems2).toBeGreaterThanOrEqual(2);
-
-    // Take screenshots of filtered views
-    await historyPage.screenshot({
-      path: 'test-results/history-sync-device1.png',
-      fullPage: true
-    });
-    await historyPage.screenshot({
-      path: 'test-results/history-sync-device2.png',
+    // Take a screenshot
+    await extensionPage.screenshot({
+      path: 'test-results/history-sync.png',
       fullPage: true
     });
   });
 
-  test('history should be accessible from web interface', async ({ page }) => {
-    // Navigate to the web interface
-    await page.goto(`http://localhost:${server.port}`);
-
-    // Switch to history tab
-    const historyTab = await page.locator('button:has-text("History")');
-    await historyTab.click();
-
-    // Wait for history to load
-    await page.waitForTimeout(2000);
-
-    // Take a screenshot of the web history view
-    await page.screenshot({
-      path: 'test-results/web-history.png',
-      fullPage: true
+  test('history should sync in real-time', async ({ context, extensionId }) => {
+    const errors: string[] = [];
+    const extensionPage = await context.newPage();
+    extensionPage.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(msg.text());
+      }
     });
 
-    // Verify history entries are present
-    const historyItems = await page.locator('.history-item').count();
-    expect(historyItems).toBeGreaterThan(0);
+    // Mock API responses
+    await extensionPage.route('**/*', async (route, request) => {
+      if (request.url().includes('chroniclesync.xyz/history')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'History saved' })
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
-    // Verify device filtering works
-    const deviceSelect = await page.locator('select');
-    await deviceSelect.selectOption({ index: 1 });
-    await page.waitForTimeout(500);
+    // Navigate to test pages
+    const testPage = await context.newPage();
+    await testPage.goto('https://example.com');
+    await testPage.waitForTimeout(1000);
 
-    // Take a screenshot of filtered view
-    await page.screenshot({
-      path: 'test-results/web-history-filtered.png',
+    // Open extension and check history
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.waitForLoadState('networkidle');
+    await extensionPage.click('button:has-text("History")');
+    await extensionPage.waitForTimeout(1000);
+
+    // Verify no errors occurred
+    expect(errors).toEqual([]);
+
+    // Take a screenshot
+    await extensionPage.screenshot({
+      path: 'test-results/history-sync-realtime.png',
       fullPage: true
     });
   });

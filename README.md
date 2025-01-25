@@ -86,24 +86,44 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-After pushing changes, just run:
-```bash
-./scripts/test.sh
-```
+Say "abracadabra" to run the full test suite. This will:
 
-This will:
-- Watch the tests run live
-- Download artifacts when done
-- Show logs if anything fails
+1. Run local tests:
+   ```bash
+   # Frontend tests
+   cd pages && npm run lint && npm test && npm run build:extension
+   
+   # Backend tests
+   cd worker && npm run lint && npm test
+   ```
 
-For local testing:
-```bash
-# Frontend tests
-cd pages && npm test
+2. Monitor CI/CD pipeline:
+   ```bash
+   # Get workflow runs for your branch
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs?branch=YOUR_BRANCH"
 
-# Backend tests
-cd worker && npm test
-```
+   # Get job details for a specific run
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/jobs"
+
+   # List artifacts when complete
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/runs/RUN_ID/artifacts"
+
+   # Download specific artifact
+   curl -H "Authorization: Bearer $GITHUB_TOKEN" -L \
+       "https://api.github.com/repos/posix4e/chroniclesync/actions/artifacts/ARTIFACT_ID/zip" \
+       -o artifact.zip
+   ```
+
+The workflow will automatically:
+- Sync with main branch
+- Run all local tests
+- Push changes and create/update PR
+- Monitor CI/CD pipeline
+- Download artifacts when complete
+- Retry if tests fail
 
 ### Extension Development
 

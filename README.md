@@ -85,7 +85,7 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite. This will:
+Say "abracadabra" to run the full test suite (last run: successful). This will:
 
 1. Run pages /extension tests:
    ```bash

@@ -25,6 +25,20 @@ test.describe.serial('Chrome Extension', () => {
     expect(workerUrl).toContain('background');
   });
 
+  test('API health check should be successful', async ({ page }) => {
+    const apiUrl = process.env.API_URL || server.apiUrl;
+    console.log('Testing API health at:', `${apiUrl}/health`);
+    
+    const healthResponse = await page.request.get(`${apiUrl}/health`);
+    console.log('Health check status:', healthResponse.status());
+    
+    const responseBody = await healthResponse.json();
+    console.log('Health check response:', responseBody);
+    
+    expect(healthResponse.ok()).toBeTruthy();
+    expect(responseBody.healthy).toBeTruthy();
+  });
+
   test('should load without errors', async ({ page, context }) => {
     const errors: string[] = [];
     context.on('weberror', error => {

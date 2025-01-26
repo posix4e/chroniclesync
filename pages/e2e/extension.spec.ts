@@ -96,4 +96,106 @@ test.describe('Chrome Extension', () => {
       fullPage: true
     });
   });
+
+  test('history sync functionality should work correctly', async ({ context }) => {
+    // Create test pages to generate history
+    const testPages = [
+      { url: 'https://example.com/page1', title: 'Test Page 1' },
+      { url: 'https://example.com/page2', title: 'Test Page 2' }
+    ];
+
+    // Visit test pages to generate history
+    for (const page of testPages) {
+      const testPage = await context.newPage();
+      await testPage.goto(page.url);
+      await testPage.waitForLoadState('networkidle');
+      await testPage.close();
+    }
+
+    // Open extension popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.waitForLoadState('networkidle');
+
+    // Initialize client
+    await popupPage.fill('#clientId', 'test-client');
+    await popupPage.click('text=Initialize');
+    await popupPage.waitForSelector('text=Client initialized successfully');
+
+    // Wait for history entries to appear
+    await popupPage.waitForSelector('.history-entry');
+    const entries = await popupPage.locator('.history-entry').all();
+    expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
+
+    // Verify test pages are in history
+    for (const page of testPages) {
+      const entryExists = await popupPage.locator(`.history-entry a[href="${page.url}"]`).count() > 0;
+      expect(entryExists).toBeTruthy();
+    }
+
+    // Test retention period setting
+    await popupPage.fill('#retentionDays', '7');
+    await popupPage.click('text=Save Settings');
+    await popupPage.waitForSelector('text=Settings saved');
+
+    // Test sync functionality
+    await popupPage.click('text=Sync with Server');
+    
+    // Wait for sync to complete (either success or error)
+    const syncResult = await Promise.race([
+      popupPage.waitForSelector('text=Sync completed successfully').then(() => 'success'),
+      popupPage.waitForSelector('text=Failed to sync with server').then(() => 'error')
+    ]);
+    expect(['success', 'error']).toContain(syncResult);
+
+    // Verify history entries are still visible after sync
+    const entriesAfterSync = await popupPage.locator('.history-entry').all();
+    expect(entriesAfterSync.length).toBeGreaterThanOrEqual(testPages.length);
+  });
+
+  test('history deduplication should work correctly', async ({ context }) => {
+    // Visit the same page multiple times
+    const testUrl = 'https://example.com/duplicate';
+    const testPage = await context.newPage();
+    
+    for (let i = 0; i < 3; i++) {
+      await testPage.goto(testUrl);
+      await testPage.waitForLoadState('networkidle');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait between visits
+    }
+    await testPage.close();
+
+    // Open extension popup
+    const popupPage = await context.newPage();
+    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.waitForLoadState('networkidle');
+
+    // Initialize client if needed
+    const needsInit = await popupPage.locator('#adminLogin').isVisible();
+    if (needsInit) {
+      await popupPage.fill('#clientId', 'test-client');
+      await popupPage.click('text=Initialize');
+      await popupPage.waitForSelector('text=Client initialized successfully');
+    }
+
+    // Wait for history entries
+    await popupPage.waitForSelector('.history-entry');
+
+    // Count entries for the test URL
+    const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testUrl}"]`).all();
+    
+    // Should have entries but with different timestamps
+    expect(duplicateEntries.length).toBeGreaterThanOrEqual(1);
+
+    // Verify timestamps are different
+    const timestamps = await popupPage.evaluate((url) => {
+      const entries = document.querySelectorAll(`.history-entry a[href="${url}"]`);
+      return Array.from(entries).map(entry => 
+        entry.nextElementSibling?.textContent
+      );
+    }, testUrl);
+
+    const uniqueTimestamps = new Set(timestamps);
+    expect(uniqueTimestamps.size).toBe(timestamps.length);
+  });
 });

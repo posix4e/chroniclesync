@@ -74,3 +74,29 @@ The worker uses:
 - Cloudflare Workers KV for data storage
 - Durable Objects for consistency
 - Web Crypto API for security
+
+## Future Optimizations
+
+### Bandwidth Efficiency
+- Implement D2-based snapshot system for efficient sync
+  - Store base snapshots in D2 tables
+  - Track incremental changes
+  - Send only diffs during sync
+
+### Data Filtering
+- Implement tombstone-based deletion tracking
+  - Mark deleted entries instead of removing them
+  - Propagate deletions across devices
+  - Clean up old tombstones periodically
+
+### Worker-side Processing
+- Move deduplication logic to worker
+  - Reduce client-side processing
+  - Centralize conflict resolution
+  - Batch updates for better performance
+
+### Storage Optimization
+- Implement data compaction
+  - Merge frequent snapshots
+  - Remove obsolete tombstones
+  - Archive old history entries

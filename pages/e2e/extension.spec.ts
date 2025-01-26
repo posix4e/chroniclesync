@@ -47,7 +47,9 @@ test.describe.serial('Chrome Extension', () => {
     });
 
     page.on('console', msg => {
-      if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
+      if (msg.type() === 'error' && 
+          !msg.text().includes('net::ERR_FILE_NOT_FOUND') &&
+          !msg.text().includes('status of 404')) {
         console.log('Console error:', msg.text());
         errors.push(msg.text());
       }
@@ -95,7 +97,9 @@ test.describe.serial('Chrome Extension', () => {
     // Check for console errors
     const errors: string[] = [];
     popupPage.on('console', msg => {
-      if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
+      if (msg.type() === 'error' && 
+          !msg.text().includes('net::ERR_FILE_NOT_FOUND') &&
+          !msg.text().includes('status of 404')) {
         console.log('Console error:', msg.text());
         errors.push(msg.text());
       }

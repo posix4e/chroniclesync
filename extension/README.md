@@ -37,6 +37,7 @@ The Chrome extension component of ChronicleSync that handles browser history syn
 - HTTPS for all API communication
 - Data validation at multiple levels
 - TODO: Add end-to-end encryption
+- TODO: Replace unsafe-inline CSP with nonces or hashes for better security
 
 ## Integration Points
 

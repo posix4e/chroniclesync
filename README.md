@@ -147,3 +147,10 @@ Download the latest build:
 
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Cloudflare Worker with serverless architecture
+
+## Future Enhancements (TODOs)
+
+- **Privacy Controls**: Add encryption and filtering mechanisms for history data
+- **Advanced Search**: Implement full-text search capabilities in the static page
+- **Data Retention**: Add configurable data retention policies per device
+- **Selective Sync**: Allow users to choose which history items to sync

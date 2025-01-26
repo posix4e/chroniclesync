@@ -11,25 +11,25 @@ test.describe('Extension-Page Integration', () => {
 
   test('extension popup loads correctly', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     
     await extensionPage.waitForLoadState('networkidle');
-    const clientIdInput = await extensionPage.waitForSelector('#clientId');
+    const clientIdInput = await extensionPage.waitForSelector('#clientId', { state: 'visible' });
     expect(clientIdInput).toBeTruthy();
   });
 
   test('client initialization works', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
     
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
     
     // Verify initialization by checking if sync button appears
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server');
+    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
     expect(syncButton).toBeTruthy();
   });
 
@@ -49,14 +49,14 @@ test.describe('Extension-Page Integration', () => {
       }
     });
     
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     
     // Initialize client first
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
-    await extensionPage.waitForSelector('text=Sync with Server');
+    await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
     
     // Click sync button and wait for success dialog
     const dialogPromise = extensionPage.waitForEvent('dialog');
@@ -88,12 +88,12 @@ test.describe('Extension-Page Integration', () => {
     });
 
     // Perform all operations
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId');
+    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
-    await extensionPage.waitForSelector('text=Sync with Server');
+    await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
     
     // Click sync button and wait for success dialog
     const dialogPromise = extensionPage.waitForEvent('dialog');

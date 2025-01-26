@@ -6,7 +6,7 @@ export default defineConfig({
   use: {
     headless: process.env.CI ? true : false,
     baseURL: process.env.API_URL || 'http://localhost:8787',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',  // Always capture screenshots
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
     actionTimeout: 10000,

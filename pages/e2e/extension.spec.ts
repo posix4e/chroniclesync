@@ -14,8 +14,7 @@ test.describe.serial('Chrome Extension', () => {
     // Open a new page to trigger the background script
     const testPage = await context.newPage();
     await testPage.goto('https://example.com');
-    await testPage.waitForTimeout(1000);
-
+    
     // Check for service workers
     const workers = await context.serviceWorkers();
     expect(workers.length).toBe(1);
@@ -39,21 +38,24 @@ test.describe.serial('Chrome Extension', () => {
     expect(healthResponse.ok()).toBeTruthy();
     expect(responseBody.healthy).toBeTruthy();
   });
+
   test('should load without errors', async ({ page, context }) => {
-    // Check for any console errors
     const errors: string[] = [];
     context.on('weberror', error => {
+      console.log('Web error:', error.error().message);
       errors.push(error.error().message);
     });
 
     page.on('console', msg => {
       if (msg.type() === 'error') {
+        console.log('Console error:', msg.text());
         errors.push(msg.text());
       }
     });
 
-    // Wait a bit to catch any immediate errors
-    await page.waitForTimeout(1000);
+    // Load a test page
+    await page.goto('https://example.com');
+    await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
   });
 
@@ -68,7 +70,6 @@ test.describe.serial('Chrome Extension', () => {
 
     // Wait for React to mount and render content
     await popupPage.waitForLoadState('networkidle');
-    await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
 
     // Check for specific app content
     await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
@@ -87,10 +88,12 @@ test.describe.serial('Chrome Extension', () => {
     const errors: string[] = [];
     popupPage.on('console', msg => {
       if (msg.type() === 'error') {
+        console.log('Console error:', msg.text());
         errors.push(msg.text());
       }
     });
-    await popupPage.waitForTimeout(1000);
+    
+    await popupPage.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
 
     // Take a screenshot of the popup
@@ -101,6 +104,14 @@ test.describe.serial('Chrome Extension', () => {
   });
 
   test('history sync functionality should work correctly', async ({ context }) => {
+    // Set up dialog handler
+    context.on('page', page => {
+      page.on('dialog', async dialog => {
+        console.log('Dialog appeared:', dialog.message());
+        await dialog.accept();
+      });
+    });
+
     // Create test pages to generate history
     const testPages = [
       { url: 'https://example.com/page1', title: 'Test Page 1' },
@@ -118,15 +129,21 @@ test.describe.serial('Chrome Extension', () => {
     // Open extension popup using the extension ID
     const popupPage = await context.newPage();
     await popupPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
     await popupPage.waitForLoadState('networkidle');
 
     // Initialize client
+    await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
     await popupPage.fill('#clientId', 'test-client');
     await popupPage.click('text=Initialize');
-    await popupPage.waitForSelector('text=Client initialized successfully');
+
+    // Wait for sync button to appear (indicates successful initialization)
+    const syncButton = await popupPage.waitForSelector('text=Sync with Server', 
+      { state: 'visible', timeout: 10000 });
+    expect(syncButton).toBeTruthy();
 
     // Wait for history entries to appear
-    await popupPage.waitForSelector('.history-entry');
+    await popupPage.waitForSelector('.history-entry', { timeout: 10000 });
     const entries = await popupPage.locator('.history-entry').all();
     expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
 
@@ -139,15 +156,15 @@ test.describe.serial('Chrome Extension', () => {
     // Test retention period setting
     await popupPage.fill('#retentionDays', '7');
     await popupPage.click('text=Save Settings');
-    await popupPage.waitForSelector('text=Settings saved');
+    await popupPage.waitForSelector('text=Settings saved', { timeout: 10000 });
 
     // Test sync functionality
-    await popupPage.click('text=Sync with Server');
+    await syncButton.click();
     
     // Wait for sync to complete (either success or error)
     const syncResult = await Promise.race([
-      popupPage.waitForSelector('text=Sync completed successfully').then(() => 'success'),
-      popupPage.waitForSelector('text=Failed to sync with server').then(() => 'error')
+      popupPage.waitForSelector('text=Sync completed successfully', { timeout: 10000 }).then(() => 'success'),
+      popupPage.waitForSelector('text=Failed to sync with server', { timeout: 10000 }).then(() => 'error')
     ]);
     expect(['success', 'error']).toContain(syncResult);
 
@@ -157,6 +174,14 @@ test.describe.serial('Chrome Extension', () => {
   });
 
   test('history deduplication should work correctly', async ({ context }) => {
+    // Set up dialog handler
+    context.on('page', page => {
+      page.on('dialog', async dialog => {
+        console.log('Dialog appeared:', dialog.message());
+        await dialog.accept();
+      });
+    });
+
     // Visit the same page multiple times
     const testUrl = 'https://example.com/duplicate';
     const testPage = await context.newPage();
@@ -164,25 +189,28 @@ test.describe.serial('Chrome Extension', () => {
     for (let i = 0; i < 3; i++) {
       await testPage.goto(testUrl);
       await testPage.waitForLoadState('networkidle');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait between visits
+      // Use waitForTimeout instead of setTimeout for better control
+      await testPage.waitForTimeout(1000);
     }
     await testPage.close();
 
     // Open extension popup using the extension ID
     const popupPage = await context.newPage();
     await popupPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await popupPage.waitForLoadState('domcontentloaded');
     await popupPage.waitForLoadState('networkidle');
 
     // Initialize client if needed
     const needsInit = await popupPage.locator('#adminLogin').isVisible();
     if (needsInit) {
+      await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
       await popupPage.fill('#clientId', 'test-client');
       await popupPage.click('text=Initialize');
-      await popupPage.waitForSelector('text=Client initialized successfully');
+      await popupPage.waitForSelector('text=Sync with Server', { state: 'visible', timeout: 10000 });
     }
 
     // Wait for history entries
-    await popupPage.waitForSelector('.history-entry');
+    await popupPage.waitForSelector('.history-entry', { timeout: 10000 });
 
     // Count entries for the test URL
     const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testUrl}"]`).all();
@@ -200,5 +228,17 @@ test.describe.serial('Chrome Extension', () => {
 
     const uniqueTimestamps = new Set(timestamps);
     expect(uniqueTimestamps.size).toBe(timestamps.length);
+  });
+
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status !== testInfo.expectedStatus) {
+      const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+      testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
+      
+      // Log the page content for debugging
+      const content = await page.content();
+      console.log('Page content at failure:', content);
+    }
   });
 });

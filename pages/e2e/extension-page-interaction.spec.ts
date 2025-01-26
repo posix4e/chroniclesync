@@ -4,8 +4,12 @@ import { server } from '../config';
 test.describe('Extension-Page Integration', () => {
   // Set up dialog handler for all tests
   test.beforeEach(async ({ context }) => {
+    // Handle dialogs automatically
     context.on('page', page => {
-      page.on('dialog', dialog => dialog.accept());
+      page.on('dialog', async dialog => {
+        console.log('Dialog appeared:', dialog.message());
+        await dialog.accept();
+      });
     });
   });
 
@@ -13,30 +17,43 @@ test.describe('Extension-Page Integration', () => {
     const extensionPage = await context.newPage();
     await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     
+    // Wait for the page to be fully loaded
+    await extensionPage.waitForLoadState('domcontentloaded');
     await extensionPage.waitForLoadState('networkidle');
-    const clientIdInput = await extensionPage.waitForSelector('#clientId', { state: 'visible' });
-    expect(clientIdInput).toBeTruthy();
+    
+    // Wait for React to mount
+    await extensionPage.waitForSelector('#root', { state: 'visible' });
+    await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
+    expect(await extensionPage.isVisible('#clientId')).toBeTruthy();
   });
 
   test('client initialization works', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
     await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     
+    // Wait for the page to be ready
+    await extensionPage.waitForLoadState('domcontentloaded');
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
+    await extensionPage.waitForSelector('#root', { state: 'visible' });
     
+    // Wait for and interact with the client ID input
+    const clientIdInput = await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
+    expect(clientIdInput).toBeTruthy();
+    
+    // Fill and submit
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
     
-    // Verify initialization by checking if sync button appears
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
+    // Verify initialization
+    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
+      { state: 'visible', timeout: 10000 });
     expect(syncButton).toBeTruthy();
   });
 
   test('sync with server works', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
     
-    // Mock the API response
+    // Set up API response mock before navigation
     await extensionPage.route('**/*', async (route, request) => {
       if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
         await route.fulfill({
@@ -49,18 +66,25 @@ test.describe('Extension-Page Integration', () => {
       }
     });
     
+    // Navigate and wait for page load
     await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    
-    // Initialize client first
+    await extensionPage.waitForLoadState('domcontentloaded');
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
+    
+    // Initialize client
+    await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
-    await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
     
-    // Click sync button and wait for success dialog
-    const dialogPromise = extensionPage.waitForEvent('dialog');
-    await extensionPage.click('text=Sync with Server');
+    // Wait for sync button and click
+    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
+      { state: 'visible', timeout: 10000 });
+    
+    // Set up dialog listener before clicking
+    const dialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await syncButton.click();
+    
+    // Wait for and verify dialog
     const dialog = await dialogPromise;
     expect(dialog.message()).toContain('Sync successful');
   });
@@ -68,13 +92,16 @@ test.describe('Extension-Page Integration', () => {
   test('no console errors during operations', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
     const errors: string[] = [];
+    
+    // Set up error logging
     extensionPage.on('console', msg => {
       if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
+        console.log('Console error:', msg.text());
         errors.push(msg.text());
       }
     });
 
-    // Mock the API response
+    // Set up API mock
     await extensionPage.route('**/*', async (route, request) => {
       if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
         await route.fulfill({
@@ -87,29 +114,38 @@ test.describe('Extension-Page Integration', () => {
       }
     });
 
-    // Perform all operations
+    // Navigate and wait for load
     await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
+    await extensionPage.waitForLoadState('domcontentloaded');
     await extensionPage.waitForLoadState('networkidle');
-    await extensionPage.waitForSelector('#clientId', { state: 'visible' });
+    
+    // Initialize and sync
+    await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
     await extensionPage.fill('#clientId', 'test-client');
     await extensionPage.click('text=Initialize');
-    await extensionPage.waitForSelector('text=Sync with Server', { state: 'visible' });
     
-    // Click sync button and wait for success dialog
-    const dialogPromise = extensionPage.waitForEvent('dialog');
-    await extensionPage.click('text=Sync with Server');
+    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
+      { state: 'visible', timeout: 10000 });
+    
+    // Set up dialog listener before clicking
+    const dialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await syncButton.click();
+    
+    // Wait for and verify dialog
     const dialog = await dialogPromise;
     expect(dialog.message()).toContain('Sync successful');
     expect(errors).toEqual([]);
   });
 
   test.afterEach(async ({ page }, testInfo) => {
-    // Capture a screenshot after each test if it fails
     if (testInfo.status !== testInfo.expectedStatus) {
-      // Create a unique name for the failure screenshot
       const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}.png`;
       await page.screenshot({ path: screenshotPath, fullPage: true });
       testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
+      
+      // Log the page content for debugging
+      const content = await page.content();
+      console.log('Page content at failure:', content);
     }
   });
 });

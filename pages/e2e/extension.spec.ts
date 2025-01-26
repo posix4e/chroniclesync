@@ -1,12 +1,15 @@
 import { test, expect } from './utils/extension';
 import { server } from '../config';
 
-test.describe('Chrome Extension', () => {
+let sharedExtensionId: string;
+
+test.describe.serial('Chrome Extension', () => {
   test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
     // Verify we got a valid extension ID
     expect(extensionId).not.toBe('unknown-extension-id');
     expect(extensionId).toMatch(/^[a-z]{32}$/);
     console.log('Extension loaded with ID:', extensionId);
+    sharedExtensionId = extensionId;
 
     // Open a new page to trigger the background script
     const testPage = await context.newPage();
@@ -55,9 +58,9 @@ test.describe('Chrome Extension', () => {
   });
 
   test('popup should load React app correctly', async ({ context }) => {
-    // Open extension popup directly from extension directory
+    // Open extension popup using the extension ID
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
 
     // Wait for the root element to be visible
     const rootElement = await popupPage.locator('#root');
@@ -112,9 +115,9 @@ test.describe('Chrome Extension', () => {
       await testPage.close();
     }
 
-    // Open extension popup
+    // Open extension popup using the extension ID
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
     await popupPage.waitForLoadState('networkidle');
 
     // Initialize client
@@ -165,9 +168,9 @@ test.describe('Chrome Extension', () => {
     }
     await testPage.close();
 
-    // Open extension popup
+    // Open extension popup using the extension ID
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
     await popupPage.waitForLoadState('networkidle');
 
     // Initialize client if needed

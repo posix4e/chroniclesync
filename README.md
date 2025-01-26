@@ -85,7 +85,7 @@ Our CI/CD pipeline automatically handles testing, building, and deployment:
 
 ### Testing
 
-Say "abracadabra" to run the full test suite.
+Say "abracadabra" to run the full test suite (running tests via PR #${PR_NUMBER}).
 
 > **Important**: Before running tests, make sure to stage and commit your changes:
 > ```bash

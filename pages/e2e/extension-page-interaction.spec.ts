@@ -42,12 +42,16 @@ test.describe('Extension-Page Integration', () => {
     
     // Fill and submit
     await extensionPage.fill('#clientId', 'test-client');
-    await extensionPage.click('text=Initialize');
     
-    // Verify initialization
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
-      { state: 'visible', timeout: 10000 });
-    expect(syncButton).toBeTruthy();
+    // Set up dialog listener before clicking
+    const dialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await extensionPage.click('text=Initialize');
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toBe('Client initialized successfully');
+    await dialog.accept();
+    
+    // Verify initialization by checking if admin login is hidden
+    await expect(extensionPage.locator('#adminLogin')).toHaveCSS('display', 'none');
   });
 
   test('sync with server works', async ({ context, extensionId }) => {
@@ -55,11 +59,11 @@ test.describe('Extension-Page Integration', () => {
     
     // Set up API response mock before navigation
     await extensionPage.route('**/*', async (route, request) => {
-      if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+      if (request.url().includes('/sync') && request.method() === 'POST') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ message: 'Sync successful' })
+          body: JSON.stringify({ success: true })
         });
       } else {
         await route.continue();
@@ -74,19 +78,26 @@ test.describe('Extension-Page Integration', () => {
     // Initialize client
     await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
     await extensionPage.fill('#clientId', 'test-client');
+    
+    // Wait for initialization dialog
+    const initDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
     await extensionPage.click('text=Initialize');
+    const initDialog = await initDialogPromise;
+    expect(initDialog.message()).toBe('Client initialized successfully');
+    await initDialog.accept();
     
     // Wait for sync button and click
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
+    const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
       { state: 'visible', timeout: 10000 });
     
     // Set up dialog listener before clicking
-    const dialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    const syncDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
     await syncButton.click();
     
     // Wait for and verify dialog
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Sync successful');
+    const syncDialog = await syncDialogPromise;
+    expect(syncDialog.message()).toBe('Sync completed successfully');
+    await syncDialog.accept();
   });
 
   test('no console errors during operations', async ({ context, extensionId }) => {
@@ -103,11 +114,11 @@ test.describe('Extension-Page Integration', () => {
 
     // Set up API mock
     await extensionPage.route('**/*', async (route, request) => {
-      if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+      if (request.url().includes('/sync') && request.method() === 'POST') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ message: 'Sync successful' })
+          body: JSON.stringify({ success: true })
         });
       } else {
         await route.continue();
@@ -122,18 +133,27 @@ test.describe('Extension-Page Integration', () => {
     // Initialize and sync
     await extensionPage.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
     await extensionPage.fill('#clientId', 'test-client');
-    await extensionPage.click('text=Initialize');
     
-    const syncButton = await extensionPage.waitForSelector('text=Sync with Server', 
+    // Wait for initialization dialog
+    const initDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await extensionPage.click('text=Initialize');
+    const initDialog = await initDialogPromise;
+    expect(initDialog.message()).toBe('Client initialized successfully');
+    await initDialog.accept();
+    
+    // Wait for sync button and click
+    const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
       { state: 'visible', timeout: 10000 });
     
     // Set up dialog listener before clicking
-    const dialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    const syncDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
     await syncButton.click();
     
     // Wait for and verify dialog
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Sync successful');
+    const syncDialog = await syncDialogPromise;
+    expect(syncDialog.message()).toBe('Sync completed successfully');
+    await syncDialog.accept();
+    
     expect(errors).toEqual([]);
   });
 

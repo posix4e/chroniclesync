@@ -5,12 +5,20 @@ import { TestInfo } from '@playwright/test';
 // Configure test to fail fast and run sequentially
 const test = base.extend({
   // Add auto-cleanup of resources
-  auto_cleanup: [async ({}, use: () => Promise<void>, testInfo: TestInfo) => {
+  failOnError: async ({}, use) => {
+    let failed = false;
+    base.beforeEach(async ({}, testInfo) => {
+      if (failed) {
+        test.skip();
+      }
+    });
+    base.afterEach(async ({}, testInfo) => {
+      if (testInfo.status !== 'passed') {
+        failed = true;
+      }
+    });
     await use();
-    if (testInfo.status !== 'passed') {
-      base.fail();
-    }
-  }, { scope: 'worker', auto: true }]
+  }
 });
 
 // Ensure tests run sequentially and stop on first failure

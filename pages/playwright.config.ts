@@ -1,14 +1,21 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './config';
 
+// Determine if running in CI
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './e2e',
   use: {
-    headless: false,
-    // Base URL for page tests, can be overridden in individual tests
+    headless: false, // Never run headless, use xvfb in CI instead
     baseURL: process.env.API_URL || 'http://localhost:8787',
-    screenshot: 'on',  // Always capture screenshots
+    screenshot: 'on',
+    trace: isCI ? 'retain-on-failure' : 'off',
+    video: isCI ? 'retain-on-failure' : 'off',
+    navigationTimeout: isCI ? 90000 : 30000,
+    actionTimeout: isCI ? 30000 : 10000,
   },
+  timeout: isCI ? 180000 : 60000,
   projects: [
     {
       name: 'chromium',
@@ -17,15 +24,41 @@ export default defineConfig({
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-breakpad',
+            '--disable-client-side-phishing-detection',
+            '--disable-component-extensions-with-background-pages',
+            '--disable-default-apps',
+            '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+            '--disable-hang-monitor',
+            '--disable-ipc-flooding-protection',
+            '--disable-popup-blocking',
+            '--disable-prompt-on-repost',
+            '--disable-renderer-backgrounding',
+            '--disable-sync',
+            '--force-color-profile=srgb',
+            '--metrics-recording-only',
+            '--no-first-run',
+            '--enable-automation',
+            '--password-store=basic',
+            '--use-mock-keychain',
             `--disable-extensions-except=${paths.extension}`,
             `--load-extension=${paths.extension}`,
           ],
+          timeout: isCI ? 180000 : 30000,
+          ignoreDefaultArgs: ['--enable-automation'],
         },
+        viewport: { width: 1280, height: 720 },
       },
     },
   ],
-  forbidOnly: true,  // Always prevent .only tests
-  workers: 1,  // Consistent, predictable test execution
-  reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
+  forbidOnly: true,
+  workers: 1,
+  reporter: isCI ? 'github' : 'list',
   globalSetup: './e2e/global-setup.ts',
+  retries: isCI ? 2 : 0,
+  globalTimeout: isCI ? 900000 : 600000,
 });

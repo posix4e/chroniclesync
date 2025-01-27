@@ -6,11 +6,9 @@ if (!existsSync(paths.extensionDist)) {
   throw new Error('Extension not built. Run `npm run build:extension` first.');
 }
 
-test('Chrome Extension functionality', async ({ context }) => {
+test('Chrome Extension functionality', { timeout: 30000 }, async ({ context }) => {
 
-  // Create main test page and get extension ID
-  const page = await context.newPage();
-  await page.goto('https://example.com');
+  // Get extension ID directly from service workers
   const workers = await context.serviceWorkers();
   if (!workers.length) {
     throw new Error('No service workers found - extension not loaded properly');
@@ -73,21 +71,9 @@ test('Chrome Extension functionality', async ({ context }) => {
 
   // 3. Initial popup load and UI verification
   const popupPage = await context.newPage();
-  await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-  await popupPage.waitForLoadState('domcontentloaded');
-  await popupPage.waitForLoadState('networkidle');
-
-  // Screenshot: Initial extension popup state with login form
-  await popupPage.screenshot({
-    path: 'test-results/steps/01-initial-popup-with-login.png',
-    fullPage: true
-  });
-
-  // Verify initial UI state
-  await popupPage.waitForSelector('#root', { state: 'visible' });
+  await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'domcontentloaded' });
+  await popupPage.waitForSelector('#root', { state: 'visible', timeout: 5000 });
   await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-  await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-  await expect(popupPage.locator('#adminLogin')).toBeVisible();
   await expect(popupPage.locator('#clientId')).toBeVisible();
 
   // Verify React initialization

@@ -190,8 +190,8 @@ test.describe('Chrome Extension', () => {
       fullPage: true
     });
 
-    // Verify initialization success by checking for data section visibility
-    await expect(popupPage.locator('#dataSection')).toBeVisible();
+    // Verify initialization success by checking admin login is hidden
+    await expect(popupPage.locator('#adminLogin')).toHaveCSS('display', 'none');
 
     // 6. Verify history entries
     await popupPage.waitForSelector('.history-entry', { timeout: 5000 });

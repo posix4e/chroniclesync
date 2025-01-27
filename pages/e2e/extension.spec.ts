@@ -17,7 +17,7 @@ const test = base.extend({
         failed = true;
       }
     });
-    await use();
+    await use(undefined);
   }
 });
 

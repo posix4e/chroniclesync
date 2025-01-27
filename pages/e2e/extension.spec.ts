@@ -26,7 +26,6 @@ test.describe.configure({ mode: 'serial', retries: 0 });
 
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context, extensionId, page }) => {
-    test.setTimeout(45000); // 45 second timeout
 
     // Set up error tracking
     const errors: string[] = [];

@@ -28,8 +28,8 @@ module.exports = {
     'linebreak-style': ['error', 'unix'],
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
-    'no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)' }],
-    '@typescript-eslint/no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)' }],
+    'no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)', 'argsIgnorePattern': '^_' }],
+    '@typescript-eslint/no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)', 'argsIgnorePattern': '^_' }],
   },
   globals: {
     DB: 'readonly',

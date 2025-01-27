@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
 
 function Popup() {
   const [status, setStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
@@ -15,7 +15,7 @@ function Popup() {
       } else {
         setStatus('error');
       }
-    } catch (error) {
+    } catch {
       setStatus('error');
     }
   };
@@ -37,4 +37,8 @@ function Popup() {
   );
 }
 
-ReactDOM.render(<Popup />, document.getElementById('root'));
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(<Popup />);
+}

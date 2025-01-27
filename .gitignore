@@ -8,6 +8,10 @@ worker/coverage/
 pages/coverage/
 pages/playwright-report/
 pages/test-results/
+playwright-report/
+playwright-report.zip
+test-results/
+**/playwright/.cache/
 
 # Production builds
 dist/

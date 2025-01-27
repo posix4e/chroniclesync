@@ -28,7 +28,8 @@ module.exports = {
     'linebreak-style': ['error', 'unix'],
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
-    'no-unused-vars': ['error', { 'varsIgnorePattern': '^(DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)$' }],
+    'no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)' }],
+    '@typescript-eslint/no-unused-vars': ['error', { 'varsIgnorePattern': '^(_|DB|initializeClient|saveData|loginAdmin|deleteClient|viewClientData|triggerWorkflow|checkSystemStatus)' }],
   },
   globals: {
     DB: 'readonly',
@@ -43,4 +44,20 @@ module.exports = {
     checkSystemStatus: 'readonly',
     formatBytes: 'readonly',
   },
+  overrides: [
+    {
+      // Allow console.log in test files
+      files: ['**/*.spec.ts', '**/*.test.ts'],
+      rules: {
+        'no-console': 'off'
+      }
+    },
+    {
+      // Allow console.log in background scripts
+      files: ['**/background.ts'],
+      rules: {
+        'no-console': 'off'
+      }
+    }
+  ],
 };

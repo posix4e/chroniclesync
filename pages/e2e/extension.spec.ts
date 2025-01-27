@@ -5,9 +5,18 @@ import { paths, server } from '../config';
 
 // Build extension before running tests
 function ensureExtensionBuilt() {
-  if (!existsSync(paths.extensionDist)) {
-    console.log('Building extension...');
-    execSync('npm run build:extension', { stdio: 'inherit' });
+  try {
+    if (!existsSync(paths.extensionDist)) {
+      console.log('Building extension...');
+      execSync('npm run build:extension', { stdio: 'inherit' });
+    }
+    if (!existsSync(paths.extensionDist)) {
+      throw new Error('Extension build failed - dist directory not found');
+    }
+    console.log('Extension build verified at:', paths.extensionDist);
+  } catch (error) {
+    console.error('Extension build error:', error);
+    throw error;
   }
 }
 
@@ -21,16 +30,20 @@ interface TestFixtures {
 
 const test = base.extend<TestFixtures>({
   // Browser context with extension loaded
-  context: async (_ctx, use) => {
-    // Ensure extension is built
-    ensureExtensionBuilt();
-    const context = await chromium.launchPersistentContext('', {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${paths.extension}`,
-        `--load-extension=${paths.extension}`,
-      ],
-    });
+  context: async ({ }, use) => {
+    let context;
+    try {
+      // Ensure extension is built
+      ensureExtensionBuilt();
+      
+      console.log('Launching browser with extension path:', paths.extension);
+      context = await chromium.launchPersistentContext('', {
+        headless: false,
+        args: [
+          `--disable-extensions-except=${paths.extension}`,
+          `--load-extension=${paths.extension}`,
+        ],
+      });
 
     // Set up global dialog handler
     context.on('page', page => {
@@ -41,7 +54,16 @@ const test = base.extend<TestFixtures>({
     });
 
     await use(context);
-    await context.close();
+    } catch (error) {
+      console.error('Failed to set up browser context:', error);
+      throw error;
+    } finally {
+      if (context) {
+        await context.close().catch(error => {
+          console.error('Error closing browser context:', error);
+        });
+      }
+    }
   },
 
   // Extension ID from service worker
@@ -76,14 +98,14 @@ const test = base.extend<TestFixtures>({
   },
 
   // Add fail-fast behavior
-  failOnError: async (_ctx, use) => {
+  failOnError: async ({ }, use) => {
     let failed = false;
     base.beforeEach(async () => {
       if (failed) {
         test.skip(true);
       }
     });
-    base.afterEach(async ({}, testInfo: TestInfo) => {
+    base.afterEach(async ({ }, testInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }
@@ -128,8 +150,25 @@ test.describe('Chrome Extension', () => {
 
     // 1. Verify extension setup
     console.log('Extension loaded with ID:', extensionId);
-    expect(extensionId).not.toBe('unknown-extension-id');
-    expect(extensionId).toMatch(/^[a-z]{32}$/);
+    expect(extensionId, 'Extension ID should be valid').not.toBe('unknown-extension-id');
+    expect(extensionId, 'Extension ID should match expected format').toMatch(/^[a-z]{32}$/);
+    
+    // Wait for extension to be fully loaded
+    let retries = 0;
+    const maxRetries = 5;
+    while (retries < maxRetries) {
+      const workers = await context.serviceWorkers();
+      if (workers.length > 0 && workers[0].url().includes(extensionId)) {
+        console.log('Extension service worker loaded successfully');
+        break;
+      }
+      console.log('Waiting for extension service worker to load...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      retries++;
+    }
+    if (retries === maxRetries) {
+      throw new Error('Extension service worker failed to load after multiple retries');
+    }
 
     const workers = await context.serviceWorkers();
     expect(workers.length).toBe(1);
@@ -152,7 +191,7 @@ test.describe('Chrome Extension', () => {
 
     // Screenshot: Initial extension popup state with login form
     await popupPage.screenshot({
-      path: 'test-results/01-initial-popup-with-login.png',
+      path: 'pages/test-results/01-initial-popup-with-login.png',
       fullPage: true
     });
 
@@ -207,7 +246,7 @@ test.describe('Chrome Extension', () => {
 
     // Screenshot: After successful client initialization
     await popupPage.screenshot({
-      path: 'test-results/02-after-client-initialization.png',
+      path: 'pages/test-results/02-after-client-initialization.png',
       fullPage: true
     });
 
@@ -244,7 +283,7 @@ test.describe('Chrome Extension', () => {
 
     // Screenshot: After sync completion showing history entries
     await popupPage.screenshot({
-      path: 'test-results/03-after-sync-with-history.png',
+      path: 'pages/test-results/03-after-sync-with-history.png',
       fullPage: true
     });
 
@@ -265,7 +304,7 @@ test.describe('Chrome Extension', () => {
 
     // Screenshot: Final state showing deduplication results
     await popupPage.screenshot({
-      path: 'test-results/04-final-with-deduplication.png',
+      path: 'pages/test-results/04-final-with-deduplication.png',
       fullPage: true
     });
 
@@ -277,7 +316,7 @@ test.describe('Chrome Extension', () => {
     if (testInfo.status !== testInfo.expectedStatus) {
       // Screenshot: Failure state with timestamp for debugging
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
+      const screenshotPath = `pages/test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
       await page.screenshot({ path: screenshotPath, fullPage: true });
       testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
       

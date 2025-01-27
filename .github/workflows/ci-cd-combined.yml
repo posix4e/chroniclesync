@@ -133,8 +133,7 @@ jobs:
             libgl1 \
             libgl-dev \
             mesa-utils \
-            xvfb \
-            dbus-x11
+            xvfb
 
       - name: Run Playwright tests
         working-directory: pages
@@ -145,11 +144,9 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
           GALLIUM_DRIVER: 'llvmpipe'
           XKB_DEFAULT_RULES: 'base'
+          DBUS_SESSION_BUS_ADDRESS: 'disabled:'
         run: |
-          # Start dbus
-          sudo service dbus start
-
-          # Run tests with minimal X configuration
+          # Run tests with minimal X configuration and no dbus
           xvfb-run --auto-servernum \
             --server-args="-screen 0 1280x960x24 -nolisten tcp -nolisten unix" \
             npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }} \

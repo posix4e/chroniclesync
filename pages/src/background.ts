@@ -1,3 +1,9 @@
+interface HistoryEntry {
+  url: string;
+  title: string;
+  timestamp: number;
+}
+
 // Default configuration
 const DEFAULT_CONFIG = {
   retentionDays: 30,
@@ -74,7 +80,8 @@ async function syncHistory() {
   const transaction = db.transaction(['history'], 'readonly');
   const store = transaction.objectStore('history');
   const index = store.index('timestamp');
-  const entries = await new Promise<any[]>((resolve, reject) => {
+
+  const entries = await new Promise<HistoryEntry[]>((resolve, reject) => {
     const request = index.getAll(IDBKeyRange.lowerBound(cutoffTime));
     request.onsuccess = () => resolve(request.result || []);
     request.onerror = () => reject(request.error);

@@ -128,12 +128,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            xkb-data \
+            xvfb \
+            dbus-x11 \
+            libgbm1 \
+            libxkbcommon0 \
+            libvulkan1 \
             libegl1 \
             libgl1 \
-            libgl-dev \
-            mesa-utils \
-            xvfb
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libxfixes3 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libasound2
 
       - name: Run Playwright tests
         working-directory: pages
@@ -141,15 +149,18 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DISPLAY: ':99'
           LIBGL_ALWAYS_SOFTWARE: '1'
           GALLIUM_DRIVER: 'llvmpipe'
-          XKB_DEFAULT_RULES: 'base'
-          DBUS_SESSION_BUS_ADDRESS: 'disabled:'
         run: |
-          # Run tests with minimal X configuration and no dbus
-          xvfb-run --auto-servernum \
-            --server-args="-screen 0 1280x960x24 -nolisten tcp -nolisten unix" \
-            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }} \
+          # Start DBus
+          sudo service dbus start
+          # Start Xvfb
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          # Wait for Xvfb
+          sleep 3
+          # Run tests
+          npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }} \
             --config=playwright.config.ts
 
       - name: Upload test results

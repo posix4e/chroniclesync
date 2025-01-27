@@ -7,7 +7,6 @@ if (!existsSync(paths.extensionDist)) {
 }
 
 test('Chrome Extension functionality', async ({ context }) => {
-  test.setTimeout(30000);
 
   // Get extension ID directly from service workers
   const workers = await context.serviceWorkers();

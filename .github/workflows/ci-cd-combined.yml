@@ -128,7 +128,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            x11-xkb-utils \
+            xkb-data \
             libegl1 \
             libgl1 \
             libgl-dev \
@@ -142,19 +142,16 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
-          DISPLAY: ':99'
           LIBGL_ALWAYS_SOFTWARE: '1'
           GALLIUM_DRIVER: 'llvmpipe'
+          XKB_DEFAULT_RULES: 'base'
         run: |
           # Start dbus
           sudo service dbus start
 
-          # Start Xvfb with software rendering
-          Xvfb :99 -screen 0 1280x960x24 -ac +extension GLX +render -noreset &
-          sleep 3  # Wait for Xvfb to start
-
-          # Run tests with software rendering
-          xvfb-run --server-args="-screen 0 1280x960x24 -ac" \
+          # Run tests with minimal X configuration
+          xvfb-run --auto-servernum \
+            --server-args="-screen 0 1280x960x24 -nolisten tcp -nolisten unix" \
             npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }} \
             --config=playwright.config.ts
 

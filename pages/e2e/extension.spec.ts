@@ -1,12 +1,9 @@
-import { test, chromium, expect } from '@playwright/test';
+import { test as base, chromium, expect } from '@playwright/test';
 import { paths, server } from '../config';
 
-// Ensure tests run sequentially and stop on first failure
-test.describe.configure({ mode: 'serial', retries: 0 });
-
-test.describe('Chrome Extension', () => {
-  test('extension functionality', async ({ page }, testInfo) => {
-    // Launch browser with extension
+// Create a test fixture with extension
+const test = base.extend({
+  context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [
@@ -14,6 +11,18 @@ test.describe('Chrome Extension', () => {
         `--load-extension=${paths.extension}`,
       ],
     });
+    await use(context);
+    await context.close();
+  },
+});
+
+// Ensure tests run sequentially and stop on first failure
+test.describe.configure({ mode: 'serial', retries: 0 });
+
+test.describe('Chrome Extension', () => {
+  test('extension functionality', async ({ context }, testInfo) => {
+    // Create a new page
+    const page = await context.newPage();
 
     // Get extension ID
     let extensionId = 'unknown-extension-id';
@@ -243,23 +252,17 @@ test.describe('Chrome Extension', () => {
 
     // Verify no errors occurred throughout the test
     expect(errors).toEqual([]);
-    // Cleanup and handle failures
-    try {
-      if (testInfo.status !== testInfo.expectedStatus) {
-        // Screenshot: Failure state with timestamp for debugging
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const screenshotPath = `pages/test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
-        await page.screenshot({ path: screenshotPath, fullPage: true });
-        testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
-        
-        // Log the page content for debugging
-        const content = await page.content();
-        console.log('Page content at failure:', content);
-      }
-    } finally {
-      // Close all pages and context
-      await Promise.all(context.pages().map(p => p.close().catch(console.error)));
-      await context.close().catch(console.error);
+    // Handle failures
+    if (testInfo.status !== testInfo.expectedStatus) {
+      // Screenshot: Failure state with timestamp for debugging
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const screenshotPath = `pages/test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+      testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
+      
+      // Log the page content for debugging
+      const content = await page.content();
+      console.log('Page content at failure:', content);
     }
   });
 });

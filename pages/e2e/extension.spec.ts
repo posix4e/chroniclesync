@@ -1,16 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { paths, server } from '../config';
 
-// Ensure extension is built before running test
 if (!existsSync(paths.extensionDist)) {
-  console.log('Building extension...');
-  execSync('npm run build:extension', { stdio: 'inherit' });
-}
-
-if (!existsSync(paths.extensionDist)) {
-  throw new Error('Extension build failed - dist directory not found');
+  throw new Error('Extension not built. Run `npm run build:extension` first.');
 }
 
 test('Chrome Extension functionality', async ({ context }) => {

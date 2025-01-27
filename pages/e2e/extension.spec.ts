@@ -1,20 +1,5 @@
-import { test as base, chromium, expect } from '@playwright/test';
-import { paths, server } from '../config';
-
-// Create a test fixture with extension
-const test = base.extend({
-  context: async ({}, use) => {
-    const context = await chromium.launchPersistentContext('', {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${paths.extension}`,
-        `--load-extension=${paths.extension}`,
-      ],
-    });
-    await use(context);
-    await context.close();
-  },
-});
+import { test, expect } from '@playwright/test';
+import { server } from '../config';
 
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });

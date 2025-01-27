@@ -141,10 +141,30 @@ test.describe('Chrome Extension', () => {
     await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 5000 });
     await popupPage.fill('#clientId', 'test-client');
     
+    // Debug: Check what elements are present
+    console.log('Checking available elements...');
+    const elements = await popupPage.evaluate(() => {
+      const root = document.getElementById('root');
+      return {
+        rootContent: root?.innerHTML,
+        initButton: !!document.getElementById('initButton'),
+        buttonText: document.querySelector('button')?.textContent,
+        allButtons: Array.from(document.querySelectorAll('button')).map(b => ({
+          id: b.id,
+          text: b.textContent,
+          isVisible: b.offsetParent !== null
+        }))
+      };
+    });
+    console.log('Elements found:', JSON.stringify(elements, null, 2));
+    
     // Wait for initialization dialog
-    console.log('Setting up dialog listener and clicking Initialize button...');
+    console.log('Setting up dialog listener and waiting for Initialize button...');
+    const initButton = await popupPage.waitForSelector('#initButton', { state: 'visible', timeout: 5000 });
+    console.log('Initialize button found, setting up dialog listener...');
     const initDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
-    await popupPage.click('#initButton');
+    console.log('Clicking Initialize button...');
+    await initButton.click();
     console.log('Waiting for initialization dialog...');
     const initDialog = await initDialogPromise;
     console.log('Dialog message received:', initDialog.message());

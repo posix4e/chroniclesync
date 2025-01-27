@@ -1,4 +1,4 @@
-import { test as base, chromium, expect, type BrowserContext, type Page, type TestInfo } from '@playwright/test';
+import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { paths, server } from '../config';
@@ -30,7 +30,7 @@ interface TestFixtures {
 
 const test = base.extend<TestFixtures>({
   // Browser context with extension loaded
-  context: async ({ }, use) => {
+  context: async (_ctx, use) => {
     let context;
     try {
       // Ensure extension is built
@@ -45,15 +45,15 @@ const test = base.extend<TestFixtures>({
         ],
       });
 
-    // Set up global dialog handler
-    context.on('page', page => {
-      page.on('dialog', async dialog => {
-        console.log('Dialog appeared:', dialog.message());
-        await dialog.accept();
+      // Set up global dialog handler
+      context.on('page', page => {
+        page.on('dialog', async dialog => {
+          console.log('Dialog appeared:', dialog.message());
+          await dialog.accept();
+        });
       });
-    });
 
-    await use(context);
+      await use(context);
     } catch (error) {
       console.error('Failed to set up browser context:', error);
       throw error;
@@ -98,14 +98,14 @@ const test = base.extend<TestFixtures>({
   },
 
   // Add fail-fast behavior
-  failOnError: async ({ }, use) => {
+  failOnError: async (_ctx, use) => {
     let failed = false;
     base.beforeEach(async () => {
       if (failed) {
         test.skip(true);
       }
     });
-    base.afterEach(async ({ }, testInfo) => {
+    base.afterEach(async (_ctx, testInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }

@@ -36,12 +36,8 @@ test.describe('Chrome Extension', () => {
       errors.push(error.error().message);
     });
 
-    // Set up dialog handler for all pages
+    // Set up error logging for all pages
     context.on('page', page => {
-      page.on('dialog', async dialog => {
-        console.log('Dialog appeared:', dialog.message());
-        await dialog.accept();
-      });
       page.on('console', msg => {
         if (msg.type() === 'error' &&
             !msg.text().includes('net::ERR_FILE_NOT_FOUND') &&
@@ -164,12 +160,7 @@ test.describe('Chrome Extension', () => {
     console.log('Initialize button found, setting up dialog listener...');
     
     // Set up dialog handler before clicking
-    const dialogPromise = new Promise<Dialog>((resolve) => {
-      popupPage.once('dialog', dialog => {
-        console.log('Dialog appeared with message:', dialog.message());
-        resolve(dialog);
-      });
-    });
+    const dialogPromise = popupPage.waitForEvent('dialog');
     
     console.log('Clicking Initialize button...');
     await initButton.click();
@@ -178,7 +169,10 @@ test.describe('Chrome Extension', () => {
     const initDialog = await dialogPromise;
     console.log('Dialog message received:', initDialog.message());
     expect(initDialog.message()).toBe('Client initialized successfully');
-    await initDialog.accept();
+    await initDialog.accept().catch(() => {
+      // If dialog was already handled, ignore the error
+      console.log('Dialog was already handled');
+    });
 
     // Screenshot: After successful client initialization
     await popupPage.screenshot({
@@ -215,7 +209,10 @@ test.describe('Chrome Extension', () => {
     // Wait for and verify dialog
     const syncDialog = await syncDialogPromise;
     expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
-    await syncDialog.accept();
+    await syncDialog.accept().catch(() => {
+      // If dialog was already handled, ignore the error
+      console.log('Sync dialog was already handled');
+    });
 
     // Screenshot: After sync completion showing history entries
     await popupPage.screenshot({

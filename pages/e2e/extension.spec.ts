@@ -6,17 +6,45 @@ test.describe.configure({ mode: 'serial', retries: 0 });
 
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context }, testInfo) => {
+    // Verify browser context has extension support
+    const browserContextType = Object.getPrototypeOf(context).constructor.name;
+    console.log('Browser context type:', browserContextType);
+    
     // Create a new page
     const page = await context.newPage();
+    
+    // Navigate to a test page to trigger extension loading
+    await page.goto('about:blank');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Get extension ID by listing background service workers
-    const workers = await context.serviceWorkers();
-    const extensionWorker = workers.find(worker => 
-      worker.url().includes('background') || worker.url().includes('service_worker')
-    );
+    // Wait for and get extension ID
+    let extensionWorker = null;
+    let retries = 0;
+    const maxRetries = 10;
+
+    while (!extensionWorker && retries < maxRetries) {
+      const workers = await context.serviceWorkers();
+      console.log(`Attempt ${retries + 1}/${maxRetries} - Found ${workers.length} service workers`);
+      
+      for (const worker of workers) {
+        console.log('Service worker URL:', worker.url());
+      }
+      
+      extensionWorker = workers.find(worker => 
+        worker.url().includes('background') || worker.url().includes('service_worker')
+      );
+      
+      if (!extensionWorker) {
+        retries++;
+        if (retries < maxRetries) {
+          console.log('Waiting for extension service worker to load...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
     
     if (!extensionWorker) {
-      throw new Error('Extension service worker not found');
+      throw new Error('Extension service worker not found after multiple retries');
     }
     
     const extensionId = extensionWorker.url().split('/')[2];

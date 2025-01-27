@@ -1,6 +1,4 @@
 import { test, chromium, expect } from '@playwright/test';
-import { execSync } from 'child_process';
-import { existsSync } from 'fs';
 import { paths, server } from '../config';
 
 // Ensure tests run sequentially and stop on first failure
@@ -8,21 +6,6 @@ test.describe.configure({ mode: 'serial', retries: 0 });
 
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ page }, testInfo) => {
-    // Build extension if needed
-    try {
-      if (!existsSync(paths.extensionDist)) {
-        console.log('Building extension...');
-        execSync('npm run build:extension', { stdio: 'inherit' });
-      }
-      if (!existsSync(paths.extensionDist)) {
-        throw new Error('Extension build failed - dist directory not found');
-      }
-      console.log('Extension build verified at:', paths.extensionDist);
-    } catch (error) {
-      console.error('Extension build error:', error);
-      throw error;
-    }
-
     // Launch browser with extension
     const context = await chromium.launchPersistentContext('', {
       headless: false,
@@ -44,13 +27,6 @@ test.describe('Chrome Extension', () => {
       }
     } finally {
       await tempPage.close();
-    }
-
-    // Use the provided page fixture
-    // Skip if extension build fails
-    if (!existsSync(paths.extensionDist)) {
-      test.skip();
-      return;
     }
 
     // Set up error tracking

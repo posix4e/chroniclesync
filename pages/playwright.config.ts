@@ -17,8 +17,8 @@ export default defineConfig({
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--disable-extensions-except=${paths.extension}`,
-            `--load-extension=${paths.extension}`,
+            `--disable-extensions-except=${paths.extensionDist}`,
+            `--load-extension=${paths.extensionDist}`,
           ],
         },
       },

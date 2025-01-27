@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Popup } from '../popup.v2';
+import { Popup } from '../popup';
 
 // Mock chrome.runtime.sendMessage
 // Mock only the parts of chrome API we use

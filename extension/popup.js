@@ -1,3 +1,6 @@
+// Export functions for testing
+export { initializeClient, syncWithServer };
+
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', async () => {
   const config = await chrome.storage.sync.get(['config']);
@@ -21,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <label for="clientId">Client ID:</label>
       <input type="text" id="clientId" placeholder="Enter client ID">
     </div>
-    <button type="button" onclick="initializeClient()">Initialize</button>
+    <button type="button" id="initButton">Initialize</button>
   `;
   document.getElementById('root').appendChild(adminLogin);
 
@@ -42,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <input type="number" id="syncInterval" value="${currentConfig.syncIntervalMinutes}" min="5" max="1440">
     </div>
     <button type="submit">Save Settings</button>
-    <button type="button" onclick="syncWithServer()">Sync with Server</button>
+    <button type="button" id="syncButton">Sync with Server</button>
   `;
 
   configForm.addEventListener('submit', async (e) => {
@@ -67,6 +70,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Add elements to page
   document.getElementById('root').appendChild(configForm);
   document.getElementById('root').appendChild(historyView);
+
+  // Add event listeners
+  document.getElementById('initButton').addEventListener('click', initializeClient);
+  document.getElementById('syncButton').addEventListener('click', syncWithServer);
 
   // Load and display history
   const db = await new Promise((resolve, reject) => {

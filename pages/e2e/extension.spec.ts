@@ -1,9 +1,47 @@
-import { test as base, expect } from './utils/extension';
-import { server } from '../config';
-import { TestInfo } from '@playwright/test';
+import { test as base, chromium, expect, type BrowserContext } from '@playwright/test';
+import { paths, server } from '../config';
 
-// Configure test to fail fast and run sequentially
-const test = base.extend({
+// Extension test fixtures
+const test = base.extend<{ context: BrowserContext; extensionId: string }>({
+  // Browser context with extension loaded
+  context: async ({}, use) => {
+    const context = await chromium.launchPersistentContext('', {
+      headless: false,
+      args: [
+        `--disable-extensions-except=${paths.extension}`,
+        `--load-extension=${paths.extension}`,
+      ],
+    });
+
+    // Set up global dialog handler
+    context.on('page', page => {
+      page.on('dialog', async dialog => {
+        console.log('Dialog appeared:', dialog.message());
+        await dialog.accept();
+      });
+    });
+
+    await use(context);
+    await context.close();
+  },
+
+  // Extension ID from service worker
+  extensionId: async ({ context }, use) => {
+    // Open a page to trigger extension loading
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.waitForTimeout(1000);
+
+    // Get extension ID from service worker
+    const workers = await context.serviceWorkers();
+    const extensionId = workers.length ? 
+      workers[0].url().split('/')[2] : 
+      'unknown-extension-id';
+
+    await use(extensionId);
+    await page.close();
+  },
+
   // Add fail-fast behavior
   failOnError: async ({}, use) => {
     let failed = false;

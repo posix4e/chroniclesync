@@ -73,9 +73,9 @@ test.describe('Chrome Extension', () => {
     await popupPage.waitForLoadState('domcontentloaded');
     await popupPage.waitForLoadState('networkidle');
 
-    // Take initial screenshot
+    // Screenshot: Initial extension popup state with login form
     await popupPage.screenshot({
-      path: 'test-results/extension-initial.png',
+      path: 'test-results/01-initial-popup-with-login.png',
       fullPage: true
     });
 
@@ -128,9 +128,9 @@ test.describe('Chrome Extension', () => {
     expect(initDialog.message()).toBe('Client initialized successfully');
     await initDialog.accept();
 
-    // Take post-initialization screenshot
+    // Screenshot: After successful client initialization
     await popupPage.screenshot({
-      path: 'test-results/extension-initialized.png',
+      path: 'test-results/02-after-client-initialization.png',
       fullPage: true
     });
 
@@ -165,9 +165,9 @@ test.describe('Chrome Extension', () => {
     expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
     await syncDialog.accept();
 
-    // Take post-sync screenshot
+    // Screenshot: After sync completion showing history entries
     await popupPage.screenshot({
-      path: 'test-results/extension-synced.png',
+      path: 'test-results/03-after-sync-with-history.png',
       fullPage: true
     });
 
@@ -186,9 +186,9 @@ test.describe('Chrome Extension', () => {
     const uniqueTimestamps = new Set(timestamps);
     expect(uniqueTimestamps.size).toBe(timestamps.length);
 
-    // Take final screenshot showing history entries
+    // Screenshot: Final state showing deduplication results
     await popupPage.screenshot({
-      path: 'test-results/extension-final.png',
+      path: 'test-results/04-final-with-deduplication.png',
       fullPage: true
     });
 
@@ -198,8 +198,9 @@ test.describe('Chrome Extension', () => {
 
   test.afterEach(async ({ page, context }, testInfo) => {
     if (testInfo.status !== testInfo.expectedStatus) {
-      // Take screenshot on failure
-      const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}.png`;
+      // Screenshot: Failure state with timestamp for debugging
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
       await page.screenshot({ path: screenshotPath, fullPage: true });
       testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
       

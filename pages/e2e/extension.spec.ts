@@ -1,4 +1,4 @@
-import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
+import { test as base, chromium, expect, type BrowserContext, type Page, type TestInfo } from '@playwright/test';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { paths, server } from '../config';
@@ -83,7 +83,7 @@ const test = base.extend<TestFixtures>({
         test.skip(true);
       }
     });
-    base.afterEach(async (testInfo) => {
+    base.afterEach(async (testInfo: TestInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }

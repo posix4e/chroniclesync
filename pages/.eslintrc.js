@@ -43,4 +43,20 @@ module.exports = {
     checkSystemStatus: 'readonly',
     formatBytes: 'readonly',
   },
+  overrides: [
+    {
+      // Allow console.log in test files
+      files: ['**/*.spec.ts', '**/*.test.ts'],
+      rules: {
+        'no-console': 'off'
+      }
+    },
+    {
+      // Allow console.log in background scripts
+      files: ['**/background.ts'],
+      rules: {
+        'no-console': 'off'
+      }
+    }
+  ],
 };

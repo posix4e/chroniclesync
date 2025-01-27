@@ -61,14 +61,13 @@ jobs:
       - name: Package Chrome Extension
         working-directory: pages
         run: |
-          cd ..
-          zip -r chrome-extension.zip extension/
+          zip -r chrome-extension.zip dist/
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
-          path: chrome-extension.zip
+          path: pages/chrome-extension.zip
           retention-days: 14
 
       - name: Test Worker

@@ -47,45 +47,43 @@ async function waitForPageLoad(page) {
 }
 
 test.describe('Chrome Extension Tests', () => {
-  // Basic extension functionality tests
-  test('extension should be loaded with correct ID', async ({ context }) => {
-    // Get extension ID from service worker
+  test('extension functionality', async ({ context }) => {
+    // Track console errors throughout the test
+    const errors: string[] = [];
+    context.on('page', page => {
+      page.on('console', msg => {
+        if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
+          console.log('Console error:', msg.text());
+          errors.push(msg.text());
+        }
+      });
+    });
+
+    // 1. Get extension ID from service worker
     const workers = await context.serviceWorkers();
     const extensionId = workers[0]?.url().split('/')[2] || 'unknown-extension-id';
-    
     expect(extensionId).not.toBe('unknown-extension-id');
     expect(extensionId).toMatch(/^[a-z]{32}$/);
     console.log('Extension loaded with ID:', extensionId);
     sharedExtensionId = extensionId;
 
-    // Open a new page to trigger the background script
+    // 2. Create test history entries
     const testPage = await context.newPage();
     await testPage.goto('https://example.com');
-  });
+    await testPage.waitForLoadState('networkidle');
+    await testPage.close();
 
-  // Extension popup tests
-  test('extension popup loads correctly', async ({ context }) => {
+    // 3. Open and test extension popup
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await extensionPage.goto(`chrome-extension://${extensionId}/popup.html`);
     await waitForPageLoad(extensionPage);
     expect(await extensionPage.isVisible('#clientId')).toBeTruthy();
-  });
 
-  test('client initialization works', async ({ context }) => {
-    const extensionPage = await context.newPage();
-    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
-    await waitForPageLoad(extensionPage);
+    // 4. Initialize client
     await initializeClient(extensionPage);
     await expect(extensionPage.locator('#adminLogin')).toHaveCSS('display', 'none');
-  });
 
-  test('sync with server works', async ({ context }) => {
-    const extensionPage = await context.newPage();
-    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
-    await waitForPageLoad(extensionPage);
-    await initializeClient(extensionPage);
-
-    // Test sync functionality
+    // 5. Test sync functionality
     const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
       { state: 'visible', timeout: 10000 });
     
@@ -95,33 +93,8 @@ test.describe('Chrome Extension Tests', () => {
     const syncDialog = await syncDialogPromise;
     expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
     await syncDialog.accept();
-  });
 
-  test('no console errors during operations', async ({ context }) => {
-    const extensionPage = await context.newPage();
-    const errors: string[] = [];
-    
-    extensionPage.on('console', msg => {
-      if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
-        console.log('Console error:', msg.text());
-        errors.push(msg.text());
-      }
-    });
-
-    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
-    await waitForPageLoad(extensionPage);
-    await initializeClient(extensionPage);
-
-    const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
-      { state: 'visible', timeout: 10000 });
-    
-    const syncDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
-    await syncButton.click();
-    
-    const syncDialog = await syncDialogPromise;
-    expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
-    await syncDialog.accept();
-    
+    // 6. Verify no console errors occurred
     expect(errors).toEqual([]);
   });
     

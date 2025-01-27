@@ -9,15 +9,27 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 - **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
-## Development
+## Components
 
-### Prerequisites
-- GitHub account with repository access
-- Cloudflare account for deployments
-- Node.js 18 or later
-- npm package manager
+ChronicleSync consists of three main components:
 
-### Local Development Setup
+1. **[Pages](pages/README.md)**: Frontend application and Chrome extension
+   - React + TypeScript + Vite
+   - Browser extension for history sync
+   - Admin dashboard and monitoring
+
+2. **[Worker](worker/README.md)**: Cloudflare Worker backend
+   - Serverless architecture
+   - Data synchronization
+   - API endpoints
+
+3. **Extension**: Chrome extension (built from Pages)
+   - Built directly from pages source
+   - History capture and sync
+   - Configurable settings
+   - Offline support
+
+## Quick Start
 
 1. **Clone the Repository**
    ```bash
@@ -28,122 +40,50 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 2. **Install Dependencies**
    ```bash
    # Install frontend dependencies
-   cd pages
-   npm install
+   cd pages && npm install
 
    # Install backend dependencies
-   cd ../worker
-   npm install
+   cd ../worker && npm install
    ```
 
-3. **Start Development Servers**
+3. **Start Development**
    ```bash
-   # Start frontend development server
-   cd pages
-   npm run dev
+   # Start frontend
+   cd pages && npm run dev
 
-   # Start worker development server (in another terminal)
-   cd worker
-   npm run dev
+   # Start worker (in another terminal)
+   cd worker && npm run dev
    ```
 
-4. **Run Tests Locally**
-   ```bash
-   # Run frontend tests
-   cd pages
-   npm run test
+See the component-specific READMEs for detailed development instructions:
+- [Pages Development Guide](pages/README.md)
+- [Worker Development Guide](worker/README.md)
 
-   # Run worker tests
-   cd worker
-   npm run test
-   ```
+## Testing
 
-### Project Structure
-
-```
-chroniclesync/
-├── pages/          # Frontend React application
-├── worker/         # Cloudflare Worker backend
-└── extension/      # Chrome extension build output
-```
-
-### Continuous Integration
-
-Our CI/CD pipeline automatically handles testing, building, and deployment:
-
-1. **On Pull Request**
-   - Runs linting and unit tests
-   - Builds frontend and extension
-   - Creates preview deployments
-   - Runs E2E tests with Playwright
-   - Provides test reports and artifacts
-
-2. **On Main Branch**
-   - Performs all PR checks
-   - Deploys to production
-   - Includes automatic rollback if tests fail
-
-### Testing
-
-Say "abracadabra" to run the full test suite.
-
-> **Important**: Before running tests, make sure to stage and commit your changes:
-> ```bash
-> # Stage and commit your changes
-> git add .
-> git commit -m "Description of your changes"
-> ```
-
-To run all tests:
-
+Run the full test suite:
 ```bash
-# Run the automated test suite
 ./run_tests.sh
-
-# This will:
-# 1. Run local frontend/extension tests
-# 2. Create a PR with test changes
-# 3. Monitor CI/CD pipeline
-# 4. Report results and artifacts
 ```
 
-The process includes:
+This will:
+1. Run local tests for all components
+2. Create a PR with test changes
+3. Monitor CI/CD pipeline
+4. Report results
 
-1. Run pages/extension tests:
-   ```bash
-   # Frontend tests and build
-   cd pages && npm install && npm run lint && npm test && npm run build:extension
-   ```
+## Deployment
 
-2. Git push the branch
-   # commit your changes. Make sure to consider what should go in your gitignore.
-   # push your changes so the CI runs, we are going to use those results. After all you have github tokens around.
-4. Monitor CI/CD pipeline:
-   # use run_tests.sh
-
-The workflow will automatically:
-- Sync with main branch
-- Run all local tests
-- Push changes and create/update PR
-- Monitor CI/CD pipeline
-- Download artifacts when complete
-- Retry if tests fail
-
-Download the latest build:
-1. Go to Actions → CI/CD
-2. Download `chrome-extension.zip`
-3. Unzip and load in Chrome as above
-
-### Deployment
-
-- Frontend deploys to: `https://$BRANCH.chroniclesync.pages.dev`
-- API deploys to:
+- Frontend: `https://$BRANCH.chroniclesync.pages.dev`
+- API:
   - Staging: `https://api-staging.chroniclesync.xyz`
   - Production: `https://api.chroniclesync.xyz`
 
 > **Note**: Production deployments require approval and passing tests
 
-## Architecture
+## Future Enhancements
 
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Cloudflare Worker with serverless architecture
+- **Privacy Controls**: Add encryption and filtering mechanisms
+- **Advanced Search**: Implement full-text search capabilities in the static page
+- **Data Retention**: Add configurable data retention policies per device
+- **Selective Sync**: Allow users to choose which history items to sync

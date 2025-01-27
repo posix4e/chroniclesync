@@ -8,6 +8,22 @@ export default defineConfig({
     // Base URL for page tests, can be overridden in individual tests
     baseURL: process.env.API_URL || 'http://localhost:8787',
     screenshot: 'on',  // Always capture screenshots
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 30000,  // Increase timeout for actions
+    navigationTimeout: 30000,  // Increase timeout for navigation
+    // Use persistent context for extension testing
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--enable-automation',  // Required for extension testing
+        '--allow-insecure-localhost',  // Allow local testing
+        '--disable-background-timer-throttling',  // Prevent background throttling
+        '--disable-backgrounding-occluded-windows',  // Keep background pages active
+        '--disable-renderer-backgrounding',  // Keep renderers active
+      ],
+      timeout: 30000,  // Increase launch timeout
+    },
   },
   projects: [
     {
@@ -17,9 +33,19 @@ export default defineConfig({
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--disable-extensions-except=${paths.extension}`,
-            `--load-extension=${paths.extension}`,
+            '--enable-automation',  // Required for extension testing
+            '--allow-insecure-localhost',  // Allow local testing
+            '--disable-background-timer-throttling',  // Prevent background throttling
+            '--disable-backgrounding-occluded-windows',  // Keep background pages active
+            '--disable-renderer-backgrounding',  // Keep renderers active
+            `--disable-extensions-except=${paths.extensionDist}`,
+            `--load-extension=${paths.extensionDist}`,
           ],
+          timeout: 30000,  // Increase launch timeout
+        },
+        contextOptions: {
+          reducedMotion: 'reduce',  // Reduce animations
+          serviceWorkers: 'allow',  // Explicitly allow service workers
         },
       },
     },

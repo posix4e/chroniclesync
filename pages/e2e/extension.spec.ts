@@ -3,44 +3,65 @@ import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { paths, server } from '../config';
 
+// Ensure extension is built before running test
+if (!existsSync(paths.extensionDist)) {
+  console.log('Building extension...');
+  execSync('npm run build:extension', { stdio: 'inherit' });
+}
+
+if (!existsSync(paths.extensionDist)) {
+  throw new Error('Extension build failed - dist directory not found');
+}
+
 test('Chrome Extension functionality', async ({ context }) => {
-  // Ensure extension is built
-  if (!existsSync(paths.extensionDist)) {
-    console.log('Building extension...');
-    execSync('npm run build:extension', { stdio: 'inherit' });
-  }
-  if (!existsSync(paths.extensionDist)) {
-    test.skip();
-    console.log('Extension build failed - dist directory not found');
-    return;
-  }
 
   // Create main test page and get extension ID
   const page = await context.newPage();
   await page.goto('https://example.com');
   const workers = await context.serviceWorkers();
-  const extensionId = workers[0]?.url()?.split('/')[2] || 'unknown-extension-id';
+  if (!workers.length) {
+    throw new Error('No service workers found - extension not loaded properly');
+  }
+  const extensionId = workers[0].url().split('/')[2];
 
   // Set up error tracking
   const errors: string[] = [];
+  const trackErrors = (error: string) => {
+    console.log('Error:', error);
+    errors.push(error);
+    // Take screenshot immediately when error occurs
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    page.screenshot({
+      path: `test-results/error-${timestamp}.png`,
+      fullPage: true
+    }).catch(e => console.error('Failed to take error screenshot:', e));
+  };
+
+  // Track web errors
   context.on('weberror', error => {
-    console.log('Web error:', error.error().message);
-    errors.push(error.error().message);
+    trackErrors(`Web error: ${error.error().message}`);
   });
 
-  // Set up dialog handler for all pages
+  // Set up handlers for all pages
   context.on('page', page => {
+    // Handle dialogs
     page.on('dialog', async dialog => {
       console.log('Dialog appeared:', dialog.message());
       await dialog.accept();
     });
+
+    // Track console errors
     page.on('console', msg => {
       if (msg.type() === 'error' &&
           !msg.text().includes('net::ERR_FILE_NOT_FOUND') &&
           !msg.text().includes('status of 404')) {
-        console.log('Console error:', msg.text());
-        errors.push(msg.text());
+        trackErrors(`Console error: ${msg.text()}`);
       }
+    });
+
+    // Track page errors
+    page.on('pageerror', error => {
+      trackErrors(`Page error: ${error.message}`);
     });
   });
 
@@ -65,7 +86,7 @@ test('Chrome Extension functionality', async ({ context }) => {
 
   // Screenshot: Initial extension popup state with login form
   await popupPage.screenshot({
-    path: 'test-results/01-initial-popup-with-login.png',
+    path: 'test-results/steps/01-initial-popup-with-login.png',
     fullPage: true
   });
 
@@ -120,7 +141,7 @@ test('Chrome Extension functionality', async ({ context }) => {
 
   // Screenshot: After successful client initialization
   await popupPage.screenshot({
-    path: 'test-results/02-after-client-initialization.png',
+    path: 'test-results/steps/02-after-client-initialization.png',
     fullPage: true
   });
 
@@ -157,7 +178,7 @@ test('Chrome Extension functionality', async ({ context }) => {
 
   // Screenshot: After sync completion showing history entries
   await popupPage.screenshot({
-    path: 'test-results/03-after-sync-with-history.png',
+    path: 'test-results/steps/03-after-sync-with-history.png',
     fullPage: true
   });
 
@@ -178,20 +199,10 @@ test('Chrome Extension functionality', async ({ context }) => {
 
   // Screenshot: Final state showing deduplication results
   await popupPage.screenshot({
-    path: 'test-results/04-final-with-deduplication.png',
+    path: 'test-results/steps/04-final-with-deduplication.png',
     fullPage: true
   });
 
   // Verify no errors occurred throughout the test
-  expect(errors).toEqual([]);
-
-  // Take screenshot on failure
-  if (errors.length > 0) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    await page.screenshot({
-      path: `test-results/failure-${timestamp}.png`,
-      fullPage: true
-    });
-    console.log('Page content at failure:', await page.content());
-  }
+  expect(errors, `Errors found during test:\n${errors.join('\n')}`).toEqual([]);
 });

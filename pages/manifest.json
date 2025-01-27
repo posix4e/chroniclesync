@@ -24,6 +24,6 @@
     "https://api-staging.chroniclesync.xyz/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' http://localhost:* http://127.0.0.1:*; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }

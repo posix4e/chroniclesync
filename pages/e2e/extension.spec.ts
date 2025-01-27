@@ -24,34 +24,38 @@ test.describe('Chrome Extension', () => {
     let retries = 0;
     const maxRetries = 10;
 
+    // Create a new page to trigger extension initialization
+    const triggerPage = await context.newPage();
+    await triggerPage.goto('https://example.com');
+
     while (!extensionWorker && retries < maxRetries) {
       const workers = await context.serviceWorkers();
       console.log(`Attempt ${retries + 1}/${maxRetries} - Found ${workers.length} service workers`);
       
       for (const worker of workers) {
         console.log('Service worker URL:', worker.url());
+        if (worker.url().includes('background.js')) {
+          extensionWorker = worker;
+          break;
+        }
       }
-      
-      // Try to find a worker that's either a background script or service worker
-      extensionWorker = workers.find(worker => {
-        const url = worker.url();
-        return (url.includes('background') || url.includes('service_worker')) &&
-               !url.includes('devtools');
-      });
       
       if (!extensionWorker) {
         retries++;
         if (retries < maxRetries) {
           console.log('Waiting for extension service worker to load...');
           // Increase wait time between retries
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
-          // Reload the page to trigger extension
-          await page.reload();
-          await page.waitForLoadState('networkidle');
+          // Navigate to a new page to trigger extension
+          await triggerPage.goto(`https://example.com/attempt${retries}`);
+          await triggerPage.waitForLoadState('networkidle');
         }
       }
     }
+
+    // Close the trigger page
+    await triggerPage.close();
     
     if (!extensionWorker) {
       throw new Error('Extension service worker not found after multiple retries');

@@ -27,5 +27,4 @@ export default defineConfig({
   forbidOnly: true,  // Always prevent .only tests
   workers: 1,  // Consistent, predictable test execution
   reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
-  globalSetup: './e2e/global-setup.ts',
 });

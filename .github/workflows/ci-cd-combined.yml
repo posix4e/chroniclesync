@@ -124,8 +124,16 @@ jobs:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: npm run build:extension
 
-      - name: Install X11 utilities
-        run: sudo apt-get update && sudo apt-get install -y x11-xkb-utils
+      - name: Install X11 and graphics dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            x11-xkb-utils \
+            libegl1 \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            xvfb
 
       - name: Run Playwright tests
         working-directory: pages

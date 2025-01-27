@@ -23,7 +23,8 @@ ChronicleSync consists of three main components:
    - Data synchronization
    - API endpoints
 
-3. **Extension**: Chrome extension build output
+3. **Extension**: Chrome extension (part of Pages)
+   - Built from pages/src
    - History capture and sync
    - Configurable settings
    - Offline support

@@ -1,4 +1,4 @@
-import { test, chromium, expect, Dialog } from '@playwright/test';
+import { test, chromium, expect } from '@playwright/test';
 import { paths, server } from '../config';
 
 // Ensure tests run sequentially and stop on first failure

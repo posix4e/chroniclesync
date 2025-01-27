@@ -83,7 +83,7 @@ const test = base.extend<TestFixtures>({
         test.skip(true);
       }
     });
-    base.afterEach(async (testInfo: TestInfo) => {
+    base.afterEach(async ({}, testInfo: TestInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }

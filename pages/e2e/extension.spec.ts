@@ -1,4 +1,4 @@
-import { test as base, chromium, expect, type BrowserContext } from '@playwright/test';
+import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { paths, server } from '../config';
@@ -16,6 +16,7 @@ interface TestFixtures {
   context: BrowserContext;
   extensionId: string;
   failOnError: boolean;
+  page: Page;
 }
 
 const test = base.extend<TestFixtures>({
@@ -65,6 +66,13 @@ const test = base.extend<TestFixtures>({
     }
 
     await use(extensionId);
+  },
+
+  // Main test page
+  page: async ({ context }, use) => {
+    const page = await context.newPage();
+    await use(page);
+    await page.close();
   },
 
   // Add fail-fast behavior

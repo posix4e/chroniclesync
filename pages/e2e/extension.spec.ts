@@ -10,12 +10,14 @@ test.describe('Chrome Extension', () => {
     const browserContextType = Object.getPrototypeOf(context).constructor.name;
     console.log('Browser context type:', browserContextType);
     
-    // Create a new page
+    // Create a new page and navigate to a real URL to properly trigger extension
     const page = await context.newPage();
-    
-    // Navigate to a test page to trigger extension loading
-    await page.goto('about:blank');
+    await page.goto('https://example.com');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
+    
+    // Wait a bit to ensure extension has time to initialize
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Wait for and get extension ID
     let extensionWorker = null;
@@ -30,15 +32,23 @@ test.describe('Chrome Extension', () => {
         console.log('Service worker URL:', worker.url());
       }
       
-      extensionWorker = workers.find(worker => 
-        worker.url().includes('background') || worker.url().includes('service_worker')
-      );
+      // Try to find a worker that's either a background script or service worker
+      extensionWorker = workers.find(worker => {
+        const url = worker.url();
+        return (url.includes('background') || url.includes('service_worker')) &&
+               !url.includes('devtools');
+      });
       
       if (!extensionWorker) {
         retries++;
         if (retries < maxRetries) {
           console.log('Waiting for extension service worker to load...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Increase wait time between retries
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Reload the page to trigger extension
+          await page.reload();
+          await page.waitForLoadState('networkidle');
         }
       }
     }

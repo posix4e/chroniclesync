@@ -1,168 +1,55 @@
-interface HistoryEntry {
-  url: string;
-  title: string;
-  timestamp: number;
-}
+// Simple in-memory queue for pending history items
+let pendingItems: Array<{url: string, title: string, timestamp: number}> = [];
 
-// Default configuration
-const DEFAULT_CONFIG = {
-  retentionDays: 30,
-  apiEndpoint: 'https://api.chroniclesync.xyz',
-  syncIntervalMinutes: 30
-};
+// Function to sync items with the server
+async function syncItems() {
+  if (pendingItems.length === 0) return;
 
-// Initialize configuration
-async function initConfig() {
-  const config = await chrome.storage.sync.get(['config']);
-  if (!config.config) {
-    await chrome.storage.sync.set({ config: DEFAULT_CONFIG });
-  }
-  return config.config || DEFAULT_CONFIG;
-}
+  const itemsToSync = [...pendingItems];
+  pendingItems = []; // Clear the queue
 
-// Initialize IndexedDB for history storage
-const dbName = 'chronicleSync';
-const dbVersion = 1;
-let db: IDBDatabase;
-
-const initDb = () => {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(dbName, dbVersion);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      db = request.result;
-      resolve(db);
-    };
-    
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      const store = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
-      store.createIndex('urlTime', ['url', 'timestamp'], { unique: true });
-      store.createIndex('timestamp', 'timestamp');
-    };
-  });
-};
-
-// Store history entry
-async function storeHistoryEntry(url: string, title: string, timestamp: number) {
-  const entry = { url, title, timestamp };
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['history'], 'readwrite');
-    const store = transaction.objectStore('history');
-    const index = store.index('urlTime');
-    
-    // Check for duplicates
-    const query = index.get([url, timestamp]);
-    
-    query.onsuccess = () => {
-      if (!query.result) {
-        // No duplicate found, add the entry
-        const request = store.add(entry);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      } else {
-        resolve(null); // Entry already exists
-      }
-    };
-    
-    query.onerror = () => reject(query.error);
-  });
-}
-
-// Sync history with server
-async function syncHistory() {
-  const config = await initConfig();
-  const cutoffTime = Date.now() - (config.retentionDays * 24 * 60 * 60 * 1000);
-  
-  // Get entries that need syncing
-  const transaction = db.transaction(['history'], 'readonly');
-  const store = transaction.objectStore('history');
-  const index = store.index('timestamp');
-
-  const entries = await new Promise<HistoryEntry[]>((resolve, reject) => {
-    const request = index.getAll(IDBKeyRange.lowerBound(cutoffTime));
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error);
-  });
-  
-  if (entries.length > 0) {
-    try {
-      const response = await fetch(`${config.apiEndpoint}/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Sync failed: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-    }
-  }
-}
-
-// Initialize and set up listeners
-async function initialize() {
   try {
-    console.log('Initializing ChronicleSync service worker...');
-    await initDb();
-    console.log('IndexedDB initialized successfully');
-    
-    const config = await initConfig();
-    console.log('Configuration loaded:', config);
-    
-    // Set up periodic sync
-    chrome.alarms.create('syncHistory', {
-      periodInMinutes: config.syncIntervalMinutes
+    const config = await chrome.storage.sync.get(['apiEndpoint']);
+    const endpoint = config.apiEndpoint || 'https://api.chroniclesync.xyz';
+
+    const response = await fetch(`${endpoint}/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: itemsToSync })
     });
-    console.log('Alarm created for periodic sync');
-    
-    // Log successful initialization
-    console.log('ChronicleSync service worker initialized successfully');
+
+    if (!response.ok) {
+      // If sync fails, add items back to queue
+      pendingItems.push(...itemsToSync);
+      throw new Error(`Sync failed: ${response.statusText}`);
+    }
   } catch (error) {
-    console.error('Failed to initialize ChronicleSync service worker:', error);
-    throw error;
+    console.error('Sync error:', error);
+    // Items are already back in queue if sync failed
   }
 }
 
 // Listen for history updates
 chrome.history.onVisited.addListener(async (result) => {
-  if (result.url && result.lastVisitTime) {
-    await storeHistoryEntry(result.url, result.title || '', new Date(result.lastVisitTime).getTime());
-  }
-});
-
-// Listen for sync alarm
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'syncHistory') {
-    syncHistory();
-  }
-});
-
-// Listen for tab updates (for real-time tracking)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
-    storeHistoryEntry(changeInfo.url, tab.title || '', Date.now());
-  }
-});
-
-// Add message listener for debugging and testing
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received:', message);
-  if (message.type === 'getStatus') {
-    sendResponse({
-      initialized: db !== undefined,
-      serviceWorkerActive: true,
-      timestamp: Date.now()
+  if (result.url) {
+    // Add to pending queue
+    pendingItems.push({
+      url: result.url,
+      title: result.title || '',
+      timestamp: new Date(result.lastVisitTime || Date.now()).getTime()
     });
-    return true;
+
+    // Try to sync immediately
+    await syncItems();
   }
 });
 
-// Initialize when extension loads
-initialize().catch(error => {
-  console.error('Failed to initialize:', error);
+// Listen for manual sync requests from popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'sync') {
+    syncItems()
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Will respond asynchronously
+  }
 });

@@ -12,7 +12,13 @@ function ensureExtensionBuilt() {
 }
 
 // Extension test fixtures
-const test = base.extend<{ context: BrowserContext; extensionId: string }>({
+interface TestFixtures {
+  context: BrowserContext;
+  extensionId: string;
+  failOnError: boolean;
+}
+
+const test = base.extend<TestFixtures>({
   // Browser context with extension loaded
   context: async ({}, use) => {
     // Ensure extension is built
@@ -64,17 +70,17 @@ const test = base.extend<{ context: BrowserContext; extensionId: string }>({
   // Add fail-fast behavior
   failOnError: async ({}, use) => {
     let failed = false;
-    base.beforeEach(async ({}, testInfo) => {
+    base.beforeEach(async () => {
       if (failed) {
-        test.skip();
+        test.skip(true);
       }
     });
-    base.afterEach(async ({}, testInfo) => {
+    base.afterEach(async ({ }, testInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }
     });
-    await use(undefined);
+    await use(false);
   }
 });
 
@@ -85,7 +91,7 @@ test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context, extensionId, page }) => {
     // Skip if extension build fails
     if (!existsSync(paths.extensionDist)) {
-      test.skip('Extension not built');
+      test.skip();
       return;
     }
 

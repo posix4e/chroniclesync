@@ -10,7 +10,7 @@ const test = base.extend({
     if (testInfo.status !== 'passed') {
       base.fail();
     }
-  }, { scope: 'test', auto: true }]
+  }, { scope: 'worker', auto: true }]
 });
 
 // Ensure tests run sequentially and stop on first failure

@@ -19,6 +19,14 @@ build/
 .wrangler/
 .cloudflare/
 
+# Generated files
+pages/background.js
+pages/popup.js
+pages/assets/popup.css
+pages/styles.css
+pages/dist/
+pages/build/
+
 # Environment files
 .env
 .env.local

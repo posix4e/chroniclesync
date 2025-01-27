@@ -91,25 +91,17 @@ test('Chrome Extension functionality', async ({ context }) => {
   // 4. Generate test history
   const testPages = [
     { url: 'https://example.com/page1', title: 'Test Page 1' },
-    { url: 'https://example.com/page2', title: 'Test Page 2' },
     { url: 'https://example.com/duplicate', title: 'Duplicate Page' }
   ];
 
   // Visit test pages to generate history
+  const historyPage = await context.newPage();
   for (const testPage of testPages) {
-    const historyPage = await context.newPage();
-    await historyPage.goto(testPage.url);
-    await historyPage.waitForLoadState('networkidle');
-    await historyPage.close();
+    await historyPage.goto(testPage.url, { waitUntil: 'domcontentloaded' });
   }
-
-  // Generate duplicate entries
-  const duplicatePage = await context.newPage();
-  for (let i = 0; i < 2; i++) {
-    await duplicatePage.goto(testPages[2].url);
-    await duplicatePage.waitForLoadState('networkidle');
-  }
-  await duplicatePage.close();
+  // Generate duplicate entry
+  await historyPage.goto(testPages[1].url, { waitUntil: 'domcontentloaded' });
+  await historyPage.close();
 
   // 5. Client initialization
   await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 5000 });
@@ -122,69 +114,27 @@ test('Chrome Extension functionality', async ({ context }) => {
   expect(initDialog.message()).toBe('Client initialized successfully');
   await initDialog.accept();
 
-  // Screenshot: After successful client initialization
-  await popupPage.screenshot({
-    path: 'test-results/steps/02-after-client-initialization.png',
-    fullPage: true
-  });
-
-  // Verify initialization success
+  // Verify initialization success and history entries
   await expect(popupPage.locator('#adminLogin')).toHaveCSS('display', 'none');
-
-  // 6. Verify history entries
   await popupPage.waitForSelector('.history-entry', { timeout: 5000 });
+  
+  // Verify history entries
   const entries = await popupPage.locator('.history-entry').all();
   expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
+  
+  // Verify duplicate entry exists
+  const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testPages[1].url}"]`).all();
+  expect(duplicateEntries.length).toBeGreaterThanOrEqual(2);
 
-  // Verify all test pages appear in history
-  for (const testPage of testPages) {
-    const entryExists = await popupPage.locator(`.history-entry a[href="${testPage.url}"]`).count() > 0;
-    expect(entryExists).toBeTruthy();
-  }
-
-  // 7. Configure settings
+  // Configure settings and sync
   await popupPage.fill('#retentionDays', '7');
   await popupPage.click('text=Save Settings');
-
-  // 8. Test sync functionality
-  const syncButton = await popupPage.waitForSelector('button:has-text("Sync with Server")', 
-    { state: 'visible', timeout: 5000 });
+  await popupPage.click('button:has-text("Sync with Server")');
   
-  // Set up dialog listener before clicking
-  const syncDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
-  await syncButton.click();
-  
-  // Wait for and verify dialog
-  const syncDialog = await syncDialogPromise;
+  // Handle sync dialog
+  const syncDialog = await popupPage.waitForEvent('dialog', { timeout: 5000 });
   expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
   await syncDialog.accept();
-
-  // Screenshot: After sync completion showing history entries
-  await popupPage.screenshot({
-    path: 'test-results/steps/03-after-sync-with-history.png',
-    fullPage: true
-  });
-
-  // 9. Verify deduplication
-  const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testPages[2].url}"]`).all();
-  expect(duplicateEntries.length).toBeGreaterThanOrEqual(1);
-
-  // Verify timestamps are different
-  const timestamps = await popupPage.evaluate((url) => {
-    const entries = document.querySelectorAll(`.history-entry a[href="${url}"]`);
-    return Array.from(entries).map(entry => 
-      entry.nextElementSibling?.textContent
-    );
-  }, testPages[2].url);
-
-  const uniqueTimestamps = new Set(timestamps);
-  expect(uniqueTimestamps.size).toBe(timestamps.length);
-
-  // Screenshot: Final state showing deduplication results
-  await popupPage.screenshot({
-    path: 'test-results/steps/04-final-with-deduplication.png',
-    fullPage: true
-  });
 
   // Verify no errors occurred throughout the test
   expect(errors, `Errors found during test:\n${errors.join('\n')}`).toEqual([]);

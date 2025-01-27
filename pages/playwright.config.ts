@@ -12,10 +12,10 @@ export default defineConfig({
     screenshot: 'on',
     trace: isCI ? 'retain-on-failure' : 'off',
     video: isCI ? 'retain-on-failure' : 'off',
-    navigationTimeout: isCI ? 90000 : 30000,
-    actionTimeout: isCI ? 30000 : 10000,
+    navigationTimeout: 10000,
+    actionTimeout: 5000,
   },
-  timeout: isCI ? 180000 : 60000,
+  timeout: 30000,
   projects: [
     {
       name: 'chromium',
@@ -48,7 +48,7 @@ export default defineConfig({
             `--disable-extensions-except=${paths.extension}`,
             `--load-extension=${paths.extension}`,
           ],
-          timeout: isCI ? 180000 : 30000,
+          timeout: 10000,
           ignoreDefaultArgs: ['--enable-automation'],
         },
         viewport: { width: 1280, height: 720 },
@@ -60,5 +60,5 @@ export default defineConfig({
   reporter: isCI ? 'github' : 'list',
   globalSetup: './e2e/global-setup.ts',
   retries: isCI ? 2 : 0,
-  globalTimeout: isCI ? 900000 : 600000,
+  globalTimeout: 60000,
 });

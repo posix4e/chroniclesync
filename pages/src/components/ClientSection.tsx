@@ -23,7 +23,6 @@ export function ClientSection({ db }: ClientSectionProps) {
       setData(JSON.stringify(initialData, null, 2));
       setIsInitialized(true);
       alert('Client initialized successfully');
-      await syncData();
     } catch (error) {
       alert(`Error initializing client: ${error instanceof Error ? error.message : String(error)}`);
     }

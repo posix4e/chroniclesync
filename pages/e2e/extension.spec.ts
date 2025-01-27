@@ -1,15 +1,16 @@
 import { test as base, expect } from './utils/extension';
 import { server } from '../config';
+import { TestInfo } from '@playwright/test';
 
 // Configure test to fail fast and run sequentially
 const test = base.extend({
   // Add auto-cleanup of resources
-  auto_cleanup: [async ({}, use, testInfo) => {
+  auto_cleanup: [async ({}, use: () => Promise<void>, testInfo: TestInfo) => {
     await use();
     if (testInfo.status !== 'passed') {
       base.fail();
     }
-  }, { auto: true }]
+  }, { scope: 'test', auto: true }]
 });
 
 // Ensure tests run sequentially and stop on first failure

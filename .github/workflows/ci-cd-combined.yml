@@ -61,7 +61,8 @@ jobs:
       - name: Package Chrome Extension
         working-directory: pages
         run: |
-          zip -r chrome-extension.zip dist/
+          cd dist
+          zip -r ../chrome-extension.zip .
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v4

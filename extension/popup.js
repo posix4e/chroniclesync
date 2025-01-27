@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initializeClient() {
   const clientId = document.getElementById('clientId').value;
   if (!clientId) {
-    window.confirm('Please enter a client ID');
+    alert('Please enter a client ID');
     return;
   }
 
@@ -126,7 +126,7 @@ async function initializeClient() {
 async function syncWithServer() {
   const config = await chrome.storage.sync.get(['config', 'clientId']);
   if (!config.clientId) {
-    window.confirm('Please initialize client first');
+    alert('Please initialize client first');
     return;
   }
 
@@ -161,9 +161,9 @@ async function syncWithServer() {
       throw new Error(`Sync failed: ${response.statusText}`);
     }
 
-    window.confirm('Sync successful');
+    alert('Sync successful');
   } catch (error) {
     console.error('Error syncing with server:', error);
-    window.confirm('Failed to sync with server');
+    alert('Failed to sync with server');
   }
 }

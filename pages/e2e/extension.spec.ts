@@ -1,4 +1,4 @@
-import { test, chromium, expect } from '@playwright/test';
+import { test, chromium, expect, Dialog } from '@playwright/test';
 import { paths, server } from '../config';
 
 // Ensure tests run sequentially and stop on first failure
@@ -162,11 +162,20 @@ test.describe('Chrome Extension', () => {
     console.log('Setting up dialog listener and waiting for Initialize button...');
     const initButton = await popupPage.waitForSelector('button:has-text("Initialize")', { state: 'visible', timeout: 5000 });
     console.log('Initialize button found, setting up dialog listener...');
-    const initDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
+    
+    // Set up dialog handler before clicking
+    const dialogPromise = new Promise<Dialog>((resolve) => {
+      popupPage.once('dialog', dialog => {
+        console.log('Dialog appeared with message:', dialog.message());
+        resolve(dialog);
+      });
+    });
+    
     console.log('Clicking Initialize button...');
     await initButton.click();
     console.log('Waiting for initialization dialog...');
-    const initDialog = await initDialogPromise;
+    
+    const initDialog = await dialogPromise;
     console.log('Dialog message received:', initDialog.message());
     expect(initDialog.message()).toBe('Client initialized successfully');
     await initDialog.accept();

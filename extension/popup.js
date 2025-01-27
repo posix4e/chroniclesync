@@ -160,7 +160,7 @@ async function syncWithServer() {
       throw new Error(`Sync failed: ${response.statusText}`);
     }
 
-    window.confirm('Sync completed successfully');
+    window.confirm('Sync successful');
   } catch (error) {
     console.error('Error syncing with server:', error);
     window.confirm('Failed to sync with server');

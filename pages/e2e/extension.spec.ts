@@ -142,9 +142,12 @@ test.describe('Chrome Extension', () => {
     await popupPage.fill('#clientId', 'test-client');
     
     // Wait for initialization dialog
+    console.log('Setting up dialog listener and clicking Initialize button...');
     const initDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
-    await popupPage.click('text=Initialize');
+    await popupPage.click('#initButton');
+    console.log('Waiting for initialization dialog...');
     const initDialog = await initDialogPromise;
+    console.log('Dialog message received:', initDialog.message());
     expect(initDialog.message()).toBe('Client initialized successfully');
     await initDialog.accept();
 

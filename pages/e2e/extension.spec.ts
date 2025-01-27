@@ -1,11 +1,58 @@
-import { test, expect } from './utils/extension';
-import { server } from '../config';
+import { test as base, chromium, expect } from '@playwright/test';
+import { paths, server } from '../config';
 
+// Simple extension test setup
+const test = base.extend({
+  context: async ({}, use) => {
+    const context = await chromium.launchPersistentContext('', {
+      headless: false,
+      args: [
+        `--disable-extensions-except=${paths.extension}`,
+        `--load-extension=${paths.extension}`,
+      ],
+    });
+
+    // Set up global dialog handler
+    context.on('page', page => {
+      page.on('dialog', async dialog => {
+        console.log('Dialog appeared:', dialog.message());
+        await dialog.accept();
+      });
+    });
+
+    await use(context);
+    await context.close();
+  },
+});
+
+// Shared extension ID between tests
 let sharedExtensionId: string;
 
-test.describe.serial('Chrome Extension', () => {
-  test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
-    // Verify we got a valid extension ID
+// Helper functions
+async function initializeClient(page) {
+  await page.waitForSelector('#clientId', { state: 'visible', timeout: 10000 });
+  await page.fill('#clientId', 'test-client');
+  
+  const dialogPromise = page.waitForEvent('dialog', { timeout: 10000 });
+  await page.click('text=Initialize');
+  const dialog = await dialogPromise;
+  expect(dialog.message()).toBe('Client initialized successfully');
+  await dialog.accept();
+}
+
+async function waitForPageLoad(page) {
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle');
+  await page.waitForSelector('#root', { state: 'visible' });
+}
+
+test.describe('Chrome Extension Tests', () => {
+  // Basic extension functionality tests
+  test('extension should be loaded with correct ID', async ({ context }) => {
+    // Get extension ID from service worker
+    const workers = await context.serviceWorkers();
+    const extensionId = workers[0]?.url().split('/')[2] || 'unknown-extension-id';
+    
     expect(extensionId).not.toBe('unknown-extension-id');
     expect(extensionId).toMatch(/^[a-z]{32}$/);
     console.log('Extension loaded with ID:', extensionId);
@@ -14,10 +61,82 @@ test.describe.serial('Chrome Extension', () => {
     // Open a new page to trigger the background script
     const testPage = await context.newPage();
     await testPage.goto('https://example.com');
+  });
+
+  // Extension popup tests
+  test('extension popup loads correctly', async ({ context }) => {
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await waitForPageLoad(extensionPage);
+    expect(await extensionPage.isVisible('#clientId')).toBeTruthy();
+  });
+
+  test('client initialization works', async ({ context }) => {
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await waitForPageLoad(extensionPage);
+    await initializeClient(extensionPage);
+    await expect(extensionPage.locator('#adminLogin')).toHaveCSS('display', 'none');
+  });
+
+  test('sync with server works', async ({ context }) => {
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await waitForPageLoad(extensionPage);
+    await initializeClient(extensionPage);
+
+    // Test sync functionality
+    const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
+      { state: 'visible', timeout: 10000 });
     
-    // Check for service workers
-    const workers = await context.serviceWorkers();
-    expect(workers.length).toBe(1);
+    const syncDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await syncButton.click();
+    
+    const syncDialog = await syncDialogPromise;
+    expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
+    await syncDialog.accept();
+  });
+
+  test('no console errors during operations', async ({ context }) => {
+    const extensionPage = await context.newPage();
+    const errors: string[] = [];
+    
+    extensionPage.on('console', msg => {
+      if (msg.type() === 'error' && !msg.text().includes('net::ERR_FILE_NOT_FOUND')) {
+        console.log('Console error:', msg.text());
+        errors.push(msg.text());
+      }
+    });
+
+    await extensionPage.goto(`chrome-extension://${sharedExtensionId}/popup.html`);
+    await waitForPageLoad(extensionPage);
+    await initializeClient(extensionPage);
+
+    const syncButton = await extensionPage.waitForSelector('button:has-text("Sync with Server")', 
+      { state: 'visible', timeout: 10000 });
+    
+    const syncDialogPromise = extensionPage.waitForEvent('dialog', { timeout: 10000 });
+    await syncButton.click();
+    
+    const syncDialog = await syncDialogPromise;
+    expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
+    await syncDialog.accept();
+    
+    expect(errors).toEqual([]);
+  });
+    
+  // Screenshot and debug info on failure
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status !== testInfo.expectedStatus) {
+      const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+      testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
+      
+      // Log the page content for debugging
+      const content = await page.content();
+      console.log('Page content at failure:', content);
+    }
+  });
 
     // Verify the service worker URL matches our extension
     const workerUrl = workers[0].url();

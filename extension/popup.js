@@ -115,10 +115,10 @@ async function initializeClient() {
     await chrome.storage.sync.set({ clientId });
     document.getElementById('adminLogin').style.display = 'none';
     console.log('Showing initialization success dialog...');
-    window.confirm('Client initialized successfully');
+    alert('Client initialized successfully');
   } catch (error) {
     console.error('Error initializing client:', error);
-    window.confirm('Failed to initialize client');
+    alert('Failed to initialize client');
   }
 }
 

@@ -160,7 +160,7 @@ test.describe('Chrome Extension', () => {
     
     // Wait for initialization dialog
     console.log('Setting up dialog listener and waiting for Initialize button...');
-    const initButton = await popupPage.waitForSelector('#initButton', { state: 'visible', timeout: 5000 });
+    const initButton = await popupPage.waitForSelector('button:has-text("Initialize")', { state: 'visible', timeout: 5000 });
     console.log('Initialize button found, setting up dialog listener...');
     const initDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
     console.log('Clicking Initialize button...');

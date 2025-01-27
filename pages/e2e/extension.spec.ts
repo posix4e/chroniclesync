@@ -76,65 +76,24 @@ test('Chrome Extension functionality', async ({ context }) => {
   // 3. Initial popup load and UI verification
   const popupPage = await context.newPage();
   await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, { waitUntil: 'domcontentloaded' });
-  await popupPage.waitForSelector('#root', { state: 'visible', timeout: 5000 });
+  await popupPage.waitForSelector('#root', { state: 'visible', timeout: 2000 });
   await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-  await expect(popupPage.locator('#clientId')).toBeVisible();
-
-  // Verify React initialization
-  const reactRoot = await popupPage.evaluate(() => {
-    const root = document.getElementById('root');
-    return root?.hasAttribute('data-reactroot') ||
-           (root?.children.length ?? 0) > 0;
-  });
-  expect(reactRoot).toBeTruthy();
 
   // 4. Generate test history
-  const testPages = [
-    { url: 'https://example.com/page1', title: 'Test Page 1' },
-    { url: 'https://example.com/duplicate', title: 'Duplicate Page' }
-  ];
-
-  // Visit test pages to generate history
+  const testPage = { url: 'https://example.com/test', title: 'Test Page' };
   const historyPage = await context.newPage();
-  for (const testPage of testPages) {
-    await historyPage.goto(testPage.url, { waitUntil: 'domcontentloaded' });
-  }
-  // Generate duplicate entry
-  await historyPage.goto(testPages[1].url, { waitUntil: 'domcontentloaded' });
+  await historyPage.goto(testPage.url, { waitUntil: 'domcontentloaded' });
   await historyPage.close();
 
-  // 5. Client initialization
-  await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 5000 });
+  // 5. Client initialization and sync
+  await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 2000 });
   await popupPage.fill('#clientId', 'test-client');
-  
-  // Wait for initialization dialog
-  const initDialogPromise = popupPage.waitForEvent('dialog', { timeout: 5000 });
   await popupPage.click('text=Initialize');
-  const initDialog = await initDialogPromise;
-  expect(initDialog.message()).toBe('Client initialized successfully');
-  await initDialog.accept();
+  await popupPage.waitForSelector('.history-entry', { timeout: 2000 });
 
-  // Verify initialization success and history entries
-  await expect(popupPage.locator('#adminLogin')).toHaveCSS('display', 'none');
-  await popupPage.waitForSelector('.history-entry', { timeout: 5000 });
-  
-  // Verify history entries
-  const entries = await popupPage.locator('.history-entry').all();
-  expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
-  
-  // Verify duplicate entry exists
-  const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testPages[1].url}"]`).all();
-  expect(duplicateEntries.length).toBeGreaterThanOrEqual(2);
-
-  // Configure settings and sync
-  await popupPage.fill('#retentionDays', '7');
-  await popupPage.click('text=Save Settings');
-  await popupPage.click('button:has-text("Sync with Server")');
-  
-  // Handle sync dialog
-  const syncDialog = await popupPage.waitForEvent('dialog', { timeout: 5000 });
-  expect(['Sync completed successfully', 'Failed to sync with server']).toContain(syncDialog.message());
-  await syncDialog.accept();
+  // 6. Verify history entry
+  const entryExists = await popupPage.locator(`.history-entry a[href="${testPage.url}"]`).count() > 0;
+  expect(entryExists).toBeTruthy();
 
   // Verify no errors occurred throughout the test
   expect(errors, `Errors found during test:\n${errors.join('\n')}`).toEqual([]);

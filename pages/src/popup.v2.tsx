@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-function Popup() {
+export function Popup() {
   const [status, setStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
   const [lastSync, setLastSync] = useState<string>('Never');
 

@@ -20,7 +20,7 @@ interface TestFixtures {
 
 const test = base.extend<TestFixtures>({
   // Browser context with extension loaded
-  context: async ({}, use) => {
+  context: async (_ctx, use) => {
     // Ensure extension is built
     ensureExtensionBuilt();
     const context = await chromium.launchPersistentContext('', {
@@ -68,14 +68,14 @@ const test = base.extend<TestFixtures>({
   },
 
   // Add fail-fast behavior
-  failOnError: async ({}, use) => {
+  failOnError: async (_ctx, use) => {
     let failed = false;
     base.beforeEach(async () => {
       if (failed) {
         test.skip(true);
       }
     });
-    base.afterEach(async ({ }, testInfo) => {
+    base.afterEach(async ({ _ctx }, testInfo) => {
       if (testInfo.status !== 'passed') {
         failed = true;
       }

@@ -30,7 +30,7 @@ interface TestFixtures {
 
 const test = base.extend<TestFixtures>({
   // Browser context with extension loaded
-  context: async (_ctx, use) => {
+  context: async ({}, use) => {
     let context;
     try {
       // Ensure extension is built
@@ -98,7 +98,7 @@ const test = base.extend<TestFixtures>({
   },
 
   // Add fail-fast behavior
-  failOnError: async (_ctx, use) => {
+  failOnError: async ({}, use) => {
     let failed = false;
     base.beforeEach(async () => {
       if (failed) {

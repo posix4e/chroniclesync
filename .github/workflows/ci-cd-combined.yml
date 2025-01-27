@@ -124,23 +124,16 @@ jobs:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: npm run build:extension
 
+      - name: Install X11 utilities
+        run: sudo apt-get update && sudo apt-get install -y x11-xkb-utils
+
       - name: Run Playwright tests
         working-directory: pages
         env:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
-          DISPLAY: ':99'
-        run: |
-          # Start Xvfb with better configuration
-          Xvfb :99 -screen 0 1280x960x24 -ac +extension GLX +render -noreset &
-          sleep 3  # Wait for Xvfb to start
-
-          # Run tests with additional debugging
-          PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-          xvfb-run --server-args="-screen 0 1280x960x24 -ac" \
-            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }} \
-            --config=playwright.config.ts
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
 
       - name: Upload test results
         if: always()

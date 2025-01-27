@@ -6,7 +6,8 @@ if (!existsSync(paths.extensionDist)) {
   throw new Error('Extension not built. Run `npm run build:extension` first.');
 }
 
-test('Chrome Extension functionality', { timeout: 30000 }, async ({ context }) => {
+test('Chrome Extension functionality', async ({ context }) => {
+  test.setTimeout(30000);
 
   // Get extension ID directly from service workers
   const workers = await context.serviceWorkers();
@@ -15,6 +16,9 @@ test('Chrome Extension functionality', { timeout: 30000 }, async ({ context }) =
   }
   const extensionId = workers[0].url().split('/')[2];
 
+  // Create main test page
+  const mainPage = await context.newPage();
+
   // Set up error tracking
   const errors: string[] = [];
   const trackErrors = (error: string) => {
@@ -22,10 +26,10 @@ test('Chrome Extension functionality', { timeout: 30000 }, async ({ context }) =
     errors.push(error);
     // Take screenshot immediately when error occurs
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    page.screenshot({
+    mainPage.screenshot({
       path: `test-results/error-${timestamp}.png`,
       fullPage: true
-    }).catch(e => console.error('Failed to take error screenshot:', e));
+    }).catch((error: Error) => console.error('Failed to take error screenshot:', error));
   };
 
   // Track web errors
@@ -64,7 +68,7 @@ test('Chrome Extension functionality', { timeout: 30000 }, async ({ context }) =
   // 2. API health check
   const apiUrl = process.env.API_URL || server.apiUrl;
   console.log('Testing API health at:', `${apiUrl}/health`);
-  const healthResponse = await page.request.get(`${apiUrl}/health`);
+  const healthResponse = await mainPage.request.get(`${apiUrl}/health`);
   const responseBody = await healthResponse.json();
   expect(healthResponse.ok()).toBeTruthy();
   expect(responseBody.healthy).toBeTruthy();

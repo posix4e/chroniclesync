@@ -14,7 +14,8 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         input: isExtension ? {
           popup: paths.popup,
-          background: paths.background
+          background: paths.background,
+          styles: paths.styles
         } : 'src/index.tsx',
         output: {
           format: 'es',

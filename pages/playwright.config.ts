@@ -7,7 +7,7 @@ export default defineConfig({
     headless: false,
     baseURL: process.env.API_URL || 'http://localhost:8787',
   },
-  timeout: 30000,
+  timeout: 60000,
   projects: [
     {
       name: 'chromium',

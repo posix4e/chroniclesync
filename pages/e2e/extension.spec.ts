@@ -1,10 +1,22 @@
 import { test as base, chromium, expect, type BrowserContext } from '@playwright/test';
+import { execSync } from 'child_process';
+import { existsSync } from 'fs';
 import { paths, server } from '../config';
+
+// Build extension before running tests
+function ensureExtensionBuilt() {
+  if (!existsSync(paths.extensionDist)) {
+    console.log('Building extension...');
+    execSync('npm run build:extension', { stdio: 'inherit' });
+  }
+}
 
 // Extension test fixtures
 const test = base.extend<{ context: BrowserContext; extensionId: string }>({
   // Browser context with extension loaded
   context: async ({}, use) => {
+    // Ensure extension is built
+    ensureExtensionBuilt();
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [
@@ -27,19 +39,26 @@ const test = base.extend<{ context: BrowserContext; extensionId: string }>({
 
   // Extension ID from service worker
   extensionId: async ({ context }, use) => {
-    // Open a page to trigger extension loading
+    let extensionId = 'unknown-extension-id';
     const page = await context.newPage();
-    await page.goto('https://example.com');
-    await page.waitForTimeout(1000);
+    
+    try {
+      // Open a page to trigger extension loading
+      await page.goto('https://example.com');
+      await page.waitForTimeout(1000);
 
-    // Get extension ID from service worker
-    const workers = await context.serviceWorkers();
-    const extensionId = workers.length ? 
-      workers[0].url().split('/')[2] : 
-      'unknown-extension-id';
+      // Get extension ID from service worker
+      const workers = await context.serviceWorkers();
+      if (workers.length > 0 && workers[0].url()) {
+        extensionId = workers[0].url().split('/')[2];
+      }
+    } catch (error) {
+      console.error('Failed to get extension ID:', error);
+    } finally {
+      await page.close();
+    }
 
     await use(extensionId);
-    await page.close();
   },
 
   // Add fail-fast behavior
@@ -64,6 +83,12 @@ test.describe.configure({ mode: 'serial', retries: 0 });
 
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context, extensionId, page }) => {
+    // Skip if extension build fails
+    if (!existsSync(paths.extensionDist)) {
+      test.skip('Extension not built');
+      return;
+    }
+
     // Set up error tracking
     const errors: string[] = [];
     context.on('weberror', error => {

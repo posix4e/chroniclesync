@@ -1,5 +1,19 @@
-import { test, expect } from './utils/extension';
+import { test as base, expect } from './utils/extension';
 import { server } from '../config';
+
+// Configure test to fail fast and run sequentially
+const test = base.extend({
+  // Add auto-cleanup of resources
+  auto_cleanup: [async ({}, use, testInfo) => {
+    await use();
+    if (testInfo.status !== 'passed') {
+      base.fail();
+    }
+  }, { auto: true }]
+});
+
+// Ensure tests run sequentially and stop on first failure
+test.describe.configure({ mode: 'serial', retries: 0 });
 
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context, extensionId, page }) => {
@@ -170,8 +184,9 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
-  test.afterEach(async ({ page }, testInfo) => {
+  test.afterEach(async ({ page, context }, testInfo) => {
     if (testInfo.status !== testInfo.expectedStatus) {
+      // Take screenshot on failure
       const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-')}.png`;
       await page.screenshot({ path: screenshotPath, fullPage: true });
       testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
@@ -179,6 +194,19 @@ test.describe('Chrome Extension', () => {
       // Log the page content for debugging
       const content = await page.content();
       console.log('Page content at failure:', content);
+
+      // Close all pages except the main one
+      const pages = context.pages();
+      await Promise.all(
+        pages
+          .filter(p => p !== page)
+          .map(p => p.close())
+      );
     }
+  });
+
+  test.afterAll(async ({ context }) => {
+    // Ensure all browser contexts are closed
+    await context.close();
   });
 });

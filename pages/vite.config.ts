@@ -15,13 +15,14 @@ export default defineConfig({
         styles: paths.styles
       } : 'src/index.tsx',
       output: {
-        format: 'es',
+        format: 'iife',
         entryFileNames: (chunk: PreRenderedChunk) => {
           return chunk.name === 'background' ? '[name].js' : '[name].[hash].js';
         },
         assetFileNames: 'assets/[name].[ext]',
         inlineDynamicImports: false
-      }
+      },
+      minify: false
     }
   },
   server: {

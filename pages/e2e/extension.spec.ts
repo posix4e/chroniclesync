@@ -42,6 +42,11 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
+    // Wait for extension to be loaded
+    const page = await context.newPage();
+    await page.goto('chrome://extensions');
+    await page.waitForTimeout(1000); // Give extension time to register
+    
     // Get the extension popup
     const { extensionId, popup } = await getExtensionPopup(context);
     console.log('Extension loaded with ID:', extensionId);

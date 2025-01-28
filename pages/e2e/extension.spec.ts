@@ -19,49 +19,19 @@ test.describe('Chrome Extension', () => {
     // Wait a bit to ensure extension has time to initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Get the extension ID from the background context
-    const backgroundPages = await context.backgroundPages();
-    console.log(`Found ${backgroundPages.length} background pages`);
+    // Get the extension ID from the service workers
+    const workers = await context.serviceWorkers();
+    console.log(`Found ${workers.length} service workers`);
     
-    // Get the extension ID from the background page URL
+    // Get the extension ID from the service worker URL
     let extensionId = '';
-    for (const backgroundPage of backgroundPages) {
-      const url = backgroundPage.url();
-      console.log('Background page URL:', url);
+    for (const worker of workers) {
+      const url = worker.url();
+      console.log('Service worker URL:', url);
       const match = url.match(/chrome-extension:\/\/([^/]+)/);
       if (match) {
         extensionId = match[1];
         break;
-      }
-    }
-
-    // If not found in background pages, try getting it from service workers
-    if (!extensionId) {
-      console.log('Checking service workers...');
-      const workers = await context.serviceWorkers();
-      for (const worker of workers) {
-        const url = worker.url();
-        console.log('Service worker URL:', url);
-        const match = url.match(/chrome-extension:\/\/([^/]+)/);
-        if (match) {
-          extensionId = match[1];
-          break;
-        }
-      }
-    }
-
-    // If still not found, try getting it from all browser targets
-    if (!extensionId) {
-      console.log('Checking browser targets...');
-      const targets = await context.browser().targets();
-      for (const target of targets) {
-        const url = target.url();
-        console.log('Target URL:', url);
-        const match = url.match(/chrome-extension:\/\/([^/]+)/);
-        if (match && url.includes('background')) {
-          extensionId = match[1];
-          break;
-        }
       }
     }
 

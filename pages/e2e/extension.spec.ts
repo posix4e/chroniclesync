@@ -1,7 +1,8 @@
-import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { test, expect, BrowserContext, Page, ChromiumBrowser } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import { rm } from 'fs/promises';
+import { paths } from '../config';
 
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
@@ -54,9 +55,10 @@ test.describe('Chrome Extension', () => {
     }
   });
   test('extension functionality', async ({ browser }) => {
+    const chromium = browser as ChromiumBrowser;
     // Create a persistent context for extension testing
     const userDataDir = '/tmp/playwright-test-profile';
-    const context = await browser.launchPersistentContext(userDataDir, {
+    const context = await chromium.launchPersistentContext(userDataDir, {
       args: [
         `--disable-extensions-except=${paths.extensionDist}`,
         `--load-extension=${paths.extensionDist}`,
@@ -65,10 +67,8 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
-    // Debug extension loading path first
-    const { paths } = await import('../config');
+    // Debug extension loading path
     console.log('Extension path:', paths.extensionDist);
-    const fs = await import('fs');
     console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
     if (fs.existsSync(paths.extensionDist)) {
       console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
@@ -87,12 +87,12 @@ test.describe('Chrome Extension', () => {
           const workers = context.serviceWorkers();
           const backgrounds = context.backgroundPages();
           
-          console.log('Current pages:', pages.map(p => p.url()));
-          console.log('Background pages:', backgrounds.map(p => p.url()));
-          console.log('Service workers:', workers.map(w => w.url()));
+          console.log('Current pages:', pages.map((p: Page) => p.url()));
+          console.log('Background pages:', backgrounds.map((p: Page) => p.url()));
+          console.log('Service workers:', workers.map((w: Page) => w.url()));
           
           // Check for background service worker
-          const worker = workers.find(w => w.url().includes('background'));
+          const worker = workers.find((w: Page) => w.url().includes('background'));
           if (worker) {
             console.log('Found background service worker:', worker.url());
             return worker;

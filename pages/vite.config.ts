@@ -8,6 +8,7 @@ export default defineConfig({
   build: {
     outDir: process.env.BUILD_TARGET === 'extension' ? paths.extensionDist : paths.webDist,
     emptyOutDir: true,
+    minify: process.env.BUILD_TARGET === 'extension' ? false : true,
     rollupOptions: {
       input: process.env.BUILD_TARGET === 'extension' ? {
         popup: paths.popup,
@@ -21,8 +22,7 @@ export default defineConfig({
         },
         assetFileNames: 'assets/[name].[ext]',
         inlineDynamicImports: false
-      },
-      minify: false
+      }
     }
   },
   server: {

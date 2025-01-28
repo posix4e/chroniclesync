@@ -8,33 +8,39 @@ test.describe.configure({ mode: 'serial', retries: 0 });
  * Helper function to get the extension popup page
  */
 async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
-  // Wait for service worker to be registered (up to 5 seconds)
-  let worker = null;
-  for (let i = 0; i < 3; i++) {
-    const workers = context.serviceWorkers();
-    console.log(`Attempt ${i + 1}/3: Service workers:`, workers.map(w => w.url()));
-    
-    worker = workers.find(w => w.url().includes('background'));
-    if (worker) break;
-    
-    // Wait ~1.7s between attempts (total ~5s with 3 tries)
-    await new Promise(resolve => setTimeout(resolve, 1700));
-  }
+  // Get all service workers and find the extension worker
+  const workers = context.serviceWorkers();
+  console.log('Current service workers:', workers.map(w => w.url()));
   
+  const worker = workers.find(w => w.url().includes('background'));
   if (!worker) {
-    throw new Error('Extension service worker not found after 3 attempts (5 seconds)');
+    throw new Error('Extension service worker not found. Available workers: ' + 
+      workers.map(w => w.url()).join(', '));
   }
   
   // Extract extension ID from service worker URL
   const extensionId = worker.url().split('/')[2];
   console.log('Found extension ID:', extensionId);
   
-  // Create and return the popup
-  const popup = await context.newPage();
-  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-  await popup.waitForLoadState('domcontentloaded');
+  // Create and return the popup with retries
+  let lastError: Error | null = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000
+      });
+      return { extensionId, popup };
+    } catch (e) {
+      const error = e as Error;
+      lastError = error;
+      console.log(`Attempt ${i + 1}/3 failed:`, error.message);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
   
-  return { extensionId, popup };
+  throw new Error(`Failed to load extension popup after 3 attempts: ${lastError?.message}`);
 }
 
 test.describe('Chrome Extension', () => {
@@ -42,10 +48,14 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
-    // Wait for extension to be loaded
-    const page = await context.newPage();
-    await page.goto('chrome://extensions');
-    await page.waitForTimeout(1000); // Give extension time to register
+    // Wait for extension to be loaded (no need to visit chrome://extensions)
+    await context.waitForEvent('serviceworker', {
+      predicate: worker => worker.url().includes('background'),
+      timeout: 10000
+    }).catch(e => {
+      console.error('Timeout waiting for service worker:', e);
+      throw e;
+    });
     
     // Get the extension popup
     const { extensionId, popup } = await getExtensionPopup(context);

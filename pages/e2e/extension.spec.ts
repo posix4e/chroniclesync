@@ -55,6 +55,58 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
+    // Debug extension loading
+    const page = await context.newPage();
+    try {
+      await page.goto('chrome://extensions');
+      console.log('Extensions page loaded');
+      
+      // Get extension info
+      const extensionInfo = await page.evaluate(async () => {
+        interface ExtensionInfo {
+          id: string;
+          name: string;
+          enabled: boolean;
+          installType: string;
+        }
+        // We know chrome.management exists in extension context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const chrome = window.chrome as any;
+        const extensions = await chrome.management.getAll() as ExtensionInfo[];
+        return extensions.map(ext => ({
+          id: ext.id,
+          name: ext.name,
+          enabled: ext.enabled,
+          installType: ext.installType
+        }));
+      }).catch(e => {
+        console.log('Failed to get extension info:', e);
+        return [];
+      });
+      console.log('Installed extensions:', extensionInfo);
+
+      // Check if our extension is loaded
+      const ourExtension = extensionInfo.find(ext => ext.name === 'ChronicleSync');
+      if (!ourExtension) {
+        console.log('ChronicleSync extension not found!');
+        
+        // Debug extension loading path
+        const { paths } = await import('../config');
+        console.log('Extension path:', paths.extensionDist);
+        const fs = await import('fs');
+        console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
+        if (fs.existsSync(paths.extensionDist)) {
+          console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
+        }
+      } else {
+        console.log('ChronicleSync extension found:', ourExtension);
+      }
+    } catch (e) {
+      console.log('Failed to check extensions page:', e);
+    } finally {
+      await page.close();
+    }
+    
     // Helper function to find the background service worker
     const findBackgroundWorker = () => {
       const workers = context.serviceWorkers();

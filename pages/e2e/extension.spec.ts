@@ -23,7 +23,7 @@ test.describe('Chrome Extension', () => {
     const backgroundContexts = await context.backgroundPages();
     console.log(`Found ${backgroundContexts.length} background contexts`);
     
-    const extensionId = await context.evaluate(() => {
+    const extensionId = await page.evaluate(() => {
       return new Promise<string>((resolve) => {
         // Chrome provides the ID via chrome.runtime.id
         if (chrome.runtime.id) {
@@ -119,7 +119,7 @@ test.describe('Chrome Extension', () => {
       await testPage.evaluate((url) => {
         chrome.history?.onVisited?.addListener((result) => {
           if (result.url === url) {
-            // @ts-ignore: exposed function
+            // @ts-expect-error: exposed function
             window.recordHistoryEvent(url);
           }
         });
@@ -140,7 +140,7 @@ test.describe('Chrome Extension', () => {
     await duplicatePage.evaluate((url) => {
       chrome.history?.onVisited?.addListener((result) => {
         if (result.url === url) {
-          // @ts-ignore: exposed function
+          // @ts-expect-error: exposed function
           window.recordHistoryEvent(url);
         }
       });
@@ -232,7 +232,7 @@ test.describe('Chrome Extension', () => {
     await popupPage.evaluate(() => {
       chrome.runtime.onMessage.addListener((message) => {
         if (message.type === 'sync') {
-          // @ts-ignore: exposed function
+          // @ts-expect-error: exposed function
           window.recordSyncMessage(message.status);
         }
       });
@@ -262,7 +262,14 @@ test.describe('Chrome Extension', () => {
 
     // 9. Verify history handling and deduplication in background
     // Check the actual history entries through chrome.history API
-    const historyEntries = await popupPage.evaluate(async (url) => {
+    interface HistoryEntry {
+      url: string;
+      title: string;
+      visitCount: number;
+      lastVisitTime: number;
+    }
+
+    const historyEntries = await popupPage.evaluate<HistoryEntry[], string>((url) => {
       return new Promise((resolve) => {
         chrome.history.search({
           text: url,
@@ -270,10 +277,10 @@ test.describe('Chrome Extension', () => {
           startTime: 0
         }, (results) => {
           resolve(results.map(r => ({
-            url: r.url,
-            title: r.title,
-            visitCount: r.visitCount,
-            lastVisitTime: r.lastVisitTime
+            url: r.url || '',
+            title: r.title || '',
+            visitCount: r.visitCount || 0,
+            lastVisitTime: r.lastVisitTime || 0
           })));
         });
       });
@@ -286,7 +293,13 @@ test.describe('Chrome Extension', () => {
     expect(mainEntry.visitCount).toBeGreaterThanOrEqual(2);
 
     // Verify the background script's pending queue
-    const pendingItems = await context.evaluate(() => {
+    interface PendingItem {
+      url: string;
+      title: string;
+      timestamp: number;
+    }
+
+    const pendingItems = await popupPage.evaluate<PendingItem[]>(() => {
       return new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: 'getPendingItems' }, (response) => {
           resolve(response.items || []);

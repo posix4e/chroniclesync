@@ -47,29 +47,29 @@ chrome.history.onVisited.addListener(async (result) => {
 // Listen for messages from popup and tests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
-    case 'sync':
-      syncItems()
-        .then(() => {
-          // Notify any listeners about sync completion
-          chrome.runtime.sendMessage({ type: 'sync', status: 'success' });
-          sendResponse({ success: true });
-        })
-        .catch(error => {
-          // Notify any listeners about sync failure
-          chrome.runtime.sendMessage({ type: 'sync', status: 'error' });
-          sendResponse({ success: false, error: error.message });
-        });
-      return true; // Will respond asynchronously
+  case 'sync':
+    syncItems()
+      .then(() => {
+        // Notify any listeners about sync completion
+        chrome.runtime.sendMessage({ type: 'sync', status: 'success' });
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        // Notify any listeners about sync failure
+        chrome.runtime.sendMessage({ type: 'sync', status: 'error' });
+        sendResponse({ success: false, error: error.message });
+      });
+    return true; // Will respond asynchronously
 
-    case 'getPendingItems':
-      // For testing: return the current pending items queue
-      sendResponse({ items: pendingItems });
-      return false; // Synchronous response
+  case 'getPendingItems':
+    // For testing: return the current pending items queue
+    sendResponse({ items: pendingItems });
+    return false; // Synchronous response
 
-    case 'clearPendingItems':
-      // For testing: clear the pending items queue
-      pendingItems = [];
-      sendResponse({ success: true });
-      return false; // Synchronous response
+  case 'clearPendingItems':
+    // For testing: clear the pending items queue
+    pendingItems = [];
+    sendResponse({ success: true });
+    return false; // Synchronous response
   }
 });

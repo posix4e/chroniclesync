@@ -10,9 +10,16 @@ test.describe('Chrome Extension', () => {
     const browserContextType = Object.getPrototypeOf(context).constructor.name;
     console.log('Browser context type:', browserContextType);
     
-    // Get the extension ID from the manifest key
-    const extensionId = 'mfpfnglbmgphoibaopbgemgebgmiagmm';  // This is the ID that corresponds to our manifest key
+    // Get the extension ID dynamically from the background service worker
+    const extensionId = await context.evaluate(async () => {
+      const extensions = await chrome.management.getAll();
+      const chronicleSync = extensions.find(ext => ext.name === 'ChronicleSync');
+      return chronicleSync?.id;
+    });
     console.log('Using extension ID:', extensionId);
+    
+    // Verify we found the extension
+    expect(extensionId, 'Extension ID should be found').toBeTruthy();
 
     // Create a new page and navigate to a real URL to properly trigger extension
     const page = await context.newPage();

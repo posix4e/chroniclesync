@@ -4,22 +4,22 @@
   <title>ChronicleSync Extension</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      width: 400px;
-      height: 600px;
-      margin: 0;
-      padding: 0;
-    }
-    #root {
-      width: 100%;
-      height: 100%;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <iframe id="pages-frame" style="width: 100%; height: 100%; border: none;"></iframe>
+  </div>
   <link rel="stylesheet" href="dist/assets/styles.css">
   <script src="dist/popup.js"></script>
+  <script>
+    // Load the pages UI in the iframe
+    async function loadPagesUI() {
+      const { pagesUrl } = await chrome.storage.sync.get(['pagesUrl']);
+      const iframe = document.getElementById('pages-frame');
+      iframe.src = pagesUrl || 'https://chroniclesync.pages.dev';
+    }
+    loadPagesUI();
+  </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { test, expect, BrowserContext, Page, Worker } from '@playwright/test';
 import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
@@ -89,10 +89,10 @@ test.describe('Chrome Extension', () => {
           
           console.log('Current pages:', pages.map((p: Page) => p.url()));
           console.log('Background pages:', backgrounds.map((p: Page) => p.url()));
-          console.log('Service workers:', workers.map((w: Page) => w.url()));
+          console.log('Service workers:', workers.map((w: Worker) => w.url()));
           
           // Check for background service worker
-          const worker = workers.find((w: Page) => w.url().includes('background'));
+          const worker = workers.find((w: Worker) => w.url().includes('background'));
           if (worker) {
             console.log('Found background service worker:', worker.url());
             return worker;

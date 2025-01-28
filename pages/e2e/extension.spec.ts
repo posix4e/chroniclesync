@@ -10,17 +10,47 @@ test.describe('Chrome Extension', () => {
     const browserContextType = Object.getPrototypeOf(context).constructor.name;
     console.log('Browser context type:', browserContextType);
     
-    // Get the extension ID from the background service worker URL
-    const backgroundPages = context.backgroundPages();
-    const extensionBackgroundPage = backgroundPages.find(page => 
-      page.url().startsWith('chrome-extension://') && page.url().endsWith('background.js'));
-    
-    if (!extensionBackgroundPage) {
-      throw new Error('Extension background page not found');
+    // Create a page and navigate to trigger extension loading
+    const triggerPage = await context.newPage();
+    await triggerPage.goto('https://example.com');
+    await triggerPage.waitForLoadState('domcontentloaded');
+    console.log('Navigated to example.com to trigger extension loading');
+
+    // Wait for extension to be loaded with retry mechanism
+    let extensionId: string | undefined;
+    const maxRetries = 5;
+    const retryDelay = 1000; // 1 second
+
+    for (let i = 0; i < maxRetries; i++) {
+      // Debug: List all pages and workers
+      const pages = context.pages();
+      const workers = context.serviceWorkers();
+      console.log(`Attempt ${i + 1}/${maxRetries}:`);
+      console.log('Available pages:', pages.map(p => p.url()));
+      console.log('Available service workers:', workers.map(w => w.url()));
+
+      // Get the extension ID from the service worker URL
+      const extensionWorker = workers.find(worker => 
+        worker.url().startsWith('chrome-extension://') && worker.url().includes('background'));
+      
+      if (extensionWorker) {
+        extensionId = extensionWorker.url().split('/')[2];
+        console.log('Found extension ID:', extensionId);
+        break;
+      }
+
+      if (i < maxRetries - 1) {
+        console.log(`Extension not found, waiting ${retryDelay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
     
-    const extensionId = extensionBackgroundPage.url().split('/')[2];
+    if (!extensionId) {
+      throw new Error('Extension service worker not found after retries. This could mean the extension is not properly loaded.');
+    }
+    
     console.log('Using extension ID:', extensionId);
+    await triggerPage.close();
 
     // Create a new page and navigate to a real URL to properly trigger extension
     const page = await context.newPage();

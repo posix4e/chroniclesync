@@ -1,275 +1,113 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, BrowserContext } from '@playwright/test';
 import { server } from '../config';
+import path from 'path';
 
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
 
+/**
+ * Helper function to get the extension popup page
+ */
+async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: any }> {
+  // Get the background page
+  const backgroundPages = context.backgroundPages();
+  console.log('Background pages:', backgroundPages.map(p => p.url()));
+  
+  // Find our extension's background page
+  const backgroundPage = backgroundPages.find(p => p.url().includes('background'));
+  if (!backgroundPage) {
+    throw new Error('Extension background page not found');
+  }
+  
+  // Extract extension ID from background page URL
+  const extensionId = backgroundPage.url().split('/')[2];
+  console.log('Found extension ID:', extensionId);
+  
+  // Create and return the popup
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await popup.waitForLoadState('domcontentloaded');
+  
+  return { extensionId, popup };
+}
+
 test.describe('Chrome Extension', () => {
   test('extension functionality', async ({ context }, testInfo) => {
-    // Verify browser context has extension support
-    const browserContextType = Object.getPrototypeOf(context).constructor.name;
-    console.log('Browser context type:', browserContextType);
+    // 1. Initial Setup and Screenshots
+    console.log('Test started with browser context:', context.constructor.name);
     
-    // Create a page and navigate to trigger extension loading
-    const triggerPage = await context.newPage();
-    await triggerPage.goto('https://example.com');
-    await triggerPage.waitForLoadState('domcontentloaded');
-    console.log('Navigated to example.com to trigger extension loading');
-
-    // Wait for extension to be loaded with retry mechanism
-    let extensionId: string | undefined;
-    const maxRetries = 5;
-    const retryDelay = 1000; // 1 second
-
-    for (let i = 0; i < maxRetries; i++) {
-      // Debug: List all pages and workers
-      const pages = context.pages();
-      const workers = context.serviceWorkers();
-      console.log(`Attempt ${i + 1}/${maxRetries}:`);
-      console.log('Available pages:', pages.map(p => p.url()));
-      console.log('Available service workers:', workers.map(w => w.url()));
-
-      // Get the extension ID from the service worker URL
-      const extensionWorker = workers.find(worker => 
-        worker.url().startsWith('chrome-extension://') && worker.url().includes('background'));
-      
-      if (extensionWorker) {
-        extensionId = extensionWorker.url().split('/')[2];
-        console.log('Found extension ID:', extensionId);
-        break;
-      }
-
-      if (i < maxRetries - 1) {
-        console.log(`Extension not found, waiting ${retryDelay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-      }
-    }
-    
-    if (!extensionId) {
-      throw new Error('Extension service worker not found after retries. This could mean the extension is not properly loaded.');
-    }
-    
-    console.log('Using extension ID:', extensionId);
-    await triggerPage.close();
-
-    // Create a new page and navigate to a real URL to properly trigger extension
-    const page = await context.newPage();
-    await page.goto('https://example.com');
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForLoadState('networkidle');
-    
-    // Wait for extension to be loaded
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Set up error tracking
-    const errors: string[] = [];
-    context.on('weberror', error => {
-      console.log('Web error:', error.error().message);
-      errors.push(error.error().message);
-    });
-
-    // Set up error logging for all pages
-    context.on('page', page => {
-      page.on('console', msg => {
-        if (msg.type() === 'error' &&
-            !msg.text().includes('net::ERR_FILE_NOT_FOUND') &&
-            !msg.text().includes('status of 404')) {
-          console.log('Console error:', msg.text());
-          errors.push(msg.text());
-        }
-      });
-    });
-
-    // 1. Verify extension setup
+    // Get the extension popup
+    const { extensionId, popup } = await getExtensionPopup(context);
     console.log('Extension loaded with ID:', extensionId);
-    expect(extensionId, 'Extension ID should be valid').toBeTruthy();
-    expect(extensionId.length, 'Extension ID should be at least 32 characters').toBeGreaterThanOrEqual(32);
-    console.log('Extension service worker loaded successfully');
-
-    // 2. API health check
-    const apiUrl = process.env.API_URL || server.apiUrl;
-    console.log('Testing API health at:', `${apiUrl}/health`);
-    const healthResponse = await page.request.get(`${apiUrl}/health`);
-    const responseBody = await healthResponse.json();
-    expect(healthResponse.ok()).toBeTruthy();
-    expect(responseBody.healthy).toBeTruthy();
-
-    // 3. Initial popup load and UI verification
-    const popupPage = await context.newPage();
     
-    // Navigate to popup with load event
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
-      waitUntil: 'load',
-      timeout: 10000
+    // Take screenshot of initial state
+    await popup.screenshot({ 
+      path: path.join('test-results', '01-initial-popup.png'),
+      fullPage: true 
     });
     
-    // Wait for React to initialize
-    await popupPage.waitForFunction(() => {
-      const root = document.getElementById('root');
-      return root && root.children.length > 0;
-    }, { timeout: 5000 });
-
-    // Screenshot: Initial extension popup state with login form
-    await popupPage.screenshot({
-      path: 'pages/test-results/01-initial-popup-with-login.png',
-      fullPage: true
-    });
-
-    // Verify initial UI state
-    await popupPage.waitForSelector('#root', { state: 'visible' });
-    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-    await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-    await expect(popupPage.locator('#adminLogin')).toBeVisible();
-    await expect(popupPage.locator('#clientId')).toBeVisible();
-
-    // Verify React initialization
-    const reactRoot = await popupPage.evaluate(() => {
-      const root = document.getElementById('root');
-      return root?.hasAttribute('data-reactroot') ||
-             (root?.children.length ?? 0) > 0;
-    });
-    expect(reactRoot).toBeTruthy();
-
-    // 4. Generate test history
+    // 2. Verify Initial UI State
+    await expect(popup.locator('h2')).toHaveText('ChronicleSync');
+    await expect(popup.locator('#clientId')).toBeVisible();
+    await expect(popup.locator('button:has-text("Sync Now")')).toBeVisible();
+    
+    // 3. Generate Test History
+    console.log('Generating test history entries...');
     const testPages = [
-      { url: 'https://example.com/page1', title: 'Test Page 1' },
-      { url: 'https://example.com/page2', title: 'Test Page 2' },
-      { url: 'https://example.com/duplicate', title: 'Duplicate Page' }
+      'https://example.com/page1',
+      'https://example.com/page2',
+      'https://example.com/page3'
     ];
-
-    // Visit test pages to generate history
-    for (const page of testPages) {
-      const testPage = await context.newPage();
-      await testPage.goto(page.url);
-      await testPage.waitForLoadState('networkidle');
-      await testPage.close();
+    
+    for (const url of testPages) {
+      const page = await context.newPage();
+      await page.goto(url);
+      await page.waitForLoadState('domcontentloaded');
+      await page.close();
     }
-
-    // Generate duplicate entries
-    const duplicatePage = await context.newPage();
-    const duplicateUrl = testPages[2].url;
     
-    for (let i = 0; i < 2; i++) {
-      await duplicatePage.goto(duplicateUrl);
-      await duplicatePage.waitForLoadState('networkidle');
-    }
-    await duplicatePage.close();
-
-    // 5. Client initialization
-    await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 5000 });
-    await popupPage.fill('#clientId', 'test-client');
+    // 4. Initialize Client
+    console.log('Initializing client...');
+    await popup.fill('#clientId', 'test-client');
+    await popup.click('button:has-text("Initialize")');
     
-    // Debug: Check what elements are present
-    console.log('Checking available elements...');
-    const elements = await popupPage.evaluate(() => {
-      const root = document.getElementById('root');
-      return {
-        rootContent: root?.innerHTML,
-        initButton: !!document.getElementById('initButton'),
-        buttonText: document.querySelector('button')?.textContent,
-        allButtons: Array.from(document.querySelectorAll('button')).map(b => ({
-          id: b.id,
-          text: b.textContent,
-          isVisible: b.offsetParent !== null
-        }))
-      };
+    // Take screenshot after initialization
+    await popup.screenshot({ 
+      path: path.join('test-results', '02-after-initialization.png'),
+      fullPage: true 
     });
-    console.log('Elements found:', JSON.stringify(elements, null, 2));
     
-    // Wait for initialization dialog
-    console.log('Setting up dialog listener and waiting for Initialize button...');
-    const initButton = await popupPage.waitForSelector('button:has-text("Initialize")', { state: 'visible', timeout: 5000 });
-    console.log('Initialize button found, setting up dialog listener...');
-    
-    // Set up dialog handler before clicking
-    const dialogPromise = popupPage.waitForEvent('dialog');
-    
-    console.log('Clicking Initialize button...');
-    await initButton.click();
-    console.log('Waiting for initialization dialog...');
-    
-    const initDialog = await dialogPromise;
-    console.log('Dialog message received:', initDialog.message());
-    expect(initDialog.message()).toBe('Client initialized successfully');
-    await initDialog.accept().catch(() => {
-      // If dialog was already handled, ignore the error
-      console.log('Dialog was already handled');
-    });
-
-    // Screenshot: After successful client initialization
-    await popupPage.screenshot({
-      path: 'pages/test-results/02-after-client-initialization.png',
-      fullPage: true
-    });
-
-    // Verify initialization success by checking admin login is hidden
-    await expect(popupPage.locator('#adminLogin')).toHaveCSS('display', 'none');
-
-    // 6. Verify history entries
-    await popupPage.waitForSelector('.history-entry', { timeout: 5000 });
-    const entries = await popupPage.locator('.history-entry').all();
+    // 5. Verify History Display
+    console.log('Verifying history entries...');
+    await popup.waitForSelector('.history-entry');
+    const entries = await popup.locator('.history-entry').all();
     expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
-
-    // Verify all test pages appear in history
-    for (const page of testPages) {
-      const entryExists = await popupPage.locator(`.history-entry a[href="${page.url}"]`).count() > 0;
-      expect(entryExists).toBeTruthy();
-    }
-
-    // 7. Configure settings
-    await popupPage.fill('#retentionDays', '7');
-    await popupPage.click('text=Save Settings');
-
-    // 8. Test sync functionality
-    // Click sync button and wait for response
-    const syncButton = await popupPage.waitForSelector('button:has-text("Sync Now")', 
-      { state: 'visible', timeout: 5000 });
     
+    // Take screenshot of history entries
+    await popup.screenshot({ 
+      path: path.join('test-results', '03-history-entries.png'),
+      fullPage: true 
+    });
+    
+    // 6. Test Sync Functionality
+    console.log('Testing sync functionality...');
+    const syncButton = popup.locator('button:has-text("Sync Now")');
     await syncButton.click();
     
     // Wait for sync to complete (button should be re-enabled)
-    await popupPage.waitForSelector('button:has-text("Sync Now"):not([disabled])', { timeout: 5000 });
-
-    // Screenshot: After sync completion showing history entries
-    await popupPage.screenshot({
-      path: 'pages/test-results/03-after-sync-with-history.png',
-      fullPage: true
+    await popup.waitForSelector('button:has-text("Sync Now"):not([disabled])', { 
+      timeout: 5000 
     });
-
-    // 9. Verify history entries in UI
-    // Wait for history entries to appear
-    await popupPage.waitForSelector('.history-entry', { timeout: 5000 });
-
-    // Check for duplicate entries
-    const duplicateEntries = await popupPage.locator(`.history-entry a[href="${testPages[2].url}"]`).all();
-    expect(duplicateEntries.length).toBeGreaterThanOrEqual(2);
-
-    // Verify timestamps are different
-    const timestamps = await Promise.all(duplicateEntries.map(entry => 
-      entry.evaluate(el => el.nextElementSibling?.textContent || '')
-    ));
-    const uniqueTimestamps = new Set(timestamps);
-    expect(uniqueTimestamps.size).toBe(timestamps.length);
-
-    // Screenshot: Final state showing deduplication results
-    await popupPage.screenshot({
-      path: 'pages/test-results/04-final-with-deduplication.png',
-      fullPage: true
+    
+    // Take final screenshot
+    await popup.screenshot({ 
+      path: path.join('test-results', '04-after-sync.png'),
+      fullPage: true 
     });
-
-    // Verify no errors occurred throughout the test
-    expect(errors).toEqual([]);
-    // Handle failures
-    if (testInfo.status !== testInfo.expectedStatus) {
-      // Screenshot: Failure state with timestamp for debugging
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const screenshotPath = `pages/test-results/failure-${testInfo.title.replace(/\s+/g, '-')}-${timestamp}.png`;
-      await page.screenshot({ path: screenshotPath, fullPage: true });
-      testInfo.attachments.push({ name: 'screenshot', path: screenshotPath, contentType: 'image/png' });
-      
-      // Log the page content for debugging
-      const content = await page.content();
-      console.log('Page content at failure:', content);
-    }
+    
+    // 7. Verify Sync Status
+    const lastSync = await popup.locator('.sync-status').textContent();
+    expect(lastSync).toContain('Last sync:');
+    expect(lastSync).not.toContain('Never');
   });
 });

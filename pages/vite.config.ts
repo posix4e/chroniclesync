@@ -17,12 +17,23 @@ export default defineConfig(({ command }) => {
           background: paths.background,
           styles: paths.styles
         } : 'src/index.tsx',
-        output: {
-          format: 'es',
-          entryFileNames: '[name].js',
-          assetFileNames: 'assets/[name].[ext]',
-          inlineDynamicImports: false
-        }
+        output: [
+          {
+            // ES modules for popup
+            format: 'es',
+            entryFileNames: chunk => chunk.name === 'background' ? '[name].js' : '[name].[hash].js',
+            assetFileNames: 'assets/[name].[ext]',
+            inlineDynamicImports: false
+          },
+          {
+            // IIFE for background script
+            format: 'iife',
+            entryFileNames: '[name].js',
+            assetFileNames: 'assets/[name].[ext]',
+            inlineDynamicImports: true,
+            include: /background\.js$/
+          }
+        ]
       }
     },
     server: {

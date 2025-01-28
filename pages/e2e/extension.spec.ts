@@ -1,5 +1,4 @@
-import { test, expect, BrowserContext } from '@playwright/test';
-import { server } from '../config';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
 
 // Ensure tests run sequentially and stop on first failure
@@ -8,7 +7,7 @@ test.describe.configure({ mode: 'serial', retries: 0 });
 /**
  * Helper function to get the extension popup page
  */
-async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: any }> {
+async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
   // Get the background page
   const backgroundPages = context.backgroundPages();
   console.log('Background pages:', backgroundPages.map(p => p.url()));
@@ -32,7 +31,7 @@ async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId
 }
 
 test.describe('Chrome Extension', () => {
-  test('extension functionality', async ({ context }, testInfo) => {
+  test('extension functionality', async ({ context }) => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     

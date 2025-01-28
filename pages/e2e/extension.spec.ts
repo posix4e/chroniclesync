@@ -67,29 +67,30 @@ test.describe('Chrome Extension', () => {
             timeout: 15000
           }),
           // Polling as a fallback
-          new Promise(async (resolve, reject) => {
+          (async () => {
             for (let i = 0; i < 15; i++) {
               worker = findBackgroundWorker();
               if (worker) {
-                resolve(worker);
-                return;
+                return worker;
               }
               await new Promise(r => setTimeout(r, 1000));
             }
-            reject(new Error('Service worker not found after 15 seconds of polling'));
-          })
+            throw new Error('Service worker not found after 15 seconds of polling');
+          })()
         ]);
       } catch (e) {
-        console.error('Failed to detect service worker:', e);
+        const error = e as Error;
+        console.error('Failed to detect service worker:', error);
         // One final check before giving up
         worker = findBackgroundWorker();
         if (!worker) {
-          throw new Error(`Service worker not found after all attempts: ${e.message}`);
+          throw new Error(`Service worker not found after all attempts: ${error.message}`);
         }
       }
     }
     
-    console.log('Service worker found:', worker.url());
+    // At this point worker must be defined because we would have thrown an error otherwise
+    console.log('Service worker found:', worker!.url());
     
     // Get the extension popup
     const { extensionId, popup } = await getExtensionPopup(context);

@@ -1,13 +1,6 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
 
-// Type for our minimal Chrome API needs
-type MinimalChromeAPI = {
-  runtime?: {
-    id?: string;
-  };
-};
-
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
 

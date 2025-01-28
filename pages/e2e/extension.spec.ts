@@ -49,10 +49,16 @@ async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId
 
 test.describe('Chrome Extension', () => {
   test.afterEach(async () => {
-    // Clean up user data directory after each test
-    const userDataDir = '/tmp/playwright-test-profile';
-    if (fs.existsSync(userDataDir)) {
-      await rm(userDataDir, { recursive: true, force: true });
+    const userDataDir = `/tmp/playwright-test-profile-${Date.now()}`;
+
+    try {
+    // Add delay to ensure all processes have terminated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (fs.existsSync(userDataDir)) {
+        await rm(userDataDir, { recursive: true, force: true });
+      }
+    } catch (err) {
+      console.error('Error during cleanup:', err);
     }
   });
   test('extension functionality', async () => {

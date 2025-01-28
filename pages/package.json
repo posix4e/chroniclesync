@@ -12,9 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:e2e:extension": "npx playwright test --config=playwright.extension.config.ts",
-    "test:e2e:pages": "npx playwright test --config=playwright.pages.config.ts",
-    "test:e2e": "npx playwright test --config=playwright.extension.config.ts && npx playwright test --config=playwright.pages.config.ts",
+    "test:e2e": "npx playwright test",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\" --fix",
     "deploy": "npm run build:pages && wrangler pages deploy dist --project-name chroniclesync-pages"

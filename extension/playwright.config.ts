@@ -1,7 +1,7 @@
-import { defineConfig } from '@playwright/test';
-import { server } from './config';
+import { PlaywrightTestConfig } from '@playwright/test';
+import { server } from '../pages/config';
 
-export default defineConfig({
+const config: PlaywrightTestConfig = {
   testDir: './e2e',
   timeout: 30000,
   expect: {
@@ -13,10 +13,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    headless: false,
-    baseURL: server.webUrl,
-    screenshot: 'on',
+    actionTimeout: 0,
     trace: 'on-first-retry',
+    baseURL: server.webUrl,
   },
   projects: [
     {
@@ -28,8 +27,10 @@ export default defineConfig({
   ],
   outputDir: 'test-results/',
   webServer: {
-    command: 'npm run dev',
+    command: 'cd ../pages && npm run dev',
     port: Number(new URL(server.webUrl).port),
     reuseExistingServer: !process.env.CI,
   },
-});
+}
+
+export default config;

@@ -1,14 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { paths, server } from './config';
+import { paths } from '../pages/config';
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: paths.webDist,
+    outDir: paths.extensionDist,
     emptyOutDir: true,
     rollupOptions: {
-      input: 'src/index.tsx',
+      input: {
+        popup: paths.popup,
+        background: paths.background
+      },
       output: {
         format: 'es',
         entryFileNames: '[name].js',
@@ -16,8 +19,5 @@ export default defineConfig({
         inlineDynamicImports: false
       }
     }
-  },
-  server: {
-    port: server.port
   }
 });

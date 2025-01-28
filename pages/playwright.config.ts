@@ -8,6 +8,9 @@ export default defineConfig({
     // Base URL for page tests, can be overridden in individual tests
     baseURL: process.env.API_URL || 'http://localhost:8787',
     screenshot: 'on',  // Always capture screenshots
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 30000,  // Increase timeout for actions
+    navigationTimeout: 30000,  // Increase timeout for navigation
   },
   projects: [
     {

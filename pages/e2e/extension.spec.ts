@@ -8,14 +8,21 @@ test.describe.configure({ mode: 'serial', retries: 0 });
  * Helper function to get the extension popup page
  */
 async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
-  // Get the service worker
-  const workers = context.serviceWorkers();
-  console.log('Service workers:', workers.map(w => w.url()));
+  // Wait for service worker to be registered (up to 10 seconds)
+  let worker = null;
+  for (let i = 0; i < 20; i++) {
+    const workers = context.serviceWorkers();
+    console.log(`Attempt ${i + 1}: Service workers:`, workers.map(w => w.url()));
+    
+    worker = workers.find(w => w.url().includes('background'));
+    if (worker) break;
+    
+    // Wait 500ms before next attempt
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
   
-  // Find our extension's service worker
-  const worker = workers.find(w => w.url().includes('background'));
   if (!worker) {
-    throw new Error('Extension service worker not found');
+    throw new Error('Extension service worker not found after waiting');
   }
   
   // Extract extension ID from service worker URL

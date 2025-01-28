@@ -14,13 +14,11 @@ The pages component includes the frontend application and Chrome extension for C
 1. **Install Dependencies**
    ```bash
    npm install
+   npx playwright install --with-deps chromium
    ```
 
 2. **Start Development Server**
    ```bash
-   # For the web interface
-   npm run dev
-
    # For the extension
    npm run build:extension
    ```
@@ -38,9 +36,9 @@ The pages component includes the frontend application and Chrome extension for C
    npm test
    ```
 
-2. **E2E Tests**
+2. **PlayWright Tests**
    ```bash
-   npm run test:e2e
+   npx playwright test
    ```
 
    This runs Playwright tests for both the web interface and extension.

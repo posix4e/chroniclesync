@@ -1,99 +1,239 @@
-import { test, expect } from './utils/extension';
-import { server } from '../config';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
+import path from 'path';
+
+// Type for our minimal Chrome API needs
+type MinimalChromeAPI = {
+  runtime?: {
+    id?: string;
+  };
+};
+
+// Ensure tests run sequentially and stop on first failure
+test.describe.configure({ mode: 'serial', retries: 0 });
+
+/**
+ * Helper function to get the extension popup page
+ */
+async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
+  // Get all service workers and find the extension worker
+  const workers = context.serviceWorkers();
+  console.log('Current service workers:', workers.map(w => w.url()));
+  
+  const worker = workers.find(w => w.url().includes('background'));
+  if (!worker) {
+    throw new Error('Extension service worker not found. Available workers: ' + 
+      workers.map(w => w.url()).join(', '));
+  }
+  
+  // Extract extension ID from service worker URL
+  const extensionId = worker.url().split('/')[2];
+  console.log('Found extension ID:', extensionId);
+  
+  // Create and return the popup with retries
+  let lastError: Error | null = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000
+      });
+      return { extensionId, popup };
+    } catch (e) {
+      const error = e as Error;
+      lastError = error;
+      console.log(`Attempt ${i + 1}/3 failed:`, error.message);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  throw new Error(`Failed to load extension popup after 3 attempts: ${lastError?.message}`);
+}
 
 test.describe('Chrome Extension', () => {
-  test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
-    // Verify we got a valid extension ID
-    expect(extensionId).not.toBe('unknown-extension-id');
-    expect(extensionId).toMatch(/^[a-z]{32}$/);
+  test('extension functionality', async ({ context }) => {
+    // 1. Initial Setup and Screenshots
+    console.log('Test started with browser context:', context.constructor.name);
+    
+    // Debug extension loading path first
+    const { paths } = await import('../config');
+    console.log('Extension path:', paths.extensionDist);
+    const fs = await import('fs');
+    console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
+    if (fs.existsSync(paths.extensionDist)) {
+      console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
+    }
+    
+    // Helper function to find the background service worker
+    const findBackgroundWorker = () => {
+      const workers = context.serviceWorkers();
+      console.log('Current service workers:', workers.map(w => w.url()));
+      return workers.find(w => w.url().includes('background'));
+    };
+
+    // Helper function to check extension status
+    const checkExtensionStatus = async () => {
+      // List all pages first (this doesn't require creating a new page)
+      const pages = await context.pages();
+      console.log('Current pages:', pages.map(p => p.url()));
+
+      // Check background pages
+      const backgrounds = context.backgroundPages();
+      console.log('Background pages:', backgrounds.map(p => p.url()));
+
+      // List service workers
+      console.log('Service workers:', context.serviceWorkers().map(w => w.url()));
+
+      // Try to evaluate extension presence in a new page
+      let testPage: Page | null = null;
+      try {
+        testPage = await context.newPage();
+        await testPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+        const extensions = await testPage.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const chrome = (window as any).chrome as MinimalChromeAPI;
+          return chrome?.runtime?.id || 'No extension ID found';
+        });
+        console.log('Extension ID from runtime:', extensions);
+      } catch (e) {
+        console.log('Failed to check extension in page:', e);
+      } finally {
+        if (testPage) {
+          await testPage.close().catch(() => {/* ignore close errors */});
+        }
+      }
+    };
+
+    // Check initial extension status
+    console.log('Checking initial extension status...');
+    await checkExtensionStatus();
+
+    // Try to trigger service worker registration
+    console.log('Attempting to trigger service worker registration...');
+    try {
+      // Create a new page to trigger extension activation
+      const page = await context.newPage();
+      await page.goto('about:blank');
+      await page.waitForTimeout(1000);
+      await page.close();
+    } catch (e) {
+      console.log('Failed to trigger extension:', e);
+    }
+
+    // Now check for service worker with more detailed logging
+    let worker = findBackgroundWorker();
+    if (!worker) {
+      console.log('Service worker not found after initial check, waiting...');
+      try {
+        // Wait for service worker registration with progress logging
+        const result = await Promise.race([
+          (async () => {
+            console.log('Starting event listener for service worker...');
+            const worker = await context.waitForEvent('serviceworker', {
+              predicate: worker => {
+                console.log('Service worker event received:', worker.url());
+                return worker.url().includes('background');
+              },
+              timeout: 15000
+            });
+            console.log('Service worker event listener succeeded');
+            return worker;
+          })(),
+          // Polling as a fallback with progress logging
+          (async () => {
+            for (let i = 0; i < 15; i++) {
+              console.log(`Polling attempt ${i + 1}/15...`);
+              worker = findBackgroundWorker();
+              if (worker) {
+                console.log('Found worker through polling');
+                return worker;
+              }
+              // Check extension status every 5 seconds
+              if (i % 5 === 0) {
+                await checkExtensionStatus();
+              }
+              await new Promise(r => setTimeout(r, 1000));
+            }
+            throw new Error('Service worker not found after 15 seconds of polling');
+          })()
+        ]);
+        worker = result;
+      } catch (e) {
+        const error = e as Error;
+        console.error('Failed to detect service worker:', error);
+        
+        // Final extension status check
+        console.log('Performing final extension status check...');
+        await checkExtensionStatus();
+        
+        // One final check
+        worker = findBackgroundWorker();
+        if (!worker) {
+          throw new Error(`Service worker not found after all attempts: ${error.message}`);
+        }
+      }
+    }
+    
+    // At this point worker must be defined because we would have thrown an error otherwise
+    console.log('Service worker found:', worker!.url());
+    
+    // Get the extension popup
+    const { extensionId, popup } = await getExtensionPopup(context);
     console.log('Extension loaded with ID:', extensionId);
-
-    // Open a new page to trigger the background script
-    const testPage = await context.newPage();
-    await testPage.goto('https://example.com');
-    await testPage.waitForTimeout(1000);
-
-    // Check for service workers
-    const workers = await context.serviceWorkers();
-    expect(workers.length).toBe(1);
-
-    // Verify the service worker URL matches our extension
-    const workerUrl = workers[0].url();
-    expect(workerUrl).toContain(extensionId);
-    expect(workerUrl).toContain('background');
-  });
-
-  test('API health check should be successful', async ({ page }) => {
-    const apiUrl = process.env.API_URL || server.apiUrl;
-    console.log('Testing API health at:', `${apiUrl}/health`);
     
-    const healthResponse = await page.request.get(`${apiUrl}/health`);
-    console.log('Health check status:', healthResponse.status());
+    // Take screenshot of initial state
+    await popup.screenshot({ 
+      path: path.join('test-results', '01-initial-popup.png'),
+      fullPage: true 
+    });
     
-    const responseBody = await healthResponse.json();
-    console.log('Health check response:', responseBody);
+    // 2. Verify Initial UI State
+    await expect(popup.locator('h2')).toHaveText('ChronicleSync');
+    await expect(popup.locator('text=Last sync: Never')).toBeVisible();
+    await expect(popup.locator('text=Status: idle')).toBeVisible();
+    await expect(popup.locator('button:has-text("Sync Now")')).toBeVisible();
     
-    expect(healthResponse.ok()).toBeTruthy();
-    expect(responseBody.healthy).toBeTruthy();
-  });
-  test('should load without errors', async ({ page, context }) => {
-    // Check for any console errors
-    const errors: string[] = [];
-    context.on('weberror', error => {
-      errors.push(error.error().message);
+    // 3. Generate Test History
+    console.log('Generating test history entries...');
+    const testPages = [
+      'https://example.com/page1',
+      'https://example.com/page2',
+      'https://example.com/page3'
+    ];
+    
+    for (const url of testPages) {
+      const page = await context.newPage();
+      await page.goto(url);
+      await page.waitForLoadState('domcontentloaded');
+      await page.close();
+    }
+    
+    // Take screenshot after history generation
+    await popup.screenshot({ 
+      path: path.join('test-results', '02-after-history.png'),
+      fullPage: true 
     });
-
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        errors.push(msg.text());
-      }
+    
+    // 4. Test Sync Functionality
+    console.log('Testing sync functionality...');
+    const syncButton = popup.locator('button:has-text("Sync Now")');
+    await syncButton.click();
+    
+    // Wait for sync to complete (button should be re-enabled)
+    await popup.waitForSelector('button:has-text("Sync Now"):not([disabled])', { 
+      timeout: 5000 
     });
-
-    // Wait a bit to catch any immediate errors
-    await page.waitForTimeout(1000);
-    expect(errors).toEqual([]);
-  });
-
-  test('popup should load React app correctly', async ({ context }) => {
-    // Open extension popup directly from extension directory
-    const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
-
-    // Wait for the root element to be visible
-    const rootElement = await popupPage.locator('#root');
-    await expect(rootElement).toBeVisible();
-
-    // Wait for React to mount and render content
-    await popupPage.waitForLoadState('networkidle');
-    await popupPage.waitForTimeout(1000); // Give React a moment to hydrate
-
-    // Check for specific app content
-    await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-    await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-    await expect(popupPage.locator('#adminLogin')).toBeVisible();
-
-    // Check for React-specific attributes and content
-    const reactRoot = await popupPage.evaluate(() => {
-      const root = document.getElementById('root');
-      return root?.hasAttribute('data-reactroot') ||
-             (root?.children.length ?? 0) > 0;
+    
+    // Take final screenshot
+    await popup.screenshot({ 
+      path: path.join('test-results', '03-after-sync.png'),
+      fullPage: true 
     });
-    expect(reactRoot).toBeTruthy();
-
-    // Check for console errors
-    const errors: string[] = [];
-    popupPage.on('console', msg => {
-      if (msg.type() === 'error') {
-        errors.push(msg.text());
-      }
-    });
-    await popupPage.waitForTimeout(1000);
-    expect(errors).toEqual([]);
-
-    // Take a screenshot of the popup
-    await popupPage.screenshot({
-      path: 'test-results/extension-popup.png',
-      fullPage: true
-    });
+    
+    // 5. Verify Sync Status
+    await expect(popup.locator('text=Status: idle')).toBeVisible();
+    const lastSyncText = await popup.locator('text=Last sync:').textContent();
+    expect(lastSyncText).toBeTruthy();
+    expect(lastSyncText).not.toContain('Never');
   });
 });

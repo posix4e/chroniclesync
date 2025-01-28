@@ -8,12 +8,23 @@ worker/coverage/
 pages/coverage/
 pages/playwright-report/
 pages/test-results/
+playwright-report/
+playwright-report.zip
+test-results/
+**/playwright/.cache/
 
 # Production builds
 dist/
 build/
 .wrangler/
 .cloudflare/
+
+# Generated files
+pages/background.js
+pages/popup.js
+pages/assets/popup.css
+pages/dist/
+pages/build/
 
 # Environment files
 .env

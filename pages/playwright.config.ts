@@ -17,9 +17,11 @@ export default defineConfig({
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--disable-extensions-except=${paths.extension}`,
-            `--load-extension=${paths.extension}`,
-          ],
+            '--enable-automation',  // Required for extension testing
+            '--allow-insecure-localhost',  // Allow local testing
+            `--disable-extensions-except=${paths.extensionDist}`,
+            `--load-extension=${paths.extensionDist}`,
+          ]
         },
       },
     },

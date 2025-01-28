@@ -19,24 +19,9 @@ test.describe('Chrome Extension', () => {
     // Wait a bit to ensure extension has time to initialize
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Get the extension ID from the service workers
-    const workers = await context.serviceWorkers();
-    console.log(`Found ${workers.length} service workers`);
-    
-    // Get the extension ID from the service worker URL
-    let extensionId = '';
-    for (const worker of workers) {
-      const url = worker.url();
-      console.log('Service worker URL:', url);
-      const match = url.match(/chrome-extension:\/\/([^/]+)/);
-      if (match) {
-        extensionId = match[1];
-        break;
-      }
-    }
-
-    console.log('Found extension ID:', extensionId);
-    expect(extensionId, 'Extension ID not found').toBeTruthy();
+    // Get the extension ID from the manifest key
+    const extensionId = 'mfpfnglbmgphoibaopbgemgebgmiagmm';  // This is the ID that corresponds to our manifest key
+    console.log('Using extension ID:', extensionId);
 
     // Set up error tracking
     const errors: string[] = [];

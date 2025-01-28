@@ -1,6 +1,13 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
 
+// Type for our minimal Chrome API needs
+type MinimalChromeAPI = {
+  runtime?: {
+    id?: string;
+  };
+};
+
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
 
@@ -8,33 +15,39 @@ test.describe.configure({ mode: 'serial', retries: 0 });
  * Helper function to get the extension popup page
  */
 async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
-  // Wait for service worker to be registered (up to 5 seconds)
-  let worker = null;
-  for (let i = 0; i < 3; i++) {
-    const workers = context.serviceWorkers();
-    console.log(`Attempt ${i + 1}/3: Service workers:`, workers.map(w => w.url()));
-    
-    worker = workers.find(w => w.url().includes('background'));
-    if (worker) break;
-    
-    // Wait ~1.7s between attempts (total ~5s with 3 tries)
-    await new Promise(resolve => setTimeout(resolve, 1700));
-  }
+  // Get all service workers and find the extension worker
+  const workers = context.serviceWorkers();
+  console.log('Current service workers:', workers.map(w => w.url()));
   
+  const worker = workers.find(w => w.url().includes('background'));
   if (!worker) {
-    throw new Error('Extension service worker not found after 3 attempts (5 seconds)');
+    throw new Error('Extension service worker not found. Available workers: ' + 
+      workers.map(w => w.url()).join(', '));
   }
   
   // Extract extension ID from service worker URL
   const extensionId = worker.url().split('/')[2];
   console.log('Found extension ID:', extensionId);
   
-  // Create and return the popup
-  const popup = await context.newPage();
-  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-  await popup.waitForLoadState('domcontentloaded');
+  // Create and return the popup with retries
+  let lastError: Error | null = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000
+      });
+      return { extensionId, popup };
+    } catch (e) {
+      const error = e as Error;
+      lastError = error;
+      console.log(`Attempt ${i + 1}/3 failed:`, error.message);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
   
-  return { extensionId, popup };
+  throw new Error(`Failed to load extension popup after 3 attempts: ${lastError?.message}`);
 }
 
 test.describe('Chrome Extension', () => {
@@ -42,10 +55,127 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
-    // Wait for extension to be loaded
-    const page = await context.newPage();
-    await page.goto('chrome://extensions');
-    await page.waitForTimeout(1000); // Give extension time to register
+    // Debug extension loading path first
+    const { paths } = await import('../config');
+    console.log('Extension path:', paths.extensionDist);
+    const fs = await import('fs');
+    console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
+    if (fs.existsSync(paths.extensionDist)) {
+      console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
+    }
+    
+    // Helper function to find the background service worker
+    const findBackgroundWorker = () => {
+      const workers = context.serviceWorkers();
+      console.log('Current service workers:', workers.map(w => w.url()));
+      return workers.find(w => w.url().includes('background'));
+    };
+
+    // Helper function to check extension status
+    const checkExtensionStatus = async () => {
+      // List all pages first (this doesn't require creating a new page)
+      const pages = await context.pages();
+      console.log('Current pages:', pages.map(p => p.url()));
+
+      // Check background pages
+      const backgrounds = context.backgroundPages();
+      console.log('Background pages:', backgrounds.map(p => p.url()));
+
+      // List service workers
+      console.log('Service workers:', context.serviceWorkers().map(w => w.url()));
+
+      // Try to evaluate extension presence in a new page
+      let testPage: Page | null = null;
+      try {
+        testPage = await context.newPage();
+        await testPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+        const extensions = await testPage.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const chrome = (window as any).chrome as MinimalChromeAPI;
+          return chrome?.runtime?.id || 'No extension ID found';
+        });
+        console.log('Extension ID from runtime:', extensions);
+      } catch (e) {
+        console.log('Failed to check extension in page:', e);
+      } finally {
+        if (testPage) {
+          await testPage.close().catch(() => {/* ignore close errors */});
+        }
+      }
+    };
+
+    // Check initial extension status
+    console.log('Checking initial extension status...');
+    await checkExtensionStatus();
+
+    // Try to trigger service worker registration
+    console.log('Attempting to trigger service worker registration...');
+    try {
+      // Create a new page to trigger extension activation
+      const page = await context.newPage();
+      await page.goto('about:blank');
+      await page.waitForTimeout(1000);
+      await page.close();
+    } catch (e) {
+      console.log('Failed to trigger extension:', e);
+    }
+
+    // Now check for service worker with more detailed logging
+    let worker = findBackgroundWorker();
+    if (!worker) {
+      console.log('Service worker not found after initial check, waiting...');
+      try {
+        // Wait for service worker registration with progress logging
+        const result = await Promise.race([
+          (async () => {
+            console.log('Starting event listener for service worker...');
+            const worker = await context.waitForEvent('serviceworker', {
+              predicate: worker => {
+                console.log('Service worker event received:', worker.url());
+                return worker.url().includes('background');
+              },
+              timeout: 15000
+            });
+            console.log('Service worker event listener succeeded');
+            return worker;
+          })(),
+          // Polling as a fallback with progress logging
+          (async () => {
+            for (let i = 0; i < 15; i++) {
+              console.log(`Polling attempt ${i + 1}/15...`);
+              worker = findBackgroundWorker();
+              if (worker) {
+                console.log('Found worker through polling');
+                return worker;
+              }
+              // Check extension status every 5 seconds
+              if (i % 5 === 0) {
+                await checkExtensionStatus();
+              }
+              await new Promise(r => setTimeout(r, 1000));
+            }
+            throw new Error('Service worker not found after 15 seconds of polling');
+          })()
+        ]);
+        worker = result;
+      } catch (e) {
+        const error = e as Error;
+        console.error('Failed to detect service worker:', error);
+        
+        // Final extension status check
+        console.log('Performing final extension status check...');
+        await checkExtensionStatus();
+        
+        // One final check
+        worker = findBackgroundWorker();
+        if (!worker) {
+          throw new Error(`Service worker not found after all attempts: ${error.message}`);
+        }
+      }
+    }
+    
+    // At this point worker must be defined because we would have thrown an error otherwise
+    console.log('Service worker found:', worker!.url());
     
     // Get the extension popup
     const { extensionId, popup } = await getExtensionPopup(context);

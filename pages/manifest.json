@@ -27,7 +27,8 @@
     "tabs",
     "history",
     "storage",
-    "alarms"
+    "alarms",
+    "management"
   ],
   "host_permissions": [
     "http://localhost:*/*",

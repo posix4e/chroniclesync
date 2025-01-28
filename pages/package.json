@@ -5,15 +5,18 @@
   "scripts": {
     "dev": "vite",
     "dev:extension": "BUILD_TARGET=extension vite",
-    "build:web": "tsc && vite build",
+    "build:web": "tsc && BUILD_TARGET=pages vite build",
     "build:extension": "tsc && BUILD_TARGET=extension BUILD_ENTRY=popup vite build && BUILD_TARGET=extension BUILD_ENTRY=background vite build && mkdir -p dist/extension/icons && cp manifest.json popup.html dist/extension/ && cp icons/* dist/extension/icons/",
+    "build:pages": "tsc && BUILD_TARGET=pages vite build",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:pages": "playwright test e2e/pages.spec.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.{ts,tsx}\" --fix",
-    "deploy": "wrangler pages deploy dist --project-name chroniclesync-pages"
+    "deploy": "npm run build:pages && wrangler pages deploy dist --project-name chroniclesync-pages"
   },
   "dependencies": {
     "react": "^18.2.0",

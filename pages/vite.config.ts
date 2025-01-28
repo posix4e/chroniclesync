@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => {
   const buildEntry = process.env.BUILD_ENTRY;
 
   if (!isExtension) {
+    const isPages = process.env.BUILD_TARGET === 'pages';
     return {
       plugins: [react()],
       build: {
@@ -19,11 +20,19 @@ export default defineConfig(({ command }) => {
             format: 'es' as ModuleFormat,
             entryFileNames: '[name].[hash].js',
             assetFileNames: 'assets/[name].[ext]'
-          }
+          },
+          external: isPages ? [] : ['chrome']
         }
       },
+      define: {
+        'process.env.IS_PAGES': JSON.stringify(isPages)
+      },
       server: {
-        port: server.port
+        port: server.port,
+        host: '0.0.0.0',
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
       }
     };
   }

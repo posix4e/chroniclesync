@@ -27,25 +27,40 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'extension',
+      testMatch: /extension\.spec\.ts/,
       use: {
         launchOptions: {
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--enable-automation',  // Required for extension testing
-            '--allow-insecure-localhost',  // Allow local testing
-            '--disable-background-timer-throttling',  // Prevent background throttling
-            '--disable-backgrounding-occluded-windows',  // Keep background pages active
-            '--disable-renderer-backgrounding',  // Keep renderers active
+            '--enable-automation',
+            '--allow-insecure-localhost',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
             `--disable-extensions-except=${paths.extensionDist}`,
             `--load-extension=${paths.extensionDist}`,
           ],
-          timeout: 30000,  // Increase launch timeout
+          timeout: 30000,
         },
         contextOptions: {
-          reducedMotion: 'reduce',  // Reduce animations
-          serviceWorkers: 'allow',  // Explicitly allow service workers
+          reducedMotion: 'reduce',
+          serviceWorkers: 'allow',
+        },
+      },
+    },
+    {
+      name: 'pages',
+      testMatch: /pages\.spec\.ts/,
+      use: {
+        baseURL: 'http://localhost:53374',
+        launchOptions: {
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--allow-insecure-localhost',
+          ],
         },
       },
     },
@@ -54,4 +69,12 @@ export default defineConfig({
   workers: 1,  // Consistent, predictable test execution
   reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
   globalSetup: './e2e/global-setup.ts',
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:53374',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+  ],
 });

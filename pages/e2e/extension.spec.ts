@@ -10,18 +10,18 @@ test.describe('Chrome Extension', () => {
     const browserContextType = Object.getPrototypeOf(context).constructor.name;
     console.log('Browser context type:', browserContextType);
     
+    // Get the extension ID from the manifest key
+    const extensionId = 'mfpfnglbmgphoibaopbgemgebgmiagmm';  // This is the ID that corresponds to our manifest key
+    console.log('Using extension ID:', extensionId);
+
     // Create a new page and navigate to a real URL to properly trigger extension
     const page = await context.newPage();
     await page.goto('https://example.com');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForLoadState('networkidle');
     
-    // Wait a bit to ensure extension has time to initialize
+    // Wait for extension to be loaded
     await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Get the extension ID from the manifest key
-    const extensionId = 'mfpfnglbmgphoibaopbgemgebgmiagmm';  // This is the ID that corresponds to our manifest key
-    console.log('Using extension ID:', extensionId);
 
     // Set up error tracking
     const errors: string[] = [];
@@ -58,9 +58,10 @@ test.describe('Chrome Extension', () => {
 
     // 3. Initial popup load and UI verification
     const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popupPage.waitForLoadState('domcontentloaded');
-    await popupPage.waitForLoadState('networkidle');
+    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 10000
+    });
 
     // Screenshot: Initial extension popup state with login form
     await popupPage.screenshot({

@@ -59,9 +59,12 @@ test.describe('Chrome Extension', () => {
     // 3. Initial popup load and UI verification
     const popupPage = await context.newPage();
     await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'networkidle',
       timeout: 10000
     });
+    
+    // Wait for React to initialize
+    await popupPage.waitForSelector('#root', { state: 'visible', timeout: 5000 });
 
     // Screenshot: Initial extension popup state with login form
     await popupPage.screenshot({

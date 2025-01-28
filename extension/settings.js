@@ -15,6 +15,7 @@ class Settings {
     const form = event.target;
     const newConfig = {
       apiEndpoint: form.apiEndpoint.value.trim(),
+      pagesUrl: form.pagesUrl.value.trim(),
       clientId: form.clientId.value.trim()
     };
     
@@ -53,9 +54,15 @@ class Settings {
     container.innerHTML = `
       <form id="settings-form">
         <div class="form-group">
-          <label for="apiEndpoint">API Endpoint:</label>
+          <label for="apiEndpoint">Worker API Endpoint:</label>
           <input type="url" id="apiEndpoint" name="apiEndpoint" 
                  value="${this.config.apiEndpoint}" required
+                 placeholder="https://api.chroniclesync.xyz">
+        </div>
+        <div class="form-group">
+          <label for="pagesUrl">Pages UI URL:</label>
+          <input type="url" id="pagesUrl" name="pagesUrl" 
+                 value="${this.config.pagesUrl}" required
                  placeholder="https://chroniclesync.pages.dev">
         </div>
         <div class="form-group">

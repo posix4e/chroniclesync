@@ -1,5 +1,6 @@
 const defaultConfig = {
-  apiEndpoint: 'https://chroniclesync.pages.dev',
+  apiEndpoint: 'https://api.chroniclesync.xyz',  // Worker API endpoint
+  pagesUrl: 'https://chroniclesync.pages.dev',   // Pages UI endpoint
   clientId: 'extension-default'
 };
 

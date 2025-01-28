@@ -55,56 +55,13 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
-    // Debug extension loading
-    const page = await context.newPage();
-    try {
-      await page.goto('chrome://extensions');
-      console.log('Extensions page loaded');
-      
-      // Get extension info
-      const extensionInfo = await page.evaluate(async () => {
-        interface ExtensionInfo {
-          id: string;
-          name: string;
-          enabled: boolean;
-          installType: string;
-        }
-        // We know chrome.management exists in extension context
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const chrome = window.chrome as any;
-        const extensions = await chrome.management.getAll() as ExtensionInfo[];
-        return extensions.map(ext => ({
-          id: ext.id,
-          name: ext.name,
-          enabled: ext.enabled,
-          installType: ext.installType
-        }));
-      }).catch(e => {
-        console.log('Failed to get extension info:', e);
-        return [];
-      });
-      console.log('Installed extensions:', extensionInfo);
-
-      // Check if our extension is loaded
-      const ourExtension = extensionInfo.find(ext => ext.name === 'ChronicleSync');
-      if (!ourExtension) {
-        console.log('ChronicleSync extension not found!');
-        
-        // Debug extension loading path
-        const { paths } = await import('../config');
-        console.log('Extension path:', paths.extensionDist);
-        const fs = await import('fs');
-        console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
-        if (fs.existsSync(paths.extensionDist)) {
-          console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
-        }
-      } else {
-        console.log('ChronicleSync extension found:', ourExtension);
-      }
-    } catch (e) {
-      console.log('Failed to check extensions page:', e);
-    } finally {
-      await page.close();
+    // Debug extension loading path first
+    const { paths } = await import('../config');
+    console.log('Extension path:', paths.extensionDist);
+    const fs = await import('fs');
+    console.log('Extension directory exists:', fs.existsSync(paths.extensionDist));
+    if (fs.existsSync(paths.extensionDist)) {
+      console.log('Extension directory contents:', fs.readdirSync(paths.extensionDist));
     }
     
     // Helper function to find the background service worker
@@ -116,31 +73,34 @@ test.describe('Chrome Extension', () => {
 
     // Helper function to check extension status
     const checkExtensionStatus = async () => {
-      const page = await context.newPage();
-      try {
-        // Try to access extension pages directly
-        const pages = await context.pages();
-        console.log('Current pages:', pages.map(p => p.url()));
+      // List all pages first (this doesn't require creating a new page)
+      const pages = await context.pages();
+      console.log('Current pages:', pages.map(p => p.url()));
 
-        // Try to evaluate extension presence
-        await page.goto('about:blank');
-        const extensions = await page.evaluate(() => {
+      // Check background pages
+      const backgrounds = context.backgroundPages();
+      console.log('Background pages:', backgrounds.map(p => p.url()));
+
+      // List service workers
+      console.log('Service workers:', context.serviceWorkers().map(w => w.url()));
+
+      // Try to evaluate extension presence in a new page
+      let testPage: Page | null = null;
+      try {
+        testPage = await context.newPage();
+        await testPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+        const extensions = await testPage.evaluate(() => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const chrome = (window as any).chrome as MinimalChromeAPI;
           return chrome?.runtime?.id || 'No extension ID found';
         });
         console.log('Extension ID from runtime:', extensions);
-
-        // Check background page
-        const backgrounds = context.backgroundPages();
-        console.log('Background pages:', backgrounds.map(p => p.url()));
-
-        // List service workers
-        console.log('Service workers:', context.serviceWorkers().map(w => w.url()));
       } catch (e) {
-        console.log('Failed to check extension status:', e);
+        console.log('Failed to check extension in page:', e);
       } finally {
-        await page.close();
+        if (testPage) {
+          await testPage.close().catch(() => {/* ignore close errors */});
+        }
       }
     };
 

@@ -48,14 +48,48 @@ test.describe('Chrome Extension', () => {
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     
-    // Wait for extension to be loaded (no need to visit chrome://extensions)
-    await context.waitForEvent('serviceworker', {
-      predicate: worker => worker.url().includes('background'),
-      timeout: 10000
-    }).catch(e => {
-      console.error('Timeout waiting for service worker:', e);
-      throw e;
-    });
+    // Helper function to find the background service worker
+    const findBackgroundWorker = () => {
+      const workers = context.serviceWorkers();
+      console.log('Current service workers:', workers.map(w => w.url()));
+      return workers.find(w => w.url().includes('background'));
+    };
+
+    // First check if service worker is already registered
+    let worker = findBackgroundWorker();
+    if (!worker) {
+      // If not found, wait for it with a timeout
+      console.log('Service worker not found, waiting for registration...');
+      try {
+        await Promise.race([
+          context.waitForEvent('serviceworker', {
+            predicate: worker => worker.url().includes('background'),
+            timeout: 15000
+          }),
+          // Polling as a fallback
+          new Promise(async (resolve, reject) => {
+            for (let i = 0; i < 15; i++) {
+              worker = findBackgroundWorker();
+              if (worker) {
+                resolve(worker);
+                return;
+              }
+              await new Promise(r => setTimeout(r, 1000));
+            }
+            reject(new Error('Service worker not found after 15 seconds of polling'));
+          })
+        ]);
+      } catch (e) {
+        console.error('Failed to detect service worker:', e);
+        // One final check before giving up
+        worker = findBackgroundWorker();
+        if (!worker) {
+          throw new Error(`Service worker not found after all attempts: ${e.message}`);
+        }
+      }
+    }
+    
+    console.log('Service worker found:', worker.url());
     
     // Get the extension popup
     const { extensionId, popup } = await getExtensionPopup(context);

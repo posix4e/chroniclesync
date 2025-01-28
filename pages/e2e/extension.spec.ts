@@ -1,5 +1,7 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
+import { rm } from 'fs/promises';
 
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
@@ -44,7 +46,22 @@ async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId
 }
 
 test.describe('Chrome Extension', () => {
-  test('extension functionality', async ({ context }) => {
+  test.afterEach(async () => {
+    // Clean up user data directory after each test
+    const userDataDir = '/tmp/playwright-test-profile';
+    if (fs.existsSync(userDataDir)) {
+      await rm(userDataDir, { recursive: true, force: true });
+    }
+  });
+  test('extension functionality', async ({ browser }) => {
+    // Create a persistent context for extension testing
+    const userDataDir = '/tmp/playwright-test-profile';
+    const context = await browser.launchPersistentContext(userDataDir, {
+      args: [
+        `--disable-extensions-except=${paths.extensionDist}`,
+        `--load-extension=${paths.extensionDist}`,
+      ],
+    });
     // 1. Initial Setup and Screenshots
     console.log('Test started with browser context:', context.constructor.name);
     

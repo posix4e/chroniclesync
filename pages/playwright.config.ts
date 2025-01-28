@@ -11,6 +11,19 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
     actionTimeout: 30000,  // Increase timeout for actions
     navigationTimeout: 30000,  // Increase timeout for navigation
+    // Use persistent context for extension testing
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--enable-automation',  // Required for extension testing
+        '--allow-insecure-localhost',  // Allow local testing
+        '--disable-background-timer-throttling',  // Prevent background throttling
+        '--disable-backgrounding-occluded-windows',  // Keep background pages active
+        '--disable-renderer-backgrounding',  // Keep renderers active
+      ],
+      timeout: 30000,  // Increase launch timeout
+    },
   },
   projects: [
     {

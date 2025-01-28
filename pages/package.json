@@ -6,7 +6,7 @@
     "dev": "vite",
     "dev:extension": "BUILD_TARGET=extension vite",
     "build:web": "tsc && vite build",
-    "build:extension": "tsc && BUILD_TARGET=extension vite build && mkdir -p dist/extension/icons && cp manifest.json popup.html dist/extension/ && cp icons/* dist/extension/icons/",
+    "build:extension": "tsc && BUILD_TARGET=extension BUILD_ENTRY=popup vite build && BUILD_TARGET=extension BUILD_ENTRY=background vite build && mkdir -p dist/extension/icons && cp manifest.json popup.html dist/extension/ && cp icons/* dist/extension/icons/",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

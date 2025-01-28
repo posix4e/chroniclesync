@@ -1,51 +1,54 @@
-import { defineConfig, build as viteBuild } from 'vite';
-import { type PreRenderedChunk } from 'rollup';
+import { defineConfig } from 'vite';
+import type { ModuleFormat } from 'rollup';
 import react from '@vitejs/plugin-react';
 import { paths, server } from './config';
 
 export default defineConfig(({ command }) => {
   const isExtension = process.env.BUILD_TARGET === 'extension';
-  
-  if (isExtension) {
-    // Build background script separately
-    if (command === 'build') {
-      viteBuild({
-        build: {
-          lib: {
-            entry: paths.background,
-            name: 'background',
-            formats: ['iife'],
-            fileName: () => 'background.js'
-          },
-          outDir: paths.extensionDist,
-          emptyOutDir: false,
-          minify: false,
-          rollupOptions: {
-            external: ['chrome'],
-            output: {
-              globals: {
-                chrome: 'chrome'
-              }
-            }
+  const buildEntry = process.env.BUILD_ENTRY;
+
+  if (!isExtension) {
+    return {
+      plugins: [react()],
+      build: {
+        outDir: paths.webDist,
+        emptyOutDir: true,
+        rollupOptions: {
+          input: 'src/index.tsx',
+          output: {
+            format: 'es' as ModuleFormat,
+            entryFileNames: '[name].[hash].js',
+            assetFileNames: 'assets/[name].[ext]'
           }
         }
-      });
-    }
+      },
+      server: {
+        port: server.port
+      }
+    };
   }
+
+  // Extension build configuration
+  const input = buildEntry === 'popup' ? paths.popup : paths.background;
+  const name = buildEntry || 'extension';
 
   return {
     plugins: [react()],
     build: {
-      outDir: isExtension ? paths.extensionDist : paths.webDist,
-      emptyOutDir: true,
-      minify: !isExtension,
+      outDir: paths.extensionDist,
+      emptyOutDir: false,
+      minify: false,
       rollupOptions: {
-        input: isExtension ? paths.popup : 'src/index.tsx',
+        input,
         output: {
-          format: 'es',
-          entryFileNames: '[name].[hash].js',
-          assetFileNames: 'assets/[name].[ext]'
-        }
+          format: 'iife' as ModuleFormat,
+          entryFileNames: '[name].js',
+          dir: paths.extensionDist,
+          globals: { chrome: 'chrome' },
+          name,
+          inlineDynamicImports: true
+        },
+        external: ['chrome']
       }
     },
     server: {

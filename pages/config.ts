@@ -11,5 +11,7 @@ export const paths = {
 export const server = {
   port: process.env.PORT || 52054,
   webUrl: process.env.WEB_URL || 'http://localhost:52054',
+  host: '0.0.0.0',
+  cors: true,
   apiUrl: process.env.API_URL || 'https://api-staging.chroniclesync.xyz'
 };

@@ -18,6 +18,13 @@ export default defineConfig({
     }
   },
   server: {
-    port: server.port
+    port: server.port,
+    host: server.host,
+    cors: server.cors,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
   }
 });

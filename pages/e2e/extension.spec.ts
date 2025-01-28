@@ -10,18 +10,16 @@ test.describe('Chrome Extension', () => {
     const browserContextType = Object.getPrototypeOf(context).constructor.name;
     console.log('Browser context type:', browserContextType);
     
-    // Get the extension ID dynamically from the background service worker
-    const tempPage = await context.newPage();
-    const extensionId = await tempPage.evaluate(async () => {
-      const extensions = await chrome.management.getAll();
-      const chronicleSync = extensions.find(ext => ext.name === 'ChronicleSync');
-      if (!chronicleSync?.id) {
-        throw new Error('Extension not found. Available extensions: ' + 
-          extensions.map(e => `${e.name} (${e.id})`).join(', '));
-      }
-      return chronicleSync.id;
-    });
-    await tempPage.close();
+    // Get the extension ID from the background service worker URL
+    const backgroundPages = context.backgroundPages();
+    const extensionBackgroundPage = backgroundPages.find(page => 
+      page.url().startsWith('chrome-extension://') && page.url().endsWith('background.js'));
+    
+    if (!extensionBackgroundPage) {
+      throw new Error('Extension background page not found');
+    }
+    
+    const extensionId = extensionBackgroundPage.url().split('/')[2];
     console.log('Using extension ID:', extensionId);
 
     // Create a new page and navigate to a real URL to properly trigger extension

@@ -11,19 +11,27 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? 'github' : 'list',
   use: {
-    headless: false,
+    headless: true, // Headless mode is fine for regular page tests
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 5000,
     baseURL: server.webUrl,
-    screenshot: 'on',
-    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
   },
   projects: [
     {
       name: 'chromium',
-      use: {
-        browserName: 'chromium',
-      },
+      use: { browserName: 'chromium' },
+    },
+    {
+      name: 'firefox',
+      use: { browserName: 'firefox' },
+    },
+    {
+      name: 'webkit',
+      use: { browserName: 'webkit' },
     },
   ],
   outputDir: 'test-results/',

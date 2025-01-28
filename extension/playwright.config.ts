@@ -1,27 +1,35 @@
-import { PlaywrightTestConfig } from '@playwright/test';
-import { server } from '../pages/config';
+import { defineConfig } from '@playwright/test';
+import { paths, server } from '../pages/config';
 
-const config: PlaywrightTestConfig = {
+export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
   expect: {
     timeout: 5000
   },
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  forbidOnly: true,  // Always prevent .only tests
+  workers: 1,  // Consistent, predictable test execution for extension tests
+  reporter: process.env.CI ? 'github' : 'list',
   use: {
-    actionTimeout: 0,
-    trace: 'on-first-retry',
-    baseURL: server.webUrl,
+    headless: false, // Required for extension testing
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 10000,
+    screenshot: 'on',
+    trace: 'retain-on-failure',
   },
   projects: [
     {
       name: 'chromium',
       use: {
         browserName: 'chromium',
+        launchOptions: {
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            `--disable-extensions-except=${paths.extension}`,
+            `--load-extension=${paths.extension}`,
+          ],
+        },
       },
     },
   ],
@@ -31,6 +39,4 @@ const config: PlaywrightTestConfig = {
     port: Number(new URL(server.webUrl).port),
     reuseExistingServer: !process.env.CI,
   },
-}
-
-export default config;
+});

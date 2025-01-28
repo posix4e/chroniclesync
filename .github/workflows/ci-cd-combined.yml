@@ -132,9 +132,15 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
         run: |
           npm ci
-          npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
+          npx playwright install --with-deps
+          # Run tests in headless mode for all browsers if no specific browser is selected
+          if [ -z "${{ github.event.inputs.browser }}" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+              npx playwright test
+          else
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+              npx playwright test --project=${{ github.event.inputs.browser }}
+          fi
 
       - name: Install dependencies and run extension tests
         working-directory: extension
@@ -144,15 +150,16 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
         run: |
           npm ci
-          npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+          npx playwright install --with-deps chromium
+          # Extension tests always run in non-headless mode with Chromium
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
+            npx playwright test --project=chromium
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.event.inputs.browser || 'chromium' }}
+          name: playwright-reports
           path: |
             pages/playwright-report/
             pages/test-results/

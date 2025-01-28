@@ -1,6 +1,13 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
 
+// Type for our minimal Chrome API needs
+type MinimalChromeAPI = {
+  runtime?: {
+    id?: string;
+  };
+};
+
 // Ensure tests run sequentially and stop on first failure
 test.describe.configure({ mode: 'serial', retries: 0 });
 
@@ -64,8 +71,10 @@ test.describe('Chrome Extension', () => {
         console.log('Current pages:', pages.map(p => p.url()));
 
         // Try to evaluate extension presence
-        const extensions = await context.evaluate(() => {
-          // @ts-ignore: chrome exists in extension context
+        await page.goto('about:blank');
+        const extensions = await page.evaluate(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const chrome = (window as any).chrome as MinimalChromeAPI;
           return chrome?.runtime?.id || 'No extension ID found';
         });
         console.log('Extension ID from runtime:', extensions);

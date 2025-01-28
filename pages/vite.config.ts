@@ -15,14 +15,26 @@ export default defineConfig({
         background: paths.background,
         styles: paths.styles
       } : 'src/index.tsx',
-      output: {
-        format: 'iife',
-        entryFileNames: (chunk: PreRenderedChunk) => {
-          return chunk.name === 'background' ? '[name].js' : '[name].[hash].js';
+      output: [
+        {
+          // Background script as IIFE
+          format: 'iife',
+          entryFileNames: '[name].js',
+          assetFileNames: 'assets/[name].[ext]',
+          inlineDynamicImports: true,
+          name: 'background',
+          globals: {
+            chrome: 'chrome'
+          }
         },
-        assetFileNames: 'assets/[name].[ext]',
-        inlineDynamicImports: false
-      }
+        {
+          // Other files as ES modules
+          format: 'es',
+          entryFileNames: '[name].[hash].js',
+          assetFileNames: 'assets/[name].[ext]',
+          inlineDynamicImports: false
+        }
+      ]
     }
   },
   server: {

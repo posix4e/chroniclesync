@@ -20,25 +20,53 @@ test.describe('Chrome Extension', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Get the extension ID from the background context
-    const backgroundContexts = await context.backgroundPages();
-    console.log(`Found ${backgroundContexts.length} background contexts`);
+    const backgroundPages = await context.backgroundPages();
+    console.log(`Found ${backgroundPages.length} background pages`);
     
-    const extensionId = await page.evaluate(() => {
-      return new Promise<string>((resolve) => {
-        // Chrome provides the ID via chrome.runtime.id
-        if (chrome.runtime.id) {
-          resolve(chrome.runtime.id);
-          return;
+    // Get the extension ID from the background page URL
+    let extensionId = '';
+    for (const backgroundPage of backgroundPages) {
+      const url = backgroundPage.url();
+      console.log('Background page URL:', url);
+      const match = url.match(/chrome-extension:\/\/([^/]+)/);
+      if (match) {
+        extensionId = match[1];
+        break;
+      }
+    }
+
+    // If not found in background pages, try getting it from service workers
+    if (!extensionId) {
+      console.log('Checking service workers...');
+      const workers = await context.serviceWorkers();
+      for (const worker of workers) {
+        const url = worker.url();
+        console.log('Service worker URL:', url);
+        const match = url.match(/chrome-extension:\/\/([^/]+)/);
+        if (match) {
+          extensionId = match[1];
+          break;
         }
-        
-        // If not immediately available, wait for it
-        chrome.runtime.onInstalled.addListener(() => {
-          resolve(chrome.runtime.id);
-        });
-      });
-    });
-    
+      }
+    }
+
+    // If still not found, try getting it from all browser targets
+    if (!extensionId) {
+      console.log('Checking browser targets...');
+      const targets = await context.browser().targets();
+      for (const target of targets) {
+        const url = target.url();
+        console.log('Target URL:', url);
+        const match = url.match(/chrome-extension:\/\/([^/]+)/);
+        if (match && url.includes('background')) {
+          extensionId = match[1];
+          break;
+        }
+      }
+    }
+
     console.log('Found extension ID:', extensionId);
+    expect(extensionId, 'Extension ID not found').toBeTruthy();
 
     // Set up error tracking
     const errors: string[] = [];

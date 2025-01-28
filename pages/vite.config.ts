@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, build as viteBuild } from 'vite';
 import { type PreRenderedChunk } from 'rollup';
 import react from '@vitejs/plugin-react';
 import { paths, server } from './config';
@@ -9,7 +9,7 @@ export default defineConfig(({ command }) => {
   if (isExtension) {
     // Build background script separately
     if (command === 'build') {
-      build({
+      viteBuild({
         build: {
           lib: {
             entry: paths.background,

@@ -59,41 +59,60 @@ test.describe('Chrome Extension', () => {
     
     // Helper function to find the background service worker with retries
     const findBackgroundWorker = async (maxAttempts = 30, interval = 1000) => {
-      for (let i = 0; i < maxAttempts; i++) {
-        console.log(`Checking for service worker (attempt ${i + 1}/${maxAttempts})...`);
-        
-        // List all pages and service workers
-        const pages = context.pages();
-        const workers = context.serviceWorkers();
-        const backgrounds = context.backgroundPages();
-        
-        console.log('Current pages:', pages.map(p => p.url()));
-        console.log('Background pages:', backgrounds.map(p => p.url()));
-        console.log('Service workers:', workers.map(w => w.url()));
-        
-        // Check for background service worker
-        const worker = workers.find(w => w.url().includes('background'));
-        if (worker) {
-          console.log('Found background service worker:', worker.url());
-          return worker;
-        }
-        
-        // Try to trigger extension activation if no worker found
-        if (i % 5 === 0) { // Every 5 attempts
-          try {
-            console.log('Attempting to trigger extension activation...');
-            const page = await context.newPage();
-            await page.goto('chrome://extensions');
-            await page.waitForTimeout(1000);
-            await page.close();
-          } catch (e) {
-            console.log('Failed to trigger extension:', e);
+      let activationPage: Page | null = null;
+      
+      try {
+        for (let i = 0; i < maxAttempts; i++) {
+          console.log(`Checking for service worker (attempt ${i + 1}/${maxAttempts})...`);
+          
+          // List all pages and service workers
+          const pages = context.pages();
+          const workers = context.serviceWorkers();
+          const backgrounds = context.backgroundPages();
+          
+          console.log('Current pages:', pages.map(p => p.url()));
+          console.log('Background pages:', backgrounds.map(p => p.url()));
+          console.log('Service workers:', workers.map(w => w.url()));
+          
+          // Check for background service worker
+          const worker = workers.find(w => w.url().includes('background'));
+          if (worker) {
+            console.log('Found background service worker:', worker.url());
+            return worker;
+          }
+          
+          // Try to trigger extension activation if no worker found
+          if (i % 5 === 0) { // Every 5 attempts
+            try {
+              console.log('Attempting to trigger extension activation...');
+              
+              // Close previous activation page if it exists
+              if (activationPage) {
+                await activationPage.close().catch(() => {/* ignore close errors */});
+              }
+              
+              // Create new activation page
+              activationPage = await context.newPage();
+              await activationPage.goto('about:blank');
+              await activationPage.waitForTimeout(1000);
+              
+              // Try to access chrome://extensions (this might fail, but that's okay)
+              await activationPage.goto('chrome://extensions').catch(() => {/* ignore navigation errors */});
+              await activationPage.waitForTimeout(1000);
+            } catch (e) {
+              console.log('Failed to trigger extension:', e);
+            }
+          }
+          
+          // Wait before next attempt
+          if (i < maxAttempts - 1) {
+            await new Promise(r => setTimeout(r, interval));
           }
         }
-        
-        // Wait before next attempt
-        if (i < maxAttempts - 1) {
-          await new Promise(r => setTimeout(r, interval));
+      } finally {
+        // Clean up activation page
+        if (activationPage) {
+          await activationPage.close().catch(() => {/* ignore close errors */});
         }
       }
       return null;

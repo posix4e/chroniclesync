@@ -22,9 +22,17 @@ export default defineConfig({
             '--disable-setuid-sandbox',
             '--enable-automation',  // Required for extension testing
             '--allow-insecure-localhost',  // Allow local testing
+            '--disable-background-timer-throttling',  // Prevent background throttling
+            '--disable-backgrounding-occluded-windows',  // Keep background pages active
+            '--disable-renderer-backgrounding',  // Keep renderers active
             `--disable-extensions-except=${paths.extensionDist}`,
             `--load-extension=${paths.extensionDist}`,
-          ]
+          ],
+          timeout: 30000,  // Increase launch timeout
+        },
+        contextOptions: {
+          reducedMotion: 'reduce',  // Reduce animations
+          serviceWorkers: 'allow',  // Explicitly allow service workers
         },
       },
     },

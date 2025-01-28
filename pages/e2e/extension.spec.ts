@@ -55,33 +55,97 @@ test.describe('Chrome Extension', () => {
       return workers.find(w => w.url().includes('background'));
     };
 
-    // First check if service worker is already registered
+    // Helper function to check extension status
+    const checkExtensionStatus = async () => {
+      const page = await context.newPage();
+      try {
+        // Try to access extension pages directly
+        const pages = await context.pages();
+        console.log('Current pages:', pages.map(p => p.url()));
+
+        // Try to evaluate extension presence
+        const extensions = await context.evaluate(() => {
+          // @ts-ignore: chrome exists in extension context
+          return chrome?.runtime?.id || 'No extension ID found';
+        });
+        console.log('Extension ID from runtime:', extensions);
+
+        // Check background page
+        const backgrounds = context.backgroundPages();
+        console.log('Background pages:', backgrounds.map(p => p.url()));
+
+        // List service workers
+        console.log('Service workers:', context.serviceWorkers().map(w => w.url()));
+      } catch (e) {
+        console.log('Failed to check extension status:', e);
+      } finally {
+        await page.close();
+      }
+    };
+
+    // Check initial extension status
+    console.log('Checking initial extension status...');
+    await checkExtensionStatus();
+
+    // Try to trigger service worker registration
+    console.log('Attempting to trigger service worker registration...');
+    try {
+      // Create a new page to trigger extension activation
+      const page = await context.newPage();
+      await page.goto('about:blank');
+      await page.waitForTimeout(1000);
+      await page.close();
+    } catch (e) {
+      console.log('Failed to trigger extension:', e);
+    }
+
+    // Now check for service worker with more detailed logging
     let worker = findBackgroundWorker();
     if (!worker) {
-      // If not found, wait for it with a timeout
-      console.log('Service worker not found, waiting for registration...');
+      console.log('Service worker not found after initial check, waiting...');
       try {
-        await Promise.race([
-          context.waitForEvent('serviceworker', {
-            predicate: worker => worker.url().includes('background'),
-            timeout: 15000
-          }),
-          // Polling as a fallback
+        // Wait for service worker registration with progress logging
+        const result = await Promise.race([
+          (async () => {
+            console.log('Starting event listener for service worker...');
+            const worker = await context.waitForEvent('serviceworker', {
+              predicate: worker => {
+                console.log('Service worker event received:', worker.url());
+                return worker.url().includes('background');
+              },
+              timeout: 15000
+            });
+            console.log('Service worker event listener succeeded');
+            return worker;
+          })(),
+          // Polling as a fallback with progress logging
           (async () => {
             for (let i = 0; i < 15; i++) {
+              console.log(`Polling attempt ${i + 1}/15...`);
               worker = findBackgroundWorker();
               if (worker) {
+                console.log('Found worker through polling');
                 return worker;
+              }
+              // Check extension status every 5 seconds
+              if (i % 5 === 0) {
+                await checkExtensionStatus();
               }
               await new Promise(r => setTimeout(r, 1000));
             }
             throw new Error('Service worker not found after 15 seconds of polling');
           })()
         ]);
+        worker = result;
       } catch (e) {
         const error = e as Error;
         console.error('Failed to detect service worker:', error);
-        // One final check before giving up
+        
+        // Final extension status check
+        console.log('Performing final extension status check...');
+        await checkExtensionStatus();
+        
+        // One final check
         worker = findBackgroundWorker();
         if (!worker) {
           throw new Error(`Service worker not found after all attempts: ${error.message}`);

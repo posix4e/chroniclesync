@@ -1,4 +1,5 @@
-import { test, expect, BrowserContext, Page, ChromiumBrowser } from '@playwright/test';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import { rm } from 'fs/promises';
@@ -54,8 +55,7 @@ test.describe('Chrome Extension', () => {
       await rm(userDataDir, { recursive: true, force: true });
     }
   });
-  test('extension functionality', async ({ browser }) => {
-    const chromium = browser as ChromiumBrowser;
+  test('extension functionality', async () => {
     // Create a persistent context for extension testing
     const userDataDir = '/tmp/playwright-test-profile';
     const context = await chromium.launchPersistentContext(userDataDir, {
@@ -106,16 +106,23 @@ test.describe('Chrome Extension', () => {
               // Close previous activation page if it exists
               if (activationPage) {
                 await activationPage.close().catch(() => {/* ignore close errors */});
+                activationPage = null;
               }
               
-              // Create new activation page
-              activationPage = await context.newPage();
-              await activationPage.goto('about:blank');
-              await activationPage.waitForTimeout(1000);
-              
-              // Try to access chrome://extensions (this might fail, but that's okay)
-              await activationPage.goto('chrome://extensions').catch(() => {/* ignore navigation errors */});
-              await activationPage.waitForTimeout(1000);
+              try {
+                // Create new activation page
+                activationPage = await context.newPage();
+                if (activationPage) {
+                  await activationPage.goto('about:blank');
+                  await activationPage.waitForTimeout(1000);
+                  
+                  // Try to access chrome://extensions (this might fail, but that's okay)
+                  await activationPage.goto('chrome://extensions').catch(() => {/* ignore navigation errors */});
+                  await activationPage.waitForTimeout(1000);
+                }
+              } catch (e) {
+                console.log('Failed to create activation page:', e);
+              }
             } catch (e) {
               console.log('Failed to trigger extension:', e);
             }

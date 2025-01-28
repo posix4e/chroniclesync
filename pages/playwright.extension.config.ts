@@ -50,31 +50,9 @@ export default defineConfig({
         },
       },
     },
-    {
-      name: 'pages',
-      testMatch: /pages\.spec\.ts/,
-      use: {
-        baseURL: 'http://localhost:53374',
-        launchOptions: {
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--allow-insecure-localhost',
-          ],
-        },
-      },
-    },
   ],
   forbidOnly: true,  // Always prevent .only tests
   workers: 1,  // Consistent, predictable test execution
   reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
   globalSetup: './e2e/global-setup.ts',
-  webServer: [
-    {
-      command: 'npm run dev',
-      url: 'http://localhost:53374',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-    },
-  ],
 });

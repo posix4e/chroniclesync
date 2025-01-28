@@ -36,12 +36,21 @@ The pages component includes the frontend application and Chrome extension for C
    npm test
    ```
 
-2. **PlayWright Tests**
+2. **End-to-End Tests**
    ```bash
-   npx playwright test
+   # Run Pages deployment tests
+   npm run test:e2e:pages
+
+   # Run Extension tests
+   npm run test:e2e:extension
+
+   # Run all E2E tests
+   npm run test:e2e
    ```
 
-   This runs Playwright tests for both the web interface and extension.
+   The tests are split into two configurations:
+   - `playwright.pages.config.ts`: Tests for the Pages deployment
+   - `playwright.extension.config.ts`: Tests for the Chrome extension
 
 ### Project Structure
 

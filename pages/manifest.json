@@ -34,13 +34,14 @@
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*",
-    "https://example.com/*"
+    "https://example.com/*",
+    "chrome-extension://*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "web_accessible_resources": [{
-    "resources": ["assets/*"],
-    "matches": ["<all_urls>"]
+    "resources": ["assets/*", "popup.html", "popup.js", "background.js"],
+    "matches": ["<all_urls>", "chrome-extension://*/*"]
   }]
 }

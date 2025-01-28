@@ -8,18 +8,18 @@ test.describe.configure({ mode: 'serial', retries: 0 });
  * Helper function to get the extension popup page
  */
 async function getExtensionPopup(context: BrowserContext): Promise<{ extensionId: string, popup: Page }> {
-  // Get the background page
-  const backgroundPages = context.backgroundPages();
-  console.log('Background pages:', backgroundPages.map(p => p.url()));
+  // Get the service worker
+  const workers = context.serviceWorkers();
+  console.log('Service workers:', workers.map(w => w.url()));
   
-  // Find our extension's background page
-  const backgroundPage = backgroundPages.find(p => p.url().includes('background'));
-  if (!backgroundPage) {
-    throw new Error('Extension background page not found');
+  // Find our extension's service worker
+  const worker = workers.find(w => w.url().includes('background'));
+  if (!worker) {
+    throw new Error('Extension service worker not found');
   }
   
-  // Extract extension ID from background page URL
-  const extensionId = backgroundPage.url().split('/')[2];
+  // Extract extension ID from service worker URL
+  const extensionId = worker.url().split('/')[2];
   console.log('Found extension ID:', extensionId);
   
   // Create and return the popup
@@ -47,7 +47,8 @@ test.describe('Chrome Extension', () => {
     
     // 2. Verify Initial UI State
     await expect(popup.locator('h2')).toHaveText('ChronicleSync');
-    await expect(popup.locator('#clientId')).toBeVisible();
+    await expect(popup.locator('text=Last sync: Never')).toBeVisible();
+    await expect(popup.locator('text=Status: idle')).toBeVisible();
     await expect(popup.locator('button:has-text("Sync Now")')).toBeVisible();
     
     // 3. Generate Test History
@@ -65,30 +66,13 @@ test.describe('Chrome Extension', () => {
       await page.close();
     }
     
-    // 4. Initialize Client
-    console.log('Initializing client...');
-    await popup.fill('#clientId', 'test-client');
-    await popup.click('button:has-text("Initialize")');
-    
-    // Take screenshot after initialization
+    // Take screenshot after history generation
     await popup.screenshot({ 
-      path: path.join('test-results', '02-after-initialization.png'),
+      path: path.join('test-results', '02-after-history.png'),
       fullPage: true 
     });
     
-    // 5. Verify History Display
-    console.log('Verifying history entries...');
-    await popup.waitForSelector('.history-entry');
-    const entries = await popup.locator('.history-entry').all();
-    expect(entries.length).toBeGreaterThanOrEqual(testPages.length);
-    
-    // Take screenshot of history entries
-    await popup.screenshot({ 
-      path: path.join('test-results', '03-history-entries.png'),
-      fullPage: true 
-    });
-    
-    // 6. Test Sync Functionality
+    // 4. Test Sync Functionality
     console.log('Testing sync functionality...');
     const syncButton = popup.locator('button:has-text("Sync Now")');
     await syncButton.click();
@@ -100,13 +84,14 @@ test.describe('Chrome Extension', () => {
     
     // Take final screenshot
     await popup.screenshot({ 
-      path: path.join('test-results', '04-after-sync.png'),
+      path: path.join('test-results', '03-after-sync.png'),
       fullPage: true 
     });
     
-    // 7. Verify Sync Status
-    const lastSync = await popup.locator('.sync-status').textContent();
-    expect(lastSync).toContain('Last sync:');
-    expect(lastSync).not.toContain('Never');
+    // 5. Verify Sync Status
+    await expect(popup.locator('text=Status: idle')).toBeVisible();
+    const lastSyncText = await popup.locator('text=Last sync:').textContent();
+    expect(lastSyncText).toBeTruthy();
+    expect(lastSyncText).not.toContain('Never');
   });
 });

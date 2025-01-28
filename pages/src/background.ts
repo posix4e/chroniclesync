@@ -1,12 +1,21 @@
-// Simple in-memory queue for pending history items
-let pendingItems: Array<{url: string, title: string, timestamp: number}> = [];
+// Function to get pending items from storage
+async function getPendingItems(): Promise<Array<{url: string, title: string, timestamp: number}>> {
+  const data = await chrome.storage.local.get('pendingItems');
+  return data.pendingItems || [];
+}
+
+// Function to save pending items to storage
+async function savePendingItems(items: Array<{url: string, title: string, timestamp: number}>) {
+  await chrome.storage.local.set({ pendingItems: items });
+}
 
 // Function to sync items with the server
 async function syncItems() {
+  const pendingItems = await getPendingItems();
   if (pendingItems.length === 0) return;
 
   const itemsToSync = [...pendingItems];
-  pendingItems = []; // Clear the queue
+  await savePendingItems([]); // Clear the queue
 
   try {
     const config = await chrome.storage.sync.get(['apiEndpoint']);
@@ -20,7 +29,8 @@ async function syncItems() {
 
     if (!response.ok) {
       // If sync fails, add items back to queue
-      pendingItems.push(...itemsToSync);
+      const currentItems = await getPendingItems();
+      await savePendingItems([...currentItems, ...itemsToSync]);
       throw new Error(`Sync failed: ${response.statusText}`);
     }
   } catch (error) {
@@ -33,14 +43,23 @@ async function syncItems() {
 chrome.history.onVisited.addListener(async (result) => {
   if (result.url) {
     // Add to pending queue
-    pendingItems.push({
+    const currentItems = await getPendingItems();
+    
+    // Only sync if we have a reasonable batch size or it's been a while
+    const shouldSync = currentItems.length >= 5 || // Batch of 5 items
+      (currentItems.length > 0 && // Or at least 1 item and...
+       Date.now() - currentItems[0].timestamp > 5 * 60 * 1000); // 5 minutes since first item
+    
+    await savePendingItems([...currentItems, {
       url: result.url,
       title: result.title || '',
       timestamp: new Date(result.lastVisitTime || Date.now()).getTime()
-    });
+    }]);
 
-    // Try to sync immediately
-    await syncItems();
+    // Sync if we have enough items or it's been a while
+    if (shouldSync) {
+      await syncItems();
+    }
   }
 });
 
@@ -63,13 +82,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   case 'getPendingItems':
     // For testing: return the current pending items queue
-    sendResponse({ items: pendingItems });
-    return false; // Synchronous response
+    getPendingItems()
+      .then(items => sendResponse({ items }))
+      .catch(error => sendResponse({ error: error.message }));
+    return true; // Will respond asynchronously
 
   case 'clearPendingItems':
     // For testing: clear the pending items queue
-    pendingItems = [];
-    sendResponse({ success: true });
-    return false; // Synchronous response
+    savePendingItems([])
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ error: error.message }));
+    return true; // Will respond asynchronously
   }
 });

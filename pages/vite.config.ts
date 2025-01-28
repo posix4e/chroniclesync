@@ -40,10 +40,7 @@ export default defineConfig(({ command }) => {
       emptyOutDir: true,
       minify: !isExtension,
       rollupOptions: {
-        input: isExtension ? {
-          popup: paths.popup,
-          styles: paths.styles
-        } : 'src/index.tsx',
+        input: isExtension ? paths.popup : 'src/index.tsx',
         output: {
           format: 'es',
           entryFileNames: '[name].[hash].js',

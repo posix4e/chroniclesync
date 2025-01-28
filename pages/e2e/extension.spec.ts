@@ -15,13 +15,14 @@ test.describe('Chrome Extension', () => {
     const extensionId = await tempPage.evaluate(async () => {
       const extensions = await chrome.management.getAll();
       const chronicleSync = extensions.find(ext => ext.name === 'ChronicleSync');
-      return chronicleSync?.id;
+      if (!chronicleSync?.id) {
+        throw new Error('Extension not found. Available extensions: ' + 
+          extensions.map(e => `${e.name} (${e.id})`).join(', '));
+      }
+      return chronicleSync.id;
     });
     await tempPage.close();
     console.log('Using extension ID:', extensionId);
-    
-    // Verify we found the extension
-    expect(extensionId, 'Extension ID should be found').toBeTruthy();
 
     // Create a new page and navigate to a real URL to properly trigger extension
     const page = await context.newPage();

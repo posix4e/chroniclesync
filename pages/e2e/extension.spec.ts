@@ -11,11 +11,13 @@ test.describe('Chrome Extension', () => {
     console.log('Browser context type:', browserContextType);
     
     // Get the extension ID dynamically from the background service worker
-    const extensionId = await context.evaluate(async () => {
+    const tempPage = await context.newPage();
+    const extensionId = await tempPage.evaluate(async () => {
       const extensions = await chrome.management.getAll();
       const chronicleSync = extensions.find(ext => ext.name === 'ChronicleSync');
       return chronicleSync?.id;
     });
+    await tempPage.close();
     console.log('Using extension ID:', extensionId);
     
     // Verify we found the extension

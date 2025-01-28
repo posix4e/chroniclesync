@@ -31,6 +31,10 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
    cd pages
    npm install
 
+   # Install extension dependencies
+   cd ../extension
+   npm install
+
    # Install backend dependencies
    cd ../worker
    npm install
@@ -52,9 +56,15 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
    # Run frontend tests
    cd pages
    npm run test
+   npm run test:e2e
+
+   # Run extension tests
+   cd ../extension
+   npm run test
+   npm run test:e2e
 
    # Run worker tests
-   cd worker
+   cd ../worker
    npm run test
    ```
 
@@ -63,8 +73,12 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 ```
 chroniclesync/
 ├── pages/          # Frontend React application
-├── worker/         # Cloudflare Worker backend
-└── extension/      # Chrome extension build output
+│   ├── src/        # Source code
+│   └── e2e/        # End-to-end tests for pages
+├── extension/      # Chrome extension
+│   ├── src/        # Extension source code
+│   └── e2e/        # End-to-end tests for extension
+└── worker/         # Cloudflare Worker backend
 ```
 
 ### Continuous Integration
@@ -109,10 +123,13 @@ To run all tests:
 
 The process includes:
 
-1. Run pages/extension tests:
+1. Run all tests:
    ```bash
    # Frontend tests and build
-   cd pages && npm install && npm run lint && npm test && npm run build:extension
+   cd pages && npm install && npm run lint && npm test && npm run build
+
+   # Extension tests and build
+   cd ../extension && npm install && npm run lint && npm test && npm run build
    ```
 
 2. Git push the branch

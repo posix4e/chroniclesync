@@ -45,6 +45,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             pages/package-lock.json
+            extension/package-lock.json
             worker/package-lock.json
 
       - name: Test Pages
@@ -55,11 +56,20 @@ jobs:
           npm ci
           npm run lint
           npm run test
-          npm run build:extension
-          npm run build:web
+          npm run build
+
+      - name: Test Extension
+        working-directory: extension
+        env:
+          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
+        run: |
+          npm ci
+          npm run lint
+          npm run test
+          npm run build
 
       - name: Package Chrome Extension
-        working-directory: pages
+        working-directory: extension
         run: |
           cd ..
           zip -r chrome-extension.zip extension/
@@ -110,27 +120,31 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: pages/package-lock.json
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
 
-      - name: Install dependencies
+      - name: Install dependencies and run page tests
         working-directory: pages
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
         run: |
           npm ci
           npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
 
-      - name: Build extension
-        working-directory: pages
+      - name: Install dependencies and run extension tests
+        working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
-        run: npm run build:extension
-
-      - name: Run Playwright tests
-        working-directory: pages
-        env:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
-          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: |
+          npm ci
+          npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
             npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
 
@@ -142,6 +156,8 @@ jobs:
           path: |
             pages/playwright-report/
             pages/test-results/
+            extension/playwright-report/
+            extension/test-results/
           retention-days: 30
 
       - name: Rollback on failure

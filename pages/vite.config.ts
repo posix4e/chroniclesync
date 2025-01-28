@@ -3,41 +3,56 @@ import { type PreRenderedChunk } from 'rollup';
 import react from '@vitejs/plugin-react';
 import { paths, server } from './config';
 
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: process.env.BUILD_TARGET === 'extension' ? paths.extensionDist : paths.webDist,
-    emptyOutDir: true,
-    minify: process.env.BUILD_TARGET === 'extension' ? false : true,
-    rollupOptions: {
-      input: process.env.BUILD_TARGET === 'extension' ? {
-        popup: paths.popup,
-        background: paths.background,
-        styles: paths.styles
-      } : 'src/index.tsx',
-      output: [
-        {
-          // Background script as IIFE
-          format: 'iife',
-          entryFileNames: '[name].js',
-          assetFileNames: 'assets/[name].[ext]',
-          inlineDynamicImports: true,
-          name: 'background',
-          globals: {
-            chrome: 'chrome'
+export default defineConfig(({ command }) => {
+  const isExtension = process.env.BUILD_TARGET === 'extension';
+  
+  if (isExtension) {
+    // Build background script separately
+    if (command === 'build') {
+      build({
+        build: {
+          lib: {
+            entry: paths.background,
+            name: 'background',
+            formats: ['iife'],
+            fileName: () => 'background.js'
+          },
+          outDir: paths.extensionDist,
+          emptyOutDir: false,
+          minify: false,
+          rollupOptions: {
+            external: ['chrome'],
+            output: {
+              globals: {
+                chrome: 'chrome'
+              }
+            }
           }
-        },
-        {
-          // Other files as ES modules
+        }
+      });
+    }
+  }
+
+  return {
+    plugins: [react()],
+    build: {
+      outDir: isExtension ? paths.extensionDist : paths.webDist,
+      emptyOutDir: true,
+      minify: !isExtension,
+      rollupOptions: {
+        input: isExtension ? {
+          popup: paths.popup,
+          styles: paths.styles
+        } : 'src/index.tsx',
+        output: {
           format: 'es',
           entryFileNames: '[name].[hash].js',
-          assetFileNames: 'assets/[name].[ext]',
-          inlineDynamicImports: false
+          assetFileNames: 'assets/[name].[ext]'
         }
-      ]
+      }
+    },
+    server: {
+      port: server.port
     }
-  },
-  server: {
-    port: server.port
-  }
+  };
 });

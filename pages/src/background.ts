@@ -39,31 +39,27 @@ async function syncItems() {
   }
 }
 
-// Set up alarm for periodic sync
-chrome.alarms.create('periodicSync', {
-  periodInMinutes: 5 // Sync every 5 minutes
-});
-
-// Listen for alarms
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'periodicSync') {
-    syncItems();
-  }
-});
-
 // Listen for history updates
 chrome.history.onVisited.addListener(async (result) => {
   if (result.url) {
     // Add to pending queue
     const currentItems = await getPendingItems();
+    
+    // Only sync if we have a reasonable batch size or it's been a while
+    const shouldSync = currentItems.length >= 5 || // Batch of 5 items
+      (currentItems.length > 0 && // Or at least 1 item and...
+       Date.now() - currentItems[0].timestamp > 5 * 60 * 1000); // 5 minutes since first item
+    
     await savePendingItems([...currentItems, {
       url: result.url,
       title: result.title || '',
       timestamp: new Date(result.lastVisitTime || Date.now()).getTime()
     }]);
 
-    // Try to sync immediately
-    await syncItems();
+    // Sync if we have enough items or it's been a while
+    if (shouldSync) {
+      await syncItems();
+    }
   }
 });
 

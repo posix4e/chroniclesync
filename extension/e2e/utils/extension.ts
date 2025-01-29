@@ -8,7 +8,8 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async (_ctx, use) => {
+  // eslint-disable-next-line no-empty-pattern
+  context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [

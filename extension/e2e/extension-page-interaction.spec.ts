@@ -1,5 +1,5 @@
-import { test, expect } from './utils/extension';
-import { server } from '../config';
+import { test, expect, getExtensionUrl } from './utils/extension';
+// No imports needed
 
 test.describe('Extension-Page Integration', () => {
   // Set up dialog handler for all tests
@@ -11,7 +11,7 @@ test.describe('Extension-Page Integration', () => {
 
   test('extension popup loads correctly', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
     
     await extensionPage.waitForLoadState('networkidle');
     const clientIdInput = await extensionPage.waitForSelector('#clientId');
@@ -20,7 +20,7 @@ test.describe('Extension-Page Integration', () => {
 
   test('client initialization works', async ({ context, extensionId }) => {
     const extensionPage = await context.newPage();
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
     
     await extensionPage.waitForLoadState('networkidle');
     await extensionPage.waitForSelector('#clientId');
@@ -49,7 +49,7 @@ test.describe('Extension-Page Integration', () => {
       }
     });
     
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
     
     // Initialize client first
     await extensionPage.waitForLoadState('networkidle');
@@ -88,7 +88,7 @@ test.describe('Extension-Page Integration', () => {
     });
 
     // Perform all operations
-    await extensionPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
     await extensionPage.waitForLoadState('networkidle');
     await extensionPage.waitForSelector('#clientId');
     await extensionPage.fill('#clientId', 'test-client');

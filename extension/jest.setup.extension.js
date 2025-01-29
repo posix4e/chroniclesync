@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 // Mock Chrome Extension API
 global.chrome = {
   runtime: {
@@ -5,19 +7,19 @@ global.chrome = {
       manifest_version: 3,
       version: '1.0'
     }),
-    sendMessage: jest.fn(),
+    sendMessage: vi.fn(),
     onMessage: {
-      addListener: jest.fn()
+      addListener: vi.fn()
     }
   },
   tabs: {
-    query: jest.fn(),
-    sendMessage: jest.fn()
+    query: vi.fn(),
+    sendMessage: vi.fn()
   },
   storage: {
     local: {
-      get: jest.fn(),
-      set: jest.fn()
+      get: vi.fn(),
+      set: vi.fn()
     }
   }
 };

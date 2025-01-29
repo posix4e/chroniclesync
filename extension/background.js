@@ -1,5 +1,13 @@
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+function logToBackground(message) {
+  chrome.runtime.getBackgroundPage((backgroundPage) => {
+    if (backgroundPage) {
+      backgroundPage.console.debug(message);
+    }
+  });
+}
+
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo, _tab) => {
   if (changeInfo.url) {
-    console.log('Navigation to:', changeInfo.url);
+    logToBackground(`Navigation to: ${changeInfo.url}`);
   }
 });

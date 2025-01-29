@@ -4,6 +4,7 @@ module.exports = {
     es2021: true,
     node: true,
     jest: true,
+    webextensions: true, // Add support for Chrome extension APIs
   },
   extends: ['eslint:recommended'],
   parserOptions: {

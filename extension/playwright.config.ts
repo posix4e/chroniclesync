@@ -1,46 +1,57 @@
 import { defineConfig } from '@playwright/test';
-import { paths } from './src/config';
+import { paths } from './config';
 
 export default defineConfig({
-  globalSetup: './e2e/global-setup.ts',
-  retries: process.env.CI ? 2 : 0,  // Retry failed tests in CI
   testDir: './e2e',
-  timeout: 30000,
-  expect: {
-    timeout: 5000
-  },
-  forbidOnly: true,  // Always prevent .only tests
-  workers: 1,  // Consistent, predictable test execution for extension tests
-  reporter: process.env.CI ? 'github' : 'list',
   use: {
-    headless: false, // Required for extension testing
+    headless: false,
+    // Base URL for page tests, can be overridden in individual tests
+    baseURL: process.env.API_URL || 'http://localhost:8787',
+    screenshot: 'on',  // Always capture screenshots
     viewport: { width: 1280, height: 720 },
-    actionTimeout: 10000,
-    screenshot: 'on',
-    trace: 'retain-on-failure',
-    video: 'retain-on-failure',
-    contextOptions: {
-      logger: {
-        isEnabled: () => true,
-        log: (name, severity, message) => console.log(`[${severity}] ${name}: ${message}`),
-      },
+    actionTimeout: 30000,  // Increase timeout for actions
+    navigationTimeout: 30000,  // Increase timeout for navigation
+    // Use persistent context for extension testing
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--enable-automation',  // Required for extension testing
+        '--allow-insecure-localhost',  // Allow local testing
+        '--disable-background-timer-throttling',  // Prevent background throttling
+        '--disable-backgrounding-occluded-windows',  // Keep background pages active
+        '--disable-renderer-backgrounding',  // Keep renderers active
+      ],
+      timeout: 30000,  // Increase launch timeout
     },
   },
   projects: [
     {
       name: 'chromium',
       use: {
-        browserName: 'chromium',
         launchOptions: {
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--disable-extensions-except=${paths.extension}`,
-            `--load-extension=${paths.extension}`,
+            '--enable-automation',  // Required for extension testing
+            '--allow-insecure-localhost',  // Allow local testing
+            '--disable-background-timer-throttling',  // Prevent background throttling
+            '--disable-backgrounding-occluded-windows',  // Keep background pages active
+            '--disable-renderer-backgrounding',  // Keep renderers active
+            `--disable-extensions-except=${paths.extensionDist}`,
+            `--load-extension=${paths.extensionDist}`,
           ],
+          timeout: 30000,  // Increase launch timeout
+        },
+        contextOptions: {
+          reducedMotion: 'reduce',  // Reduce animations
+          serviceWorkers: 'allow',  // Explicitly allow service workers
         },
       },
     },
   ],
-  outputDir: 'test-results/',
+  forbidOnly: true,  // Always prevent .only tests
+  workers: 1,  // Consistent, predictable test execution
+  reporter: process.env.CI ? 'github' : 'list',  // Better output formatting for each environment
+  globalSetup: './e2e/global-setup.ts',
 });

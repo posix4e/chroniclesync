@@ -1,54 +1,44 @@
 import React, { useState } from 'react';
-import '../popup.css';
+import { createRoot } from 'react-dom/client';
 
-export function App() {
-  const [initialized, setInitialized] = useState(false);
-  const [clientId, setClientId] = useState('');
+export function Popup() {
+  const [status, setStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
+  const [lastSync, setLastSync] = useState<string>('Never');
 
-  const handleInitialize = () => {
-    if (clientId) {
-      setInitialized(true);
+  const handleManualSync = async () => {
+    setStatus('syncing');
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'sync' });
+      if (response.success) {
+        setStatus('idle');
+        setLastSync(new Date().toLocaleTimeString());
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
     }
   };
 
-  const handleSync = () => {
-    alert('Sync successful');
-  };
-
   return (
-    <div className="app">
-      <h1>ChronicleSync</h1>
-      <div id="adminLogin">
-        <h2>Admin Login</h2>
-        <form>
-          <input
-            type="text"
-            id="clientId"
-            placeholder="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-          />
-          {!initialized ? (
-            <button type="button" onClick={handleInitialize}>Initialize</button>
-          ) : (
-            <button type="button" onClick={handleSync}>Sync with Server</button>
-          )}
-        </form>
+    <div className="popup">
+      <h2>ChronicleSync</h2>
+      <div className="status">
+        <p>Last sync: {lastSync}</p>
+        <p>Status: {status}</p>
       </div>
+      <button 
+        onClick={handleManualSync}
+        disabled={status === 'syncing'}
+      >
+        {status === 'syncing' ? 'Syncing...' : 'Sync Now'}
+      </button>
     </div>
   );
 }
 
-// Only mount if we're in a browser environment
-if (typeof document !== 'undefined') {
-  const root = document.getElementById('root');
-  if (root) {
-    import('react-dom/client').then((ReactDOM) => {
-      ReactDOM.createRoot(root).render(
-        <React.StrictMode>
-          <App />
-        </React.StrictMode>
-      );
-    });
-  }
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(<Popup />);
 }

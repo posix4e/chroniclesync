@@ -1,0 +1,28 @@
+body {
+  width: 400px;
+  height: 600px;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.history-entry {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-entry a {
+  display: block;
+  color: #333;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+
+.history-entry .timestamp {
+  font-size: 0.8em;
+  color: #666;
+}

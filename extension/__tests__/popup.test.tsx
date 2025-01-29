@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { App } from '../src/popup';
+import { Popup } from '../src/popup';
 
 describe('Popup Component', () => {
   beforeEach(() => {
@@ -15,84 +15,130 @@ describe('Popup Component', () => {
   });
 
   it('renders initial state correctly', () => {
-    render(<App />);
+    render(<Popup />);
     
     // Check for main elements
     expect(screen.getByText('ChronicleSync')).toBeInTheDocument();
-    expect(screen.getByText('Admin Login')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Client ID')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Initialize' })).toBeInTheDocument();
-    
-    // Sync button should not be visible initially
-    expect(screen.queryByRole('button', { name: 'Sync with Server' })).not.toBeInTheDocument();
+    expect(screen.getByText('Last sync: Never')).toBeInTheDocument();
+    expect(screen.getByText('Status: idle')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sync Now' })).toBeInTheDocument();
   });
 
-  it('shows sync button after initialization', async () => {
-    render(<App />);
-    
-    // Fill in client ID
-    const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
-    
-    // Click initialize button
-    const initButton = screen.getByRole('button', { name: 'Initialize' });
-    fireEvent.click(initButton);
-    
-    // Sync button should appear
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sync with Server' })).toBeInTheDocument();
-    });
-    
-    // Initialize button should be gone
-    expect(screen.queryByRole('button', { name: 'Initialize' })).not.toBeInTheDocument();
-  });
+  it('shows syncing state while syncing', async () => {
+    // Mock chrome.runtime.sendMessage
+    global.chrome = {
+      runtime: {
+        sendMessage: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))),
+        connect: vi.fn(),
+        connectNative: vi.fn(),
+        getBackgroundPage: vi.fn(),
+        getContexts: vi.fn(),
+        getManifest: vi.fn(),
+        getPackageDirectoryEntry: vi.fn(),
+        getPlatformInfo: vi.fn(),
+        getURL: vi.fn(),
+        reload: vi.fn(),
+        requestUpdateCheck: vi.fn(),
+        restart: vi.fn(),
+        restartAfterDelay: vi.fn(),
+        sendNativeMessage: vi.fn(),
+        setUninstallURL: vi.fn(),
+        openOptionsPage: vi.fn(),
+        id: 'test-extension-id'
+      } as unknown as typeof chrome.runtime
+    } as unknown as typeof chrome;
 
-  it('does not show sync button if client ID is empty', () => {
-    render(<App />);
-    
-    // Click initialize button without entering client ID
-    const initButton = screen.getByRole('button', { name: 'Initialize' });
-    fireEvent.click(initButton);
-    
-    // Initialize button should still be there
-    expect(screen.getByRole('button', { name: 'Initialize' })).toBeInTheDocument();
-    // Sync button should not appear
-    expect(screen.queryByRole('button', { name: 'Sync with Server' })).not.toBeInTheDocument();
-  });
-
-  it('shows success message after sync', async () => {
-    // Mock window.alert
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    
-    render(<App />);
-    
-    // Initialize with client ID
-    const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    render(<Popup />);
     
     // Click sync button
-    const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
+    const syncButton = screen.getByRole('button', { name: 'Sync Now' });
     fireEvent.click(syncButton);
     
-    // Check if alert was shown
-    expect(alertMock).toHaveBeenCalledWith('Sync successful');
+    // Button should show syncing state
+    expect(screen.getByRole('button', { name: 'Syncing...' })).toBeInTheDocument();
+    expect(screen.getByText('Status: syncing')).toBeInTheDocument();
     
-    // Clean up
-    alertMock.mockRestore();
+    // Wait for sync to complete
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sync Now' })).toBeInTheDocument();
+      expect(screen.getByText('Status: idle')).toBeInTheDocument();
+    });
   });
 
-  it('preserves client ID after initialization', () => {
-    render(<App />);
+  it('shows error state on sync failure', async () => {
+    // Mock chrome.runtime.sendMessage with error
+    global.chrome = {
+      runtime: {
+        sendMessage: vi.fn().mockRejectedValue(new Error('Sync failed')),
+        connect: vi.fn(),
+        connectNative: vi.fn(),
+        getBackgroundPage: vi.fn(),
+        getContexts: vi.fn(),
+        getManifest: vi.fn(),
+        getPackageDirectoryEntry: vi.fn(),
+        getPlatformInfo: vi.fn(),
+        getURL: vi.fn(),
+        reload: vi.fn(),
+        requestUpdateCheck: vi.fn(),
+        restart: vi.fn(),
+        restartAfterDelay: vi.fn(),
+        sendNativeMessage: vi.fn(),
+        setUninstallURL: vi.fn(),
+        openOptionsPage: vi.fn(),
+        id: 'test-extension-id'
+      } as unknown as typeof chrome.runtime
+    } as unknown as typeof chrome;
+
+    render(<Popup />);
     
-    // Fill in client ID
-    const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
+    // Click sync button
+    const syncButton = screen.getByRole('button', { name: 'Sync Now' });
+    fireEvent.click(syncButton);
     
-    // Click initialize button
-    fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    // Wait for error state
+    await waitFor(() => {
+      expect(screen.getByText('Status: error')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sync Now' })).toBeInTheDocument();
+    });
+  });
+
+  it('updates last sync time after successful sync', async () => {
+    // Mock chrome.runtime.sendMessage
+    global.chrome = {
+      runtime: {
+        sendMessage: vi.fn().mockResolvedValue({ success: true }),
+        connect: vi.fn(),
+        connectNative: vi.fn(),
+        getBackgroundPage: vi.fn(),
+        getContexts: vi.fn(),
+        getManifest: vi.fn(),
+        getPackageDirectoryEntry: vi.fn(),
+        getPlatformInfo: vi.fn(),
+        getURL: vi.fn(),
+        reload: vi.fn(),
+        requestUpdateCheck: vi.fn(),
+        restart: vi.fn(),
+        restartAfterDelay: vi.fn(),
+        sendNativeMessage: vi.fn(),
+        setUninstallURL: vi.fn(),
+        openOptionsPage: vi.fn(),
+        id: 'test-extension-id'
+      } as unknown as typeof chrome.runtime
+    } as unknown as typeof chrome;
+
+    render(<Popup />);
     
-    // Client ID should still be visible and have the same value
-    expect(screen.getByPlaceholderText('Client ID')).toHaveValue('test-client');
+    // Get initial last sync time
+    expect(screen.getByText('Last sync: Never')).toBeInTheDocument();
+    
+    // Click sync button
+    const syncButton = screen.getByRole('button', { name: 'Sync Now' });
+    fireEvent.click(syncButton);
+    
+    // Wait for sync to complete and check last sync time was updated
+    await waitFor(() => {
+      expect(screen.queryByText('Last sync: Never')).not.toBeInTheDocument();
+      expect(screen.getByText(/Last sync: .+/)).toBeInTheDocument();
+    });
   });
 });

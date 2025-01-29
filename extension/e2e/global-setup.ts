@@ -7,7 +7,7 @@ async function globalSetup() {
   try {
     // Build extension
     console.log('Building extension...');
-    execSync('npm run build:extension', { stdio: 'inherit' });
+    execSync('npm run build', { stdio: 'inherit' });
     console.log('Extension built successfully');
 
     // Verify Chromium installation

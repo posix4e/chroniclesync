@@ -43,9 +43,4 @@ export default defineConfig({
     },
   ],
   outputDir: 'test-results/',
-  webServer: {
-    command: 'npm run dev',
-    port: 54512,
-    reuseExistingServer: !process.env.CI,
-  },
 });

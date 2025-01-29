@@ -42,11 +42,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
-            worker/package-lock.json
+
+      - name: Test Worker
+        working-directory: worker
+        run: npm ci && npm run lint && npm run test:coverage
+
+      - name: Deploy Worker
+        id: deploy-worker
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            npm run deploy -- --env production
+          else
+            npm run deploy -- --env staging
+          fi
 
       - name: Test Pages
         working-directory: pages
@@ -54,9 +69,29 @@ jobs:
           API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
         run: |
           npm ci
+          npx playwright install --with-deps
           npm run lint
           npm run test
           npm run build
+
+          # Run tests in headless mode for all browsers if no specific browser is selected
+          if [ -z "${{ github.event.inputs.browser }}" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+              npx playwright test
+          else
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+              npx playwright test --project=${{ github.event.inputs.browser }}
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-pages
+          path: |
+            pages/playwright-report/
+            pages/test-results/
+          retention-days: 30
 
       - name: Test Extension
         working-directory: extension
@@ -81,9 +116,6 @@ jobs:
           path: chrome-extension.zip
           retention-days: 14
 
-      - name: Test Worker
-        working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
 
       - name: Deploy Pages
         if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
@@ -93,23 +125,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --branch main --commit-dirty=true; else npm run deploy -- --branch ${{ github.head_ref }} --commit-dirty=true; fi
 
-      - name: Deploy Worker
-        id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            npm run deploy -- --env production
-          else
-            npm run deploy -- --env staging
-          fi
 
-  playwright-tests:
+  playwright-tests-extension:
     needs: build-and-test
     if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser != '')
     runs-on: ubuntu-latest
@@ -119,28 +136,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
-
-      - name: Install dependencies and run page tests
-        working-directory: pages
-        env:
-          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
-          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
-          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
-        run: |
-          npm ci
-          npx playwright install --with-deps
-          # Run tests in headless mode for all browsers if no specific browser is selected
-          if [ -z "${{ github.event.inputs.browser }}" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-              npx playwright test
-          else
-            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-              npx playwright test --project=${{ github.event.inputs.browser }}
-          fi
 
       - name: Install dependencies and run extension tests
         working-directory: extension
@@ -159,19 +154,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports
+          name: playwright-reports-extension
           path: |
-            pages/playwright-report/
-            pages/test-results/
             extension/playwright-report/
             extension/test-results/
           retention-days: 30
-
-      - name: Rollback on failure
-        if: failure() && github.ref == 'refs/heads/main'
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler rollback --version ${{ needs.build-and-test.outputs.current_version }}

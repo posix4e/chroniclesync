@@ -141,6 +141,15 @@ jobs:
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test --project=${{ github.event.inputs.browser }}
           fi
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-pages
+          path: |
+            pages/playwright-report/
+            pages/test-results/
+          retention-days: 30
 
       - name: Install dependencies and run extension tests
         working-directory: extension
@@ -159,19 +168,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports
+          name: playwright-reports-extension
           path: |
-            pages/playwright-report/
-            pages/test-results/
             extension/playwright-report/
             extension/test-results/
           retention-days: 30
-
-      - name: Rollback on failure
-        if: failure() && github.ref == 'refs/heads/main'
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          wrangler rollback --version ${{ needs.build-and-test.outputs.current_version }}

@@ -2,6 +2,8 @@ import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
 
 export default defineConfig({
+  globalSetup: './e2e/global-setup.ts',
+  retries: process.env.CI ? 2 : 0,  // Retry failed tests in CI
   testDir: './e2e',
   timeout: 30000,
   expect: {
@@ -16,6 +18,13 @@ export default defineConfig({
     actionTimeout: 10000,
     screenshot: 'on',
     trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+    contextOptions: {
+      logger: {
+        isEnabled: () => true,
+        log: (name, severity, message) => console.log(`[${severity}] ${name}: ${message}`),
+      },
+    },
   },
   projects: [
     {

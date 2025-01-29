@@ -1,5 +1,5 @@
-import { test, expect } from './utils/extension';
-import { server } from '../config';
+import { test, expect, getExtensionUrl } from './utils/extension';
+import { server } from './test-config';
 
 test.describe('Chrome Extension', () => {
   test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
@@ -54,10 +54,10 @@ test.describe('Chrome Extension', () => {
     expect(errors).toEqual([]);
   });
 
-  test('popup should load React app correctly', async ({ context }) => {
+  test('popup should load React app correctly', async ({ context, extensionId }) => {
     // Open extension popup directly from extension directory
     const popupPage = await context.newPage();
-    await popupPage.goto(`file://${process.cwd()}/../extension/popup.html`);
+    await popupPage.goto(getExtensionUrl(extensionId, 'popup.html'));
 
     // Wait for the root element to be visible
     const rootElement = await popupPage.locator('#root');

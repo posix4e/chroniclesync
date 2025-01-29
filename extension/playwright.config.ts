@@ -1,5 +1,5 @@
 import { defineConfig } from '@playwright/test';
-import { paths, server } from '../pages/config';
+import { paths } from './src/config';
 
 export default defineConfig({
   testDir: './e2e',
@@ -35,8 +35,8 @@ export default defineConfig({
   ],
   outputDir: 'test-results/',
   webServer: {
-    command: 'cd ../pages && npm run dev',
-    port: Number(new URL(server.webUrl).port),
+    command: 'npm run dev',
+    port: 54512,
     reuseExistingServer: !process.env.CI,
   },
 });

@@ -1,7 +1,16 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Settings from '../settings.js';
 import { getConfig, saveConfig, defaultConfig } from '../config.js';
 
-jest.mock('../config.js');
+vi.mock('../config.js', () => ({
+  getConfig: vi.fn(),
+  saveConfig: vi.fn(),
+  defaultConfig: {
+    apiEndpoint: 'https://api.chroniclesync.xyz',
+    pagesUrl: 'https://chroniclesync.pages.dev',
+    clientId: 'extension-default'
+  }
+}));
 
 describe('Settings', () => {
   let settings;
@@ -16,20 +25,20 @@ describe('Settings', () => {
 
   afterEach(() => {
     document.body.innerHTML = '';
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  test('initializes with null config', () => {
+  it('initializes with null config', () => {
     expect(settings.config).toBeNull();
   });
 
-  test('init loads and renders config', async () => {
+  it('init loads and renders config', async () => {
     const mockConfig = {
       apiEndpoint: 'http://test-api.com',
       pagesUrl: 'http://test-pages.com',
       clientId: 'test-client'
     };
-    getConfig.mockResolvedValue(mockConfig);
+    vi.mocked(getConfig).mockResolvedValue(mockConfig);
 
     await settings.init();
 
@@ -39,7 +48,7 @@ describe('Settings', () => {
     expect(document.getElementById('clientId').value).toBe(mockConfig.clientId);
   });
 
-  test('handleSave updates config and shows success message', async () => {
+  it('handleSave updates config and shows success message', async () => {
     const newConfig = {
       apiEndpoint: 'http://new-api.com',
       pagesUrl: 'http://new-pages.com',
@@ -47,7 +56,7 @@ describe('Settings', () => {
     };
 
     settings.config = { ...defaultConfig };
-    saveConfig.mockResolvedValue(true);
+    vi.mocked(saveConfig).mockResolvedValue(true);
     
     const form = document.createElement('form');
     const apiEndpoint = document.createElement('input');
@@ -74,7 +83,7 @@ describe('Settings', () => {
     document.body.appendChild(messageEl);
 
     const mockEvent = {
-      preventDefault: jest.fn(),
+      preventDefault: vi.fn(),
       target: form
     };
 
@@ -85,9 +94,9 @@ describe('Settings', () => {
     expect(settings.config).toEqual(newConfig);
   });
 
-  test('handleReset resets to default config when confirmed', async () => {
-    global.confirm = jest.fn(() => true);
-    saveConfig.mockResolvedValue(true);
+  it('handleReset resets to default config when confirmed', async () => {
+    global.confirm = vi.fn(() => true);
+    vi.mocked(saveConfig).mockResolvedValue(true);
     
     settings.config = {
       apiEndpoint: 'http://custom-api.com',

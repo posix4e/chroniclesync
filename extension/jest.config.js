@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   testEnvironment: 'jsdom',
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
@@ -11,4 +11,5 @@ module.exports = {
     '!**/node_modules/**',
     '!**/dist/**',
   ],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
 };

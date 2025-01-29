@@ -1,6 +1,6 @@
-const baseConfig = require('./jest.config');
+import baseConfig from './jest.config.js';
 
-module.exports = {
+export default {
   ...baseConfig,
   testMatch: [
     '**/__tests__/**/*.extension.test.[jt]s?(x)',

@@ -1,5 +1,5 @@
 import { test as base, chromium, type BrowserContext } from '@playwright/test';
-import { paths } from '../../config';
+import { paths } from '../../src/config';
 
 export type TestFixtures = {
   context: BrowserContext;
@@ -36,3 +36,7 @@ export const test = base.extend<TestFixtures>({
 });
 
 export const expect = test.expect;
+
+export function getExtensionUrl(extensionId: string, path: string) {
+  return `chrome-extension://${extensionId}/${path}`;
+}

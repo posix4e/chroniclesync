@@ -10,8 +10,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "node server.js & xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
-    "test:e2e:ui": "node server.js & xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --ui",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

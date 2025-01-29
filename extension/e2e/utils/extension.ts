@@ -1,4 +1,5 @@
-import { test as base, chromium, type BrowserContext, type TestInfo } from '@playwright/test';
+/* eslint-disable react-hooks/rules-of-hooks */
+import { test as base, chromium, type BrowserContext } from '@playwright/test';
 import { paths } from '../../src/config';
 
 export type TestFixtures = {
@@ -7,7 +8,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async ({}, use) => {
+  context: async (_obj, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [

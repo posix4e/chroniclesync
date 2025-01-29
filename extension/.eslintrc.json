@@ -67,7 +67,7 @@
       }
     },
     {
-      "files": ["server.js"],
+      "files": ["server.js", "background.js"],
       "rules": {
         "no-console": "off"
       }

@@ -19,5 +19,5 @@
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "e2e", "*.ts", "*.tsx"]
+  "include": ["src", "e2e", "__tests__", "*.ts", "*.tsx"]
 }

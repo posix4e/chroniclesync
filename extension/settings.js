@@ -14,9 +14,9 @@ class Settings {
     event.preventDefault();
     const form = event.target;
     const newConfig = {
-      apiEndpoint: form.apiEndpoint.value.trim(),
-      pagesUrl: form.pagesUrl.value.trim(),
-      clientId: form.clientId.value.trim()
+      apiEndpoint: form.elements.apiEndpoint.value.trim(),
+      pagesUrl: form.elements.pagesUrl.value.trim(),
+      clientId: form.elements.clientId.value.trim()
     };
     
     if (await saveConfig(newConfig)) {

@@ -24,7 +24,8 @@
     "ecmaFeatures": {
       "jsx": true
     },
-    "project": "./tsconfig.json"
+    "project": ["./tsconfig.json"],
+    "tsconfigRootDir": "."
   },
   "plugins": [
     "@typescript-eslint",
@@ -70,6 +71,12 @@
       "files": ["server.js"],
       "rules": {
         "no-console": "off"
+      }
+    },
+    {
+      "files": ["background.js"],
+      "rules": {
+        "no-console": ["error", { "allow": ["debug"] }]
       }
     }
   ]

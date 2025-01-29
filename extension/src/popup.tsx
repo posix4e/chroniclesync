@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom/client';
 import '../popup.css';
 
-function App() {
+export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
 
@@ -40,8 +39,16 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Only mount if we're in a browser environment
+if (typeof document !== 'undefined') {
+  const root = document.getElementById('root');
+  if (root) {
+    import('react-dom/client').then((ReactDOM) => {
+      ReactDOM.createRoot(root).render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    });
+  }
+}

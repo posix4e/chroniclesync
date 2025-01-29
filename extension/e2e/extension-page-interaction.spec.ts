@@ -1,7 +1,5 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
-import { server } from './test-config';
-
-const EXTENSION_ID = 'pldpbhjjfaaophaoemeoebnlfpeahpkd';
+// No imports needed
 
 test.describe('Extension-Page Integration', () => {
   // Set up dialog handler for all tests

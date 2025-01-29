@@ -7,7 +7,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async ({}, use) => {
+  context: async (_obj, testInfo) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [
@@ -15,10 +15,10 @@ export const test = base.extend<TestFixtures>({
         `--load-extension=${paths.extension}`,
       ],
     });
-    await use(context);
+    testInfo.context = context;
     await context.close();
   },
-  extensionId: async ({ context }, use) => {
+  extensionId: async ({ context }, testInfo) => {
     // Open a page to trigger extension loading
     const page = await context.newPage();
     await page.goto('https://example.com');
@@ -30,7 +30,7 @@ export const test = base.extend<TestFixtures>({
       workers[0].url().split('/')[2] : 
       'unknown-extension-id';
 
-    await use(extensionId);
+    testInfo.extensionId = extensionId;
     await page.close();
   },
 });

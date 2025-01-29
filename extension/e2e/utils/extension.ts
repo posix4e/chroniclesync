@@ -8,7 +8,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async (_obj, use) => {
+  context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [

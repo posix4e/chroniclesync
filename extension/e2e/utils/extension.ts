@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base, chromium, type BrowserContext } from '@playwright/test';
 import { paths } from '../../src/config';
 
@@ -7,7 +8,7 @@ export type TestFixtures = {
 };
 
 export const test = base.extend<TestFixtures>({
-  context: async (_obj, testInfo) => {
+  context: async (_obj, use) => {
     const context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [
@@ -15,10 +16,10 @@ export const test = base.extend<TestFixtures>({
         `--load-extension=${paths.extension}`,
       ],
     });
-    testInfo.context = context;
+    await use(context);
     await context.close();
   },
-  extensionId: async ({ context }, testInfo) => {
+  extensionId: async ({ context }, use) => {
     // Open a page to trigger extension loading
     const page = await context.newPage();
     await page.goto('https://example.com');
@@ -30,7 +31,7 @@ export const test = base.extend<TestFixtures>({
       workers[0].url().split('/')[2] : 
       'unknown-extension-id';
 
-    testInfo.extensionId = extensionId;
+    await use(extensionId);
     await page.close();
   },
 });

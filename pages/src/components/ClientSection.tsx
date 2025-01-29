@@ -4,9 +4,10 @@ import { API_URL } from '../utils/api';
 
 interface ClientSectionProps {
   db: DB;
+  onClientIdSet?: (clientId: string) => void;
 }
 
-export function ClientSection({ db }: ClientSectionProps) {
+export function ClientSection({ db, onClientIdSet }: ClientSectionProps) {
   const [clientId, setClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -22,6 +23,7 @@ export function ClientSection({ db }: ClientSectionProps) {
       const initialData = await db.getData();
       setData(JSON.stringify(initialData, null, 2));
       setIsInitialized(true);
+      onClientIdSet?.(clientId);
       await syncData();
     } catch (error) {
       alert(`Error initializing client: ${error instanceof Error ? error.message : String(error)}`);

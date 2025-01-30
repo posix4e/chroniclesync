@@ -1,10 +1,11 @@
-import { test, expect } from '@playwright/test';
-import { config, paths } from '../src/config';
+import { test, expect } from './utils/extension';
+import { config } from '../src/config';
 
 test.describe('History Feature', () => {
-  test('should initialize with client ID and track history', async ({ page, context }) => {
+  test('should initialize with client ID and track history', async ({ context, extensionId }) => {
     // Load the extension popup
-    await page.goto(`file://${paths.popup}`);
+    const page = await context.newPage();
+    await page.goto(getExtensionUrl(extensionId, 'popup.html'));
     await page.screenshot({ path: 'test-results/popup-initial.png' });
 
     // Enter client ID
@@ -33,8 +34,9 @@ test.describe('History Feature', () => {
     await historyPage.screenshot({ path: 'test-results/history-page.png' });
   });
 
-  test('should handle invalid client ID', async ({ page }) => {
-    await page.goto(`file://${paths.popup}`);
+  test('should handle invalid client ID', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto(getExtensionUrl(extensionId, 'popup.html'));
 
     // Try to initialize without client ID
     await page.click('button:has-text("Initialize")');

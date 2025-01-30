@@ -69,7 +69,17 @@ export const test = base.extend<TestFixtures>({
       await page.goto('https://example.com');
       
       console.log('Waiting for extension to load...');
-      await page.waitForTimeout(2000); // Increased timeout
+      // Wait for extension to be loaded
+      let retries = 0;
+      const maxRetries = 5;
+      while (retries < maxRetries) {
+        const workers = await context.serviceWorkers();
+        if (workers.length > 0) {
+          break;
+        }
+        await page.waitForTimeout(1000);
+        retries++;
+      }
 
       // Get extension ID from service worker
       console.log('Getting service workers...');

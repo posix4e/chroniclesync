@@ -1,10 +1,10 @@
 export const config = {
-  workerUrl: process.env.WORKER_URL || 'http://localhost:53217'
+  workerUrl: process.env.API_URL || 'http://localhost:53540'
 };
 
 export const paths = {
-  extension: './dist',
-  manifest: './dist/manifest.json',
-  background: './dist/background.js',
-  popup: './dist/popup.html'
+  extension: '/workspace/chroniclesync/extension/dist',
+  manifest: '/workspace/chroniclesync/extension/dist/manifest.json',
+  background: '/workspace/chroniclesync/extension/dist/background.js',
+  popup: '/workspace/chroniclesync/extension/dist/popup.html'
 };

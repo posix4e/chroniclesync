@@ -63,6 +63,21 @@ describe('Popup Component', () => {
   it('shows success message after sync', async () => {
     // Mock window.alert
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    // Mock Chrome API
+    global.chrome = {
+      history: {
+        search: vi.fn().mockResolvedValue([
+          { url: 'https://example.com', title: 'Example', lastVisitTime: Date.now() }
+        ])
+      }
+    } as any;
+
+    // Mock fetch
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true })
+    });
     
     render(<App />);
     
@@ -76,10 +91,13 @@ describe('Popup Component', () => {
     fireEvent.click(syncButton);
     
     // Check if alert was shown
-    expect(alertMock).toHaveBeenCalledWith('Sync successful');
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith('Sync successful');
+    });
     
     // Clean up
     alertMock.mockRestore();
+    vi.restoreAllMocks();
   });
 
   it('preserves client ID after initialization', () => {
@@ -92,7 +110,12 @@ describe('Popup Component', () => {
     // Click initialize button
     fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
     
+    // Click settings button
+    const settingsButton = screen.getByRole('button', { name: 'Settings' });
+    fireEvent.click(settingsButton);
+    
     // Client ID should still be visible and have the same value
-    expect(screen.getByPlaceholderText('Client ID')).toHaveValue('test-client');
+    const settingsInput = screen.getByPlaceholderText('Client ID');
+    expect(settingsInput).toHaveValue('test-client');
   });
 });

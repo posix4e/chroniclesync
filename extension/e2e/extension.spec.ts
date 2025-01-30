@@ -190,10 +190,15 @@ test.describe('ChronicleSync Extension', () => {
           { url: 'https://www.mozilla.org', title: 'Mozilla', lastVisitTime: Date.now() }
         ];
 
-        // @ts-ignore
+        // @ts-expect-error Chrome API mock
         chrome.history = {
-          search: ({ text, startTime, maxResults }) => {
-            return Promise.resolve(mockHistory);
+          search: (_params) => {
+            return Promise.resolve(mockHistory.map(entry => ({
+              ...entry,
+              id: Math.random().toString(),
+              typedCount: 1,
+              visitCount: 1
+            })));
           }
         };
       });

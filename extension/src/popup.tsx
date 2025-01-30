@@ -51,9 +51,9 @@ export function App() {
       } else {
         throw new Error('Failed to sync history');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sync failed:', error);
-      alert('Sync failed: ' + (error.message || 'Unknown error'));
+      alert('Sync failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 

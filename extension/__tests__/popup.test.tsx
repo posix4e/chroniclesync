@@ -65,7 +65,7 @@ describe('Popup Component', () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
     // Mock Chrome API
-    (global.chrome as any) = {
+    (global.chrome as unknown) = {
       history: {
         search: vi.fn().mockResolvedValue([
           { url: 'https://example.com', title: 'Example', lastVisitTime: Date.now() }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { chromium } from 'playwright';
+import { chromium, Browser, BrowserContext } from 'playwright';
 import path from 'path';
 
 test.describe('History Sync Feature', () => {
@@ -25,6 +25,9 @@ test.describe('History Sync Feature', () => {
 
     // Open extension popup
     const extensionId = await getExtensionId(browser);
+    if (!extensionId) {
+      throw new Error('Could not find extension ID');
+    }
     const popupPage = await browser.newPage();
     await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
 
@@ -39,6 +42,9 @@ test.describe('History Sync Feature', () => {
 
     // Navigate to pages UI
     const pagesUrl = await popupPage.getAttribute('#pagesUrl', 'value');
+    if (!pagesUrl) {
+      throw new Error('Could not find pages URL');
+    }
     await page.goto(pagesUrl);
 
     // Take screenshot of history view
@@ -52,20 +58,26 @@ test.describe('History Sync Feature', () => {
   });
 });
 
-async function getExtensionId(context) {
+async function getExtensionId(context: BrowserContext): Promise<string | null> {
   const page = await context.newPage();
   await page.goto('chrome://extensions');
   const devMode = await page.$('text=Developer mode');
   if (devMode) await devMode.click();
   const id = await page.evaluate(() => {
-    const extensions = document.querySelector('extensions-manager').shadowRoot
-      .querySelector('extensions-item-list').shadowRoot
-      .querySelectorAll('extensions-item');
+    const manager = document.querySelector('extensions-manager');
+    if (!manager?.shadowRoot) return null;
+    
+    const itemList = manager.shadowRoot.querySelector('extensions-item-list');
+    if (!itemList?.shadowRoot) return null;
+    
+    const extensions = itemList.shadowRoot.querySelectorAll('extensions-item');
     for (const extension of extensions) {
-      if (extension.shadowRoot.querySelector('[title="ChronicleSync Extension"]')) {
+      const root = extension.shadowRoot;
+      if (root?.querySelector('[title="ChronicleSync Extension"]')) {
         return extension.id;
       }
     }
+    return null;
   });
   await page.close();
   return id;

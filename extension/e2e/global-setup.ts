@@ -1,5 +1,6 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { chromium } from '@playwright/test';
+import path from 'path';
 
 async function globalSetup() {
   console.log('Starting global setup...');
@@ -9,6 +10,16 @@ async function globalSetup() {
     console.log('Building extension...');
     execSync('npm run build', { stdio: 'inherit' });
     console.log('Extension built successfully');
+
+    // Start mock server
+    console.log('Starting mock server...');
+    const mockServerPath = path.join(process.cwd(), 'e2e', 'mock-server.js');
+    const mockServer = spawn('node', [mockServerPath], {
+      stdio: 'inherit',
+      detached: true,
+    });
+    mockServer.unref();
+    console.log('Mock server started');
 
     // Verify Chromium installation
     console.log('Checking Chromium installation...');

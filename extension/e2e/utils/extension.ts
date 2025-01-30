@@ -15,14 +15,17 @@ export const test = base.extend<TestFixtures>({
     
     try {
       const context = await chromium.launchPersistentContext('', {
-        headless: false,
+        headless: true,
         args: [
-          `--disable-extensions-except=${paths.extension}`,
-          `--load-extension=${paths.extension}`,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--enable-logging=stderr',
           '--v=1',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          `--disable-extensions-except=${paths.extension}`,
+          `--load-extension=${paths.extension}`,
         ],
         logger: {
           isEnabled: () => true,

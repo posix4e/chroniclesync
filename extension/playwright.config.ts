@@ -13,7 +13,7 @@ export default defineConfig({
   workers: 1,  // Consistent, predictable test execution for extension tests
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    headless: false, // Required for extension testing
+    headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10000,
     screenshot: 'on',

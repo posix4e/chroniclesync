@@ -1,4 +1,4 @@
-import { test, expect } from './utils/extension';
+import { test, expect, getExtensionUrl } from './utils/extension';
 import { config } from '../src/config';
 
 test.describe('History Feature', () => {

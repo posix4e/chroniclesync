@@ -1,5 +1,5 @@
 export const config = {
-  workerUrl: process.env.API_URL || 'http://localhost:53540'
+  workerUrl: 'http://localhost:53540'
 };
 
 export const paths = {

@@ -13,7 +13,7 @@ export default defineConfig({
         background: resolve(__dirname, 'background.js')
       },
       output: {
-        format: 'es',
+        format: 'cjs',
         entryFileNames: '[name].js',
         assetFileNames: 'assets/[name].[ext]',
         inlineDynamicImports: false

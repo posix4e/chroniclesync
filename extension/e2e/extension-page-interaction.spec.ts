@@ -1,4 +1,4 @@
-import { test, expect, getExtensionUrl } from './utils/extension';
+import { test, expect, getExtensionUrl } from './utils/test-utils';
 // No imports needed
 
 test.describe('Extension-Page Integration', () => {

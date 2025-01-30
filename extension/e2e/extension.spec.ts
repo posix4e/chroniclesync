@@ -1,4 +1,4 @@
-import { test, expect, getExtensionUrl } from './utils/extension';
+import { test, expect, getExtensionUrl } from './utils/test-utils';
 import { server } from './test-config';
 
 test.describe('Chrome Extension', () => {

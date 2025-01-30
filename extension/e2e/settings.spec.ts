@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { ExtensionPage } from './utils/extension';
+import { test, expect, getExtensionUrl } from './utils/test-utils';
+import ExtensionPage from './utils/extension';
 
 test.describe('Settings Workflow', () => {
   let extensionPage: ExtensionPage;

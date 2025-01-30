@@ -79,25 +79,13 @@ export const test = base.extend<TestFixtures>({
       await page.goto('https://example.com');
       
       console.log('Waiting for extension to load...');
-      // Wait for extension to be loaded
-      let retries = 0;
-      const maxRetries = 5;
-      while (retries < maxRetries) {
-        const workers = await context.serviceWorkers();
-        if (workers.length > 0) {
-          break;
-        }
-        await page.waitForTimeout(1000);
-        retries++;
-      }
-
       // Wait for background page to be available
       console.log('Waiting for background page...');
       let extensionId = 'unknown-extension-id';
-      let retries = 0;
-      const maxRetries = 10;
+      let attempts = 0;
+      const maxAttempts = 10;
 
-      while (retries < maxRetries) {
+      while (attempts < maxAttempts) {
         const backgroundPages = context.backgroundPages();
         console.log(`Found ${backgroundPages.length} background pages`);
         
@@ -115,7 +103,7 @@ export const test = base.extend<TestFixtures>({
         }
 
         await page.waitForTimeout(500);
-        retries++;
+        attempts++;
       }
 
       console.log('Extension ID:', extensionId);

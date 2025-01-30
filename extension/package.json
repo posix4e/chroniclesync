@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "node scripts/build-extension.js",
+    "build:extension": "ts-node scripts/build-extension.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

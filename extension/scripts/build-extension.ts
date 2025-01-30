@@ -1,4 +1,5 @@
-import { mkdir, rm, cp, readFile, writeFile } from 'fs/promises';
+/* eslint-disable no-console */
+import { mkdir, rm, cp } from 'fs/promises';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
@@ -8,7 +9,8 @@ const execAsync = promisify(exec);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
 const PACKAGE_DIR = join(ROOT_DIR, 'package');
-const DIST_DIR = join(ROOT_DIR, 'dist');
+
+type FileCopySpec = [string, string]; // [source, destination]
 
 async function main() {
   try {
@@ -24,7 +26,7 @@ async function main() {
     
     // Copy necessary files
     console.log('Copying files...');
-    const filesToCopy = [
+    const filesToCopy: FileCopySpec[] = [
       ['manifest.json', 'manifest.json'],
       ['popup.html', 'popup.html'],
       ['popup.css', 'popup.css'],

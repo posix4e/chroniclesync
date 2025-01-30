@@ -22,5 +22,15 @@ module.exports = {
         jest: true,
       },
     },
+    {
+      files: [
+        '**/e2e/**/*',
+        '**/scripts/**/*',
+        '**/playwright.config.ts'
+      ],
+      rules: {
+        'no-console': 'off'
+      }
+    }
   ],
 };

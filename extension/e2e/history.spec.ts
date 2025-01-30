@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { chromium, Browser, BrowserContext } from 'playwright';
+import { chromium, BrowserContext } from 'playwright';
 import path from 'path';
 
 test.describe('History Sync Feature', () => {

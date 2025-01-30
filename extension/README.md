@@ -30,7 +30,9 @@ The production package contains only the necessary files for the extension to ru
 ## Testing
 
 ### Prepare testing environment
+```
 npx playwright install --with-deps chromium
+```
 
 ### Basic testing
 ```bash
@@ -43,5 +45,6 @@ npm run test
 export API_URL="https://api-staging.chroniclesync.xyz"
 export DEBUG="pw:api"
 export PWDEBUG="1"
-npx playwright test
+# or no xvfb
+xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
 ```

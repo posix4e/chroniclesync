@@ -176,32 +176,58 @@ test.describe('ChronicleSync Extension', () => {
 
   test.describe('History Sync Feature', () => {
     test('should sync history and display in pages UI', async ({ context, extensionId }) => {
+      console.log('Starting history sync test...');
+      
       // Create test pages and generate history
+      console.log('Creating test page...');
       const testPage = await context.newPage();
-      await testPage.goto('https://example.com');
-      await testPage.goto('https://test.com');
-
+      
+      console.log('Navigating to example.com...');
+      await testPage.goto('https://example.com', { timeout: 30000 });
+      await testPage.waitForLoadState('networkidle', { timeout: 30000 });
+      
+      console.log('Navigating to test.com...');
+      await testPage.goto('https://test.com', { timeout: 30000 });
+      await testPage.waitForLoadState('networkidle', { timeout: 30000 });
+      
       // Open extension popup
+      console.log('Opening extension popup...');
       const popupPage = await context.newPage();
-      await popupPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      await popupPage.goto(getExtensionUrl(extensionId, 'popup.html'), { timeout: 30000 });
       
       // Wait for the popup to fully load
-      await popupPage.waitForLoadState('networkidle');
-      await popupPage.waitForLoadState('domcontentloaded');
+      console.log('Waiting for popup to load...');
+      await popupPage.waitForLoadState('networkidle', { timeout: 30000 });
+      await popupPage.waitForLoadState('domcontentloaded', { timeout: 30000 });
 
-      // Debug: Take screenshot of initial popup state
+      // Debug: Take screenshot and log content
+      console.log('Taking initial screenshot...');
       await popupPage.screenshot({ path: 'test-results/popup-initial.png' });
+      console.log('Initial popup content:', await popupPage.content());
 
       // Initialize client first (this is needed before settings)
-      await popupPage.waitForSelector('#clientId');
+      console.log('Looking for client ID input...');
+      await popupPage.waitForSelector('#clientId', { timeout: 30000 });
+      
+      console.log('Filling client ID...');
       await popupPage.fill('#clientId', 'test-client-id');
+      
+      console.log('Clicking Initialize...');
       await popupPage.click('text=Initialize');
-      await popupPage.waitForSelector('text=Sync with Server');
+      
+      console.log('Waiting for Sync button...');
+      await popupPage.waitForSelector('text=Sync with Server', { timeout: 30000 });
 
       // Try different selectors for settings
       try {
-        // Wait for any animations or transitions
+        console.log('Waiting for animations...');
         await popupPage.waitForTimeout(1000);
+        
+        // Take screenshot before looking for settings
+        console.log('Taking pre-settings screenshot...');
+        await popupPage.screenshot({ path: 'test-results/pre-settings.png' });
+        
+        console.log('Current page content:', await popupPage.content());
         
         // Try different possible selectors for the settings button
         const settingsSelectors = [
@@ -211,11 +237,17 @@ test.describe('ChronicleSync Extension', () => {
           '#settings-button',
           '.settings-button',
           'a:has-text("Settings")',
-          '[aria-label="Settings"]'
+          '[aria-label="Settings"]',
+          // Add more specific selectors based on the actual UI
+          'button >> text=Settings',
+          '.nav-link:has-text("Settings")',
+          '[role="button"]:has-text("Settings")'
         ];
 
+        console.log('Trying to find settings button...');
         let settingsElement = null;
         for (const selector of settingsSelectors) {
+          console.log('Trying selector:', selector);
           const element = await popupPage.$(selector);
           if (element) {
             settingsElement = element;
@@ -225,65 +257,118 @@ test.describe('ChronicleSync Extension', () => {
         }
 
         if (settingsElement) {
+          console.log('Clicking settings button...');
           await settingsElement.click();
         } else {
-          // If we can't find the settings button, let's log the page content
-          console.log('Page content:', await popupPage.content());
+          console.log('Could not find settings button. Page content:', await popupPage.content());
           throw new Error('Could not find settings button with any known selector');
         }
 
         // Wait for settings form
-        await popupPage.waitForSelector('#clientId', { state: 'visible' });
+        console.log('Waiting for settings form...');
+        await popupPage.waitForSelector('#clientId', { state: 'visible', timeout: 30000 });
+        
+        console.log('Filling client ID in settings...');
         await popupPage.fill('#clientId', 'test-client-id');
         
         // Try different selectors for save button
-        const saveButton = await popupPage.$([
+        console.log('Looking for save button...');
+        const saveSelectors = [
           'text=Save Settings',
           'button:has-text("Save")',
           '[type="submit"]',
           '#save-settings',
-          '.save-button'
-        ].join(','));
+          '.save-button',
+          // Add more specific selectors
+          'button >> text=Save',
+          '[role="button"]:has-text("Save")',
+          'input[type="submit"]'
+        ];
+
+        let saveButton = null;
+        for (const selector of saveSelectors) {
+          console.log('Trying save button selector:', selector);
+          const element = await popupPage.$(selector);
+          if (element) {
+            saveButton = element;
+            console.log('Found save button with selector:', selector);
+            break;
+          }
+        }
         
         if (saveButton) {
+          console.log('Clicking save button...');
           await saveButton.click();
+        } else {
+          console.log('Could not find save button. Page content:', await popupPage.content());
+          throw new Error('Could not find save button with any known selector');
         }
 
         // Wait for success message with more flexibility
-        const messageElement = await popupPage.waitForSelector([
+        console.log('Waiting for success message...');
+        const messageSelectors = [
           '.message',
           '.success-message',
           '[role="alert"]',
-          '.notification'
-        ].join(','), { timeout: 5000 });
+          '.notification',
+          // Add more specific selectors
+          '[data-testid="success-message"]',
+          '.toast-success',
+          '.alert-success'
+        ].join(',');
+
+        const messageElement = await popupPage.waitForSelector(messageSelectors, { 
+          timeout: 30000,
+          state: 'visible'
+        });
         
         const message = await messageElement.textContent();
+        console.log('Success message:', message);
         expect(message?.toLowerCase()).toContain('success');
 
       } catch (error) {
+        console.log('Error in settings flow:', error);
         // Take screenshot on error for debugging
         await popupPage.screenshot({ path: 'test-results/settings-error.png' });
         throw error;
       }
 
       // Navigate to pages UI and verify history
+      console.log('Getting pages URL...');
       const pagesUrl = await popupPage.getAttribute('#pagesUrl', 'value') || 
                       await popupPage.evaluate(() => window.location.origin);
+      console.log('Pages URL:', pagesUrl);
       expect(pagesUrl).toBeTruthy();
       
-      await testPage.goto(pagesUrl);
-      await testPage.waitForLoadState('networkidle');
+      console.log('Navigating to pages UI...');
+      await testPage.goto(pagesUrl, { timeout: 30000 });
+      await testPage.waitForLoadState('networkidle', { timeout: 30000 });
       
       // Take screenshot of history view
+      console.log('Taking history view screenshot...');
       await testPage.screenshot({ path: 'test-results/history-view.png' });
 
+      // Log the page content for debugging
+      console.log('History page content:', await testPage.content());
+
       // Wait for history entries with more flexibility
-      const historyEntries = await testPage.$$([
+      console.log('Looking for history entries...');
+      const historySelectors = [
         '.history-entry',
         '.history-item',
         '[data-testid="history-entry"]',
-        '.history-record'
-      ].join(','));
+        '.history-record',
+        // Add more specific selectors
+        '.history-list-item',
+        '[data-type="history"]',
+        '.browser-history-item'
+      ].join(',');
+
+      console.log('Waiting for history entries to appear...');
+      await testPage.waitForSelector(historySelectors, { timeout: 30000 });
+
+      const historyEntries = await testPage.$$(historySelectors);
+      console.log('Found history entries:', historyEntries.length);
       
       expect(historyEntries.length).toBeGreaterThan(0);
     });

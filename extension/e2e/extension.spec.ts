@@ -114,11 +114,11 @@ test.describe('ChronicleSync Extension', () => {
       const extensionPage = await context.newPage();
       
       await extensionPage.route('**/*', async (route, request) => {
-        if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+        if (request.url().includes('api-staging.chroniclesync.xyz') && request.method() === 'POST') {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ message: 'Sync successful' })
+            body: JSON.stringify({ success: true })
           });
         } else {
           await route.continue();
@@ -149,11 +149,11 @@ test.describe('ChronicleSync Extension', () => {
       });
 
       await extensionPage.route('**/*', async (route, request) => {
-        if (request.url().includes('api.chroniclesync.xyz') && request.method() === 'POST') {
+        if (request.url().includes('api-staging.chroniclesync.xyz') && request.method() === 'POST') {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ message: 'Sync successful' })
+            body: JSON.stringify({ success: true })
           });
         } else {
           await route.continue();

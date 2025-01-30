@@ -11,7 +11,7 @@ export function App() {
     if (clientId) {
       setInitialized(true);
       // Set production pages URL
-      setPagesUrl('https://pages.chroniclesync.xyz');
+      setPagesUrl('https://chroniclesync.xyz/');
     }
   };
 

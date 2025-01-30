@@ -65,13 +65,36 @@ describe('Popup Component', () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
     // Mock Chrome API
-    global.chrome = {
+    (global.chrome as any) = {
       history: {
         search: vi.fn().mockResolvedValue([
           { url: 'https://example.com', title: 'Example', lastVisitTime: Date.now() }
-        ])
+        ]),
+        addUrl: vi.fn(),
+        deleteRange: vi.fn(),
+        deleteAll: vi.fn(),
+        getVisits: vi.fn(),
+        deleteUrl: vi.fn(),
+        onVisited: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          hasListener: vi.fn(),
+          addRules: vi.fn(),
+          getRules: vi.fn(),
+          removeRules: vi.fn(),
+          hasListeners: vi.fn()
+        },
+        onVisitRemoved: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          hasListener: vi.fn(),
+          addRules: vi.fn(),
+          getRules: vi.fn(),
+          removeRules: vi.fn(),
+          hasListeners: vi.fn()
+        }
       }
-    } as Chrome.History.HistoryApi;
+    };
 
     // Mock fetch
     global.fetch = vi.fn().mockResolvedValue({

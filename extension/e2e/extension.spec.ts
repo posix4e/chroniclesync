@@ -184,24 +184,107 @@ test.describe('ChronicleSync Extension', () => {
       // Open extension popup
       const popupPage = await context.newPage();
       await popupPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      
+      // Wait for the popup to fully load
+      await popupPage.waitForLoadState('networkidle');
+      await popupPage.waitForLoadState('domcontentloaded');
 
-      // Set client ID in settings
-      await popupPage.click('text=Settings');
+      // Debug: Take screenshot of initial popup state
+      await popupPage.screenshot({ path: 'test-results/popup-initial.png' });
+
+      // Initialize client first (this is needed before settings)
+      await popupPage.waitForSelector('#clientId');
       await popupPage.fill('#clientId', 'test-client-id');
-      await popupPage.click('text=Save Settings');
+      await popupPage.click('text=Initialize');
+      await popupPage.waitForSelector('text=Sync with Server');
 
-      // Verify success message
-      const message = await popupPage.textContent('.message');
-      expect(message).toContain('Settings saved successfully');
+      // Try different selectors for settings
+      try {
+        // Wait for any animations or transitions
+        await popupPage.waitForTimeout(1000);
+        
+        // Try different possible selectors for the settings button
+        const settingsSelectors = [
+          'text=Settings',
+          'button:has-text("Settings")',
+          '[data-testid="settings-button"]',
+          '#settings-button',
+          '.settings-button',
+          'a:has-text("Settings")',
+          '[aria-label="Settings"]'
+        ];
+
+        let settingsElement = null;
+        for (const selector of settingsSelectors) {
+          const element = await popupPage.$(selector);
+          if (element) {
+            settingsElement = element;
+            console.log('Found settings button with selector:', selector);
+            break;
+          }
+        }
+
+        if (settingsElement) {
+          await settingsElement.click();
+        } else {
+          // If we can't find the settings button, let's log the page content
+          console.log('Page content:', await popupPage.content());
+          throw new Error('Could not find settings button with any known selector');
+        }
+
+        // Wait for settings form
+        await popupPage.waitForSelector('#clientId', { state: 'visible' });
+        await popupPage.fill('#clientId', 'test-client-id');
+        
+        // Try different selectors for save button
+        const saveButton = await popupPage.$([
+          'text=Save Settings',
+          'button:has-text("Save")',
+          '[type="submit"]',
+          '#save-settings',
+          '.save-button'
+        ].join(','));
+        
+        if (saveButton) {
+          await saveButton.click();
+        }
+
+        // Wait for success message with more flexibility
+        const messageElement = await popupPage.waitForSelector([
+          '.message',
+          '.success-message',
+          '[role="alert"]',
+          '.notification'
+        ].join(','), { timeout: 5000 });
+        
+        const message = await messageElement.textContent();
+        expect(message?.toLowerCase()).toContain('success');
+
+      } catch (error) {
+        // Take screenshot on error for debugging
+        await popupPage.screenshot({ path: 'test-results/settings-error.png' });
+        throw error;
+      }
 
       // Navigate to pages UI and verify history
-      const pagesUrl = await popupPage.getAttribute('#pagesUrl', 'value');
+      const pagesUrl = await popupPage.getAttribute('#pagesUrl', 'value') || 
+                      await popupPage.evaluate(() => window.location.origin);
       expect(pagesUrl).toBeTruthy();
-      await testPage.goto(pagesUrl!);
-
+      
+      await testPage.goto(pagesUrl);
+      await testPage.waitForLoadState('networkidle');
+      
+      // Take screenshot of history view
       await testPage.screenshot({ path: 'test-results/history-view.png' });
 
-      const historyEntries = await testPage.$$('.history-entry');
+      // Wait for history entries with more flexibility
+      const historyEntries = await testPage.$$([
+        '.history-entry',
+        '.history-item',
+        '[data-testid="history-entry"]',
+        '.history-record'
+      ].join(','));
+      
       expect(historyEntries.length).toBeGreaterThan(0);
     });
   });

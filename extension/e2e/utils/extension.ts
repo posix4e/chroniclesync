@@ -14,7 +14,7 @@ export const test = base.extend<TestFixtures>({
     console.log('Extension path:', paths.extension);
     
     try {
-      const context = await chromium.launchPersistentContext('', {
+      const browser = await chromium.launch({
         headless: true,
         args: [
           '--no-sandbox',
@@ -34,7 +34,9 @@ export const test = base.extend<TestFixtures>({
           `--disable-extensions-except=${paths.extension}`,
           `--load-extension=${paths.extension}`,
         ],
-        ignoreDefaultArgs: ['--disable-extensions'],
+      });
+
+      const context = await browser.newContext({
         viewport: { width: 1280, height: 720 },
         acceptDownloads: true,
         logger: {
@@ -60,9 +62,9 @@ export const test = base.extend<TestFixtures>({
 
       await use(context);
       
-      console.log('Test completed, closing context...');
-      await context.close();
-      console.log('Context closed successfully');
+      console.log('Test completed, closing browser...');
+      await browser.close();
+      console.log('Browser closed successfully');
     } catch (error) {
       console.error('Error in browser context:', error);
       throw error;

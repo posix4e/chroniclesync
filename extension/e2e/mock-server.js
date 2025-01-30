@@ -22,6 +22,13 @@ app.get('/history/:clientId', (req, res) => {
   });
 });
 
-app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Mock server running at http://localhost:${port}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${port} is already in use, assuming mock server is already running`);
+  } else {
+    console.error('Error starting mock server:', err);
+    process.exit(1);
+  }
 });

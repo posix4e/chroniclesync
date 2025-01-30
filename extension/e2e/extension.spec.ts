@@ -182,6 +182,29 @@ test.describe('ChronicleSync Extension', () => {
       // Create test pages and generate history
       console.log('Creating test page...');
       const testPage = await context.newPage();
+
+      // Mock API endpoints
+      await testPage.route('**/api/auth/login', async route => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, token: 'mock-token' })
+        });
+      });
+
+      await testPage.route('**/api/history', async route => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              { url: 'https://example.com', title: 'Example Domain', timestamp: new Date().toISOString() },
+              { url: 'https://www.mozilla.org', title: 'Mozilla', timestamp: new Date().toISOString() }
+            ]
+          })
+        });
+      });
       
       // Mock browser history API
       await testPage.addInitScript(() => {
@@ -365,16 +388,31 @@ test.describe('ChronicleSync Extension', () => {
       console.log('History page content:', await testPage.content());
 
       // Wait for history entries with more flexibility
+      // Initialize client
+      console.log('Initializing client...');
+      await testPage.fill('#clientId', 'test-client-id');
+      await testPage.click('text=Initialize');
+      await testPage.waitForTimeout(1000);
+
+      // Log in as admin
+      console.log('Logging in as admin...');
+      await testPage.fill('input[type="password"]', 'admin');
+      await testPage.click('text=Login');
+      await testPage.waitForTimeout(1000);
+
+      // Wait for history section
       console.log('Looking for history entries...');
       const historySelectors = [
         '.history-entry',
         '.history-item',
         '[data-testid="history-entry"]',
         '.history-record',
-        // Add more specific selectors
         '.history-list-item',
         '[data-type="history"]',
-        '.browser-history-item'
+        '.browser-history-item',
+        '#historySection',
+        '.history-container',
+        '[data-testid="history-container"]'
       ].join(',');
 
       console.log('Waiting for history entries to appear...');

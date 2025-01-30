@@ -71,14 +71,16 @@ jobs:
       - name: Package Chrome Extension
         working-directory: extension
         run: |
-          cd ..
-          zip -r chrome-extension.zip extension/
+          # Install zip utility
+          sudo apt-get update && sudo apt-get install -y zip
+          # Run build script with ESM support
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
-          path: chrome-extension.zip
+          path: extension/chrome-extension.zip
           retention-days: 14
 
       - name: Test Worker
@@ -150,7 +152,6 @@ jobs:
           cache-dependency-path: |
             pages/package-lock.json
             extension/package-lock.json
-
 
       - name: Install dependencies and run extension tests
         working-directory: extension

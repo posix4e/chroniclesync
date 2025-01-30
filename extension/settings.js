@@ -3,11 +3,15 @@ import { getConfig, saveConfig, defaultConfig } from './config.js';
 class Settings {
   constructor() {
     this.config = null;
+    console.log('Settings class initialized');
   }
 
   async init() {
+    console.log('Settings init started');
     this.config = await getConfig();
+    console.log('Config loaded:', this.config);
     this.render();
+    console.log('Settings rendered');
   }
 
   async handleSave(event) {
@@ -16,7 +20,8 @@ class Settings {
     const newConfig = {
       apiEndpoint: form.elements.apiEndpoint.value.trim(),
       pagesUrl: form.elements.pagesUrl.value.trim(),
-      clientId: form.elements.clientId.value.trim()
+      clientId: form.elements.clientId.value.trim(),
+      firstRun: false
     };
     
     if (await saveConfig(newConfig)) {

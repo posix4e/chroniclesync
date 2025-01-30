@@ -8,7 +8,8 @@ vi.mock('../config.js', () => ({
   defaultConfig: {
     apiEndpoint: 'https://api.chroniclesync.xyz',
     pagesUrl: 'https://chroniclesync.pages.dev',
-    clientId: 'extension-default'
+    clientId: 'extension-default',
+    firstRun: true
   }
 }));
 
@@ -52,7 +53,8 @@ describe('Settings', () => {
     const newConfig = {
       apiEndpoint: 'http://new-api.com',
       pagesUrl: 'http://new-pages.com',
-      clientId: 'new-client'
+      clientId: 'new-client',
+      firstRun: false
     };
 
     settings.config = { ...defaultConfig };
@@ -109,5 +111,66 @@ describe('Settings', () => {
     expect(global.confirm).toHaveBeenCalled();
     expect(saveConfig).toHaveBeenCalledWith(defaultConfig);
     expect(settings.config).toEqual(defaultConfig);
+  });
+
+  it('sets firstRun to false after saving config', async () => {
+    const newConfig = {
+      apiEndpoint: 'http://new-api.com',
+      pagesUrl: 'http://new-pages.com',
+      clientId: 'new-client',
+      firstRun: true
+    };
+
+    settings.config = { ...defaultConfig };
+    vi.mocked(saveConfig).mockResolvedValue(true);
+    
+    const form = document.createElement('form');
+    const apiEndpoint = document.createElement('input');
+    apiEndpoint.id = 'apiEndpoint';
+    apiEndpoint.name = 'apiEndpoint';
+    apiEndpoint.value = newConfig.apiEndpoint;
+    form.appendChild(apiEndpoint);
+
+    const pagesUrl = document.createElement('input');
+    pagesUrl.id = 'pagesUrl';
+    pagesUrl.name = 'pagesUrl';
+    pagesUrl.value = newConfig.pagesUrl;
+    form.appendChild(pagesUrl);
+
+    const clientId = document.createElement('input');
+    clientId.id = 'clientId';
+    clientId.name = 'clientId';
+    clientId.value = newConfig.clientId;
+    form.appendChild(clientId);
+
+    const messageEl = document.createElement('div');
+    messageEl.id = 'settings-message';
+    document.body.appendChild(messageEl);
+
+    const mockEvent = {
+      preventDefault: vi.fn(),
+      target: form
+    };
+
+    await settings.handleSave(mockEvent);
+
+    expect(saveConfig).toHaveBeenCalledWith({
+      ...newConfig,
+      firstRun: false
+    });
+  });
+
+  it('loads firstRun status from config', async () => {
+    const mockConfig = {
+      apiEndpoint: 'http://test-api.com',
+      pagesUrl: 'http://test-pages.com',
+      clientId: 'test-client',
+      firstRun: true
+    };
+    vi.mocked(getConfig).mockResolvedValue(mockConfig);
+
+    await settings.init();
+
+    expect(settings.config.firstRun).toBe(true);
   });
 });

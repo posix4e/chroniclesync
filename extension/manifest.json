@@ -3,9 +3,7 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
-  "action": {
-    "default_popup": "popup.html"
-  },
+  "action": {},
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -20,6 +18,11 @@
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
-    "https://api-staging.chroniclesync.xyz/*"
-  ]
+    "https://api-staging.chroniclesync.xyz/*",
+    "https://chroniclesync.pages.dev/*"
+  ],
+  "web_accessible_resources": [{
+    "resources": ["settings.html", "settings.js", "settings.css", "settings-init.js"],
+    "matches": ["<all_urls>"]
+  }]
 }

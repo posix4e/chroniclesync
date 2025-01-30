@@ -15,10 +15,27 @@ h2 {
   font-size: 18px;
 }
 
-#adminLogin {
+#adminLogin, #settings, #syncPanel {
   padding: 15px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  margin-top: 10px;
+}
+
+.nav-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.settings-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  background: #666;
+}
+
+.settings-button:hover {
+  background: #555;
 }
 
 form {
@@ -31,6 +48,8 @@ input {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 button {
@@ -44,4 +63,22 @@ button {
 
 button:hover {
   background: #0052a3;
+}
+
+#pagesUrl {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.message {
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.success-message {
+  background-color: #dff0d8;
+  color: #3c763d;
+  border: 1px solid #d6e9c6;
 }

@@ -4,37 +4,124 @@ import '../popup.css';
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [pagesUrl, setPagesUrl] = useState('');
 
   const handleInitialize = () => {
     if (clientId) {
       setInitialized(true);
+      // Set a default pages URL for testing
+      setPagesUrl('http://localhost:52285/pages');
     }
   };
 
-  const handleSync = () => {
-    alert('Sync successful');
+  const handleSync = async () => {
+    try {
+      // Mock history sync for testing
+      const mockHistory = [
+        { url: 'https://example.com', title: 'Example Domain', timestamp: new Date().toISOString() },
+        { url: 'https://www.mozilla.org', title: 'Mozilla', timestamp: new Date().toISOString() }
+      ];
+
+      // Send history to pages UI server
+      const response = await fetch('http://localhost:52285/api/history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mockHistory)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync history');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        alert('Sync successful');
+      } else {
+        throw new Error('Failed to sync history');
+      }
+    } catch (error: any) {
+      console.error('Sync failed:', error);
+      alert('Sync failed: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleSaveSettings = () => {
+    if (clientId) {
+      setShowSettings(false);
+      setSuccessMessage('Settings saved successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
   };
 
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
-      <div id="adminLogin">
-        <h2>Admin Login</h2>
-        <form>
+      {successMessage && (
+        <div className="message success-message" role="alert">
+          {successMessage}
+        </div>
+      )}
+      <div className="nav-buttons">
+        {initialized && (
+          <button 
+            type="button" 
+            className="settings-button"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            Settings
+          </button>
+        )}
+      </div>
+      
+      {!initialized && (
+        <div id="adminLogin">
+          <h2>Admin Login</h2>
+          <form>
+            <input
+              type="text"
+              id="clientId"
+              placeholder="Client ID"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+            <button type="button" onClick={handleInitialize}>Initialize</button>
+          </form>
+        </div>
+      )}
+
+      {initialized && !showSettings && (
+        <div id="syncPanel">
+          <button type="button" onClick={handleSync}>Sync with Server</button>
           <input
             type="text"
-            id="clientId"
-            placeholder="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+            id="pagesUrl"
+            value={pagesUrl}
+            readOnly
+            style={{ marginTop: '10px', width: '100%' }}
           />
-          {!initialized ? (
-            <button type="button" onClick={handleInitialize}>Initialize</button>
-          ) : (
-            <button type="button" onClick={handleSync}>Sync with Server</button>
-          )}
-        </form>
-      </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div id="settings">
+          <h2>Settings</h2>
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveSettings(); }}>
+            <input
+              type="text"
+              id="clientId"
+              placeholder="Client ID"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+            <button type="submit">Save Settings</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

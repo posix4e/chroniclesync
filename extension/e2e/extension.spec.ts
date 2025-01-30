@@ -1,5 +1,32 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 import { server } from './test-config';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+let pagesServer: any;
+
+test.beforeAll(async () => {
+  // Start pages UI server
+  const serverPath = join(__dirname, 'pages-server.js');
+  pagesServer = spawn('node', [serverPath], {
+    stdio: 'inherit',
+    env: { ...process.env, PORT: '52285' }
+  });
+
+  // Wait for server to start
+  await new Promise(resolve => setTimeout(resolve, 2000));
+});
+
+test.afterAll(async () => {
+  // Stop pages UI server
+  if (pagesServer) {
+    pagesServer.kill();
+  }
+});
 
 test.describe('ChronicleSync Extension', () => {
   // Set up dialog handler for all tests
@@ -186,8 +213,8 @@ test.describe('ChronicleSync Extension', () => {
       await testPage.goto('https://example.com', { timeout: 30000 });
       await testPage.waitForLoadState('networkidle', { timeout: 30000 });
       
-      console.log('Navigating to test.com...');
-      await testPage.goto('https://test.com', { timeout: 30000 });
+      console.log('Navigating to mozilla.org...');
+      await testPage.goto('https://www.mozilla.org', { timeout: 30000 });
       await testPage.waitForLoadState('networkidle', { timeout: 30000 });
       
       // Open extension popup

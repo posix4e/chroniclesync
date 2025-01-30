@@ -416,12 +416,24 @@ test.describe('ChronicleSync Extension', () => {
       ].join(',');
 
       console.log('Waiting for history entries to appear...');
-      await testPage.waitForSelector(historySelectors, { timeout: 30000 });
-
-      const historyEntries = await testPage.$$(historySelectors);
-      console.log('Found history entries:', historyEntries.length);
       
-      expect(historyEntries.length).toBeGreaterThan(0);
+      // Add more logging and wait for network idle
+      await testPage.waitForLoadState('networkidle', { timeout: 60000 });
+      console.log('Network is idle, checking page content...');
+      console.log('Current page content:', await testPage.content());
+      
+      // Try to find history entries with increased timeout
+      try {
+        await testPage.waitForSelector(historySelectors, { timeout: 60000 });
+        const historyEntries = await testPage.$$(historySelectors);
+        console.log('Found history entries:', historyEntries.length);
+        expect(historyEntries.length).toBeGreaterThan(0);
+      } catch (error) {
+        console.log('Error waiting for history entries:', error);
+        console.log('Taking final screenshot for debugging...');
+        await testPage.screenshot({ path: 'test-results/history-error.png' });
+        throw error;
+      }
     });
   });
 

@@ -29,10 +29,14 @@ export const test = base.extend<TestFixtures>({
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
+          '--enable-experimental-extension-apis',
+          '--enable-extensions',
           `--disable-extensions-except=${paths.extension}`,
           `--load-extension=${paths.extension}`,
         ],
         ignoreDefaultArgs: ['--disable-extensions'],
+        viewport: { width: 1280, height: 720 },
+        acceptDownloads: true,
         logger: {
           isEnabled: () => true,
           log: (name, severity, message) => console.log(`[${severity}] ${name}: ${message}`),
@@ -87,26 +91,34 @@ export const test = base.extend<TestFixtures>({
         retries++;
       }
 
-      // Get extension ID from service worker
-      console.log('Getting service workers...');
-      const workers = await context.serviceWorkers();
-      console.log(`Found ${workers.length} service workers`);
-      
-      for (const worker of workers) {
-        console.log('Service worker URL:', worker.url());
+      // Wait for background page to be available
+      console.log('Waiting for background page...');
+      let extensionId = 'unknown-extension-id';
+      let retries = 0;
+      const maxRetries = 10;
+
+      while (retries < maxRetries) {
+        const backgroundPages = context.backgroundPages();
+        console.log(`Found ${backgroundPages.length} background pages`);
+        
+        for (const bgPage of backgroundPages) {
+          console.log('Background page URL:', bgPage.url());
+          const match = bgPage.url().match(/chrome-extension:\/\/([^/]+)/);
+          if (match) {
+            extensionId = match[1];
+            break;
+          }
+        }
+
+        if (extensionId !== 'unknown-extension-id') {
+          break;
+        }
+
+        await page.waitForTimeout(500);
+        retries++;
       }
 
-      const extensionId = workers.length ? 
-        workers[0].url().split('/')[2] : 
-        'unknown-extension-id';
       console.log('Extension ID:', extensionId);
-
-      // Additional debugging: check background page
-      const backgroundPages = context.backgroundPages();
-      console.log(`Found ${backgroundPages.length} background pages`);
-      for (const bgPage of backgroundPages) {
-        console.log('Background page URL:', bgPage.url());
-      }
 
       await use(extensionId);
       

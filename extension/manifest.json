@@ -21,5 +21,9 @@
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*"
-  ]
+  ],
+  "web_accessible_resources": [{
+    "resources": ["settings.html"],
+    "matches": ["<all_urls>"]
+  }]
 }

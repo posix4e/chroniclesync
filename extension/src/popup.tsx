@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../popup.css';
+import { getConfig } from '../config.js';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
+  const [config, setConfig] = useState(null);
 
-  const handleInitialize = () => {
-    if (clientId) {
-      setInitialized(true);
-    }
-  };
+  useEffect(() => {
+    const loadConfig = async () => {
+      const cfg = await getConfig();
+      setConfig(cfg);
+      setClientId(cfg.clientId);
+      setInitialized(!!cfg.clientId);
+    };
+    loadConfig();
+  }, []);
 
   const handleSync = () => {
     alert('Sync successful');
+  };
+
+  const openSettings = () => {
+    const settingsUrl = chrome.runtime.getURL('settings.html');
+    chrome.windows.create({
+      url: settingsUrl,
+      type: 'popup',
+      width: 500,
+      height: 600
+    });
   };
 
   return (
@@ -20,20 +36,22 @@ export function App() {
       <h1>ChronicleSync</h1>
       <div id="adminLogin">
         <h2>Admin Login</h2>
-        <form>
-          <input
-            type="text"
-            id="clientId"
-            placeholder="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-          />
-          {!initialized ? (
-            <button type="button" onClick={handleInitialize}>Initialize</button>
-          ) : (
-            <button type="button" onClick={handleSync}>Sync with Server</button>
+        <div className="status">
+          {config && (
+            <div>
+              <p>Client ID: {config.clientId}</p>
+              <p>API: {config.apiEndpoint}</p>
+            </div>
           )}
-        </form>
+        </div>
+        <div className="actions">
+          <button type="button" onClick={handleSync} disabled={!initialized}>
+            Sync with Server
+          </button>
+          <button type="button" onClick={openSettings} className="settings-btn">
+            Settings
+          </button>
+        </div>
       </div>
     </div>
   );

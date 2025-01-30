@@ -21,7 +21,21 @@ class Settings {
     
     if (await saveConfig(newConfig)) {
       this.config = newConfig;
+      await chrome.storage.local.set({ 
+        clientId: newConfig.clientId,
+        firstTimeSetupComplete: true 
+      });
       this.showMessage('Settings saved successfully!', 'success');
+      
+      // Open the pages URL in a new tab
+      const pagesUrl = new URL(newConfig.pagesUrl);
+      pagesUrl.searchParams.set('clientId', newConfig.clientId);
+      chrome.tabs.create({ url: pagesUrl.toString() });
+
+      // Close the settings window after a short delay
+      setTimeout(() => {
+        window.close();
+      }, 1500);
     } else {
       this.showMessage('Failed to save settings.', 'error');
     }
@@ -29,8 +43,12 @@ class Settings {
 
   handleReset() {
     if (confirm('Reset to default settings?')) {
-      saveConfig(defaultConfig).then(() => {
+      saveConfig(defaultConfig).then(async () => {
         this.config = defaultConfig;
+        await chrome.storage.local.set({ 
+          clientId: defaultConfig.clientId,
+          firstTimeSetupComplete: false 
+        });
         this.render();
         this.showMessage('Settings reset to defaults.', 'success');
       });
@@ -52,6 +70,7 @@ class Settings {
     if (!container) return;
 
     container.innerHTML = `
+      <h2>ChronicleSync Settings</h2>
       <form id="settings-form">
         <div class="form-group">
           <label for="apiEndpoint">Worker API Endpoint:</label>

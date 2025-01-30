@@ -25,6 +25,7 @@ form {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 15px;
 }
 
 input {
@@ -44,4 +45,14 @@ button {
 
 button:hover {
   background: #0052a3;
+}
+
+.settings-button {
+  width: 100%;
+  background: #4a4a4a;
+  margin-top: 10px;
+}
+
+.settings-button:hover {
+  background: #333333;
 }

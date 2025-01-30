@@ -96,4 +96,55 @@ test.describe('Chrome Extension', () => {
       fullPage: true
     });
   });
+
+  test('browser history sync workflow', async ({ context, extensionId, page }) => {
+    // 1. Set up test data
+    const testClientId = 'test-client-' + Date.now();
+    const testUrl = 'https://example.com/test-page';
+    const testTitle = 'Test Page Title';
+
+    // 2. Open extension popup and configure settings
+    const popupPage = await context.newPage();
+    await popupPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+    await popupPage.waitForLoadState('networkidle');
+
+    // Fill in client ID
+    await popupPage.locator('#clientId').fill(testClientId);
+    
+    // Save settings
+    await popupPage.getByText('Save Settings').click();
+    
+    // Wait for success message
+    await expect(popupPage.locator('.message')).toContainText('Settings saved successfully');
+
+    // 3. Create a test history entry
+    const testPage = await context.newPage();
+    await testPage.goto(testUrl);
+    await testPage.evaluate((title) => {
+      document.title = title;
+    }, testTitle);
+    
+    // Wait for history sync
+    await page.waitForTimeout(2000);
+
+    // 4. Open history view page
+    const historyPage = await context.newPage();
+    await historyPage.goto(`${server.pagesUrl}?clientId=${testClientId}`);
+    await historyPage.waitForLoadState('networkidle');
+
+    // 5. Verify history entry
+    const historyItem = historyPage.locator('.history-item').first();
+    await expect(historyItem.locator('.history-title')).toContainText(testTitle);
+    await expect(historyItem.locator('.history-url')).toContainText(testUrl);
+
+    // Verify device info is present
+    await expect(historyItem.locator('.history-meta')).toContainText('Device:');
+    await expect(historyItem.locator('.history-meta')).toContainText('OS:');
+
+    // Take a screenshot of the history view
+    await historyPage.screenshot({
+      path: 'test-results/history-view.png',
+      fullPage: true
+    });
+  });
 });

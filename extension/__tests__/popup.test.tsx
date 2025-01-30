@@ -71,7 +71,7 @@ describe('Popup Component', () => {
           { url: 'https://example.com', title: 'Example', lastVisitTime: Date.now() }
         ])
       }
-    } as any;
+    } as Chrome.History.HistoryApi;
 
     // Mock fetch
     global.fetch = vi.fn().mockResolvedValue({

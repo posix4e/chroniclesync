@@ -371,8 +371,7 @@ test.describe('ChronicleSync Extension', () => {
 
       // Navigate to pages UI and verify history
       console.log('Getting pages URL...');
-      const pagesUrl = await popupPage.getAttribute('#pagesUrl', 'value') || 
-                      await popupPage.evaluate(() => window.location.origin);
+      const pagesUrl = server.pagesUrl;
       console.log('Pages URL:', pagesUrl);
       expect(pagesUrl).toBeTruthy();
       
@@ -400,28 +399,65 @@ test.describe('ChronicleSync Extension', () => {
       await testPage.click('text=Login');
       await testPage.waitForTimeout(1000);
 
-      // Wait for history section
-      console.log('Looking for history entries...');
-      const historySelectors = [
-        '.history-entry',
-        '.history-item',
-        '[data-testid="history-entry"]',
-        '.history-record',
-        '.history-list-item',
-        '[data-type="history"]',
-        '.browser-history-item',
-        '#historySection',
-        '.history-container',
-        '[data-testid="history-container"]'
-      ].join(',');
+      // Wait for admin panel to appear
+      await testPage.waitForSelector('#adminPanel', { timeout: 30000, state: 'visible' });
 
-      console.log('Waiting for history entries to appear...');
-      await testPage.waitForSelector(historySelectors, { timeout: 30000 });
+      // Click the Sync with Server button in the extension popup
+      console.log('Opening extension popup for sync...');
+      const syncPopupPage = await context.newPage();
+      await syncPopupPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      await syncPopupPage.waitForLoadState('networkidle');
 
-      const historyEntries = await testPage.$$(historySelectors);
-      console.log('Found history entries:', historyEntries.length);
-      
-      expect(historyEntries.length).toBeGreaterThan(0);
+      // Initialize the client
+      await syncPopupPage.fill('#clientId', 'test-client-id');
+      await syncPopupPage.click('text=Initialize');
+      await syncPopupPage.waitForSelector('text=Sync with Server');
+
+      // Click Sync with Server
+      console.log('Clicking Sync with Server button...');
+      await syncPopupPage.click('text=Sync with Server');
+      await syncPopupPage.waitForTimeout(1000);
+
+      // Close the popup
+      await syncPopupPage.close();
+
+      // Reload the page to see the synced history
+      console.log('Reloading page to see synced history...');
+      await testPage.reload();
+      await testPage.waitForLoadState('networkidle');
+
+      // Initialize client and login again after reload
+      console.log('Initializing client after reload...');
+      await testPage.fill('#clientId', 'test-client-id');
+      await testPage.click('text=Initialize');
+      await testPage.waitForTimeout(1000);
+
+      console.log('Logging in as admin after reload...');
+      await testPage.fill('input[type="password"]', 'admin');
+      await testPage.click('text=Login');
+      await testPage.waitForTimeout(1000);
+
+      // Wait for admin panel to appear
+      console.log('Waiting for admin panel...');
+      await testPage.waitForSelector('#adminPanel', { timeout: 30000, state: 'attached' });
+
+      // Wait for stats table to appear
+      console.log('Waiting for stats table...');
+      await testPage.waitForSelector('#statsTable', { timeout: 30000, state: 'attached' });
+
+      // Log the page content to see what's available
+      console.log('Page content after admin panel appears:', await testPage.content());
+
+      // Wait for client data to be loaded
+      console.log('Waiting for client data...');
+      const clientRows = await testPage.$$('#statsTable tbody tr');
+      console.log('Found client rows:', clientRows.length);
+      expect(clientRows.length).toBeGreaterThan(0);
+
+      // Log any console messages
+      testPage.on('console', msg => {
+        console.log(`Browser console: ${msg.type()}: ${msg.text()}`);
+      });
     });
   });
 

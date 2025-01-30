@@ -3,6 +3,7 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension - Sync your browser history",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhm3X7qutsrskke84ltbxhvBp24tFbGWPddX2K4yI+TXQYhf+eQXp1r1wfNFU1YMbHhXTVkXmxPHYzxz8eXrARHD9Rz3K+KKYgC+NFPg0K8YsejRnROqUQLpqE5dFpKFS9ZPGxcBXnqyqserXcE+bBk3pxl2V0kz6bXh8m91sxA==",
   "action": {
     "default_popup": "popup.html"
   },

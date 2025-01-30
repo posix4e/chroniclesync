@@ -65,24 +65,38 @@ test.describe('History Sync Feature', () => {
 async function getExtensionId(context: BrowserContext): Promise<string | null> {
   const page = await context.newPage();
   await page.goto('chrome://extensions');
-  const devMode = await page.$('text=Developer mode');
-  if (devMode) await devMode.click();
+  
+  // Wait for the extensions page to load
+  await page.waitForTimeout(1000);
+
+  // Try to enable developer mode if needed
+  try {
+    const devMode = await page.$('text=Developer mode');
+    if (devMode) {
+      await devMode.click();
+      await page.waitForTimeout(500);
+    }
+  } catch (e) {
+    console.log('Developer mode might already be enabled');
+  }
+
+  // Get extension ID using the extension name
   const id = await page.evaluate(() => {
-    const manager = document.querySelector('extensions-manager');
-    if (!manager?.shadowRoot) return null;
-    
-    const itemList = manager.shadowRoot.querySelector('extensions-item-list');
-    if (!itemList?.shadowRoot) return null;
-    
-    const extensions = itemList.shadowRoot.querySelectorAll('extensions-item');
+    const extensions = Array.from(document.querySelectorAll('extensions-item'));
     for (const extension of extensions) {
-      const root = extension.shadowRoot;
-      if (root?.querySelector('[title="ChronicleSync Extension"]')) {
-        return extension.id;
+      const name = extension.querySelector('#name')?.textContent;
+      if (name?.includes('ChronicleSync')) {
+        return extension.getAttribute('id');
       }
     }
     return null;
   });
+
   await page.close();
+  
+  if (!id) {
+    throw new Error('Could not find ChronicleSync extension');
+  }
+  
   return id;
 }

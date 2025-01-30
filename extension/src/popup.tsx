@@ -10,26 +10,35 @@ export function App() {
   const handleInitialize = () => {
     if (clientId) {
       setInitialized(true);
-      // Set a default pages URL for testing
-      setPagesUrl('http://localhost:52285/pages');
+      // Set staging pages URL
+      setPagesUrl('https://pages-staging.chroniclesync.xyz');
     }
   };
 
   const handleSync = async () => {
     try {
-      // Mock history sync for testing
-      const mockHistory = [
-        { url: 'https://example.com', title: 'Example Domain', timestamp: new Date().toISOString() },
-        { url: 'https://www.mozilla.org', title: 'Mozilla', timestamp: new Date().toISOString() }
-      ];
+      // Get browser history
+      const history = await chrome.history.search({
+        text: '',
+        startTime: 0,
+        maxResults: 100
+      });
 
-      // Send history to pages UI server
-      const response = await fetch('http://localhost:52285/api/history', {
+      // Format history data
+      const historyData = history.map(entry => ({
+        url: entry.url,
+        title: entry.title,
+        timestamp: new Date(entry.lastVisitTime || 0).toISOString()
+      }));
+
+      // Send history to staging API
+      const response = await fetch('https://api-staging.chroniclesync.xyz/api/history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Client-ID': clientId
         },
-        body: JSON.stringify(mockHistory)
+        body: JSON.stringify(historyData)
       });
 
       if (!response.ok) {

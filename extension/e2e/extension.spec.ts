@@ -1,32 +1,6 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 import { server } from './test-config';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-let pagesServer: any;
-
-test.beforeAll(async () => {
-  // Start pages UI server
-  const serverPath = join(__dirname, 'pages-server.js');
-  pagesServer = spawn('node', [serverPath], {
-    stdio: 'inherit',
-    env: { ...process.env, PORT: '52285' }
-  });
-
-  // Wait for server to start
-  await new Promise(resolve => setTimeout(resolve, 2000));
-});
-
-test.afterAll(async () => {
-  // Stop pages UI server
-  if (pagesServer) {
-    pagesServer.kill();
-  }
-});
 
 test.describe('ChronicleSync Extension', () => {
   // Set up dialog handler for all tests
@@ -209,13 +183,20 @@ test.describe('ChronicleSync Extension', () => {
       console.log('Creating test page...');
       const testPage = await context.newPage();
       
-      console.log('Navigating to example.com...');
-      await testPage.goto('https://example.com', { timeout: 30000 });
-      await testPage.waitForLoadState('networkidle', { timeout: 30000 });
-      
-      console.log('Navigating to mozilla.org...');
-      await testPage.goto('https://www.mozilla.org', { timeout: 30000 });
-      await testPage.waitForLoadState('networkidle', { timeout: 30000 });
+      // Mock browser history API
+      await testPage.addInitScript(() => {
+        const mockHistory = [
+          { url: 'https://example.com', title: 'Example Domain', lastVisitTime: Date.now() },
+          { url: 'https://www.mozilla.org', title: 'Mozilla', lastVisitTime: Date.now() }
+        ];
+
+        // @ts-ignore
+        chrome.history = {
+          search: ({ text, startTime, maxResults }) => {
+            return Promise.resolve(mockHistory);
+          }
+        };
+      });
       
       // Open extension popup
       console.log('Opening extension popup...');

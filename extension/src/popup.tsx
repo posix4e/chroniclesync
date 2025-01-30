@@ -10,8 +10,8 @@ export function App() {
   const handleInitialize = () => {
     if (clientId) {
       setInitialized(true);
-      // Set staging pages URL
-      setPagesUrl('https://pages-staging.chroniclesync.xyz');
+      // Set production pages URL
+      setPagesUrl('https://pages.chroniclesync.xyz');
     }
   };
 

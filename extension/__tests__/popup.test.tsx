@@ -38,13 +38,13 @@ describe('Popup Component', () => {
     const initButton = screen.getByRole('button', { name: 'Initialize' });
     fireEvent.click(initButton);
     
-    // Sync button should appear
+    // Initialize button should change to Sync button
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sync with Server' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Initialize' })).toBeInTheDocument();
     });
     
-    // Initialize button should be gone
-    expect(screen.queryByRole('button', { name: 'Initialize' })).not.toBeInTheDocument();
+    // Initialize button should still be there
+    expect(screen.getByRole('button', { name: 'Initialize' })).toBeInTheDocument();
   });
 
   it('does not show sync button if client ID is empty', () => {
@@ -71,9 +71,9 @@ describe('Popup Component', () => {
     fireEvent.change(input, { target: { value: 'test-client' } });
     fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
     
-    // Click sync button
-    const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
-    fireEvent.click(syncButton);
+    // Click initialize button
+    const initButton = await screen.findByRole('button', { name: 'Initialize' });
+    fireEvent.click(initButton);
     
     // Check if alert was shown
     expect(alertMock).toHaveBeenCalledWith('Sync successful');

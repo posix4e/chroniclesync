@@ -27,7 +27,7 @@ export class ExtensionPage {
     await this.page.waitForSelector('#settings-container');
   }
 
-  async getStoredSettings(): Promise<any> {
+  async getStoredSettings(): Promise<Record<string, unknown>> {
     return await this.page.evaluate(() => {
       return new Promise((resolve) => {
         chrome.storage.local.get(null, (result) => {

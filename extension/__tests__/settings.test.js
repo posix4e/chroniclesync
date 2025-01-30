@@ -1,30 +1,33 @@
 import Settings from '../settings.js';
 import { getConfig, saveConfig } from '../config.js';
 
+import { vi } from 'vitest';
+
 // Mock config module
-jest.mock('../config.js', () => ({
-  getConfig: jest.fn(),
-  saveConfig: jest.fn(),
-  defaultConfig: {
+vi.mock('../config.js', () => {
+  const getConfig = vi.fn();
+  const saveConfig = vi.fn();
+  const defaultConfig = {
     apiEndpoint: 'https://api.chroniclesync.xyz',
     pagesUrl: 'https://chroniclesync.pages.dev',
     clientId: 'extension-default'
-  }
-}));
+  };
+  return { getConfig, saveConfig, defaultConfig };
+});
 
 // Mock chrome API
 global.chrome = {
   storage: {
     local: {
-      set: jest.fn().mockImplementation((data, callback) => callback?.()),
-      get: jest.fn()
+      set: vi.fn().mockImplementation((data, callback) => callback?.()),
+      get: vi.fn()
     }
   },
   tabs: {
-    create: jest.fn().mockImplementation(() => Promise.resolve())
+    create: vi.fn().mockImplementation(() => Promise.resolve())
   },
   runtime: {
-    getURL: jest.fn()
+    getURL: vi.fn()
   }
 };
 
@@ -41,7 +44,7 @@ describe('Settings', () => {
 
   beforeEach(() => {
     // Reset all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Set up default mock implementations
     getConfig.mockResolvedValue(mockConfig);

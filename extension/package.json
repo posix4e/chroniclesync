@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --no-ignore",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix --no-ignore"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

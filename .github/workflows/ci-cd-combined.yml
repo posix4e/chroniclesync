@@ -70,24 +70,13 @@ jobs:
 
       - name: Package Chrome Extension
         working-directory: extension
-        run: |
-          # Create a temporary directory for packaging
-          mkdir ../package-ext
-          # Copy only the necessary files
-          cp manifest.json ../package-ext/
-          cp popup.html ../package-ext/
-          cp popup.css ../package-ext/
-          cp settings.css ../package-ext/
-          cp -r dist/* ../package-ext/
-          # Create the zip from the clean directory
-          cd ../package-ext
-          zip -r ../chrome-extension.zip .
+        run: npm run build:extension
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
-          path: chrome-extension.zip
+          path: extension/chrome-extension.zip
           retention-days: 14
 
       - name: Test Worker
@@ -159,7 +148,6 @@ jobs:
           cache-dependency-path: |
             pages/package-lock.json
             extension/package-lock.json
-
 
       - name: Install dependencies and run extension tests
         working-directory: extension

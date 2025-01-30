@@ -70,7 +70,11 @@ jobs:
 
       - name: Package Chrome Extension
         working-directory: extension
-        run: npm run build:extension
+        run: |
+          # Install zip utility
+          sudo apt-get update && sudo apt-get install -y zip
+          # Run build script with ESM support
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 
       - name: Upload Extension Artifact
         uses: actions/upload-artifact@v4

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "ts-node scripts/build-extension.ts",
+    "build:extension": "node --loader ts-node/esm scripts/build-extension.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

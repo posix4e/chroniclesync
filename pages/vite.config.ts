@@ -8,12 +8,11 @@ export default defineConfig({
     outDir: paths.webDist,
     emptyOutDir: true,
     rollupOptions: {
-      input: 'src/index.tsx',
       output: {
         format: 'es',
-        entryFileNames: '[name].js',
-        assetFileNames: 'assets/[name].[ext]',
-        inlineDynamicImports: false
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       }
     }
   },

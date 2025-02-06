@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DB } from '../utils/db';
 import { API_URL } from '../utils/api';
 
@@ -10,6 +10,20 @@ export function ClientSection({ db }: ClientSectionProps) {
   const [clientId, setClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const savedClientId = localStorage.getItem('chroniclesync_client_id');
+    if (savedClientId) {
+      setClientId(savedClientId);
+      db.init(savedClientId).then(async () => {
+        const initialData = await db.getData();
+        setData(JSON.stringify(initialData, null, 2));
+        setIsInitialized(true);
+      }).catch(error => {
+        console.error('Error loading saved client:', error);
+      });
+    }
+  }, []);
 
   const initializeClient = async () => {
     if (!clientId) {

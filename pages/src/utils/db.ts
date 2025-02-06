@@ -8,6 +8,7 @@ export class DB {
 
   async init(clientId: string): Promise<void> {
     this._clientId = clientId;
+    localStorage.setItem('chroniclesync_client_id', clientId);
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(`sync_${clientId}`, 1);
 

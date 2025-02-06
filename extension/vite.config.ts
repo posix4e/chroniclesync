@@ -1,9 +1,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { copyFileSync } from 'fs';
+
+// Custom plugin to copy files after build
+const copyFiles = () => ({
+  name: 'copy-files',
+  closeBundle: () => {
+    // Copy HTML and manifest files to dist
+    copyFileSync('popup.html', 'dist/popup.html');
+    copyFileSync('manifest.json', 'dist/manifest.json');
+    copyFileSync('popup.css', 'dist/popup.css');
+  }
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), copyFiles()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

@@ -33,7 +33,7 @@ export function App() {
     const newClientId = e.target.value;
     setClientId(newClientId);
     // Save clientId as it changes
-    chrome.storage.sync.set({ clientId: newClientId });
+    chrome.storage.sync.set({ clientId: newClientId }, () => {});
   };
 
   const handleSync = () => {

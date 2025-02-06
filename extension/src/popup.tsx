@@ -1,14 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../popup.css';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
 
+  // Load saved state when component mounts
+  useEffect(() => {
+    chrome.storage.sync.get(['clientId', 'initialized'], (result) => {
+      if (result.clientId) {
+        setClientId(result.clientId);
+      }
+      if (result.initialized) {
+        setInitialized(result.initialized);
+      }
+    });
+  }, []);
+
   const handleInitialize = () => {
     if (clientId) {
-      setInitialized(true);
+      // Save both clientId and initialized state
+      chrome.storage.sync.set({
+        clientId: clientId,
+        initialized: true
+      }, () => {
+        setInitialized(true);
+      });
     }
+  };
+
+  const handleClientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newClientId = e.target.value;
+    setClientId(newClientId);
+    // Save clientId as it changes
+    chrome.storage.sync.set({ clientId: newClientId }, () => {});
   };
 
   const handleSync = () => {
@@ -26,7 +51,7 @@ export function App() {
             id="clientId"
             placeholder="Client ID"
             value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+            onChange={handleClientIdChange}
           />
           {!initialized ? (
             <button type="button" onClick={handleInitialize}>Initialize</button>

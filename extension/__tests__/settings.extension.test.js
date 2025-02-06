@@ -1,16 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Settings from '../settings.js';
-import { getConfig, saveConfig, defaultConfig } from '../config.js';
 
-vi.mock('../config.js', () => ({
-  getConfig: vi.fn(),
-  saveConfig: vi.fn(),
-  defaultConfig: {
-    apiEndpoint: 'https://api.chroniclesync.xyz',
-    pagesUrl: 'https://chroniclesync.pages.dev',
-    clientId: 'extension-default'
+// Mock chrome.storage.sync
+global.chrome = {
+  storage: {
+    sync: {
+      get: vi.fn(),
+      set: vi.fn()
+    }
   }
-}));
+};
 
 describe('Settings', () => {
   let settings;
@@ -21,6 +20,35 @@ describe('Settings', () => {
     mockContainer = document.createElement('div');
     mockContainer.id = 'settings-container';
     document.body.appendChild(mockContainer);
+
+    // Add required form elements
+    const form = document.createElement('form');
+    ['clientId', 'apiUrl', 'pagesUrl'].forEach(id => {
+      const input = document.createElement('input');
+      input.id = id;
+      form.appendChild(input);
+    });
+    mockContainer.appendChild(form);
+
+    // Add settings actions container with buttons
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'settings-actions';
+    
+    const saveButton = document.createElement('button');
+    saveButton.id = 'saveSettings';
+    saveButton.textContent = 'Save Settings';
+    actionsDiv.appendChild(saveButton);
+
+    const resetButton = document.createElement('button');
+    resetButton.id = 'resetSettings';
+    resetButton.textContent = 'Reset Settings';
+    actionsDiv.appendChild(resetButton);
+
+    mockContainer.appendChild(actionsDiv);
+
+    // Reset mocks
+    chrome.storage.sync.get.mockReset();
+    chrome.storage.sync.set.mockReset();
   });
 
   afterEach(() => {
@@ -34,80 +62,63 @@ describe('Settings', () => {
 
   it('init loads and renders config', async () => {
     const mockConfig = {
-      apiEndpoint: 'http://test-api.com',
-      pagesUrl: 'http://test-pages.com',
-      clientId: 'test-client'
+      clientId: 'test-client',
+      apiUrl: 'http://test-api.com',
+      pagesUrl: 'http://test-pages.com'
     };
-    vi.mocked(getConfig).mockResolvedValue(mockConfig);
+
+    chrome.storage.sync.get.mockImplementation((keys, callback) => {
+      callback(mockConfig);
+    });
 
     await settings.init();
 
     expect(settings.config).toEqual(mockConfig);
-    expect(document.getElementById('apiEndpoint').value).toBe(mockConfig.apiEndpoint);
-    expect(document.getElementById('pagesUrl').value).toBe(mockConfig.pagesUrl);
     expect(document.getElementById('clientId').value).toBe(mockConfig.clientId);
+    expect(document.getElementById('apiUrl').value).toBe(mockConfig.apiUrl);
+    expect(document.getElementById('pagesUrl').value).toBe(mockConfig.pagesUrl);
   });
 
   it('handleSave updates config and shows success message', async () => {
     const newConfig = {
-      apiEndpoint: 'http://new-api.com',
-      pagesUrl: 'http://new-pages.com',
-      clientId: 'new-client'
+      clientId: 'new-client',
+      apiUrl: 'http://new-api.com',
+      pagesUrl: 'http://new-pages.com'
     };
 
-    settings.config = { ...defaultConfig };
-    vi.mocked(saveConfig).mockResolvedValue(true);
+    settings.config = { ...settings.DEFAULT_SETTINGS };
+    chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
-    const form = document.createElement('form');
-    const apiEndpoint = document.createElement('input');
-    apiEndpoint.id = 'apiEndpoint';
-    apiEndpoint.name = 'apiEndpoint';
-    apiEndpoint.value = newConfig.apiEndpoint;
-    form.appendChild(apiEndpoint);
-
-    const pagesUrl = document.createElement('input');
-    pagesUrl.id = 'pagesUrl';
-    pagesUrl.name = 'pagesUrl';
-    pagesUrl.value = newConfig.pagesUrl;
-    form.appendChild(pagesUrl);
-
-    const clientId = document.createElement('input');
-    clientId.id = 'clientId';
-    clientId.name = 'clientId';
-    clientId.value = newConfig.clientId;
-    form.appendChild(clientId);
-
-    // Add message element required by showMessage
-    const messageEl = document.createElement('div');
-    messageEl.id = 'settings-message';
-    document.body.appendChild(messageEl);
+    // Set up form values
+    document.getElementById('clientId').value = newConfig.clientId;
+    document.getElementById('apiUrl').value = newConfig.apiUrl;
+    document.getElementById('pagesUrl').value = newConfig.pagesUrl;
 
     const mockEvent = {
-      preventDefault: vi.fn(),
-      target: form
+      preventDefault: vi.fn()
     };
 
     await settings.handleSave(mockEvent);
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
-    expect(saveConfig).toHaveBeenCalledWith(newConfig);
+    expect(chrome.storage.sync.set).toHaveBeenCalledWith(newConfig, expect.any(Function));
     expect(settings.config).toEqual(newConfig);
   });
 
   it('handleReset resets to default config when confirmed', async () => {
     global.confirm = vi.fn(() => true);
-    vi.mocked(saveConfig).mockResolvedValue(true);
+    chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
     settings.config = {
-      apiEndpoint: 'http://custom-api.com',
-      pagesUrl: 'http://custom-pages.com',
-      clientId: 'custom-client'
+      clientId: 'custom-client',
+      apiUrl: 'http://custom-api.com',
+      pagesUrl: 'http://custom-pages.com'
     };
 
     await settings.handleReset();
 
     expect(global.confirm).toHaveBeenCalled();
-    expect(saveConfig).toHaveBeenCalledWith(defaultConfig);
-    expect(settings.config).toEqual(defaultConfig);
+    expect(chrome.storage.sync.set).toHaveBeenCalledWith(settings.DEFAULT_SETTINGS, expect.any(Function));
+    expect(settings.config).toEqual(settings.DEFAULT_SETTINGS);
   });
 });

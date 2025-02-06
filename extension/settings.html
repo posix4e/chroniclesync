@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChronicleSync Settings</title>
+    <link rel="stylesheet" type="text/css" href="settings.css">
+</head>
+<body>
+    <div class="settings-container">
+        <h1>ChronicleSync Settings</h1>
+        
+        <section class="settings-section">
+            <h2>Configuration</h2>
+            <div class="setting-item">
+                <label for="clientId">Client ID:</label>
+                <input type="text" id="clientId" placeholder="Enter your client ID">
+            </div>
+            <div class="setting-item">
+                <label for="apiUrl">API URL:</label>
+                <input type="url" id="apiUrl" placeholder="https://api.chroniclesync.xyz">
+            </div>
+            <div class="setting-item">
+                <label for="pagesUrl">Pages URL:</label>
+                <input type="url" id="pagesUrl" placeholder="https://pages.chroniclesync.xyz">
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            <button id="saveSettings" class="primary-button">Save Settings</button>
+            <button id="resetSettings" class="reset-settings">Reset to Default</button>
+        </div>
+    </div>
+    <script src="settings.js"></script>
+</body>
+</html>

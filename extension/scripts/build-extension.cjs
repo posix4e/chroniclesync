@@ -13,6 +13,7 @@ const filesToCopy = [
   ['manifest.json', 'manifest.json'],
   ['popup.html', 'popup.html'],
   ['popup.css', 'popup.css'],
+  ['settings.html', 'settings.html'],
   ['settings.css', 'settings.css'],
   [join('dist', 'popup.js'), 'popup.js'],
   [join('dist', 'background.js'), 'background.js'],

@@ -23,6 +23,9 @@ export const test = base.extend<TestFixtures>({
           '--disable-setuid-sandbox',
           '--enable-logging=stderr',
           '--v=1',
+          '--allow-insecure-localhost',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process',
         ],
         logger: {
           isEnabled: () => true,

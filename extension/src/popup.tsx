@@ -41,6 +41,10 @@ export function App() {
     alert('Sync successful');
   };
 
+  const openSettings = () => {
+    chrome.runtime.openOptionsPage();
+  };
+
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
@@ -60,6 +64,9 @@ export function App() {
             <button type="button" onClick={handleSync}>Sync with Server</button>
           )}
         </form>
+      </div>
+      <div className="settings-link">
+        <button type="button" onClick={openSettings}>Settings</button>
       </div>
     </div>
   );

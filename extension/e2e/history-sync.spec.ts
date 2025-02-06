@@ -1,17 +1,10 @@
-import { test, expect } from '@playwright/test';
-import { ExtensionUtils } from './utils/extension';
+import { test, expect, getExtensionUrl } from './utils/extension';
 
 test.describe('History Sync', () => {
-  let extensionUtils: ExtensionUtils;
-
-  test.beforeEach(async ({ context, page: _page }) => {
-    extensionUtils = new ExtensionUtils(context);
-    await extensionUtils.init();
-  });
-
-  test('should sync history when client ID is set', async ({ page: _page }) => {
+  test('should sync history when client ID is set', async ({ context, extensionId }) => {
     // Open extension popup
-    const popup = await extensionUtils.openPopup();
+    const popup = await context.newPage();
+    await popup.goto(getExtensionUrl(extensionId, 'popup.html'));
     await popup.waitForLoadState('domcontentloaded');
 
     // Take screenshot of initial state
@@ -41,18 +34,19 @@ test.describe('History Sync', () => {
     await dialog.accept();
   });
 
-  test('should handle sync failure gracefully', async ({ page: _page }) => {
+  test('should handle sync failure gracefully', async ({ context, extensionId }) => {
+    // Open extension popup
+    const popup = await context.newPage();
+    await popup.goto(getExtensionUrl(extensionId, 'popup.html'));
+    await popup.waitForLoadState('domcontentloaded');
+
     // Mock API to return error
-    await _page.route('**/api/sync', route => {
+    await popup.route('**/api/sync', route => {
       route.fulfill({
         status: 500,
         body: 'Internal Server Error'
       });
     });
-
-    // Open extension popup
-    const popup = await extensionUtils.openPopup();
-    await popup.waitForLoadState('domcontentloaded');
 
     // Enter client ID and initialize
     const clientIdInput = popup.locator('#clientId');

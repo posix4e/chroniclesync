@@ -55,21 +55,24 @@ class Settings {
       <form id="settings-form">
         <div class="form-group">
           <label for="apiEndpoint">Worker API Endpoint:</label>
-          <input type="url" id="apiEndpoint" name="apiEndpoint" 
-                 value="${this.config.apiEndpoint}" required
-                 placeholder="https://api.chroniclesync.xyz">
+          <select id="apiEndpointSelect">
+            <option value="https://api.chroniclesync.xyz">Production (https://api.chroniclesync.xyz)</option>
+            <option value="https://api-staging.chroniclesync.xyz">Staging (https://api-staging.chroniclesync.xyz)</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input type="url" id="apiEndpoint" name="apiEndpoint" value="${this.config.apiEndpoint}" required placeholder="https://api.chroniclesync.xyz">
         </div>
         <div class="form-group">
           <label for="pagesUrl">Pages UI URL:</label>
-          <input type="url" id="pagesUrl" name="pagesUrl" 
-                 value="${this.config.pagesUrl}" required
-                 placeholder="https://chroniclesync.pages.dev">
+          <select id="pagesUrlSelect">
+            <option value="https://chroniclesync.pages.dev">Default (https://chroniclesync.pages.dev)</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input type="url" id="pagesUrl" name="pagesUrl" value="${this.config.pagesUrl}" required placeholder="https://chroniclesync.pages.dev">
         </div>
         <div class="form-group">
           <label for="clientId">Client ID:</label>
-          <input type="text" id="clientId" name="clientId" 
-                 value="${this.config.clientId}" required
-                 placeholder="extension-default">
+          <input type="text" id="clientId" name="clientId" value="${this.config.clientId}" required placeholder="extension-default">
         </div>
         <div class="button-group">
           <button type="submit">Save Settings</button>
@@ -79,10 +82,45 @@ class Settings {
       </form>
     `;
 
-    // Add event listeners
+    const apiEndpointSelect = document.getElementById('apiEndpointSelect');
+    const apiEndpointInput = document.getElementById('apiEndpoint');
+    if (this.config.apiEndpoint === 'https://api.chroniclesync.xyz' || this.config.apiEndpoint === 'https://api-staging.chroniclesync.xyz') {
+      apiEndpointSelect.value = this.config.apiEndpoint;
+      apiEndpointInput.disabled = true;
+    } else {
+      apiEndpointSelect.value = 'custom';
+      apiEndpointInput.disabled = false;
+    }
+    apiEndpointSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        apiEndpointInput.disabled = false;
+      } else {
+        apiEndpointInput.value = e.target.value;
+        apiEndpointInput.disabled = true;
+      }
+    });
+
+    const pagesUrlSelect = document.getElementById('pagesUrlSelect');
+    const pagesUrlInput = document.getElementById('pagesUrl');
+    if (this.config.pagesUrl === 'https://chroniclesync.pages.dev') {
+      pagesUrlSelect.value = this.config.pagesUrl;
+      pagesUrlInput.disabled = true;
+    } else {
+      pagesUrlSelect.value = 'custom';
+      pagesUrlInput.disabled = false;
+    }
+    pagesUrlSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        pagesUrlInput.disabled = false;
+      } else {
+        pagesUrlInput.value = e.target.value;
+        pagesUrlInput.disabled = true;
+      }
+    });
+
     const form = document.getElementById('settings-form');
     const resetButton = document.getElementById('reset-settings');
-    
+
     form.addEventListener('submit', (e) => this.handleSave(e));
     resetButton.addEventListener('click', () => this.handleReset());
   }

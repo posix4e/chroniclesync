@@ -7,9 +7,10 @@ const defaultConfig = {
 // Load configuration from storage or use defaults
 async function getConfig() {
   try {
-    const result = await chrome.storage.sync.get(['apiEndpoint', 'clientId']);
+    const result = await chrome.storage.sync.get(['apiEndpoint', 'pagesUrl', 'clientId']);
     return {
       apiEndpoint: result.apiEndpoint || defaultConfig.apiEndpoint,
+      pagesUrl: result.pagesUrl || defaultConfig.pagesUrl,
       clientId: result.clientId || defaultConfig.clientId
     };
   } catch (error) {
@@ -23,6 +24,7 @@ async function saveConfig(config) {
   try {
     await chrome.storage.sync.set({
       apiEndpoint: config.apiEndpoint,
+      pagesUrl: config.pagesUrl,
       clientId: config.clientId
     });
     return true;

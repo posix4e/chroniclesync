@@ -7,10 +7,12 @@ import { copyFileSync } from 'fs';
 const copyFiles = () => ({
   name: 'copy-files',
   closeBundle: () => {
-    // Copy HTML and manifest files to dist
+    // Copy HTML, CSS, and manifest files to dist
     copyFileSync('popup.html', 'dist/popup.html');
     copyFileSync('manifest.json', 'dist/manifest.json');
     copyFileSync('popup.css', 'dist/popup.css');
+    copyFileSync('settings.html', 'dist/settings.html');
+    copyFileSync('settings.css', 'dist/settings.css');
   }
 });
 

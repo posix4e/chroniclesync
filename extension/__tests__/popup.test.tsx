@@ -64,6 +64,11 @@ const mockChrome = {
       hasListener: vi.fn(),
       hasListeners: vi.fn()
     }
+  },
+  extension: {
+    getBackgroundPage: vi.fn(() => ({
+      uploadHistory: vi.fn().mockResolvedValue(undefined)
+    }))
   }
 } as unknown as typeof chrome;
 
@@ -149,19 +154,21 @@ describe('Popup Component', () => {
     // Mock window.alert
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     
-    render(<App />);
+    // Mock storage to return initialized state
+    mockChromeStorage.sync.get.mockImplementation((keys, callback) => {
+      callback({ clientId: 'test-client', initialized: true });
+    });
     
-    // Initialize with client ID
-    const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    render(<App />);
     
     // Click sync button
     const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
     fireEvent.click(syncButton);
     
-    // Check if alert was shown
-    expect(alertMock).toHaveBeenCalledWith('Sync successful');
+    // Wait for alert to be shown
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith('History sync successful');
+    });
     
     // Clean up
     alertMock.mockRestore();

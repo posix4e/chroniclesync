@@ -37,8 +37,21 @@ export function App() {
     chrome.storage.sync.set({ clientId: newClientId }, () => {});
   };
 
-  const handleSync = () => {
-    alert('Sync successful');
+  const handleSync = async () => {
+    try {
+      // Save clientId to local storage for background script
+      await chrome.storage.local.set({ clientId });
+      // Trigger immediate history sync
+      const bg = chrome.extension.getBackgroundPage();
+      if (bg) {
+        await bg.uploadHistory();
+        alert('History sync successful');
+      } else {
+        throw new Error('Could not access background page');
+      }
+    } catch (error) {
+      alert(`Sync failed: ${error.message}`);
+    }
   };
 
   const openSettings = () => {

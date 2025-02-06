@@ -1,4 +1,4 @@
 export const server = {
-  apiUrl: process.env.API_URL || 'http://localhost:54512',
-  pagesUrl: process.env.PAGES_URL || 'http://localhost:59761'
+  apiUrl: process.env.API_URL || 'https://api-staging.chroniclesync.xyz',
+  pagesUrl: process.env.PAGES_URL || 'https://staging.chroniclesync.xyz'
 };

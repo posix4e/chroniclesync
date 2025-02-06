@@ -7,5 +7,5 @@ export const paths = {
   extensionDist: resolve(__dirname, '../dist'),
   popup: resolve(__dirname, '../popup.html'),
   background: resolve(__dirname, '../background.js'),
-  extension: resolve(__dirname, '..')
+  extension: resolve(__dirname, '../dist')
 };

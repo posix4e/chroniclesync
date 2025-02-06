@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
 
 export function App() {
@@ -68,12 +69,10 @@ export function App() {
 if (typeof document !== 'undefined') {
   const root = document.getElementById('root');
   if (root) {
-    import('react-dom/client').then((ReactDOM) => {
-      ReactDOM.createRoot(root).render(
-        <React.StrictMode>
-          <App />
-        </React.StrictMode>
-      );
-    });
+    ReactDOM.createRoot(root).render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
   }
 }

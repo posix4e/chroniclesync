@@ -1,24 +1,25 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { syncHistory, type HistoryEntry } from '../src/api';
 import { getConfig } from '../config';
 
-jest.mock('../config', () => ({
-  getConfig: jest.fn()
+vi.mock('../config', () => ({
+  getConfig: vi.fn()
 }));
 
 describe('History Sync', () => {
-  let mockFetch: jest.Mock;
+  let mockFetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    mockFetch = jest.fn();
+    mockFetch = vi.fn();
     global.fetch = mockFetch;
-    (getConfig as jest.Mock).mockResolvedValue({
+    (getConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
       apiEndpoint: 'https://api.test',
       clientId: 'test-client'
     });
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('should successfully sync history entries', async () => {

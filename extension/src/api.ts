@@ -9,13 +9,15 @@ export interface HistoryEntry {
 export async function syncHistory(entries: HistoryEntry[]): Promise<boolean> {
   try {
     const config = await getConfig();
-    const response = await fetch(`${config.apiEndpoint}/api/history`, {
+    const url = new URL(`${config.apiEndpoint}/api/history`);
+    url.searchParams.set('clientId', config.clientId);
+
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-ID': config.clientId,
       },
-      body: JSON.stringify({ entries }),
+      body: JSON.stringify(entries),
     });
 
     if (!response.ok) {

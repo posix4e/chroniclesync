@@ -38,14 +38,13 @@ describe('History Sync', () => {
     const result = await syncHistory(entries);
     expect(result).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.test/api/history',
+      'https://api.test/api/history?clientId=test-client',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Client-ID': 'test-client'
         },
-        body: JSON.stringify({ entries })
+        body: JSON.stringify(entries)
       }
     );
   });

@@ -34,4 +34,10 @@ async function saveConfig(config) {
   }
 }
 
-export { getConfig, saveConfig, defaultConfig };
+// Get API URL from config
+async function getApiUrl() {
+  const config = await getConfig();
+  return config.apiEndpoint;
+}
+
+export { getConfig, saveConfig, defaultConfig, getApiUrl };

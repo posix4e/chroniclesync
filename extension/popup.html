@@ -4,9 +4,23 @@
   <title>ChronicleSync Extension</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div class="container">
+      <h2>ChronicleSync</h2>
+      <div id="setup-form">
+        <input type="text" id="client-id" placeholder="Enter Client ID">
+        <button id="save-client-id">Save</button>
+      </div>
+      <div id="sync-section" style="display: none;">
+        <p>Client ID: <span id="current-client-id"></span></p>
+        <button id="sync-history">Sync History</button>
+        <p id="sync-status"></p>
+      </div>
+    </div>
+  </div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

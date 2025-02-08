@@ -1,21 +1,19 @@
 class Settings {
   constructor() {
     this.config = null;
-    this.ENVIRONMENTS = {
-      production: {
-        apiUrl: 'https://api.chroniclesync.xyz',
-        pagesUrl: 'https://chroniclesync.pages.dev'
-      },
-      staging: {
-        apiUrl: 'https://staging-api.chroniclesync.xyz',
-        pagesUrl: 'https://staging.chroniclesync.pages.dev'
-      }
+    this.API_ENVIRONMENTS = {
+      production: 'https://api.chroniclesync.xyz',
+      staging: 'https://staging-api.chroniclesync.xyz'
+    };
+    this.PAGES_ENVIRONMENTS = {
+      production: 'https://chroniclesync.pages.dev'
     };
     this.DEFAULT_SETTINGS = {
       clientId: '',
-      apiUrl: this.ENVIRONMENTS.production.apiUrl,
-      pagesUrl: this.ENVIRONMENTS.production.pagesUrl,
-      environment: 'production'
+      apiUrl: this.API_ENVIRONMENTS.production,
+      apiEnvironment: 'production',
+      pagesUrl: this.PAGES_ENVIRONMENTS.production,
+      pagesEnvironment: 'production'
     };
     this.messageTimeout = null;
   }
@@ -24,14 +22,15 @@ class Settings {
     try {
       // Load settings from storage
       const result = await new Promise(resolve => {
-        chrome.storage.sync.get(['clientId', 'apiUrl', 'pagesUrl', 'environment'], resolve);
+        chrome.storage.sync.get(['clientId', 'apiUrl', 'apiEnvironment', 'pagesUrl', 'pagesEnvironment'], resolve);
       });
 
       this.config = {
         clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
         apiUrl: result.apiUrl || this.DEFAULT_SETTINGS.apiUrl,
+        apiEnvironment: result.apiEnvironment || this.DEFAULT_SETTINGS.apiEnvironment,
         pagesUrl: result.pagesUrl || this.DEFAULT_SETTINGS.pagesUrl,
-        environment: result.environment || this.DEFAULT_SETTINGS.environment
+        pagesEnvironment: result.pagesEnvironment || this.DEFAULT_SETTINGS.pagesEnvironment
       };
 
       this.render();
@@ -51,45 +50,62 @@ class Settings {
     document.getElementById('clientId').value = this.config.clientId;
     document.getElementById('apiUrl').value = this.config.apiUrl;
     document.getElementById('pagesUrl').value = this.config.pagesUrl;
-    document.getElementById('environment').value = this.config.environment;
+    document.getElementById('apiEnvironment').value = this.config.apiEnvironment;
+    document.getElementById('pagesEnvironment').value = this.config.pagesEnvironment;
   }
 
   setupEventListeners() {
     document.getElementById('saveSettings').addEventListener('click', e => this.handleSave(e));
     document.getElementById('resetSettings').addEventListener('click', () => this.handleReset());
     document.getElementById('testConnection').addEventListener('click', () => this.testConnection());
-    document.getElementById('environment').addEventListener('change', () => this.handleEnvironmentChange());
+    document.getElementById('apiEnvironment').addEventListener('change', () => this.handleApiEnvironmentChange());
+    document.getElementById('pagesEnvironment').addEventListener('change', () => this.handlePagesEnvironmentChange());
   }
 
   updateEnvironmentUI() {
-    const environment = document.getElementById('environment').value;
-    const urlSettings = document.getElementById('urlSettings');
+    const apiEnvironment = document.getElementById('apiEnvironment').value;
+    const pagesEnvironment = document.getElementById('pagesEnvironment').value;
     const apiUrlInput = document.getElementById('apiUrl');
     const pagesUrlInput = document.getElementById('pagesUrl');
 
-    if (environment === 'custom') {
-      urlSettings.classList.remove('disabled');
+    // Handle API URL input
+    if (apiEnvironment === 'custom') {
       apiUrlInput.removeAttribute('readonly');
+    } else {
+      apiUrlInput.setAttribute('readonly', 'true');
+      if (this.API_ENVIRONMENTS[apiEnvironment]) {
+        apiUrlInput.value = this.API_ENVIRONMENTS[apiEnvironment];
+      }
+    }
+
+    // Handle Pages URL input
+    if (pagesEnvironment === 'custom') {
       pagesUrlInput.removeAttribute('readonly');
     } else {
-      urlSettings.classList.add('disabled');
-      apiUrlInput.setAttribute('readonly', 'true');
       pagesUrlInput.setAttribute('readonly', 'true');
-
-      if (this.ENVIRONMENTS[environment]) {
-        apiUrlInput.value = this.ENVIRONMENTS[environment].apiUrl;
-        pagesUrlInput.value = this.ENVIRONMENTS[environment].pagesUrl;
+      if (this.PAGES_ENVIRONMENTS[pagesEnvironment]) {
+        pagesUrlInput.value = this.PAGES_ENVIRONMENTS[pagesEnvironment];
       }
     }
   }
 
-  handleEnvironmentChange() {
-    const environment = document.getElementById('environment').value;
-    this.config.environment = environment;
+  handleApiEnvironmentChange() {
+    const apiEnvironment = document.getElementById('apiEnvironment').value;
+    this.config.apiEnvironment = apiEnvironment;
 
-    if (environment !== 'custom' && this.ENVIRONMENTS[environment]) {
-      this.config.apiUrl = this.ENVIRONMENTS[environment].apiUrl;
-      this.config.pagesUrl = this.ENVIRONMENTS[environment].pagesUrl;
+    if (apiEnvironment !== 'custom' && this.API_ENVIRONMENTS[apiEnvironment]) {
+      this.config.apiUrl = this.API_ENVIRONMENTS[apiEnvironment];
+    }
+
+    this.updateEnvironmentUI();
+  }
+
+  handlePagesEnvironmentChange() {
+    const pagesEnvironment = document.getElementById('pagesEnvironment').value;
+    this.config.pagesEnvironment = pagesEnvironment;
+
+    if (pagesEnvironment !== 'custom' && this.PAGES_ENVIRONMENTS[pagesEnvironment]) {
+      this.config.pagesUrl = this.PAGES_ENVIRONMENTS[pagesEnvironment];
     }
 
     this.updateEnvironmentUI();
@@ -105,7 +121,8 @@ class Settings {
         clientId: document.getElementById('clientId').value.trim(),
         apiUrl: document.getElementById('apiUrl').value.trim(),
         pagesUrl: document.getElementById('pagesUrl').value.trim(),
-        environment: document.getElementById('environment').value
+        apiEnvironment: document.getElementById('apiEnvironment').value,
+        pagesEnvironment: document.getElementById('pagesEnvironment').value
       };
 
       // Validate required fields

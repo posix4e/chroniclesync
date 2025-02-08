@@ -2,6 +2,12 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { syncHistory, type HistoryEntry } from '../src/api';
 import * as config from '../config';
 
+interface StoredHistoryEntry {
+  url: string;
+  title: string;
+  visitTime: number;
+}
+
 describe('History Sync Integration', () => {
   const testClientId = 'test-client-' + Date.now();
   const apiEndpoint = 'https://api-staging.chroniclesync.xyz';
@@ -10,7 +16,8 @@ describe('History Sync Integration', () => {
     // Mock getConfig to use staging API
     vi.spyOn(config, 'getConfig').mockImplementation(() => Promise.resolve({
       apiEndpoint,
-      clientId: testClientId
+      clientId: testClientId,
+      pagesUrl: 'https://staging.chroniclesync.xyz'
     }));
   });
 
@@ -39,11 +46,6 @@ describe('History Sync Integration', () => {
     const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
-    interface StoredHistoryEntry {
-      url: string;
-      title: string;
-      visitTime: number;
-    }
 
     const data = await response.json() as StoredHistoryEntry[];
     expect(Array.isArray(data)).toBe(true);

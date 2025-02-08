@@ -1,4 +1,4 @@
-export class Settings {
+class Settings {
   constructor() {
     this.config = null;
     this.DEFAULT_SETTINGS = {

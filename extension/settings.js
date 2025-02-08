@@ -9,12 +9,9 @@ class Settings {
   }
 
   async init() {
-    console.log('Initializing settings...');
     const result = await new Promise(resolve => {
       chrome.storage.sync.get(['clientId', 'customApiUrl', 'environment'], resolve);
     });
-
-    console.log('Loaded settings:', result);
 
     this.config = {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
@@ -22,43 +19,25 @@ class Settings {
       environment: result.environment || this.DEFAULT_SETTINGS.environment
     };
 
-    console.log('Config:', this.config);
-
     this.render();
     this.setupEventListeners();
-    console.log('Settings initialized');
   }
 
   render() {
-    console.log('Rendering settings...');
-    if (!this.config) {
-      console.log('No config available');
-      return;
-    }
+    if (!this.config) return;
 
     const clientIdInput = document.getElementById('clientId');
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
 
-    console.log('Elements found:', {
-      clientIdInput: !!clientIdInput,
-      environmentSelect: !!environmentSelect,
-      customUrlContainer: !!customUrlContainer,
-      customApiUrlInput: !!customApiUrlInput
-    });
-
     if (clientIdInput) clientIdInput.value = this.config.clientId;
     if (environmentSelect) environmentSelect.value = this.config.environment;
     if (customApiUrlInput) customApiUrlInput.value = this.config.customApiUrl || '';
     
     if (customUrlContainer) {
-      const display = this.config.environment === 'custom' ? 'block' : 'none';
-      console.log('Setting custom URL container display to:', display);
-      customUrlContainer.style.display = display;
+      customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
     }
-
-    console.log('Render complete');
   }
 
   setupEventListeners() {
@@ -68,17 +47,11 @@ class Settings {
   }
 
   handleEnvironmentChange() {
-    console.log('Environment change event triggered');
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     
-    console.log('Environment:', environmentSelect?.value);
-    console.log('Container found:', !!customUrlContainer);
-    
     if (environmentSelect && customUrlContainer) {
-      const display = environmentSelect.value === 'custom' ? 'block' : 'none';
-      console.log('Setting display to:', display);
-      customUrlContainer.style.display = display;
+      customUrlContainer.style.display = environmentSelect.value === 'custom' ? 'block' : 'none';
     }
   }
 
@@ -135,7 +108,7 @@ class Settings {
 // Initialize settings when the page loads
 document.addEventListener('DOMContentLoaded', () => {
   const settings = new Settings();
-  settings.init().catch(console.error);
+  settings.init();
 });
 
 export default Settings;

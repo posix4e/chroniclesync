@@ -39,14 +39,14 @@ export class Settings {
     if (!this.config) throw new Error('Settings not initialized');
     
     switch (this.config.environment) {
-      case 'production':
-        return this.PROD_API_URL;
-      case 'staging':
-        return this.STAGING_API_URL;
-      case 'custom':
-        return this.config.customApiUrl || this.PROD_API_URL;
-      default:
-        return this.PROD_API_URL;
+    case 'production':
+      return this.PROD_API_URL;
+    case 'staging':
+      return this.STAGING_API_URL;
+    case 'custom':
+      return this.config.customApiUrl || this.PROD_API_URL;
+    default:
+      return this.PROD_API_URL;
     }
   }
 
@@ -74,7 +74,6 @@ export class Settings {
   private handleEnvironmentChange(): void {
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
-    
     customUrlContainer.style.display = environmentSelect.value === 'custom' ? 'block' : 'none';
   }
 

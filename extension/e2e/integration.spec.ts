@@ -141,7 +141,6 @@ test.describe('ChronicleSync E2E Tests', () => {
       // Use the service worker to access history
       const history = await workers[0].evaluate(() => {
         return new Promise<chrome.history.HistoryItem[]>((resolve) => {
-          // @ts-expect-error - chrome.history exists in extension context
           chrome.history.search({ text: '', maxResults: 10 }, (results) => {
             resolve(results);
           });

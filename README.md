@@ -8,6 +8,7 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 - **Secure**: End-to-end HTTPS encryption and robust access controls
 - **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
+- **History Sync**: Comprehensive synchronization of browsing history across devices with conflict resolution and merge capabilities
 
 ## Development
 

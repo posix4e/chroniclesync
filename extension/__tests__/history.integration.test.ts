@@ -10,12 +10,12 @@ interface StoredHistoryEntry {
 
 describe('History Sync Integration', () => {
   const testClientId = 'test-client-' + Date.now();
-  const apiEndpoint = 'https://api-staging.chroniclesync.xyz';
+  const apiUrl = 'https://api-staging.chroniclesync.xyz';
 
   beforeAll(() => {
     // Mock getConfig to use staging API
     vi.spyOn(config, 'getConfig').mockImplementation(() => Promise.resolve({
-      apiEndpoint,
+      apiUrl,
       clientId: testClientId,
       pagesUrl: 'https://staging.chroniclesync.xyz'
     }));
@@ -43,7 +43,7 @@ describe('History Sync Integration', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Verify history was stored
-    const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
+    const response = await fetch(`${apiUrl}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
 
@@ -78,7 +78,7 @@ describe('History Sync Integration', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Verify history
-    const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
+    const response = await fetch(`${apiUrl}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
     const data = await response.json() as StoredHistoryEntry[];
@@ -103,7 +103,7 @@ describe('History Sync Integration', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Verify history was stored
-    const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
+    const response = await fetch(`${apiUrl}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
     const data = await response.json() as StoredHistoryEntry[];

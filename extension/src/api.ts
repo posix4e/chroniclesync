@@ -9,7 +9,7 @@ export interface HistoryEntry {
 export async function syncHistory(entries: HistoryEntry[]): Promise<boolean> {
   try {
     const config = await getConfig();
-    const url = new URL(`${config.apiEndpoint}/api/history`);
+    const url = new URL(`${config.apiUrl}/api/history`);
     url.searchParams.set('clientId', config.clientId);
 
     const response = await fetch(url.toString(), {

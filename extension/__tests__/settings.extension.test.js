@@ -28,6 +28,18 @@ describe('Settings', () => {
       input.id = id;
       form.appendChild(input);
     });
+
+    // Add environment dropdown
+    const envSelect = document.createElement('select');
+    envSelect.id = 'environment';
+    ['production', 'staging', 'custom'].forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      envSelect.appendChild(option);
+    });
+    form.appendChild(envSelect);
+
     mockContainer.appendChild(form);
 
     // Add settings actions container with buttons
@@ -64,7 +76,8 @@ describe('Settings', () => {
     const mockConfig = {
       clientId: 'test-client',
       apiUrl: 'http://test-api.com',
-      pagesUrl: 'http://test-pages.com'
+      pagesUrl: 'http://test-pages.com',
+      environment: 'production'
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -77,13 +90,15 @@ describe('Settings', () => {
     expect(document.getElementById('clientId').value).toBe(mockConfig.clientId);
     expect(document.getElementById('apiUrl').value).toBe(mockConfig.apiUrl);
     expect(document.getElementById('pagesUrl').value).toBe(mockConfig.pagesUrl);
+    expect(document.getElementById('environment').value).toBe(mockConfig.environment);
   });
 
   it('handleSave updates config and shows success message', async () => {
     const newConfig = {
       clientId: 'new-client',
       apiUrl: 'http://new-api.com',
-      pagesUrl: 'http://new-pages.com'
+      pagesUrl: 'http://new-pages.com',
+      environment: 'custom'
     };
 
     settings.config = { ...settings.DEFAULT_SETTINGS };
@@ -93,6 +108,7 @@ describe('Settings', () => {
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('apiUrl').value = newConfig.apiUrl;
     document.getElementById('pagesUrl').value = newConfig.pagesUrl;
+    document.getElementById('environment').value = newConfig.environment;
 
     const mockEvent = {
       preventDefault: vi.fn()
@@ -112,7 +128,8 @@ describe('Settings', () => {
     settings.config = {
       clientId: 'custom-client',
       apiUrl: 'http://custom-api.com',
-      pagesUrl: 'http://custom-pages.com'
+      pagesUrl: 'http://custom-pages.com',
+      environment: 'custom'
     };
 
     await settings.handleReset();

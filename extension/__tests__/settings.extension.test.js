@@ -29,16 +29,27 @@ describe('Settings', () => {
       form.appendChild(input);
     });
 
-    // Add environment dropdown
-    const envSelect = document.createElement('select');
-    envSelect.id = 'environment';
+    // Add API environment dropdown
+    const apiEnvSelect = document.createElement('select');
+    apiEnvSelect.id = 'apiEnvironment';
     ['production', 'staging', 'custom'].forEach(value => {
       const option = document.createElement('option');
       option.value = value;
       option.textContent = value;
-      envSelect.appendChild(option);
+      apiEnvSelect.appendChild(option);
     });
-    form.appendChild(envSelect);
+    form.appendChild(apiEnvSelect);
+
+    // Add Pages environment dropdown
+    const pagesEnvSelect = document.createElement('select');
+    pagesEnvSelect.id = 'pagesEnvironment';
+    ['production', 'custom'].forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      pagesEnvSelect.appendChild(option);
+    });
+    form.appendChild(pagesEnvSelect);
 
     mockContainer.appendChild(form);
 
@@ -77,7 +88,8 @@ describe('Settings', () => {
       clientId: 'test-client',
       apiUrl: 'http://test-api.com',
       pagesUrl: 'http://test-pages.com',
-      environment: 'production'
+      apiEnvironment: 'production',
+      pagesEnvironment: 'production'
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -90,7 +102,8 @@ describe('Settings', () => {
     expect(document.getElementById('clientId').value).toBe(mockConfig.clientId);
     expect(document.getElementById('apiUrl').value).toBe(mockConfig.apiUrl);
     expect(document.getElementById('pagesUrl').value).toBe(mockConfig.pagesUrl);
-    expect(document.getElementById('environment').value).toBe(mockConfig.environment);
+    expect(document.getElementById('apiEnvironment').value).toBe(mockConfig.apiEnvironment);
+    expect(document.getElementById('pagesEnvironment').value).toBe(mockConfig.pagesEnvironment);
   });
 
   it('handleSave updates config and shows success message', async () => {
@@ -98,7 +111,8 @@ describe('Settings', () => {
       clientId: 'new-client',
       apiUrl: 'http://new-api.com',
       pagesUrl: 'http://new-pages.com',
-      environment: 'custom'
+      apiEnvironment: 'custom',
+      pagesEnvironment: 'custom'
     };
 
     settings.config = { ...settings.DEFAULT_SETTINGS };
@@ -108,7 +122,8 @@ describe('Settings', () => {
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('apiUrl').value = newConfig.apiUrl;
     document.getElementById('pagesUrl').value = newConfig.pagesUrl;
-    document.getElementById('environment').value = newConfig.environment;
+    document.getElementById('apiEnvironment').value = newConfig.apiEnvironment;
+    document.getElementById('pagesEnvironment').value = newConfig.pagesEnvironment;
 
     const mockEvent = {
       preventDefault: vi.fn()
@@ -129,7 +144,8 @@ describe('Settings', () => {
       clientId: 'custom-client',
       apiUrl: 'http://custom-api.com',
       pagesUrl: 'http://custom-pages.com',
-      environment: 'custom'
+      apiEnvironment: 'custom',
+      pagesEnvironment: 'custom'
     };
 
     await settings.handleReset();

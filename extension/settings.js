@@ -1,4 +1,4 @@
-class Settings {
+export class Settings {
   constructor() {
     this.config = null;
     this.DEFAULT_SETTINGS = {
@@ -110,5 +110,3 @@ document.addEventListener('DOMContentLoaded', () => {
   const settings = new Settings();
   settings.init();
 });
-
-export default Settings;

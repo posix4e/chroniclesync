@@ -124,14 +124,15 @@ test.describe('ChronicleSync E2E Tests', () => {
       const page = await context.newPage();
 
       // Visit test pages and record history
+      // Navigate to first page and wait for complete load
       await page.goto('https://example.com');
-      await page.waitForTimeout(1000); // Wait for history to be recorded
+      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
+      // Navigate to second page and wait for complete load
       await page.goto('https://example.org');
-      await page.waitForTimeout(1000);
-
-      // Wait a bit longer to ensure history is recorded
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       
       // Get the service worker
       const workers = context.serviceWorkers();

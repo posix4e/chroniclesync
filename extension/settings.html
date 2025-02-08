@@ -156,26 +156,31 @@
         
         <section class="settings-section">
             <div class="setting-item">
-                <label for="environment">Environment:</label>
-                <select id="environment" class="dropdown">
+                <label for="clientId">Client ID: <span class="required">*</span></label>
+                <input type="text" id="clientId" placeholder="Enter your client ID" required>
+            </div>
+            <div class="setting-item">
+                <label for="apiEnvironment">API Environment:</label>
+                <select id="apiEnvironment" class="dropdown">
                     <option value="production">Production</option>
                     <option value="staging">Staging</option>
                     <option value="custom">Custom</option>
                 </select>
             </div>
             <div class="setting-item">
-                <label for="clientId">Client ID: <span class="required">*</span></label>
-                <input type="text" id="clientId" placeholder="Enter your client ID" required>
+                <label for="apiUrl">API URL:</label>
+                <input type="url" id="apiUrl" placeholder="https://api.chroniclesync.xyz">
             </div>
-            <div id="urlSettings">
-                <div class="setting-item">
-                    <label for="apiUrl">API URL:</label>
-                    <input type="url" id="apiUrl" placeholder="https://api.chroniclesync.xyz">
-                </div>
-                <div class="setting-item">
-                    <label for="pagesUrl">Pages URL:</label>
-                    <input type="url" id="pagesUrl" placeholder="https://pages.chroniclesync.xyz">
-                </div>
+            <div class="setting-item">
+                <label for="pagesEnvironment">Pages Environment:</label>
+                <select id="pagesEnvironment" class="dropdown">
+                    <option value="production">Production</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label for="pagesUrl">Pages URL:</label>
+                <input type="url" id="pagesUrl" placeholder="https://pages.chroniclesync.xyz">
             </div>
         </section>
 

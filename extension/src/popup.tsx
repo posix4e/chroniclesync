@@ -48,7 +48,7 @@ export function App() {
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
-      <div id="adminLogin">
+      <div id="admin-login">
         <h2>Admin Login</h2>
         <form>
           <input

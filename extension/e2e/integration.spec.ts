@@ -80,8 +80,8 @@ test.describe('ChronicleSync E2E Tests', () => {
 
       // Check for specific app content
       await expect(popupPage.locator('h1')).toHaveText('ChronicleSync');
-      await expect(popupPage.locator('#adminLogin h2')).toHaveText('Admin Login');
-      await expect(popupPage.locator('#adminLogin')).toBeVisible();
+      await expect(popupPage.locator('#admin-login h2')).toHaveText('Admin Login');
+      await expect(popupPage.locator('#admin-login')).toBeVisible();
 
       // Check for React-specific attributes and content
       const reactRoot = await popupPage.evaluate(() => {

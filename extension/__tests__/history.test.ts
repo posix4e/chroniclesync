@@ -13,7 +13,7 @@ describe('History Sync', () => {
     mockFetch = vi.fn();
     global.fetch = mockFetch;
     (getConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
-      apiEndpoint: 'https://api.test',
+      apiUrl: 'https://api.test',
       clientId: 'test-client'
     });
   });

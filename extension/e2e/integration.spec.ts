@@ -130,9 +130,17 @@ test.describe('ChronicleSync E2E Tests', () => {
       await page.goto('https://example.org');
       await page.waitForTimeout(1000);
 
+      interface HistoryItem {
+        id: string;
+        url: string;
+        title: string;
+        lastVisitTime: number;
+        visitCount: number;
+      }
+
       // Verify history entries were created
       const history = await page.evaluate(() => {
-        return new Promise((resolve) => {
+        return new Promise<HistoryItem[]>((resolve) => {
           chrome.history.search({ text: '', maxResults: 10 }, (results) => {
             resolve(results);
           });

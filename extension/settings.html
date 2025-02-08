@@ -12,15 +12,20 @@
             <h2>Configuration</h2>
             <div class="setting-item">
                 <label for="clientId">Client ID:</label>
-                <input type="text" id="clientId" placeholder="Enter your client ID">
+                <input type="text" id="clientId" placeholder="Enter your client ID" required>
             </div>
             <div class="setting-item">
-                <label for="apiUrl">API URL:</label>
-                <input type="url" id="apiUrl" placeholder="https://api.chroniclesync.xyz">
+                <label for="environment">Environment:</label>
+                <select id="environment" required>
+                    <option value="production">Production</option>
+                    <option value="staging">Staging</option>
+                    <option value="custom">Custom</option>
+                </select>
             </div>
-            <div class="setting-item">
-                <label for="pagesUrl">Pages URL:</label>
-                <input type="url" id="pagesUrl" placeholder="https://pages.chroniclesync.xyz">
+            <div id="customUrlContainer" class="setting-item" style="display: none;">
+                <label for="customApiUrl">Custom API URL:</label>
+                <input type="url" id="customApiUrl" placeholder="https://your-custom-api.com">
+                <small class="help-text">Only used when Environment is set to Custom</small>
             </div>
         </section>
 
@@ -29,6 +34,6 @@
             <button id="resetSettings" class="reset-settings">Reset to Default</button>
         </div>
     </div>
-    <script src="settings.js"></script>
+    <script type="module" src="settings.js"></script>
 </body>
 </html>

@@ -3,36 +3,83 @@ class Settings {
     this.config = null;
     this.DEFAULT_SETTINGS = {
       clientId: '',
-      apiUrl: 'https://api.chroniclesync.xyz',
-      pagesUrl: 'https://pages.chroniclesync.xyz'
+      customApiUrl: null,
+      environment: 'production'
     };
   }
 
   async init() {
-    // Load settings from storage
+    console.log('Initializing settings...');
     const result = await new Promise(resolve => {
-      chrome.storage.sync.get(['clientId', 'apiUrl', 'pagesUrl'], resolve);
+      chrome.storage.sync.get(['clientId', 'customApiUrl', 'environment'], resolve);
     });
+
+    console.log('Loaded settings:', result);
 
     this.config = {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
-      apiUrl: result.apiUrl || this.DEFAULT_SETTINGS.apiUrl,
-      pagesUrl: result.pagesUrl || this.DEFAULT_SETTINGS.pagesUrl
+      customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
+      environment: result.environment || this.DEFAULT_SETTINGS.environment
     };
+
+    console.log('Config:', this.config);
 
     this.render();
     this.setupEventListeners();
+    console.log('Settings initialized');
   }
 
   render() {
-    document.getElementById('clientId').value = this.config.clientId;
-    document.getElementById('apiUrl').value = this.config.apiUrl;
-    document.getElementById('pagesUrl').value = this.config.pagesUrl;
+    console.log('Rendering settings...');
+    if (!this.config) {
+      console.log('No config available');
+      return;
+    }
+
+    const clientIdInput = document.getElementById('clientId');
+    const environmentSelect = document.getElementById('environment');
+    const customUrlContainer = document.getElementById('customUrlContainer');
+    const customApiUrlInput = document.getElementById('customApiUrl');
+
+    console.log('Elements found:', {
+      clientIdInput: !!clientIdInput,
+      environmentSelect: !!environmentSelect,
+      customUrlContainer: !!customUrlContainer,
+      customApiUrlInput: !!customApiUrlInput
+    });
+
+    if (clientIdInput) clientIdInput.value = this.config.clientId;
+    if (environmentSelect) environmentSelect.value = this.config.environment;
+    if (customApiUrlInput) customApiUrlInput.value = this.config.customApiUrl || '';
+    
+    if (customUrlContainer) {
+      const display = this.config.environment === 'custom' ? 'block' : 'none';
+      console.log('Setting custom URL container display to:', display);
+      customUrlContainer.style.display = display;
+    }
+
+    console.log('Render complete');
   }
 
   setupEventListeners() {
-    document.getElementById('saveSettings').addEventListener('click', e => this.handleSave(e));
-    document.getElementById('resetSettings').addEventListener('click', () => this.handleReset());
+    document.getElementById('saveSettings')?.addEventListener('click', e => this.handleSave(e));
+    document.getElementById('resetSettings')?.addEventListener('click', () => this.handleReset());
+    document.getElementById('environment')?.addEventListener('change', () => this.handleEnvironmentChange());
+  }
+
+  handleEnvironmentChange() {
+    console.log('Environment change event triggered');
+    const environmentSelect = document.getElementById('environment');
+    const customUrlContainer = document.getElementById('customUrlContainer');
+    
+    console.log('Environment:', environmentSelect?.value);
+    console.log('Container found:', !!customUrlContainer);
+    
+    if (environmentSelect && customUrlContainer) {
+      const display = environmentSelect.value === 'custom' ? 'block' : 'none';
+      console.log('Setting display to:', display);
+      customUrlContainer.style.display = display;
+    }
   }
 
   async handleSave(event) {
@@ -40,18 +87,29 @@ class Settings {
       event.preventDefault();
     }
 
+    const clientIdInput = document.getElementById('clientId');
+    const environmentSelect = document.getElementById('environment');
+    const customApiUrlInput = document.getElementById('customApiUrl');
+
+    if (!clientIdInput || !environmentSelect) return;
+
     const newConfig = {
-      clientId: document.getElementById('clientId').value,
-      apiUrl: document.getElementById('apiUrl').value,
-      pagesUrl: document.getElementById('pagesUrl').value
+      clientId: clientIdInput.value.trim(),
+      environment: environmentSelect.value,
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
     };
+
+    if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {
+      this.showMessage('Custom API URL is required when using custom environment', 'error');
+      return;
+    }
 
     await new Promise(resolve => {
       chrome.storage.sync.set(newConfig, resolve);
     });
 
     this.config = newConfig;
-    this.showMessage('Settings saved successfully!');
+    this.showMessage('Settings saved successfully!', 'success');
   }
 
   handleReset() {
@@ -62,22 +120,22 @@ class Settings {
     }
   }
 
-  showMessage(text) {
+  showMessage(text, type = 'success') {
     const status = document.createElement('div');
-    status.className = 'status-message';
+    status.className = `status-message ${type}`;
     status.textContent = text;
-    document.querySelector('.settings-actions').appendChild(status);
+    document.querySelector('.settings-actions')?.appendChild(status);
 
     setTimeout(() => {
       status.remove();
-    }, 2000);
+    }, 3000);
   }
 }
 
 // Initialize settings when the page loads
 document.addEventListener('DOMContentLoaded', () => {
   const settings = new Settings();
-  settings.init();
+  settings.init().catch(console.error);
 });
 
 export default Settings;

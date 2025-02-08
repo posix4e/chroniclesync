@@ -9,16 +9,16 @@ body {
 .settings-container {
     max-width: 600px;
     margin: 0 auto;
-    background-color: white;
+    background: white;
     padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
-    margin: 0 0 30px;
-    text-align: center;
     color: #333;
+    margin-bottom: 30px;
+    text-align: center;
 }
 
 .settings-section {
@@ -26,9 +26,9 @@ h1 {
 }
 
 h2 {
-    font-size: 1.2em;
-    margin: 0 0 20px;
     color: #666;
+    font-size: 1.2em;
+    margin-bottom: 20px;
 }
 
 .setting-item {
@@ -38,77 +38,114 @@ h2 {
 label {
     display: block;
     margin-bottom: 8px;
+    color: #555;
     font-weight: 500;
 }
 
 input[type="text"],
-input[type="url"] {
+input[type="url"],
+select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    background-color: white;
     box-sizing: border-box;
 }
 
 input[type="text"]:focus,
-input[type="url"]:focus {
-    border-color: #4caf50;
+input[type="url"]:focus,
+select:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgb(76 175 80 / 20%);
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.help-text {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+    font-size: 12px;
+    font-style: italic;
 }
 
 .settings-actions {
+    display: flex;
+    justify-content: space-between;
     margin-top: 30px;
-    text-align: center;
+    gap: 10px;
 }
 
-.settings-actions button {
+button {
     padding: 10px 20px;
-    margin: 0 10px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    flex: 1;
 }
 
 .primary-button {
-    background-color: #4caf50;
+    background-color: #4CAF50;
     color: white;
 }
 
 .primary-button:hover {
     background-color: #45a049;
+    transform: translateY(-1px);
 }
 
 .reset-settings {
-    background-color: #f0f0f0;
-    color: #333;
+    background-color: #f44336;
+    color: white;
 }
 
 .reset-settings:hover {
-    background-color: #e0e0e0;
+    background-color: #da190b;
+    transform: translateY(-1px);
 }
 
 .status-message {
-    margin-top: 15px;
-    padding: 10px;
-    background-color: #4caf50;
-    color: white;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
     border-radius: 4px;
+    color: white;
     text-align: center;
-    animation: fade-in 0.3s ease-in;
+    animation: slideUp 0.3s ease-out;
+    z-index: 1000;
 }
 
-@keyframes fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
+.status-message.success {
+    background-color: #4CAF50;
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
+.status-message.error {
+    background-color: #f44336;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, 100%);
+        opacity: 0;
     }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+#customUrlContainer {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    opacity: 1;
+}
+
+#customUrlContainer[style*="display: none"] {
+    opacity: 0;
+    margin-top: -20px;
 }

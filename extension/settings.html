@@ -2,17 +2,146 @@
 <html>
 <head>
     <title>ChronicleSync Settings</title>
-    <link rel="stylesheet" type="text/css" href="settings.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .settings-section {
+            margin: 20px 0;
+        }
+        
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus,
+        input[type="url"]:focus {
+            border-color: #4a90e2;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+        
+        .settings-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .primary-button {
+            background: #4a90e2;
+            color: white;
+        }
+        
+        .primary-button:hover {
+            background: #357abd;
+        }
+        
+        .secondary-button {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .secondary-button:hover {
+            background: #e0e0e0;
+        }
+        
+        .reset-settings {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .reset-settings:hover {
+            background: #ff5252;
+        }
+        
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+        }
+        
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .status-message.info {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+    </style>
 </head>
 <body>
     <div class="settings-container">
         <h1>ChronicleSync Settings</h1>
         
         <section class="settings-section">
-            <h2>Configuration</h2>
             <div class="setting-item">
-                <label for="clientId">Client ID:</label>
-                <input type="text" id="clientId" placeholder="Enter your client ID">
+                <label for="clientId">Client ID: <span class="required">*</span></label>
+                <input type="text" id="clientId" placeholder="Enter your client ID" required>
             </div>
             <div class="setting-item">
                 <label for="apiUrl">API URL:</label>
@@ -26,6 +155,7 @@
 
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>
+            <button id="testConnection" class="secondary-button">Test Connection</button>
             <button id="resetSettings" class="reset-settings">Reset to Default</button>
         </div>
     </div>

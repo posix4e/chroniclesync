@@ -130,9 +130,17 @@ test.describe('ChronicleSync E2E Tests', () => {
       await page.goto('https://example.org');
       await page.waitForTimeout(1000);
 
-      // Verify history entries were created
-      const history = await page.evaluate(() => {
+      // Wait a bit longer to ensure history is recorded
+      await page.waitForTimeout(2000);
+      
+      // Get the service worker
+      const workers = context.serviceWorkers();
+      expect(workers.length).toBe(1);
+      
+      // Use the service worker to access history
+      const history = await workers[0].evaluate(() => {
         return new Promise<chrome.history.HistoryItem[]>((resolve) => {
+          // @ts-ignore - chrome.history exists in extension context
           chrome.history.search({ text: '', maxResults: 10 }, (results) => {
             resolve(results);
           });

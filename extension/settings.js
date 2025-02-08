@@ -1,10 +1,21 @@
 class Settings {
   constructor() {
     this.config = null;
+    this.ENVIRONMENTS = {
+      production: {
+        apiUrl: 'https://api.chroniclesync.xyz',
+        pagesUrl: 'https://chroniclesync.pages.dev'
+      },
+      staging: {
+        apiUrl: 'https://staging-api.chroniclesync.xyz',
+        pagesUrl: 'https://staging.chroniclesync.pages.dev'
+      }
+    };
     this.DEFAULT_SETTINGS = {
       clientId: '',
-      apiUrl: 'https://api.chroniclesync.xyz',
-      pagesUrl: 'https://pages.chroniclesync.xyz'
+      apiUrl: this.ENVIRONMENTS.production.apiUrl,
+      pagesUrl: this.ENVIRONMENTS.production.pagesUrl,
+      environment: 'production'
     };
     this.messageTimeout = null;
   }
@@ -13,17 +24,19 @@ class Settings {
     try {
       // Load settings from storage
       const result = await new Promise(resolve => {
-        chrome.storage.sync.get(['clientId', 'apiUrl', 'pagesUrl'], resolve);
+        chrome.storage.sync.get(['clientId', 'apiUrl', 'pagesUrl', 'environment'], resolve);
       });
 
       this.config = {
         clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
         apiUrl: result.apiUrl || this.DEFAULT_SETTINGS.apiUrl,
-        pagesUrl: result.pagesUrl || this.DEFAULT_SETTINGS.pagesUrl
+        pagesUrl: result.pagesUrl || this.DEFAULT_SETTINGS.pagesUrl,
+        environment: result.environment || this.DEFAULT_SETTINGS.environment
       };
 
       this.render();
       this.setupEventListeners();
+      this.updateEnvironmentUI();
       
       // Show warning if client ID is not set
       if (!this.config.clientId) {
@@ -38,12 +51,48 @@ class Settings {
     document.getElementById('clientId').value = this.config.clientId;
     document.getElementById('apiUrl').value = this.config.apiUrl;
     document.getElementById('pagesUrl').value = this.config.pagesUrl;
+    document.getElementById('environment').value = this.config.environment;
   }
 
   setupEventListeners() {
     document.getElementById('saveSettings').addEventListener('click', e => this.handleSave(e));
     document.getElementById('resetSettings').addEventListener('click', () => this.handleReset());
     document.getElementById('testConnection').addEventListener('click', () => this.testConnection());
+    document.getElementById('environment').addEventListener('change', () => this.handleEnvironmentChange());
+  }
+
+  updateEnvironmentUI() {
+    const environment = document.getElementById('environment').value;
+    const urlSettings = document.getElementById('urlSettings');
+    const apiUrlInput = document.getElementById('apiUrl');
+    const pagesUrlInput = document.getElementById('pagesUrl');
+
+    if (environment === 'custom') {
+      urlSettings.classList.remove('disabled');
+      apiUrlInput.removeAttribute('readonly');
+      pagesUrlInput.removeAttribute('readonly');
+    } else {
+      urlSettings.classList.add('disabled');
+      apiUrlInput.setAttribute('readonly', 'true');
+      pagesUrlInput.setAttribute('readonly', 'true');
+
+      if (this.ENVIRONMENTS[environment]) {
+        apiUrlInput.value = this.ENVIRONMENTS[environment].apiUrl;
+        pagesUrlInput.value = this.ENVIRONMENTS[environment].pagesUrl;
+      }
+    }
+  }
+
+  handleEnvironmentChange() {
+    const environment = document.getElementById('environment').value;
+    this.config.environment = environment;
+
+    if (environment !== 'custom' && this.ENVIRONMENTS[environment]) {
+      this.config.apiUrl = this.ENVIRONMENTS[environment].apiUrl;
+      this.config.pagesUrl = this.ENVIRONMENTS[environment].pagesUrl;
+    }
+
+    this.updateEnvironmentUI();
   }
 
   async handleSave(event) {
@@ -55,7 +104,8 @@ class Settings {
       const newConfig = {
         clientId: document.getElementById('clientId').value.trim(),
         apiUrl: document.getElementById('apiUrl').value.trim(),
-        pagesUrl: document.getElementById('pagesUrl').value.trim()
+        pagesUrl: document.getElementById('pagesUrl').value.trim(),
+        environment: document.getElementById('environment').value
       };
 
       // Validate required fields

@@ -82,11 +82,13 @@ class Settings {
     }
   }
 
-  handleReset() {
+  async handleReset() {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
       this.config = { ...this.DEFAULT_SETTINGS };
       this.render();
-      this.handleSave();
+      await new Promise(resolve => {
+        chrome.storage.sync.set(this.DEFAULT_SETTINGS, resolve);
+      });
     }
   }
 
@@ -106,7 +108,7 @@ class Settings {
     try {
       new URL(string);
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   }

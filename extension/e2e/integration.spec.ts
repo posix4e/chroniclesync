@@ -118,6 +118,108 @@ test.describe('ChronicleSync E2E Tests', () => {
     });
   });
 
+  test.describe('Settings Page', () => {
+    test('settings page loads correctly', async ({ context, extensionId }) => {
+      const extensionPage = await context.newPage();
+      await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      
+      // Wait for the page to load
+      await extensionPage.waitForLoadState('networkidle');
+      
+      // Open settings (assuming there's a settings button/link)
+      await extensionPage.click('text=Settings');
+      
+      // Verify settings form elements
+      await expect(extensionPage.locator('#settings-form')).toBeVisible();
+      
+      // Check environment selector
+      const envSelector = extensionPage.locator('select#environment');
+      await expect(envSelector).toBeVisible();
+      
+      // Verify available options
+      const options = await envSelector.evaluate(select => {
+        return Array.from(select.options).map(option => option.value);
+      });
+      expect(options).toContain('production');
+      expect(options).toContain('staging');
+      expect(options).toContain('custom');
+    });
+
+    test('URL override restrictions work correctly', async ({ context, extensionId }) => {
+      const extensionPage = await context.newPage();
+      await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      await extensionPage.click('text=Settings');
+      
+      // Select production environment
+      await extensionPage.selectOption('select#environment', 'production');
+      
+      // Verify URL input is not visible for production
+      await expect(extensionPage.locator('#custom-url-input')).not.toBeVisible();
+      
+      // Select staging environment
+      await extensionPage.selectOption('select#environment', 'staging');
+      
+      // Verify URL input is not visible for staging
+      await expect(extensionPage.locator('#custom-url-input')).not.toBeVisible();
+      
+      // Select custom environment
+      await extensionPage.selectOption('select#environment', 'custom');
+      
+      // Verify URL input is visible for custom
+      await expect(extensionPage.locator('#custom-url-input')).toBeVisible();
+    });
+
+    test('custom URL setting works and persists', async ({ context, extensionId }) => {
+      const extensionPage = await context.newPage();
+      await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      await extensionPage.click('text=Settings');
+      
+      // Select custom environment
+      await extensionPage.selectOption('select#environment', 'custom');
+      
+      // Set custom URL
+      const testUrl = 'http://localhost:8080';
+      await extensionPage.fill('#custom-url-input', testUrl);
+      
+      // Save settings
+      await extensionPage.click('text=Save Settings');
+      
+      // Verify success message
+      await expect(extensionPage.locator('text=Settings saved successfully')).toBeVisible();
+      
+      // Reload page to verify persistence
+      await extensionPage.reload();
+      await extensionPage.click('text=Settings');
+      
+      // Verify settings persisted
+      await expect(extensionPage.locator('select#environment')).toHaveValue('custom');
+      await expect(extensionPage.locator('#custom-url-input')).toHaveValue(testUrl);
+    });
+
+    test('invalid custom URL shows error', async ({ context, extensionId }) => {
+      const extensionPage = await context.newPage();
+      await extensionPage.goto(getExtensionUrl(extensionId, 'popup.html'));
+      await extensionPage.click('text=Settings');
+      
+      // Select custom environment
+      await extensionPage.selectOption('select#environment', 'custom');
+      
+      // Set invalid URL
+      await extensionPage.fill('#custom-url-input', 'not-a-valid-url');
+      
+      // Try to save settings
+      await extensionPage.click('text=Save Settings');
+      
+      // Verify error message
+      await expect(extensionPage.locator('text=Invalid URL format')).toBeVisible();
+      
+      // Verify settings were not saved
+      await extensionPage.reload();
+      await extensionPage.click('text=Settings');
+      await expect(extensionPage.locator('#custom-url-input')).not.toHaveValue('not-a-valid-url');
+    });
+  });
+
   test.describe('History Sync', () => {
     test('history recording works', async ({ context }) => {
       // Create a new page for history recording

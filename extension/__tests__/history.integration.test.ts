@@ -39,12 +39,18 @@ describe('History Sync Integration', () => {
     const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    interface StoredHistoryEntry {
+      url: string;
+      title: string;
+      visitTime: number;
+    }
+
+    const data = await response.json() as StoredHistoryEntry[];
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
 
     // Find our test entry
-    const foundEntry = data.find((entry: any) => entry.url === testUrl);
+    const foundEntry = data.find(entry => entry.url === testUrl);
     expect(foundEntry).toBeDefined();
     expect(foundEntry?.title).toBe('Test Page');
   });
@@ -73,10 +79,10 @@ describe('History Sync Integration', () => {
     const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data = await response.json() as StoredHistoryEntry[];
     
     // Count occurrences of our test URL
-    const occurrences = data.filter((entry: any) => entry.url === testUrl).length;
+    const occurrences = data.filter(entry => entry.url === testUrl).length;
     expect(occurrences).toBe(1); // Should only store one copy
   });
 
@@ -98,11 +104,11 @@ describe('History Sync Integration', () => {
     const response = await fetch(`${apiEndpoint}/api/history?clientId=${testClientId}`);
     expect(response.ok).toBe(true);
 
-    const data = await response.json();
+    const data = await response.json() as StoredHistoryEntry[];
     expect(Array.isArray(data)).toBe(true);
 
     // Verify all entries were stored
-    const storedUrls = new Set(data.map((entry: any) => entry.url));
+    const storedUrls = new Set(data.map(entry => entry.url));
     entries.forEach(entry => {
       expect(storedUrls.has(entry.url)).toBe(true);
     });

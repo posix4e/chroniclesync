@@ -17,8 +17,18 @@ test.describe('History Sync Feature', () => {
   let page: Page;
 
   test.beforeEach(async ({ context }) => {
-    // Create a new page with extension loaded
+    // Create a new page and get extension ID
     page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.waitForTimeout(1000);
+
+    // Get extension ID from service workers
+    const workers = await context.serviceWorkers();
+    const extensionWorker = workers.find(w => w.url().includes('background.js'));
+    const extensionId = extensionWorker.url().split('/')[2];
+    process.env.EXTENSION_ID = extensionId;
+
+    // Navigate to extension page
     await page.goto(getExtensionUrl('/settings.html'));
   });
 

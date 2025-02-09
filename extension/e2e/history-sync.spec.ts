@@ -17,12 +17,12 @@ test.describe('History Sync Feature', () => {
   let page: Page;
 
   test.beforeEach(async ({ context }) => {
-    // Create a new page and get extension ID
+    // Create a new page and wait for extension to load
     page = await context.newPage();
     await page.goto('https://example.com');
     await page.waitForTimeout(1000);
 
-    // Get extension ID from service workers
+    // Get extension ID from background service worker
     const workers = await context.serviceWorkers();
     const extensionWorker = workers.find(w => w.url().includes('background.js'));
     if (!extensionWorker) {
@@ -31,8 +31,10 @@ test.describe('History Sync Feature', () => {
     const extensionId = extensionWorker.url().split('/')[2];
     process.env.EXTENSION_ID = extensionId;
 
-    // Navigate to extension page
-    await page.goto(getExtensionUrl('/settings.html'));
+    // Create a new page for extension UI
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(getExtensionUrl('/settings.html'));
+    page = extensionPage;
   });
 
   test('should configure client ID and verify settings', async () => {
@@ -146,9 +148,30 @@ test.describe('History Sync Feature', () => {
 });
 
 test.describe('History Sync UI Elements', () => {
-  test('should show sync status in popup', async ({ page }) => {
-    await page.goto(getExtensionUrl('/popup.html'));
-    
+  let page: Page;
+
+  test.beforeEach(async ({ context }) => {
+    // Create a new page and wait for extension to load
+    page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.waitForTimeout(1000);
+
+    // Get extension ID from background service worker
+    const workers = await context.serviceWorkers();
+    const extensionWorker = workers.find(w => w.url().includes('background.js'));
+    if (!extensionWorker) {
+      throw new Error('Extension service worker not found');
+    }
+    const extensionId = extensionWorker.url().split('/')[2];
+    process.env.EXTENSION_ID = extensionId;
+
+    // Create a new page for extension UI
+    const extensionPage = await context.newPage();
+    await extensionPage.goto(getExtensionUrl('/popup.html'));
+    page = extensionPage;
+  });
+
+  test('should show sync status in popup', async () => {
     // Verify UI elements
     await expect(page.locator('[data-testid="sync-status"]')).toBeVisible();
     await expect(page.locator('[data-testid="last-sync"]')).toBeVisible();
@@ -156,8 +179,7 @@ test.describe('History Sync UI Elements', () => {
     await takeScreenshot(page, 'popup-ui-elements');
   });
 
-  test('should update UI during sync', async ({ page }) => {
-    await page.goto(getExtensionUrl('/popup.html'));
+  test('should update UI during sync', async () => {
     await takeScreenshot(page, 'sync-ui-before');
     
     // Click force sync

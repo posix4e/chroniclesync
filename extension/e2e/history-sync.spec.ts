@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, BrowserContext } from '@playwright/test';
 
 const getExtensionUrl = (path: string) => 
   `chrome-extension://${process.env.EXTENSION_ID}${path}`;
@@ -13,6 +13,22 @@ async function takeScreenshot(page: Page, name: string) {
   });
 }
 
+// Helper function to get extension ID
+async function getExtensionId(context: BrowserContext, page: Page): Promise<string> {
+  // Wait for service worker to be registered
+  let extensionWorker;
+  for (let i = 0; i < 5; i++) {
+    const workers = await context.serviceWorkers();
+    extensionWorker = workers.find(w => w.url().includes('background.js'));
+    if (extensionWorker) break;
+    await page.waitForTimeout(1000);
+  }
+  if (!extensionWorker) {
+    throw new Error('Extension service worker not found after retries');
+  }
+  return extensionWorker.url().split('/')[2];
+}
+
 test.describe('History Sync Feature', () => {
   let page: Page;
 
@@ -22,14 +38,8 @@ test.describe('History Sync Feature', () => {
     await page.goto('https://example.com');
     await page.waitForTimeout(1000);
 
-    // Get extension ID from background service worker
-    const workers = await context.serviceWorkers();
-    const extensionWorker = workers.find(w => w.url().includes('background.js'));
-    if (!extensionWorker) {
-      throw new Error('Extension service worker not found');
-    }
-    const extensionId = extensionWorker.url().split('/')[2];
-    process.env.EXTENSION_ID = extensionId;
+    // Get extension ID
+    process.env.EXTENSION_ID = await getExtensionId(context, page);
 
     // Create a new page for extension UI
     const extensionPage = await context.newPage();
@@ -156,14 +166,8 @@ test.describe('History Sync UI Elements', () => {
     await page.goto('https://example.com');
     await page.waitForTimeout(1000);
 
-    // Get extension ID from background service worker
-    const workers = await context.serviceWorkers();
-    const extensionWorker = workers.find(w => w.url().includes('background.js'));
-    if (!extensionWorker) {
-      throw new Error('Extension service worker not found');
-    }
-    const extensionId = extensionWorker.url().split('/')[2];
-    process.env.EXTENSION_ID = extensionId;
+    // Get extension ID
+    process.env.EXTENSION_ID = await getExtensionId(context, page);
 
     // Create a new page for extension UI
     const extensionPage = await context.newPage();

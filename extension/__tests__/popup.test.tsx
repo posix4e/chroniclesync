@@ -6,12 +6,8 @@ import { App } from '../src/popup';
 // Mock Chrome API
 const mockChromeStorage = {
   sync: {
-    get: vi.fn((keys, callback) => {
-      callback({ clientId: '', initialized: false });
-    }),
-    set: vi.fn((data, callback) => {
-      if (callback) callback();
-    }),
+    get: vi.fn(),
+    set: vi.fn(),
     remove: vi.fn(),
     clear: vi.fn(),
     getBytesInUse: vi.fn(),
@@ -22,7 +18,17 @@ const mockChromeStorage = {
   },
   local: {
     get: vi.fn(),
-    set: vi.fn(),
+    set: vi.fn((data, callback) => {
+      // Trigger storage change event
+      const changes: { [key: string]: chrome.storage.StorageChange } = {};
+      Object.keys(data).forEach(key => {
+        changes[key] = { newValue: data[key], oldValue: undefined };
+      });
+      mockChromeStorage.onChanged.addListener.mock.calls.forEach(([listener]) => {
+        listener(changes, 'local');
+      });
+      if (callback) callback();
+    }),
     remove: vi.fn(),
     clear: vi.fn(),
     getBytesInUse: vi.fn(),
@@ -52,6 +58,29 @@ const mockChrome = {
   runtime: {
     lastError: null,
     id: 'test-extension-id',
+    sendMessage: vi.fn().mockImplementation(
+      (
+        extensionIdOrMessage: string | { type: string; [key: string]: unknown },
+        messageOrCallback: { type: string; [key: string]: unknown } | ((response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void),
+        callback?: (response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void
+      ) => {
+        // Handle both 2-argument and 3-argument versions
+        const message = typeof extensionIdOrMessage === 'string' ? messageOrCallback as { type: string } : extensionIdOrMessage as { type: string };
+        const responseCallback = typeof extensionIdOrMessage === 'string' 
+          ? callback 
+          : messageOrCallback as ((response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void);
+
+        if (!responseCallback) {
+          return;
+        }
+
+        if (message.type === 'getHistoryStatus') {
+          responseCallback({ status: 'idle', lastSync: Date.now() });
+        } else if (message.type === 'forceSync') {
+          responseCallback({ success: true });
+        }
+      }
+    ),
     onMessage: {
       addListener: vi.fn(),
       removeListener: vi.fn(),
@@ -75,8 +104,8 @@ describe('Popup Component', () => {
     // Reset DOM
     document.body.innerHTML = '';
     // Reset mock storage
-    mockChromeStorage.sync.get.mockImplementation((keys, callback) => {
-      callback({ clientId: '', initialized: false });
+    mockChromeStorage.local.get.mockImplementation((keys, callback) => {
+      callback({ clientId: '', initialized: false, environment: 'production' });
     });
   });
 
@@ -110,17 +139,18 @@ describe('Popup Component', () => {
     fireEvent.click(initButton);
     
     // Verify storage was updated
-    expect(mockChromeStorage.sync.set).toHaveBeenCalledWith(
+    expect(mockChromeStorage.local.set).toHaveBeenCalledWith(
       expect.objectContaining({
         clientId: 'test-client',
-        initialized: true
+        initialized: true,
+        environment: 'production'
       }),
       expect.any(Function)
     );
     
     // Mock storage to return initialized state
-    mockChromeStorage.sync.get.mockImplementation((keys, callback) => {
-      callback({ clientId: 'test-client', initialized: true });
+    mockChromeStorage.local.get.mockImplementation((keys, callback) => {
+      callback({ clientId: 'test-client', initialized: true, environment: 'production' });
     });
     
     // Sync button should appear
@@ -149,12 +179,40 @@ describe('Popup Component', () => {
     // Mock window.alert
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     
+    // Mock runtime message response
+    chrome.runtime.sendMessage = vi.fn().mockImplementation(
+      (
+        extensionIdOrMessage: string | { type: string; [key: string]: unknown },
+        messageOrCallback: { type: string; [key: string]: unknown } | ((response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void),
+        callback?: (response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void
+      ) => {
+        // Handle both 2-argument and 3-argument versions
+        const message = typeof extensionIdOrMessage === 'string' ? messageOrCallback as { type: string } : extensionIdOrMessage as { type: string };
+        const responseCallback = typeof extensionIdOrMessage === 'string' 
+          ? callback 
+          : messageOrCallback as ((response: { status?: string; lastSync?: number; success?: boolean; error?: string }) => void);
+
+        if (!responseCallback) {
+          return;
+        }
+
+        if (message.type === 'forceSync') {
+          responseCallback({ success: true });
+        }
+      }
+    );
+    
     render(<App />);
     
     // Initialize with client ID
     const input = screen.getByPlaceholderText('Client ID');
     fireEvent.change(input, { target: { value: 'test-client' } });
     fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    
+    // Mock storage to return initialized state
+    mockChromeStorage.local.get.mockImplementation((keys, callback) => {
+      callback({ clientId: 'test-client', initialized: true, environment: 'production' });
+    });
     
     // Click sync button
     const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
@@ -169,8 +227,8 @@ describe('Popup Component', () => {
 
   it('preserves client ID after initialization', async () => {
     // Mock storage to return existing client ID
-    mockChromeStorage.sync.get.mockImplementation((keys, callback) => {
-      callback({ clientId: 'test-client', initialized: true });
+    mockChromeStorage.local.get.mockImplementation((keys, callback) => {
+      callback({ clientId: 'test-client', initialized: true, environment: 'production' });
     });
 
     render(<App />);
@@ -186,7 +244,7 @@ describe('Popup Component', () => {
     
     // Verify storage was updated with new client ID
     await waitFor(() => {
-      expect(mockChromeStorage.sync.set).toHaveBeenCalledWith(
+      expect(mockChromeStorage.local.set).toHaveBeenCalledWith(
         { clientId: 'new-client' },
         expect.any(Function)
       );

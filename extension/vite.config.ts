@@ -7,12 +7,13 @@ import { copyFileSync } from 'fs';
 const copyFiles = () => ({
   name: 'copy-files',
   closeBundle: () => {
-    // Copy HTML, CSS, and manifest files to dist
+    // Copy HTML, CSS, manifest, and background files to dist
     copyFileSync('popup.html', 'dist/popup.html');
     copyFileSync('manifest.json', 'dist/manifest.json');
     copyFileSync('popup.css', 'dist/popup.css');
     copyFileSync('settings.html', 'dist/settings.html');
     copyFileSync('settings.css', 'dist/settings.css');
+    copyFileSync('background.js', 'dist/background.js');
   }
 });
 
@@ -24,7 +25,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'background.js'),
         settings: resolve(__dirname, 'src/settings/index.ts')
       },
       output: {

@@ -25,6 +25,9 @@ test.describe('History Sync Feature', () => {
     // Get extension ID from service workers
     const workers = await context.serviceWorkers();
     const extensionWorker = workers.find(w => w.url().includes('background.js'));
+    if (!extensionWorker) {
+      throw new Error('Extension service worker not found');
+    }
     const extensionId = extensionWorker.url().split('/')[2];
     process.env.EXTENSION_ID = extensionId;
 

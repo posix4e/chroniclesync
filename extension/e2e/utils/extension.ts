@@ -65,8 +65,8 @@ export const test = base.extend<TestFixtures>({
       console.log('Opening new page...');
       const page = await context.newPage();
       
-      console.log('Navigating to example.com...');
-      await page.goto('https://example.com');
+      console.log('Navigating to google.com...');
+      await page.goto('https://google.com');
       
       console.log('Waiting for extension to load...');
       await page.waitForTimeout(2000); // Increased timeout

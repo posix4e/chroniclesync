@@ -77,8 +77,31 @@ class Settings {
       return;
     }
 
+    // Save settings
     await new Promise(resolve => {
-      chrome.storage.sync.set(newConfig, resolve);
+      chrome.storage.sync.clear(async () => {
+        await new Promise(resolve2 => {
+          chrome.storage.sync.set({
+            clientId: newConfig.clientId,
+            environment: newConfig.environment,
+            customApiUrl: newConfig.customApiUrl
+          }, resolve2);
+        });
+
+        // Verify settings were saved
+        const result = await new Promise(resolve2 => {
+          chrome.storage.sync.get(['clientId', 'environment', 'customApiUrl'], resolve2);
+        });
+        console.log('Saved settings:', result);
+
+        // Verify settings match
+        if (result.clientId === newConfig.clientId && result.environment === newConfig.environment) {
+          resolve();
+        } else {
+          console.error('Settings verification failed:', result);
+          resolve();
+        }
+      });
     });
 
     this.config = newConfig;

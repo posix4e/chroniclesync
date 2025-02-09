@@ -10,7 +10,7 @@ test.describe('Chrome Extension', () => {
 
     // Open a new page to trigger the background script
     const testPage = await context.newPage();
-    await testPage.goto('https://example.com');
+    await testPage.goto('https://google.com');
     await testPage.waitForTimeout(1000);
 
     // Check for service workers

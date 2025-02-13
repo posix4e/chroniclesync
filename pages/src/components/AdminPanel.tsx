@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, formatBytes } from '../utils/api';
 import type { ClientStats } from '../types/index';
-import { HistoryView } from './HistoryView';
 
 export function AdminPanel() {
   const [clients, setClients] = useState<ClientStats[]>([]);
@@ -102,9 +101,6 @@ export function AdminPanel() {
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="admin-section">
-        <HistoryView />
       </div>
     </div>
   );

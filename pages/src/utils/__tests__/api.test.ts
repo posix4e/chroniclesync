@@ -47,11 +47,11 @@ describe('API utilities', () => {
       });
     });
 
-    it('returns staging URL as fallback for safety', () => {
+    it('returns production URL as fallback', () => {
       window.location.hostname = 'unknown-domain.com';
       jest.isolateModules(() => {
         const apiModule = jest.requireActual('../api');
-        expect(apiModule.API_URL).toBe('https://api-staging.chroniclesync.xyz');
+        expect(apiModule.API_URL).toBe('https://api.chroniclesync.xyz');
       });
     });
   });

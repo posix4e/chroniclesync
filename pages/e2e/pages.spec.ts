@@ -17,18 +17,9 @@ test.describe('Pages', () => {
     expect(content).toBeTruthy();
   });
 
-  test('API health check', async ({ page }) => {
-    // Mock the health check endpoint
-    await page.route('**/health', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ healthy: true })
-      });
-    });
-
+  test('API health check', async ({ request }) => {
     const apiUrl = process.env.API_URL || server.apiUrl;
-    const response = await page.request.get(`${apiUrl}/health`);
+    const response = await request.get(`${apiUrl}/health`);
     expect(response.ok()).toBeTruthy();
     
     const body = await response.json();

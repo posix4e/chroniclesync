@@ -21,4 +21,12 @@ export class BasePage {
       fullPage: true
     });
   }
+
+  async waitForTimeout(ms: number) {
+    await this.page.waitForTimeout(ms);
+  }
+
+  async waitForResponse(predicate: (response: any) => boolean) {
+    await this.page.waitForResponse(predicate);
+  }
 }

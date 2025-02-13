@@ -10,7 +10,7 @@ export const API_URL = (() => {
   }
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8787';
+    return 'http://localhost:59399';
   }
   
   return 'https://api.chroniclesync.xyz';

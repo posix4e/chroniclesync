@@ -26,18 +26,27 @@ export function HistoryView({ clientId }: HistoryViewProps) {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        console.log('Fetching history for client:', clientId);
         setLoading(true);
-        const response = await fetch(`${API_URL}?clientId=${encodeURIComponent(clientId)}`);
+        const response = await fetch(`${API_URL}?clientId=${encodeURIComponent(clientId)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         
         if (!response.ok) {
+          console.error('API error:', response.status);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Received data:', data);
         if (data.history) {
           setHistory(data.history);
         }
       } catch (err) {
+        console.error('Error fetching history:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch history');
       } finally {
         setLoading(false);
@@ -51,7 +60,9 @@ export function HistoryView({ clientId }: HistoryViewProps) {
 
   const sortedHistory = [...history].sort((a, b) => {
     const compareValue = sortOrder === 'asc' ? 1 : -1;
-    return (a[sortBy] - b[sortBy]) * compareValue;
+    const aValue = a[sortBy];
+    const bValue = b[sortBy];
+    return ((aValue < bValue ? -1 : aValue > bValue ? 1 : 0) * compareValue);
   });
 
   const toggleSort = (field: 'visitTime' | 'visitCount') => {

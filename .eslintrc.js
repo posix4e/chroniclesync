@@ -31,6 +31,12 @@ module.exports = {
       rules: {
         'no-console': 'off'
       }
+    },
+    {
+      files: ['**/background.js'],
+      rules: {
+        'no-console': 'off'
+      }
     }
   ],
 };

@@ -53,11 +53,10 @@ async function syncHistory() {
   }));
 
   try {
-    const response = await fetch(`${config.apiEndpoint}/history`, {
+    const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Client-ID': config.clientId
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         history: historyData,

@@ -75,3 +75,46 @@ button:hover {
 .health-error { 
   color: #e74c3c; 
 }
+
+.history-view {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.history-list {
+  margin-top: 20px;
+}
+
+.history-item {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item-time {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.history-item-content a {
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+.history-item-content a:hover {
+  text-decoration: underline;
+}
+
+.error {
+  color: #e74c3c;
+  padding: 10px;
+  border: 1px solid #e74c3c;
+  border-radius: 4px;
+  margin: 10px 0;
+}

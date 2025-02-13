@@ -25,9 +25,27 @@ export const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const getHistory = async () => {
-  const response = await fetch(`${API_URL}/api/history`, {
-    credentials: 'include',
+interface HistoryParams {
+  limit?: number;
+  offset?: number;
+  clientId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const getHistory = async (params: HistoryParams = {}) => {
+  const searchParams = new URLSearchParams();
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+  if (params.offset) searchParams.set('offset', params.offset.toString());
+  if (params.clientId) searchParams.set('clientId', params.clientId);
+  if (params.startDate) searchParams.set('startDate', params.startDate);
+  if (params.endDate) searchParams.set('endDate', params.endDate);
+
+  const url = `${API_URL}/admin/history${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': 'Bearer francesisthebest'
+    }
   });
   
   if (!response.ok) {

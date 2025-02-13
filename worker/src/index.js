@@ -440,6 +440,86 @@ export default {
     }
   },
 
+  async handleAdminHistory(request, env) {
+    const origin = request.headers.get('Origin') || '*';
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit')) || 100;
+    const offset = parseInt(url.searchParams.get('offset')) || 0;
+    const clientId = url.searchParams.get('clientId');
+    const startDate = url.searchParams.get('startDate') ? new Date(url.searchParams.get('startDate')).getTime() : null;
+    const endDate = url.searchParams.get('endDate') ? new Date(url.searchParams.get('endDate')).getTime() : null;
+
+    try {
+      const metadataService = new MetadataService(env);
+      const { keys } = await metadataService.list();
+      const history = [];
+
+      // Filter keys by clientId if provided
+      const targetKeys = clientId ? keys.filter(k => k.name === clientId) : keys;
+
+      for (const key of targetKeys) {
+        try {
+          const data = await env.STORAGE.get(`${key.name}/data`);
+          if (data) {
+            const historyData = await data.json();
+            if (Array.isArray(historyData)) {
+              const filteredData = historyData.filter(entry => {
+                if (startDate && entry.visitTime < startDate) return false;
+                if (endDate && entry.visitTime > endDate) return false;
+                return true;
+              });
+
+              history.push(...filteredData.map(entry => ({
+                ...entry,
+                clientId: key.name
+              })));
+            }
+          }
+        } catch (e) {
+          log('error', 'Error fetching client history', { clientId: key.name, error: e.message });
+        }
+      }
+
+      // Sort by visit time, most recent first
+      history.sort((a, b) => b.visitTime - a.visitTime);
+
+      // Apply pagination
+      const paginatedHistory = history.slice(offset, offset + limit);
+
+      // Calculate total pages
+      const totalEntries = history.length;
+      const totalPages = Math.ceil(totalEntries / limit);
+
+      return new Response(JSON.stringify({
+        history: paginatedHistory,
+        pagination: {
+          limit,
+          offset,
+          totalEntries,
+          totalPages,
+          currentPage: Math.floor(offset / limit) + 1
+        }
+      }), {
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    } catch (error) {
+      log('error', 'Error fetching history', { error: error.message });
+      return new Response(JSON.stringify({
+        error: 'Failed to fetch history',
+        details: error.message
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.corsHeaders(origin)
+        }
+      });
+    }
+  },
+
   async handleHealthCheck(request, env) {
     const origin = request.headers.get('Origin') || '*';
     const response = {

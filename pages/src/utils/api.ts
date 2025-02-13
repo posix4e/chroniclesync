@@ -13,7 +13,8 @@ export const API_URL = (() => {
     return 'http://localhost:8787';
   }
   
-  return 'https://api.chroniclesync.xyz';
+  // Default to staging for any unknown environment for safety
+  return 'https://api-staging.chroniclesync.xyz';
 })();
 
 export const formatBytes = (bytes: number): string => {

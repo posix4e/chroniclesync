@@ -41,8 +41,8 @@ export function AdminPanel() {
         throw new Error('Failed to delete client');
       }
 
-      await response.json();
-      alert('Client deleted successfully');
+      const text = await response.text();
+      alert(text || 'Client deleted successfully');
       refreshStats();
     } catch (error) {
       alert(`Error deleting client: ${error instanceof Error ? error.message : String(error)}`);

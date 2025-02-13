@@ -111,6 +111,34 @@ button:hover {
   text-decoration: underline;
 }
 
+.history-item-details {
+  margin-top: 5px;
+  font-size: 0.85em;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.history-item-details span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.visit-count {
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.device-info {
+  font-family: monospace;
+}
+
+.device-id {
+  opacity: 0.7;
+}
+
 .error {
   color: #e74c3c;
   padding: 10px;

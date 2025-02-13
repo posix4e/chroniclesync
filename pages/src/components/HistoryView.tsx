@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { getHistory } from '../utils/api';
 
-interface HistoryEntry {
+interface SystemInfo {
+  deviceId: string;
+  platform: string;
+  userAgent: string;
+  browserName: string;
+  browserVersion: string;
+}
+
+interface HistoryEntry extends SystemInfo {
   url: string;
   title: string;
-  timestamp: number;
+  visitTime: number;
+  visitCount: number;
 }
 
 export const HistoryView: React.FC = () => {
@@ -40,7 +49,7 @@ export const HistoryView: React.FC = () => {
       <h2>Browsing History</h2>
       <div className="history-list">
         {history.map((entry, index) => {
-          const date = new Date(entry.timestamp);
+          const date = new Date(entry.visitTime);
           return (
             <div key={index} className="history-item">
               <div className="history-item-time">
@@ -50,6 +59,13 @@ export const HistoryView: React.FC = () => {
                 <a href={entry.url} target="_blank" rel="noopener noreferrer">
                   {entry.title || entry.url}
                 </a>
+                <div className="history-item-details">
+                  <span className="visit-count">Visits: {entry.visitCount}</span>
+                  <span className="device-info">
+                    {entry.browserName} {entry.browserVersion} on {entry.platform}
+                  </span>
+                  <span className="device-id">Device: {entry.deviceId}</span>
+                </div>
               </div>
             </div>
           );

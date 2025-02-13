@@ -29,6 +29,14 @@ async function getDeviceId() {
 
 async function syncHistory() {
   const config = await getConfig();
+  
+  // Skip sync if using default client ID
+  if (config.clientId === 'extension-default') {
+    // eslint-disable-next-line no-console
+    console.debug('Sync paused: Using default client ID');
+    return;
+  }
+
   const systemInfo = await getSystemInfo();
   const now = Date.now();
   
@@ -53,11 +61,10 @@ async function syncHistory() {
   }));
 
   try {
-    const response = await fetch(`${config.apiEndpoint}/history`, {
+    const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Client-ID': config.clientId
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         history: historyData,

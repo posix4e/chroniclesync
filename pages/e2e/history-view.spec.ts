@@ -26,8 +26,10 @@ test.describe('History View', () => {
       });
     });
 
-    // Go to the admin panel page
+    // Go to the admin panel page and wait for it to be ready
     await page.goto(server.webUrl);
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('input[type="password"]');
   });
 
   test('history view is not visible before login', async ({ page }) => {
@@ -36,17 +38,8 @@ test.describe('History View', () => {
   });
 
   test('history view displays correctly after login', async ({ page }) => {
-    // Mock successful login
-    await page.route('**/admin/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-    });
-
-    // Login
-    await page.fill('input[type="password"]', 'admin-password');
+    // Login with the correct password
+    await page.fill('input[type="password"]', 'francesisthebest');
     await page.click('button:has-text("Login")');
 
     // Check history view becomes visible
@@ -63,9 +56,15 @@ test.describe('History View', () => {
   });
 
   test('history view shows loading state', async ({ page }) => {
+    // Create a promise that we'll resolve later
+    let resolveResponse: () => void;
+    const responsePromise = new Promise<void>(resolve => {
+      resolveResponse = resolve;
+    });
+
     // Mock slow API response
     await page.route('**/api/history', async route => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await responsePromise;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -73,21 +72,15 @@ test.describe('History View', () => {
       });
     });
 
-    // Mock successful login
-    await page.route('**/admin/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-    });
-
-    // Login
-    await page.fill('input[type="password"]', 'admin-password');
+    // Login with the correct password
+    await page.fill('input[type="password"]', 'francesisthebest');
     await page.click('button:has-text("Login")');
 
-    // Check loading state
+    // Check loading state before resolving the response
     await expect(page.locator('.history-view')).toContainText('Loading');
+
+    // Now resolve the response
+    resolveResponse!();
   });
 
   test('history view shows error state', async ({ page }) => {
@@ -100,17 +93,8 @@ test.describe('History View', () => {
       });
     });
 
-    // Mock successful login
-    await page.route('**/admin/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-    });
-
-    // Login
-    await page.fill('input[type="password"]', 'admin-password');
+    // Login with the correct password
+    await page.fill('input[type="password"]', 'francesisthebest');
     await page.click('button:has-text("Login")');
 
     // Check error state

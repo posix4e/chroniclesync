@@ -37,7 +37,7 @@ export const HistoryView: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading history...</div>;
+    return <div className="history-view">Loading history...</div>;
   }
 
   if (error) {

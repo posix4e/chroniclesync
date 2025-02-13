@@ -26,7 +26,7 @@ export const HistoryView: React.FC = () => {
       try {
         const data = await getHistory();
         setHistory(data);
-      } catch (err) {
+      } catch {
         setError('Failed to load history');
       } finally {
         setLoading(false);

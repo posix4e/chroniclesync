@@ -8,19 +8,29 @@ jest.mock('../../utils/api');
 const mockGetHistory = getHistory as jest.MockedFunction<typeof getHistory>;
 
 describe('HistoryView', () => {
-  const mockHistoryData = [
-    {
-      url: 'https://example.com',
-      title: 'Example Site',
-      visitTime: 1707864209000, // Fixed timestamp for consistent testing
-      visitCount: 5,
-      deviceId: 'device_123',
-      platform: 'MacIntel',
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-      browserName: 'Chrome',
-      browserVersion: '120.0.0.0'
+  const mockHistoryData = {
+    history: [
+      {
+        url: 'https://example.com',
+        title: 'Example Site',
+        visitTime: 1707864209000, // Fixed timestamp for consistent testing
+        visitCount: 5,
+        deviceId: 'device_123',
+        platform: 'MacIntel',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        browserName: 'Chrome',
+        browserVersion: '120.0.0.0',
+        clientId: 'client_123'
+      }
+    ],
+    pagination: {
+      limit: 100,
+      offset: 0,
+      totalEntries: 1,
+      totalPages: 1,
+      currentPage: 1
     }
-  ];
+  };
 
   beforeEach(() => {
     // Clear all mocks before each test
@@ -69,10 +79,13 @@ describe('HistoryView', () => {
   });
 
   it('displays URL when title is missing', async () => {
-    const dataWithoutTitle = [{
-      ...mockHistoryData[0],
-      title: ''
-    }];
+    const dataWithoutTitle = {
+      history: [{
+        ...mockHistoryData.history[0],
+        title: ''
+      }],
+      pagination: mockHistoryData.pagination
+    };
     mockGetHistory.mockResolvedValue(dataWithoutTitle);
     render(<HistoryView />);
 

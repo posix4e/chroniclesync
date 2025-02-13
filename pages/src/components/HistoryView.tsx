@@ -67,7 +67,13 @@ export const HistoryView: React.FC = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [pagination.offset]);
+  }, []); // Run only on mount
+
+  useEffect(() => {
+    if (pagination.offset > 0) {
+      fetchHistory();
+    }
+  }, [pagination.offset]); // Run when offset changes
 
   const handlePageChange = (newPage: number) => {
     const newOffset = (newPage - 1) * pagination.limit;

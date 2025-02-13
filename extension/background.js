@@ -72,8 +72,10 @@ async function syncHistory() {
     lastSync = now;
     await chrome.storage.sync.set({ lastSync: now });
     chrome.runtime.sendMessage({ type: 'syncComplete' });
+    // eslint-disable-next-line no-console
     console.debug(`Successfully synced ${historyData.length} history items`);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error syncing history:', error);
   }
 }
@@ -85,8 +87,9 @@ syncHistory();
 setInterval(syncHistory, SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   if (changeInfo.url) {
+    // eslint-disable-next-line no-console
     console.debug(`Navigation to: ${changeInfo.url}`);
     // Trigger sync after a short delay to allow history to be updated
     setTimeout(syncHistory, 1000);

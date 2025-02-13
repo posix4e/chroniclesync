@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DB } from '../utils/db';
 import { API_URL } from '../utils/api';
+import { HistoryView } from './HistoryView';
 
 interface ClientSectionProps {
   db: DB;
@@ -75,19 +76,22 @@ export function ClientSection({ db }: ClientSectionProps) {
       </div>
       
       {isInitialized && (
-        <div id="dataSection">
-          <h3>Data</h3>
-          <textarea
-            id="dataInput"
-            rows={10}
-            cols={50}
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-          />
-          <br />
-          <button onClick={saveData}>Save Data</button>
-          <button onClick={syncData}>Sync with Server</button>
-        </div>
+        <>
+          <div id="dataSection">
+            <h3>Data</h3>
+            <textarea
+              id="dataInput"
+              rows={10}
+              cols={50}
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+            />
+            <br />
+            <button onClick={saveData}>Save Data</button>
+            <button onClick={syncData}>Sync with Server</button>
+          </div>
+          <HistoryView clientId={clientId} />
+        </>
       )}
     </div>
   );

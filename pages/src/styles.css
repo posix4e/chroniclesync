@@ -75,3 +75,53 @@ button:hover {
 .health-error { 
   color: #e74c3c; 
 }
+
+.history-view {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.sort-controls {
+  margin-bottom: 20px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.history-item {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+}
+
+.history-title {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.history-title a {
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+.history-title a:hover {
+  text-decoration: underline;
+}
+
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.history-meta span {
+  display: inline-block;
+}

@@ -5,15 +5,27 @@ import '../popup.css';
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
+  const [lastSync, setLastSync] = useState<string>('Never');
 
   // Load saved state when component mounts
   useEffect(() => {
-    chrome.storage.sync.get(['clientId', 'initialized'], (result) => {
+    chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], (result) => {
       if (result.clientId) {
         setClientId(result.clientId);
       }
       if (result.initialized) {
         setInitialized(result.initialized);
+      }
+      if (result.lastSync) {
+        const lastSyncDate = new Date(result.lastSync);
+        setLastSync(lastSyncDate.toLocaleString());
+      }
+    });
+
+    // Listen for sync updates from background script
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'syncComplete') {
+        setLastSync(new Date().toLocaleString());
       }
     });
   }, []);
@@ -64,6 +76,9 @@ export function App() {
             <button type="button" onClick={handleSync}>Sync with Server</button>
           )}
         </form>
+      </div>
+      <div id="status" className="sync-status">
+        Last sync: {lastSync}
       </div>
       <div className="settings-link">
         <button type="button" onClick={openSettings}>Settings</button>

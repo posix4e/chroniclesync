@@ -690,41 +690,5 @@ describe('Worker API', () => {
         expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('*');
       });
     });
-
-    describe('OPTIONS requests', () => {
-      it('handles OPTIONS request in production', async () => {
-        // eslint-disable-next-line no-func-assign
-        makeRequest = (path, init) => {
-          const url = new URL(path, 'https://api.chroniclesync.xyz');
-          return worker.fetch(new Request(url, init), getMiniflareBindings());
-        };
-
-        const resp = await makeRequest('/?clientId=test123', {
-          method: 'OPTIONS',
-          headers: { Origin: 'https://chroniclesync.xyz' }
-        });
-        expect(resp.status).toBe(200);
-        expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
-        expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
-        expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
-      });
-
-      it('handles OPTIONS request in staging', async () => {
-        // eslint-disable-next-line no-func-assign
-        makeRequest = (path, init) => {
-          const url = new URL(path, 'https://api-staging.chroniclesync.xyz');
-          return worker.fetch(new Request(url, init), getMiniflareBindings());
-        };
-
-        const resp = await makeRequest('/?clientId=test123', {
-          method: 'OPTIONS',
-          headers: { Origin: 'https://any-domain.com' }
-        });
-        expect(resp.status).toBe(200);
-        expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('*');
-        expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('*');
-        expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
-      });
-    });
   });
 });

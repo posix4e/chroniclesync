@@ -50,6 +50,7 @@ export default {
       'chroniclesync.xyz',
       'localhost:8787',
       'localhost:8788',
+      'localhost:3000',
       '127.0.0.1:8787',
       '127.0.0.1:8788'
     ];

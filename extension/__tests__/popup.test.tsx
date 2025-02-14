@@ -146,8 +146,24 @@ describe('Popup Component', () => {
   });
 
   it('shows success message after sync', async () => {
-    // Mock window.alert
+    // Mock window.alert and chrome.runtime.sendMessage
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    interface SyncMessage {
+      type: 'triggerSync';
+    }
+    interface SyncResponse {
+      success: boolean;
+      error?: string;
+    }
+    const sendMessageMock = vi.fn((
+      message: SyncMessage,
+      responseCallback?: (response: SyncResponse) => void
+    ) => {
+      if (responseCallback) {
+        responseCallback({ success: true });
+      }
+    });
+    mockChrome.runtime.sendMessage = sendMessageMock as unknown as typeof mockChrome.runtime.sendMessage;
     
     render(<App />);
     
@@ -160,8 +176,12 @@ describe('Popup Component', () => {
     const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
     fireEvent.click(syncButton);
     
-    // Check if alert was shown
-    expect(alertMock).toHaveBeenCalledWith('Sync successful');
+    // Check if message was sent and alert was shown
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      { type: 'triggerSync' },
+      expect.any(Function)
+    );
+    expect(alertMock).toHaveBeenCalledWith('Sync initiated');
     
     // Clean up
     alertMock.mockRestore();

@@ -115,7 +115,7 @@ async function syncHistory() {
       chrome.runtime.sendMessage({ type: 'syncComplete' }).catch(() => {
         // Ignore error when no receivers are present
       });
-    } catch (e) {
+    } catch {
       // Catch any other messaging errors
     }
     // eslint-disable-next-line no-console

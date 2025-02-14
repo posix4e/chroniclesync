@@ -91,13 +91,34 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
-    const historyData = historyItems.map(item => ({
-      url: item.url,
-      title: item.title,
-      visitTime: item.lastVisitTime,
-      visitCount: item.visitCount,
-      ...systemInfo
+    // Get detailed visit information for each history item
+    const historyData = await Promise.all(historyItems.map(async item => {
+      // Get all visits for this URL
+      const visits = await chrome.history.getVisits({ url: item.url });
+      
+      // Filter visits within our time range and map them
+      const visitData = visits
+        .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
+        .map(visit => ({
+          url: item.url,
+          title: item.title,
+          visitTime: visit.visitTime,
+          visitId: visit.visitId,
+          referringVisitId: visit.referringVisitId,
+          transition: visit.transition,
+          ...systemInfo
+        }));
+
+      return visitData;
     }));
+
+    // Flatten the array of visit arrays
+    const flattenedHistoryData = historyData.flat();
+
+    // Only proceed if we have visits to sync
+    if (flattenedHistoryData.length === 0) {
+      return;
+    }
 
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
@@ -105,7 +126,7 @@ async function syncHistory(forceFullSync = false) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        history: historyData,
+        history: flattenedHistoryData,
         deviceInfo: systemInfo
       })
     });
@@ -114,8 +135,14 @@ async function syncHistory(forceFullSync = false) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // Store lastSync time in storage
-    await chrome.storage.local.set({ lastSync: now });
+    // Get the latest visit time from our synced data
+    const latestVisitTime = Math.max(...flattenedHistoryData.map(item => item.visitTime));
+    
+    // Store lastSync time in storage, but only update if we have a newer time
+    const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
+    if (latestVisitTime > currentLastSync) {
+      await chrome.storage.local.set({ lastSync: latestVisitTime });
+    }
 
     try {
       // Only send message if there are active listeners

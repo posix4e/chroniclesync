@@ -1,6 +1,20 @@
-// Encryption service using Web Crypto API
+// Encryption service using Web Crypto API for service worker context
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function base64ToArrayBuffer(base64) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
 async function generateEncryptionKey() {
-  const key = await window.crypto.subtle.generateKey(
+  const key = await crypto.subtle.generateKey(
     {
       name: 'AES-GCM',
       length: 256
@@ -9,15 +23,13 @@ async function generateEncryptionKey() {
     ['encrypt', 'decrypt']
   );
   
-  // Export the key to store it
-  const exportedKey = await window.crypto.subtle.exportKey('raw', key);
-  const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
-  return keyBase64;
+  const exportedKey = await crypto.subtle.exportKey('raw', key);
+  return arrayBufferToBase64(exportedKey);
 }
 
 async function importEncryptionKey(keyBase64) {
-  const keyBuffer = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
-  return window.crypto.subtle.importKey(
+  const keyBuffer = base64ToArrayBuffer(keyBase64);
+  return crypto.subtle.importKey(
     'raw',
     keyBuffer,
     'AES-GCM',
@@ -28,10 +40,10 @@ async function importEncryptionKey(keyBase64) {
 
 async function encrypt(data, keyBase64) {
   const key = await importEncryptionKey(keyBase64);
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
   const encodedData = new TextEncoder().encode(JSON.stringify(data));
   
-  const encryptedData = await window.crypto.subtle.encrypt(
+  const encryptedData = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv
@@ -41,17 +53,17 @@ async function encrypt(data, keyBase64) {
   );
   
   return {
-    encrypted: btoa(String.fromCharCode(...new Uint8Array(encryptedData))),
-    iv: btoa(String.fromCharCode(...iv))
+    encrypted: arrayBufferToBase64(encryptedData),
+    iv: arrayBufferToBase64(iv)
   };
 }
 
 async function decrypt(encryptedData, iv, keyBase64) {
   const key = await importEncryptionKey(keyBase64);
-  const encryptedBuffer = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-  const ivBuffer = Uint8Array.from(atob(iv), c => c.charCodeAt(0));
+  const encryptedBuffer = base64ToArrayBuffer(encryptedData);
+  const ivBuffer = base64ToArrayBuffer(iv);
   
-  const decryptedBuffer = await window.crypto.subtle.decrypt(
+  const decryptedBuffer = await crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
       iv: ivBuffer

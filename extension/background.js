@@ -107,7 +107,14 @@ async function syncHistory() {
 
     lastSync = now;
     await chrome.storage.sync.set({ lastSync: now });
-    chrome.runtime.sendMessage({ type: 'syncComplete' });
+    try {
+      // Only send message if there are active listeners
+      chrome.runtime.sendMessage({ type: 'syncComplete' }).catch(() => {
+        // Ignore error when no receivers are present
+      });
+    } catch (e) {
+      // Catch any other messaging errors
+    }
     // eslint-disable-next-line no-console
     console.debug(`Successfully synced ${historyData.length} history items`);
   } catch (error) {

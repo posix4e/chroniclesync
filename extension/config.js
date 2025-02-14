@@ -4,12 +4,23 @@ const defaultConfig = {
   clientId: 'extension-default'
 };
 
+const STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
+
 // Load configuration from storage or use defaults
 async function getConfig() {
   try {
-    const result = await chrome.storage.sync.get(['apiEndpoint', 'pagesUrl', 'clientId']);
+    const result = await chrome.storage.sync.get(['apiEndpoint', 'pagesUrl', 'clientId', 'environment', 'customApiUrl']);
+    
+    // Determine API endpoint based on environment
+    let apiEndpoint = defaultConfig.apiEndpoint;
+    if (result.environment === 'staging') {
+      apiEndpoint = STAGING_API_URL;
+    } else if (result.environment === 'custom' && result.customApiUrl) {
+      apiEndpoint = result.customApiUrl;
+    }
+
     return {
-      apiEndpoint: result.apiEndpoint || defaultConfig.apiEndpoint,
+      apiEndpoint: apiEndpoint,
       pagesUrl: result.pagesUrl || defaultConfig.pagesUrl,
       clientId: result.clientId || defaultConfig.clientId
     };

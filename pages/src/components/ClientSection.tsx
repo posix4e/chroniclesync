@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DB } from '../utils/db';
 import { API_URL } from '../utils/api';
+import { getExtensionClientId } from '../utils/chrome';
 
 interface ClientSectionProps {
   db: DB;
@@ -11,6 +12,25 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
   const [localClientId, setLocalClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const loadExtensionClientId = async () => {
+      const extensionClientId = await getExtensionClientId();
+      if (extensionClientId) {
+        setLocalClientId(extensionClientId);
+        db.clientId = extensionClientId;
+        onClientIdChange?.(extensionClientId);
+      }
+    };
+
+    loadExtensionClientId();
+  }, [db, onClientIdChange]);
+
+  const handleClientIdChange = (value: string) => {
+    setLocalClientId(value);
+    db.clientId = value;
+    onClientIdChange?.(value);
+  };
 
   const initializeClient = async () => {
     if (!localClientId) {
@@ -23,7 +43,6 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
       const initialData = await db.getData();
       setData(JSON.stringify(initialData, null, 2));
       setIsInitialized(true);
-      onClientIdChange?.(localClientId);
       await syncData();
     } catch (error) {
       alert(`Error initializing client: ${error instanceof Error ? error.message : String(error)}`);
@@ -70,7 +89,7 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
           type="text"
           id="clientId"
           value={localClientId}
-          onChange={(e) => setLocalClientId(e.target.value)}
+          onChange={(e) => handleClientIdChange(e.target.value)}
           placeholder="Enter client ID"
         />
         <button onClick={initializeClient}>Initialize</button>

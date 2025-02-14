@@ -12,6 +12,12 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const handleClientIdChange = (value: string) => {
+    setLocalClientId(value);
+    db.clientId = value;
+    onClientIdChange?.(value);
+  };
+
   const initializeClient = async () => {
     if (!localClientId) {
       alert('Please enter a client ID');
@@ -23,7 +29,6 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
       const initialData = await db.getData();
       setData(JSON.stringify(initialData, null, 2));
       setIsInitialized(true);
-      onClientIdChange?.(localClientId);
       await syncData();
     } catch (error) {
       alert(`Error initializing client: ${error instanceof Error ? error.message : String(error)}`);
@@ -70,7 +75,7 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
           type="text"
           id="clientId"
           value={localClientId}
-          onChange={(e) => setLocalClientId(e.target.value)}
+          onChange={(e) => handleClientIdChange(e.target.value)}
           placeholder="Enter client ID"
         />
         <button onClick={initializeClient}>Initialize</button>

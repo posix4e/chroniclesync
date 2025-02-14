@@ -6,8 +6,12 @@ export class DB {
     return this._clientId;
   }
 
+  set clientId(value: string | null) {
+    this._clientId = value;
+  }
+
   async init(clientId: string): Promise<void> {
-    this._clientId = clientId;
+    this.clientId = clientId;
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(`sync_${clientId}`, 1);
 

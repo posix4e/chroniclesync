@@ -483,6 +483,17 @@ export default {
 
   async handleClientGet(request, env, clientId) {
     const origin = request.headers.get('Origin') || '*';
+    const url = new URL(request.url);
+    
+    // Parse pagination and filter parameters
+    const page = parseInt(url.searchParams.get('page')) || 1;
+    const pageSize = parseInt(url.searchParams.get('pageSize')) || 10;
+    const startDate = parseInt(url.searchParams.get('startDate')) || 0;
+    const endDate = parseInt(url.searchParams.get('endDate')) || Date.now();
+    const searchQuery = url.searchParams.get('searchQuery') || '';
+    const platform = url.searchParams.get('platform') || '';
+    const browser = url.searchParams.get('browser') || '';
+
     const data = await env.STORAGE.get(`${clientId}/data`);
     if (!data) {
       return new Response('No data found', { 
@@ -491,13 +502,57 @@ export default {
       });
     }
 
-    return new Response(data.body, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Last-Modified': formatDate(data.uploaded),
-        ...this.corsHeaders(origin)
-      },
-    });
+    try {
+      const clientData = JSON.parse(await data.text());
+      let filteredHistory = clientData.history;
+
+      // Apply filters
+      filteredHistory = filteredHistory.filter(item => {
+        const matchesDate = item.visitTime >= startDate && item.visitTime <= endDate;
+        const matchesPlatform = !platform || item.platform === platform;
+        const matchesBrowser = !browser || item.browserName === browser;
+        const matchesSearch = !searchQuery || 
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.url.toLowerCase().includes(searchQuery.toLowerCase());
+
+        return matchesDate && matchesPlatform && matchesBrowser && matchesSearch;
+      });
+
+      // Sort by visit time (newest first)
+      filteredHistory.sort((a, b) => b.visitTime - a.visitTime);
+
+      // Calculate pagination
+      const total = filteredHistory.length;
+      const totalPages = Math.ceil(total / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
+
+      const response = {
+        history: paginatedHistory,
+        deviceInfo: clientData.deviceInfo,
+        pagination: {
+          total,
+          page,
+          pageSize,
+          totalPages
+        }
+      };
+
+      return new Response(JSON.stringify(response), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Last-Modified': formatDate(data.uploaded),
+          ...this.corsHeaders(origin)
+        },
+      });
+    } catch (error) {
+      log('error', 'Error processing client data', { error: error.message });
+      return new Response('Error processing data', { 
+        status: 500,
+        headers: this.corsHeaders(origin)
+      });
+    }
   },
 
   async handleClientPost(request, env, clientId) {

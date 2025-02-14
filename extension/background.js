@@ -3,6 +3,25 @@ import { getConfig } from './config.js';
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 let lastSync = 0;
 
+// Initialize extension
+async function initializeExtension() {
+  try {
+    // Ensure storage is accessible
+    await chrome.storage.local.get(['initialized']);
+    
+    // Load initial config
+    await getConfig();
+    
+    // Mark as initialized
+    await chrome.storage.local.set({ initialized: true });
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize extension:', error);
+    return false;
+  }
+}
+
 async function getSystemInfo() {
   const platform = navigator.platform;
   const userAgent = navigator.userAgent;
@@ -28,39 +47,48 @@ async function getDeviceId() {
 }
 
 async function syncHistory() {
-  const config = await getConfig();
-  
-  // Skip sync if using default client ID
-  if (config.clientId === 'extension-default') {
-    // eslint-disable-next-line no-console
-    console.debug('Sync paused: Using default client ID');
-    return;
-  }
-
-  const systemInfo = await getSystemInfo();
-  const now = Date.now();
-  
-  // Get history since last sync
-  const historyItems = await chrome.history.search({
-    text: '',
-    startTime: lastSync,
-    endTime: now,
-    maxResults: 1000
-  });
-
-  if (historyItems.length === 0) {
-    return;
-  }
-
-  const historyData = historyItems.map(item => ({
-    url: item.url,
-    title: item.title,
-    visitTime: item.lastVisitTime,
-    visitCount: item.visitCount,
-    ...systemInfo
-  }));
-
   try {
+    const initialized = await chrome.storage.local.get(['initialized']);
+    if (!initialized.initialized) {
+      const success = await initializeExtension();
+      if (!success) {
+        console.debug('Sync skipped: Extension not initialized');
+        return;
+      }
+    }
+
+    const config = await getConfig();
+    
+    // Skip sync if using default client ID
+    if (config.clientId === 'extension-default') {
+      // eslint-disable-next-line no-console
+      console.debug('Sync paused: Using default client ID');
+      return;
+    }
+
+    const systemInfo = await getSystemInfo();
+    const now = Date.now();
+    
+    // Get history since last sync
+    const historyItems = await chrome.history.search({
+      text: '',
+      startTime: lastSync,
+      endTime: now,
+      maxResults: 1000
+    });
+
+    if (historyItems.length === 0) {
+      return;
+    }
+
+    const historyData = historyItems.map(item => ({
+      url: item.url,
+      title: item.title,
+      visitTime: item.lastVisitTime,
+      visitCount: item.visitCount,
+      ...systemInfo
+    }));
+
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
@@ -84,6 +112,8 @@ async function syncHistory() {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error syncing history:', error);
+    // Don't throw the error to prevent the extension from breaking
+    return;
   }
 }
 
@@ -106,8 +136,23 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 // Listen for messages from the page
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getClientId') {
-    getConfig().then(config => {
-      sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
+    // Check initialization first
+    chrome.storage.local.get(['initialized']).then(async result => {
+      if (!result.initialized) {
+        const success = await initializeExtension();
+        if (!success) {
+          sendResponse({ error: 'Extension not initialized' });
+          return;
+        }
+      }
+
+      try {
+        const config = await getConfig();
+        sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
+      } catch (error) {
+        console.error('Error getting client ID:', error);
+        sendResponse({ error: 'Failed to get client ID' });
+      }
     });
     return true; // Will respond asynchronously
   }

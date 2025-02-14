@@ -26,7 +26,6 @@ export function HistoryView({ clientId }: HistoryViewProps) {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        console.log('Fetching history for client:', clientId);
         setLoading(true);
         const response = await fetch(`${API_URL}?clientId=${encodeURIComponent(clientId)}`, {
           method: 'GET',
@@ -36,12 +35,10 @@ export function HistoryView({ clientId }: HistoryViewProps) {
         });
         
         if (!response.ok) {
-          console.error('API error:', response.status);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Received data:', data);
         if (data.history) {
           setHistory(data.history);
         }

@@ -4,24 +4,26 @@ import { API_URL } from '../utils/api';
 
 interface ClientSectionProps {
   db: DB;
+  onClientIdChange?: (_: string) => void;
 }
 
-export function ClientSection({ db }: ClientSectionProps) {
-  const [clientId, setClientId] = useState('');
+export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
+  const [localClientId, setLocalClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
 
   const initializeClient = async () => {
-    if (!clientId) {
+    if (!localClientId) {
       alert('Please enter a client ID');
       return;
     }
 
     try {
-      await db.init(clientId);
+      await db.init(localClientId);
       const initialData = await db.getData();
       setData(JSON.stringify(initialData, null, 2));
       setIsInitialized(true);
+      onClientIdChange?.(localClientId);
       await syncData();
     } catch (error) {
       alert(`Error initializing client: ${error instanceof Error ? error.message : String(error)}`);
@@ -67,8 +69,8 @@ export function ClientSection({ db }: ClientSectionProps) {
         <input
           type="text"
           id="clientId"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
+          value={localClientId}
+          onChange={(e) => setLocalClientId(e.target.value)}
           placeholder="Enter client ID"
         />
         <button onClick={initializeClient}>Initialize</button>

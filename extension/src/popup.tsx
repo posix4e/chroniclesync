@@ -50,7 +50,16 @@ export function App() {
   };
 
   const handleSync = () => {
-    alert('Sync successful');
+    // Send message to background script to trigger sync
+    chrome.runtime.sendMessage({ type: 'triggerSync' }, (response) => {
+      if (chrome.runtime.lastError) {
+        alert('Sync failed: ' + chrome.runtime.lastError.message);
+      } else if (response && response.error) {
+        alert('Sync failed: ' + response.error);
+      } else {
+        alert('Sync initiated');
+      }
+    });
   };
 
   const openSettings = () => {

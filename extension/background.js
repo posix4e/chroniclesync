@@ -61,11 +61,14 @@ async function syncHistory() {
     const config = await getConfig();
     
     // Skip sync if using default client ID
-    if (config.clientId === 'extension-default') {
+    if (!config.clientId || config.clientId === 'extension-default') {
       // eslint-disable-next-line no-console
-      console.debug('Sync paused: Using default client ID');
-      return;
+      console.debug('Sync paused: No client ID configured');
+      throw new Error('Please configure your Client ID in the extension popup');
     }
+    
+    // eslint-disable-next-line no-console
+    console.debug('Starting sync with client ID:', config.clientId);
 
     const systemInfo = await getSystemInfo();
     const now = Date.now();
@@ -163,6 +166,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: 'Failed to get client ID' });
       }
     });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'triggerSync') {
+    // Trigger manual sync
+    syncHistory()
+      .then(() => {
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        // eslint-disable-next-line no-console
+        console.error('Manual sync failed:', error);
+        sendResponse({ error: error.message });
+      });
     return true; // Will respond asynchronously
   }
 });

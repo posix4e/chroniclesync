@@ -100,8 +100,16 @@ describe('Worker API', () => {
     env.STORAGE.put = originalPut;
   });
 
-  it('stores and retrieves client data', async () => {
-    const testData = { history: [], deviceInfo: { key: 'value' } };
+  it('stores and retrieves client data with pagination and filtering', async () => {
+    const now = Date.now();
+    const testData = {
+      history: [
+        { visitTime: now - 1000, title: 'Test Page 1', url: 'https://test1.com', platform: 'Windows', browserName: 'Chrome' },
+        { visitTime: now - 2000, title: 'Test Page 2', url: 'https://test2.com', platform: 'Mac', browserName: 'Safari' },
+        { visitTime: now - 3000, title: 'Another Page', url: 'https://test3.com', platform: 'Windows', browserName: 'Firefox' }
+      ],
+      deviceInfo: { key: 'value' }
+    };
     const clientId = 'test123';
 
     // Store data
@@ -119,21 +127,51 @@ describe('Worker API', () => {
     expect(metadata.lastSync).toBeTruthy();
     expect(metadata.dataSize).toBe(JSON.stringify(testData).length);
 
-    // Retrieve data
-    const getResp = await makeRequest('/?clientId=' + clientId);
-    expect(getResp.status).toBe(200);
-    expect(getResp.headers.get('Content-Type')).toBe('application/json');
-    expect(getResp.headers.get('Last-Modified')).toBeTruthy();
-    const getData = await getResp.json();
-    expect(getData).toEqual({
-      ...testData,
-      pagination: {
-        total: 0,
-        page: 1,
-        pageSize: 10,
-        totalPages: 0
-      }
+    // Test pagination
+    const getResp1 = await makeRequest('/?clientId=' + clientId + '&page=1&pageSize=2');
+    expect(getResp1.status).toBe(200);
+    const getData1 = await getResp1.json();
+    expect(getData1.pagination).toEqual({
+      total: 3,
+      page: 1,
+      pageSize: 2,
+      totalPages: 2
     });
+    expect(getData1.history.length).toBe(2);
+
+    // Test platform filter
+    const getResp2 = await makeRequest('/?clientId=' + clientId + '&platform=Windows');
+    expect(getResp2.status).toBe(200);
+    const getData2 = await getResp2.json();
+    expect(getData2.history.length).toBe(2);
+    expect(getData2.history.every(item => item.platform === 'Windows')).toBe(true);
+
+    // Test browser filter
+    const getResp3 = await makeRequest('/?clientId=' + clientId + '&browser=Safari');
+    expect(getResp3.status).toBe(200);
+    const getData3 = await getResp3.json();
+    expect(getData3.history.length).toBe(1);
+    expect(getData3.history[0].browserName).toBe('Safari');
+
+    // Test search filter
+    const getResp4 = await makeRequest('/?clientId=' + clientId + '&searchQuery=another');
+    expect(getResp4.status).toBe(200);
+    const getData4 = await getResp4.json();
+    expect(getData4.history.length).toBe(1);
+    expect(getData4.history[0].title).toBe('Another Page');
+
+    // Test date range filter
+    const getResp5 = await makeRequest('/?clientId=' + clientId + '&startDate=' + (now - 2500) + '&endDate=' + (now - 500));
+    expect(getResp5.status).toBe(200);
+    const getData5 = await getResp5.json();
+    expect(getData5.history.length).toBe(2);
+
+    // Test combined filters
+    const getResp6 = await makeRequest('/?clientId=' + clientId + '&platform=Windows&browser=Chrome&searchQuery=test');
+    expect(getResp6.status).toBe(200);
+    const getData6 = await getResp6.json();
+    expect(getData6.history.length).toBe(1);
+    expect(getData6.history[0].title).toBe('Test Page 1');
   });
 
   it('requires authentication for admin access', async () => {

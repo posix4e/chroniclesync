@@ -1,9 +1,22 @@
 import { getClientIdFromExtension } from '../extension-messaging';
 
-type PartialChrome = {
-  runtime?: {
-    sendMessage?: jest.Mock;
-  };
+type MockChromeRuntime = {
+  sendMessage: jest.Mock;
+};
+
+type MockChromeGlobal = {
+  runtime: MockChromeRuntime;
+};
+
+// Mock the chrome.runtime.sendMessage for testing
+const mockSendMessage = (response?: unknown) => {
+  const sendMessage = jest.fn();
+  if (response instanceof Error) {
+    sendMessage.mockRejectedValue(response);
+  } else {
+    sendMessage.mockResolvedValue(response);
+  }
+  return sendMessage;
 };
 
 describe('getClientIdFromExtension', () => {
@@ -11,7 +24,7 @@ describe('getClientIdFromExtension', () => {
 
   beforeEach(() => {
     // Reset chrome global before each test
-    (global as { chrome?: PartialChrome }).chrome = undefined;
+    delete (global as { chrome?: MockChromeGlobal }).chrome;
   });
 
   afterEach(() => {
@@ -25,9 +38,9 @@ describe('getClientIdFromExtension', () => {
   });
 
   it('returns null when sendMessage throws an error', async () => {
-    (global as { chrome: PartialChrome }).chrome = {
+    (global as { chrome?: MockChromeGlobal }).chrome = {
       runtime: {
-        sendMessage: jest.fn().mockRejectedValue(new Error('Extension not installed'))
+        sendMessage: mockSendMessage(new Error('Extension not installed'))
       }
     };
 
@@ -36,9 +49,9 @@ describe('getClientIdFromExtension', () => {
   });
 
   it('returns null when response has no clientId', async () => {
-    (global as { chrome: PartialChrome }).chrome = {
+    (global as { chrome?: MockChromeGlobal }).chrome = {
       runtime: {
-        sendMessage: jest.fn().mockResolvedValue({})
+        sendMessage: mockSendMessage({})
       }
     };
 
@@ -48,9 +61,9 @@ describe('getClientIdFromExtension', () => {
 
   it('returns clientId from extension response', async () => {
     const mockClientId = 'test-client-123';
-    (global as { chrome: PartialChrome }).chrome = {
+    (global as { chrome?: MockChromeGlobal }).chrome = {
       runtime: {
-        sendMessage: jest.fn().mockResolvedValue({ clientId: mockClientId })
+        sendMessage: mockSendMessage({ clientId: mockClientId })
       }
     };
 

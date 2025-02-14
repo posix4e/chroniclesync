@@ -181,7 +181,7 @@ describe('Popup Component', () => {
       { type: 'triggerSync' },
       expect.any(Function)
     );
-    expect(alertMock).toHaveBeenCalledWith('Sync initiated');
+    expect(alertMock).toHaveBeenCalledWith('Sync successful');
     
     // Clean up
     alertMock.mockRestore();

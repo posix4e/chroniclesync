@@ -1,0 +1,32 @@
+name: Cleanup Staging Bucket
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_old:
+        description: 'Delete test clients older than X days'
+        required: true
+        default: '1'
+        type: string
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Run Cleanup Script
+      env:
+        STAGING_BUCKET: ${{ secrets.STAGING_BUCKET }}
+      run: |
+        chmod +x ./scripts/cleanup_staging.sh
+        ./scripts/cleanup_staging.sh ${{ github.event.inputs.days_old }}

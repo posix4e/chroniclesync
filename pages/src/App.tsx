@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ClientSection } from './components/ClientSection';
 import { AdminPanel } from './components/AdminPanel';
@@ -6,12 +6,25 @@ import { AdminLogin } from './components/AdminLogin';
 import { HealthCheck } from './components/HealthCheck';
 import { HistoryView } from './components/HistoryView';
 import { DB } from './utils/db';
+import { getExtensionClientId } from './utils/chrome';
 
 const db = new DB();
 
 export function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadExtensionClientId = async () => {
+      const extensionClientId = await getExtensionClientId();
+      if (extensionClientId) {
+        setClientId(extensionClientId);
+        db.clientId = extensionClientId;
+      }
+    };
+
+    loadExtensionClientId();
+  }, []);
 
   return (
     <Router>
@@ -52,7 +65,11 @@ export function App() {
               <HistoryView clientId={clientId} />
             ) : (
               <div className="text-center p-4">
-                Please set your client ID on the home page first
+                {window.chrome?.storage?.sync ? (
+                  'Loading client ID from extension...'
+                ) : (
+                  'Please set your client ID on the home page first'
+                )}
               </div>
             )
           } />

@@ -32,6 +32,7 @@ export default {
   corsHeaders(origin = '*') {
     const allowedDomains = [
       'chroniclesync.xyz',
+      'api-staging.chroniclesync.xyz',
       'chroniclesync-pages.pages.dev',
       'localhost:8787',
       'localhost:8788',
@@ -45,6 +46,10 @@ export default {
       }
       if (domain === 'chroniclesync-pages.pages.dev') {
         return origin.endsWith('.chroniclesync-pages.pages.dev') || 
+          origin === `https://${domain}`;
+      }
+      if (domain === 'api-staging.chroniclesync.xyz') {
+        return origin.endsWith('.chroniclesync-pages.pages.dev') ||
           origin === `https://${domain}`;
       }
       return origin === `https://${domain}`;

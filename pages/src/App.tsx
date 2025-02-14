@@ -6,7 +6,7 @@ import { AdminLogin } from './components/AdminLogin';
 import { HealthCheck } from './components/HealthCheck';
 import { HistoryView } from './components/HistoryView';
 import { DB } from './utils/db';
-import { getExtensionClientId } from './utils/chrome';
+import { getClientIdFromExtension } from './utils/extension-messaging';
 
 const db = new DB();
 
@@ -16,15 +16,19 @@ export function App() {
 
   useEffect(() => {
     const loadExtensionClientId = async () => {
-      const extensionClientId = await getExtensionClientId();
-      if (extensionClientId) {
-        setClientId(extensionClientId);
-        db.clientId = extensionClientId;
+      // Only try to get the client ID if we don't already have one
+      if (!clientId) {
+        const extensionClientId = await getClientIdFromExtension();
+        if (extensionClientId) {
+          setClientId(extensionClientId);
+          db.clientId = extensionClientId;
+        }
       }
     };
 
+    // Load client ID when the component mounts
     loadExtensionClientId();
-  }, []);
+  }, [clientId, db]);
 
   return (
     <Router>

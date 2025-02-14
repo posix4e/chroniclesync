@@ -512,14 +512,47 @@ export default {
     }
     
     try {
-      const data = await request.json();
+      const newData = await request.json();
       
-      // Store in R2
-      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
+      // Get existing data
+      let existingData = { history: [], deviceInfo: {} };
+      const existingRecord = await env.STORAGE.get(`${clientId}/data`);
+      if (existingRecord) {
+        try {
+          existingData = JSON.parse(await existingRecord.text());
+        } catch (e) {
+          log('error', 'Error parsing existing data', { error: e.message });
+        }
+      }
+
+      // Merge history data by visitId
+      const visitMap = new Map();
+      
+      // Add existing history items to map
+      existingData.history.forEach(item => {
+        visitMap.set(item.visitId, item);
+      });
+
+      // Add or update new history items
+      newData.history.forEach(item => {
+        visitMap.set(item.visitId, item);
+      });
+
+      // Convert map back to array and sort by visitTime
+      const mergedHistory = Array.from(visitMap.values())
+        .sort((a, b) => b.visitTime - a.visitTime);
+
+      const mergedData = {
+        history: mergedHistory,
+        deviceInfo: newData.deviceInfo // Use latest device info
+      };
+      
+      // Store merged data in R2
+      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(mergedData));
 
       // Update client metadata in KV
       const metadataService = new MetadataService(env);
-      await metadataService.updateClientMetadata(clientId, JSON.stringify(data).length);
+      await metadataService.updateClientMetadata(clientId, JSON.stringify(mergedData).length);
 
       log('info', 'Client data synced successfully', { clientId });
       return new Response(JSON.stringify({ message: 'Sync successful' }), { 

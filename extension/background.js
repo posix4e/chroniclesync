@@ -1,20 +1,19 @@
 import { getConfig } from './config.js';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-let lastSync = 0;
 
 // Initialize extension
 async function initializeExtension() {
   try {
     // Ensure storage is accessible
     await chrome.storage.local.get(['initialized']);
-    
+
     // Load initial config
     await getConfig();
-    
+
     // Mark as initialized
     await chrome.storage.local.set({ initialized: true });
-    
+
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -27,7 +26,7 @@ async function getSystemInfo() {
   const platform = navigator.platform;
   const userAgent = navigator.userAgent;
   const deviceId = await getDeviceId();
-  
+
   return {
     deviceId,
     platform,
@@ -47,7 +46,7 @@ async function getDeviceId() {
   return deviceId;
 }
 
-async function syncHistory() {
+async function syncHistory(forceFullSync = false) {
   try {
     const initialized = await chrome.storage.local.get(['initialized']);
     if (!initialized.initialized) {
@@ -59,26 +58,33 @@ async function syncHistory() {
     }
 
     const config = await getConfig();
-    
+
     // Skip sync if using default client ID
     if (!config.clientId || config.clientId === 'extension-default') {
       // eslint-disable-next-line no-console
       console.debug('Sync paused: No client ID configured');
       throw new Error('Please configure your Client ID in the extension popup');
     }
-    
+
     // eslint-disable-next-line no-console
     console.debug('Starting sync with client ID:', config.clientId);
 
     const systemInfo = await getSystemInfo();
     const now = Date.now();
-    
+
+    // Get stored lastSync time
+    const stored = await chrome.storage.local.get(['lastSync']);
+    const storedLastSync = stored.lastSync || 0;
+
+    // Use stored lastSync time unless forcing full sync
+    const startTime = forceFullSync ? 0 : storedLastSync;
+
     // Get history since last sync
     const historyItems = await chrome.history.search({
       text: '',
-      startTime: lastSync,
+      startTime: startTime,
       endTime: now,
-      maxResults: 1000
+      maxResults: 10000 // Increased limit for full sync
     });
 
     if (historyItems.length === 0) {
@@ -108,8 +114,9 @@ async function syncHistory() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    lastSync = now;
-    await chrome.storage.sync.set({ lastSync: now });
+    // Store lastSync time in storage
+    await chrome.storage.local.set({ lastSync: now });
+
     try {
       // Only send message if there are active listeners
       chrome.runtime.sendMessage({ type: 'syncComplete' }).catch(() => {
@@ -128,11 +135,11 @@ async function syncHistory() {
   }
 }
 
-// Initial sync
-syncHistory();
+// Initial sync with full history
+syncHistory(true);
 
 // Set up periodic sync
-setInterval(syncHistory, SYNC_INTERVAL);
+setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
@@ -140,7 +147,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
     // eslint-disable-next-line no-console
     console.debug(`Navigation to: ${changeInfo.url}`);
     // Trigger sync after a short delay to allow history to be updated
-    setTimeout(syncHistory, 1000);
+    setTimeout(() => syncHistory(false), 1000);
   }
 });
 
@@ -168,8 +175,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'triggerSync') {
-    // Trigger manual sync
-    syncHistory()
+    // Trigger manual sync with full history
+    syncHistory(true)
       .then(() => {
         sendResponse({ success: true });
       })

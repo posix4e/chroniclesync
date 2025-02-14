@@ -564,7 +564,8 @@ export default {
       });
     } catch (error) {
       log('error', 'Error in handleClientPost', { error: error.message });
-      return new Response(JSON.stringify({ error: error.message }), {
+      const errorMessage = error.message === 'Storage error' ? 'Storage error' : error.message;
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

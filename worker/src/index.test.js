@@ -90,7 +90,7 @@ describe('Worker API', () => {
 
     const resp = await makeRequest('/?clientId=test123', {
       method: 'POST',
-      body: JSON.stringify({ test: 'data' })
+      body: JSON.stringify({ history: [], deviceInfo: { test: 'data' } })
     });
     expect(resp.status).toBe(500);
     const error = await resp.json();
@@ -101,7 +101,7 @@ describe('Worker API', () => {
   });
 
   it('stores and retrieves client data', async () => {
-    const testData = { key: 'value' };
+    const testData = { history: [], deviceInfo: { key: 'value' } };
     const clientId = 'test123';
 
     // Store data

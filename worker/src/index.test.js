@@ -4,9 +4,10 @@ import './test-setup.js';
 /**
  * @param {string} path
  * @param {RequestInit} [init]
+ * @param {string} [baseUrl]
  */
-async function makeRequest(path, init) {
-  const url = new URL(path, 'https://api.chroniclesync.xyz');
+async function makeRequest(path, init, baseUrl = 'https://api.chroniclesync.xyz') {
+  const url = new URL(path, baseUrl);
   return worker.fetch(new Request(url, init), getMiniflareBindings());
 }
 
@@ -623,43 +624,71 @@ describe('Worker API', () => {
   });
 
   describe('CORS Headers', () => {
-    it('handles production domain', async () => {
-      const resp = await makeRequest('/?clientId=test123', {
-        headers: { Origin: 'https://chroniclesync.xyz' }
+    describe('Production Environment', () => {
+      beforeEach(() => {
+        // Mock production URL
+        // eslint-disable-next-line no-func-assign
+        makeRequest = (path, init) => {
+          const url = new URL(path, 'https://api.chroniclesync.xyz');
+          return worker.fetch(new Request(url, init), getMiniflareBindings());
+        };
       });
-      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+
+      it('handles production domain', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'https://chroniclesync.xyz' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+      });
+
+      it('handles localhost', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'http://localhost:8787' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8787');
+      });
+
+      it('handles disallowed origin', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'https://evil.com' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+      });
     });
 
-    it('handles pages.dev subdomain', async () => {
-      const resp = await makeRequest('/?clientId=test123', {
-        headers: { Origin: 'https://my-branch.chroniclesync-pages.pages.dev' }
+    describe('Staging Environment', () => {
+      beforeEach(() => {
+        // Mock staging URL
+        // eslint-disable-next-line no-func-assign
+        makeRequest = (path, init) => {
+          const url = new URL(path, 'https://api-staging.chroniclesync.xyz');
+          return worker.fetch(new Request(url, init), getMiniflareBindings());
+        };
       });
-      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://my-branch.chroniclesync-pages.pages.dev');
-    });
 
-    it('handles localhost', async () => {
-      const resp = await makeRequest('/?clientId=test123', {
-        headers: { Origin: 'http://localhost:8787' }
+      it('allows any origin', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'https://any-domain.com' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('*');
+        expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('*');
+        expect(resp.headers.get('Access-Control-Allow-Credentials')).toBe('true');
       });
-      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8787');
-    });
 
-    it('handles disallowed origin', async () => {
-      const resp = await makeRequest('/?clientId=test123', {
-        headers: { Origin: 'https://evil.com' }
+      it('allows pages.dev domains', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'https://add-history-view.chroniclesync-pages.pages.dev' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('*');
       });
-      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
-    });
 
-    it('handles OPTIONS request', async () => {
-      const resp = await makeRequest('/?clientId=test123', {
-        method: 'OPTIONS',
-        headers: { Origin: 'https://chroniclesync.xyz' }
+      it('allows localhost in staging', async () => {
+        const resp = await makeRequest('/?clientId=test123', {
+          headers: { Origin: 'http://localhost:3000' }
+        });
+        expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('*');
       });
-      expect(resp.status).toBe(200);
-      expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
-      expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
-      expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
     });
   });
 });

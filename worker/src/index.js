@@ -29,11 +29,25 @@ function log(level, message, data = null) {
 import MetadataService from './services/metadata.js';
 
 export default {
+  isStaging(url) {
+    return url.hostname === 'api-staging.chroniclesync.xyz';
+  },
+
   corsHeaders(origin = '*') {
+    // For staging environment, disable CORS completely
+    if (this.isStaging(new URL(this.currentRequest.url))) {
+      return {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
+      };
+    }
+
+    // Production CORS rules
     const allowedDomains = [
       'chroniclesync.xyz',
-      'api-staging.chroniclesync.xyz',
-      'chroniclesync-pages.pages.dev',
       'localhost:8787',
       'localhost:8788',
       '127.0.0.1:8787',
@@ -43,14 +57,6 @@ export default {
     const isAllowed = origin === '*' ? false : allowedDomains.some(domain => {
       if (domain.startsWith('localhost') || domain.startsWith('127.0.0.1')) {
         return origin === `http://${domain}`;
-      }
-      if (domain === 'chroniclesync-pages.pages.dev') {
-        return origin.endsWith('.chroniclesync-pages.pages.dev') || 
-          origin === `https://${domain}`;
-      }
-      if (domain === 'api-staging.chroniclesync.xyz') {
-        return origin.endsWith('.chroniclesync-pages.pages.dev') ||
-          origin === `https://${domain}`;
       }
       return origin === `https://${domain}`;
     });
@@ -66,6 +72,7 @@ export default {
   },
 
   async fetch(request, env) {
+    this.currentRequest = request;
     const url = new URL(request.url);
     const clientId = url.searchParams.get('clientId');
     const origin = request.headers.get('Origin') || '*';

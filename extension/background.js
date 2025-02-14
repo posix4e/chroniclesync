@@ -178,7 +178,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Trigger manual sync with full history
     syncHistory(true)
       .then(() => {
-        sendResponse({ success: true });
+        // Send success response and notify popup about sync completion
+        sendResponse({ success: true, message: 'Sync successful' });
+        try {
+          chrome.runtime.sendMessage({ type: 'syncComplete', success: true }).catch(() => {
+            // Ignore error when no receivers are present
+          });
+        } catch {
+          // Catch any other messaging errors
+        }
       })
       .catch(error => {
         // eslint-disable-next-line no-console

@@ -23,11 +23,17 @@ export function App() {
     });
 
     // Listen for sync updates from background script
-    chrome.runtime.onMessage.addListener((message) => {
+    const messageListener = (message: { type: string; success?: boolean }) => {
       if (message.type === 'syncComplete') {
         setLastSync(new Date().toLocaleString());
       }
-    });
+    };
+    chrome.runtime.onMessage.addListener(messageListener);
+    
+    // Cleanup listener when component unmounts
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener);
+    };
   }, []);
 
   const handleInitialize = () => {
@@ -56,6 +62,8 @@ export function App() {
         alert('Sync failed: ' + chrome.runtime.lastError.message);
       } else if (response && response.error) {
         alert('Sync failed: ' + response.error);
+      } else if (response && response.success) {
+        alert(response.message || 'Sync successful');
       } else {
         alert('Sync initiated');
       }

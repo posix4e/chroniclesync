@@ -1,5 +1,4 @@
 import { test, expect, chromium } from '@playwright/test';
-import { paths } from '../src/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DB } from '../utils/db';
 import { API_URL } from '../utils/api';
+import { getExtensionClientId } from '../utils/chrome';
 
 interface ClientSectionProps {
   db: DB;
@@ -11,6 +12,19 @@ export function ClientSection({ db, onClientIdChange }: ClientSectionProps) {
   const [localClientId, setLocalClientId] = useState('');
   const [data, setData] = useState('{}');
   const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const loadExtensionClientId = async () => {
+      const extensionClientId = await getExtensionClientId();
+      if (extensionClientId) {
+        setLocalClientId(extensionClientId);
+        db.clientId = extensionClientId;
+        onClientIdChange?.(extensionClientId);
+      }
+    };
+
+    loadExtensionClientId();
+  }, [db, onClientIdChange]);
 
   const handleClientIdChange = (value: string) => {
     setLocalClientId(value);

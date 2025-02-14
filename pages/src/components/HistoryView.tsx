@@ -7,7 +7,8 @@ interface HistoryViewProps {
   clientId: string;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZES = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 10;
 const MIN_DATE = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 const MAX_DATE = new Date();
 
@@ -22,7 +23,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
     platform: '',
     browser: '',
     page: 1,
-    pageSize: PAGE_SIZE
+    pageSize: DEFAULT_PAGE_SIZE
   });
   const [totalPages, setTotalPages] = useState(1);
   const [uniquePlatforms, setUniquePlatforms] = useState<string[]>([]);
@@ -211,25 +212,43 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
             ))}
           </div>
 
-          {/* Pagination */}
-          <div className="mt-4 flex justify-center space-x-2">
-            <button
-              className="px-4 py-2 border rounded-md disabled:opacity-50"
-              onClick={() => handleFilterChange('page', filters.page! - 1)}
-              disabled={filters.page === 1}
-            >
-              Previous
-            </button>
-            <span className="px-4 py-2">
-              Page {filters.page} of {totalPages}
-            </span>
-            <button
-              className="px-4 py-2 border rounded-md disabled:opacity-50"
-              onClick={() => handleFilterChange('page', filters.page! + 1)}
-              disabled={filters.page === totalPages}
-            >
-              Next
-            </button>
+          {/* Pagination and Page Size */}
+          <div className="mt-4 flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            {/* Page Size Selector */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">Items per page:</label>
+              <select
+                className="rounded-md border-gray-300 shadow-sm"
+                value={filters.pageSize}
+                onChange={(e) => handleFilterChange('pageSize', Number(e.target.value))}
+                data-testid="page-size-select"
+              >
+                {PAGE_SIZES.map(size => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center space-x-2">
+              <button
+                className="px-4 py-2 border rounded-md disabled:opacity-50"
+                onClick={() => handleFilterChange('page', filters.page! - 1)}
+                disabled={filters.page === 1}
+              >
+                Previous
+              </button>
+              <span className="px-4 py-2">
+                Page {filters.page} of {totalPages}
+              </span>
+              <button
+                className="px-4 py-2 border rounded-md disabled:opacity-50"
+                onClick={() => handleFilterChange('page', filters.page! + 1)}
+                disabled={filters.page === totalPages}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -1,4 +1,4 @@
-import { HistoryResponse } from '../types/history';
+import { HistoryResponse, HistoryFilters } from '../types/history';
 
 export const API_URL = (() => {
   const hostname = window.location.hostname;

@@ -42,7 +42,15 @@ describe('HistoryView', () => {
   });
 
   it('displays history items when loaded successfully', async () => {
-    mockFetchHistory.mockResolvedValue(mockHistoryData);
+    mockFetchHistory.mockResolvedValue({
+      ...mockHistoryData,
+      pagination: {
+        total: mockHistoryData.history.length,
+        page: 1,
+        pageSize: 10,
+        totalPages: Math.ceil(mockHistoryData.history.length / 10)
+      }
+    });
     render(<HistoryView clientId="test-client" />);
 
     await waitFor(() => {
@@ -63,7 +71,16 @@ describe('HistoryView', () => {
   });
 
   it('displays no history message when history is empty', async () => {
-    mockFetchHistory.mockResolvedValue({ history: [], deviceInfo: mockHistoryData.deviceInfo });
+    mockFetchHistory.mockResolvedValue({
+      history: [],
+      deviceInfo: mockHistoryData.deviceInfo,
+      pagination: {
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0
+      }
+    });
     render(<HistoryView clientId="test-client" />);
 
     await waitFor(() => {

@@ -76,8 +76,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
   const handleFilterChange = (key: keyof HistoryFilters, value: string | number) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value,
-      page: key === 'page' ? value : 1 // Reset page when changing filters
+      [key]: key === 'page' ? Number(value) : value,
+      page: key === 'page' ? Number(value) : 1 // Reset page when changing filters
     }));
   };
 

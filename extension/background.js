@@ -102,3 +102,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
     setTimeout(syncHistory, 1000);
   }
 });
+
+// Listen for messages from the page
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'getClientId') {
+    getConfig().then(config => {
+      sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
+    });
+    return true; // Will respond asynchronously
+  }
+});

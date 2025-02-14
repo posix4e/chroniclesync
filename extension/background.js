@@ -78,7 +78,18 @@ async function syncHistory() {
 
     lastSync = now;
     await chrome.storage.sync.set({ lastSync: now });
-    chrome.runtime.sendMessage({ type: 'syncComplete' });
+    
+    try {
+      // Notify any active extension views (popup, options page, etc.)
+      await chrome.runtime.sendMessage({ type: 'syncComplete' });
+    } catch (error) {
+      // Ignore errors when no listeners are available
+      if (!error.message.includes('Receiving end does not exist')) {
+        // eslint-disable-next-line no-console
+        console.error('Error sending sync complete message:', error);
+      }
+    }
+
     // eslint-disable-next-line no-console
     console.debug(`Successfully synced ${historyData.length} history items`);
   } catch (error) {

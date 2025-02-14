@@ -103,15 +103,25 @@ async function syncHistory(forceFullSync = false) {
       // Filter visits within our time range and map them
       const visitData = visits
         .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
-        .map(visit => ({
-          url: item.url,
-          title: item.title,
-          visitTime: visit.visitTime,
-          visitId: visit.visitId,
-          referringVisitId: visit.referringVisitId,
-          transition: visit.transition,
-          ...systemInfo
-        }));
+        .map(visit => {
+          // Create a clean system info object without potential circular references
+          const cleanSystemInfo = {
+            deviceId: systemInfo.deviceId,
+            platform: systemInfo.platform,
+            browserName: systemInfo.browserName,
+            browserVersion: systemInfo.browserVersion
+          };
+
+          return {
+            url: item.url,
+            title: item.title || '',
+            visitTime: visit.visitTime,
+            visitId: visit.visitId.toString(),
+            referringVisitId: visit.referringVisitId ? visit.referringVisitId.toString() : null,
+            transition: visit.transition,
+            ...cleanSystemInfo
+          };
+        });
 
       return visitData;
     }));
@@ -127,10 +137,18 @@ async function syncHistory(forceFullSync = false) {
     // Ensure we have an encryption key
     const encryptionKey = await ensureEncryptionKey();
 
+    // Create a clean device info object
+    const cleanDeviceInfo = {
+      deviceId: systemInfo.deviceId,
+      platform: systemInfo.platform,
+      browserName: systemInfo.browserName,
+      browserVersion: systemInfo.browserVersion
+    };
+
     // Encrypt the history data
     const encryptedData = await encrypt({
       history: flattenedHistoryData,
-      deviceInfo: systemInfo
+      deviceInfo: cleanDeviceInfo
     }, encryptionKey);
 
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {

@@ -38,10 +38,23 @@ async function importEncryptionKey(keyBase64) {
   );
 }
 
+function getCircularReplacer() {
+  const seen = new WeakSet();
+  return (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+    }
+    return value;
+  };
+}
+
 async function encrypt(data, keyBase64) {
   const key = await importEncryptionKey(keyBase64);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encodedData = new TextEncoder().encode(JSON.stringify(data));
+  const encodedData = new TextEncoder().encode(JSON.stringify(data, getCircularReplacer()));
   
   const encryptedData = await crypto.subtle.encrypt(
     {

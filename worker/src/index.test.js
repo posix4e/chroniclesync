@@ -125,7 +125,15 @@ describe('Worker API', () => {
     expect(getResp.headers.get('Content-Type')).toBe('application/json');
     expect(getResp.headers.get('Last-Modified')).toBeTruthy();
     const getData = await getResp.json();
-    expect(getData).toEqual(testData);
+    expect(getData).toEqual({
+      ...testData,
+      pagination: {
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0
+      }
+    });
   });
 
   it('requires authentication for admin access', async () => {

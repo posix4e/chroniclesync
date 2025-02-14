@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { HistoryView } from '../HistoryView';
 import { fetchHistory } from '../../utils/api';
 
@@ -85,6 +85,66 @@ describe('HistoryView', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No history found')).toBeInTheDocument();
+    });
+  });
+
+  it('allows changing page size', async () => {
+    mockFetchHistory.mockResolvedValue({
+      ...mockHistoryData,
+      pagination: {
+        total: mockHistoryData.history.length,
+        page: 1,
+        pageSize: 10,
+        totalPages: Math.ceil(mockHistoryData.history.length / 10)
+      }
+    });
+    render(<HistoryView clientId="test-client" />);
+
+    // Wait for the component to load
+    await waitFor(() => {
+      expect(screen.getByTestId('page-size-select')).toBeInTheDocument();
+    });
+
+    // Change page size to 25
+    const pageSizeSelect = screen.getByTestId('page-size-select');
+    fireEvent.change(pageSizeSelect, { target: { value: '25' } });
+
+    // Verify that fetchHistory was called with the new page size
+    await waitFor(() => {
+      expect(mockFetchHistory).toHaveBeenCalledWith('test-client', expect.objectContaining({
+        pageSize: 25,
+        page: 1 // Page should reset to 1 when changing page size
+      }));
+    });
+  });
+
+  it('resets to page 1 when changing page size', async () => {
+    mockFetchHistory.mockResolvedValue({
+      ...mockHistoryData,
+      pagination: {
+        total: 100,
+        page: 5,
+        pageSize: 10,
+        totalPages: 10
+      }
+    });
+    render(<HistoryView clientId="test-client" />);
+
+    // Wait for the component to load
+    await waitFor(() => {
+      expect(screen.getByTestId('page-size-select')).toBeInTheDocument();
+    });
+
+    // Change page size to 25
+    const pageSizeSelect = screen.getByTestId('page-size-select');
+    fireEvent.change(pageSizeSelect, { target: { value: '25' } });
+
+    // Verify that the page was reset to 1
+    await waitFor(() => {
+      expect(mockFetchHistory).toHaveBeenCalledWith('test-client', expect.objectContaining({
+        pageSize: 25,
+        page: 1
+      }));
     });
   });
 });

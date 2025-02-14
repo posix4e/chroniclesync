@@ -1,4 +1,5 @@
 import { getConfig } from './config.js';
+import { encrypt, ensureEncryptionKey } from './src/encryption.js';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -10,6 +11,9 @@ async function initializeExtension() {
 
     // Load initial config
     await getConfig();
+
+    // Ensure encryption key is set up
+    await ensureEncryptionKey();
 
     // Mark as initialized
     await chrome.storage.local.set({ initialized: true });
@@ -120,14 +124,24 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
+    // Ensure we have an encryption key
+    const encryptionKey = await ensureEncryptionKey();
+
+    // Encrypt the history data
+    const encryptedData = await encrypt({
+      history: flattenedHistoryData,
+      deviceInfo: systemInfo
+    }, encryptionKey);
+
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        history: flattenedHistoryData,
-        deviceInfo: systemInfo
+        encryptedData: encryptedData.encrypted,
+        iv: encryptedData.iv,
+        version: '2' // Indicates encrypted data format
       })
     });
 

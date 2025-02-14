@@ -1,4 +1,4 @@
-import { HistoryResponse } from '../types/history';
+import { HistoryResponse, HistoryFilters } from '../types/history';
 
 export const API_URL = (() => {
   const hostname = window.location.hostname;
@@ -26,8 +26,20 @@ export const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const fetchHistory = async (clientId: string): Promise<HistoryResponse> => {
-  const response = await fetch(`${API_URL}/history?clientId=${encodeURIComponent(clientId)}`);
+export const fetchHistory = async (clientId: string, filters?: HistoryFilters): Promise<HistoryResponse> => {
+  const params = new URLSearchParams({ clientId });
+  
+  if (filters) {
+    if (filters.startDate) params.append('startDate', filters.startDate.toString());
+    if (filters.endDate) params.append('endDate', filters.endDate.toString());
+    if (filters.searchQuery) params.append('search', filters.searchQuery);
+    if (filters.platform) params.append('platform', filters.platform);
+    if (filters.browser) params.append('browser', filters.browser);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.pageSize) params.append('pageSize', filters.pageSize.toString());
+  }
+
+  const response = await fetch(`${API_URL}/history?${params.toString()}`);
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
@@ -46,6 +58,12 @@ export const fetchHistory = async (clientId: string): Promise<HistoryResponse> =
       userAgent: 'unknown',
       browserName: 'unknown',
       browserVersion: 'unknown'
+    },
+    pagination: data.pagination || {
+      total: data.history?.length || 0,
+      page: filters?.page || 1,
+      pageSize: filters?.pageSize || 10,
+      totalPages: Math.ceil((data.history?.length || 0) / (filters?.pageSize || 10))
     }
   };
 };

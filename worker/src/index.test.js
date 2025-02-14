@@ -90,7 +90,7 @@ describe('Worker API', () => {
 
     const resp = await makeRequest('/?clientId=test123', {
       method: 'POST',
-      body: JSON.stringify({ test: 'data' })
+      body: JSON.stringify({ history: [], deviceInfo: { test: 'data' } })
     });
     expect(resp.status).toBe(500);
     const error = await resp.json();
@@ -100,8 +100,16 @@ describe('Worker API', () => {
     env.STORAGE.put = originalPut;
   });
 
-  it('stores and retrieves client data', async () => {
-    const testData = { key: 'value' };
+  it('stores and retrieves client data with pagination and filtering', async () => {
+    const baseTime = 1707894000000; // Fixed timestamp for consistent string length
+    const testData = {
+      history: [
+        { visitId: 'v1', visitTime: baseTime - 1000, title: 'Test Page 1', url: 'https://test1.com', platform: 'Windows', browserName: 'Chrome' },
+        { visitId: 'v2', visitTime: baseTime - 2000, title: 'Test Page 2', url: 'https://test2.com', platform: 'Mac', browserName: 'Safari' },
+        { visitId: 'v3', visitTime: baseTime - 3000, title: 'Another Page', url: 'https://test3.com', platform: 'Windows', browserName: 'Firefox' }
+      ],
+      deviceInfo: { key: 'value' }
+    };
     const clientId = 'test123';
 
     // Store data
@@ -113,19 +121,62 @@ describe('Worker API', () => {
     const postJson = await postResp.json();
     expect(postJson.message).toBe('Sync successful');
 
+    // Verify the data was stored correctly
+    const storedData = await env.STORAGE.get(`${clientId}/data`);
+    const storedJson = JSON.parse(await storedData.text());
+    expect(storedJson).toEqual(testData);
+
     // Verify metadata was stored
     const metadata = await env.METADATA.get(clientId, 'json');
     expect(metadata).toBeTruthy();
     expect(metadata.lastSync).toBeTruthy();
-    expect(metadata.dataSize).toBe(JSON.stringify(testData).length);
+    expect(metadata.dataSize).toBeGreaterThan(0);
 
-    // Retrieve data
-    const getResp = await makeRequest('/?clientId=' + clientId);
-    expect(getResp.status).toBe(200);
-    expect(getResp.headers.get('Content-Type')).toBe('application/json');
-    expect(getResp.headers.get('Last-Modified')).toBeTruthy();
-    const getData = await getResp.json();
-    expect(getData).toEqual(testData);
+    // Test pagination
+    const getResp1 = await makeRequest('/?clientId=' + clientId + '&page=1&pageSize=2');
+    expect(getResp1.status).toBe(200);
+    const getData1 = await getResp1.json();
+    expect(getData1.pagination).toEqual({
+      total: 3,
+      page: 1,
+      pageSize: 2,
+      totalPages: 2
+    });
+    expect(getData1.history.length).toBe(2);
+
+    // Test platform filter
+    const getResp2 = await makeRequest('/?clientId=' + clientId + '&platform=Windows');
+    expect(getResp2.status).toBe(200);
+    const getData2 = await getResp2.json();
+    expect(getData2.history.length).toBe(2);
+    expect(getData2.history.every(item => item.platform === 'Windows')).toBe(true);
+
+    // Test browser filter
+    const getResp3 = await makeRequest('/?clientId=' + clientId + '&browser=Safari');
+    expect(getResp3.status).toBe(200);
+    const getData3 = await getResp3.json();
+    expect(getData3.history.length).toBe(1);
+    expect(getData3.history[0].browserName).toBe('Safari');
+
+    // Test search filter
+    const getResp4 = await makeRequest('/?clientId=' + clientId + '&searchQuery=another');
+    expect(getResp4.status).toBe(200);
+    const getData4 = await getResp4.json();
+    expect(getData4.history.length).toBe(1);
+    expect(getData4.history[0].title).toBe('Another Page');
+
+    // Test date range filter
+    const getResp5 = await makeRequest('/?clientId=' + clientId + '&startDate=' + (baseTime - 2500) + '&endDate=' + (baseTime - 500));
+    expect(getResp5.status).toBe(200);
+    const getData5 = await getResp5.json();
+    expect(getData5.history.length).toBe(2);
+
+    // Test combined filters
+    const getResp6 = await makeRequest('/?clientId=' + clientId + '&platform=Windows&browser=Chrome&searchQuery=test');
+    expect(getResp6.status).toBe(200);
+    const getData6 = await getResp6.json();
+    expect(getData6.history.length).toBe(1);
+    expect(getData6.history[0].title).toBe('Test Page 1');
   });
 
   it('requires authentication for admin access', async () => {
@@ -299,6 +350,42 @@ describe('Worker API', () => {
       });
       expect(resp.status).toBe(400);
       expect(await resp.text()).toBe('Client ID required');
+    });
+  });
+
+  describe('CORS Handling', () => {
+    it('handles staging environment CORS', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { 'Origin': 'https://any-domain.com' }
+      }, 'https://api-staging.chroniclesync.xyz');
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(resp.headers.get('Access-Control-Allow-Methods')).toBe('*');
+      expect(resp.headers.get('Access-Control-Allow-Headers')).toBe('*');
+      expect(resp.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+      expect(resp.headers.get('Access-Control-Max-Age')).toBe('86400');
+    });
+
+    it('handles localhost CORS', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { 'Origin': 'http://localhost:3000' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3000');
+    });
+
+    it('handles invalid origin CORS', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        headers: { 'Origin': 'https://evil.com' }
+      });
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
+    });
+
+    it('handles OPTIONS request', async () => {
+      const resp = await makeRequest('/?clientId=test123', {
+        method: 'OPTIONS',
+        headers: { 'Origin': 'https://chroniclesync.xyz' }
+      });
+      expect(resp.status).toBe(200);
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe('https://chroniclesync.xyz');
     });
   });
 

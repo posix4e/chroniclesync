@@ -50,6 +50,7 @@ export default {
       'chroniclesync.xyz',
       'localhost:8787',
       'localhost:8788',
+      'localhost:3000',
       '127.0.0.1:8787',
       '127.0.0.1:8788'
     ];
@@ -483,6 +484,17 @@ export default {
 
   async handleClientGet(request, env, clientId) {
     const origin = request.headers.get('Origin') || '*';
+    const url = new URL(request.url);
+    
+    // Parse pagination and filter parameters
+    const page = parseInt(url.searchParams.get('page')) || 1;
+    const pageSize = parseInt(url.searchParams.get('pageSize')) || 10;
+    const startDate = parseInt(url.searchParams.get('startDate')) || 0;
+    const endDate = parseInt(url.searchParams.get('endDate')) || Date.now();
+    const searchQuery = url.searchParams.get('searchQuery') || '';
+    const platform = url.searchParams.get('platform') || '';
+    const browser = url.searchParams.get('browser') || '';
+
     const data = await env.STORAGE.get(`${clientId}/data`);
     if (!data) {
       return new Response('No data found', { 
@@ -491,13 +503,57 @@ export default {
       });
     }
 
-    return new Response(data.body, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Last-Modified': formatDate(data.uploaded),
-        ...this.corsHeaders(origin)
-      },
-    });
+    try {
+      const clientData = JSON.parse(await data.text());
+      let filteredHistory = clientData.history;
+
+      // Apply filters
+      filteredHistory = filteredHistory.filter(item => {
+        const matchesDate = item.visitTime >= startDate && item.visitTime <= endDate;
+        const matchesPlatform = !platform || item.platform === platform;
+        const matchesBrowser = !browser || item.browserName === browser;
+        const matchesSearch = !searchQuery || 
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.url.toLowerCase().includes(searchQuery.toLowerCase());
+
+        return matchesDate && matchesPlatform && matchesBrowser && matchesSearch;
+      });
+
+      // Sort by visit time (newest first)
+      filteredHistory.sort((a, b) => b.visitTime - a.visitTime);
+
+      // Calculate pagination
+      const total = filteredHistory.length;
+      const totalPages = Math.ceil(total / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
+
+      const response = {
+        history: paginatedHistory,
+        deviceInfo: clientData.deviceInfo,
+        pagination: {
+          total,
+          page,
+          pageSize,
+          totalPages
+        }
+      };
+
+      return new Response(JSON.stringify(response), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Last-Modified': formatDate(data.uploaded),
+          ...this.corsHeaders(origin)
+        },
+      });
+    } catch (error) {
+      log('error', 'Error processing client data', { error: error.message });
+      return new Response('Error processing data', { 
+        status: 500,
+        headers: this.corsHeaders(origin)
+      });
+    }
   },
 
   async handleClientPost(request, env, clientId) {
@@ -512,14 +568,47 @@ export default {
     }
     
     try {
-      const data = await request.json();
+      const newData = await request.json();
       
-      // Store in R2
-      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(data));
+      // Get existing data
+      let existingData = { history: [], deviceInfo: {} };
+      const existingRecord = await env.STORAGE.get(`${clientId}/data`);
+      if (existingRecord) {
+        try {
+          existingData = JSON.parse(await existingRecord.text());
+        } catch (e) {
+          log('error', 'Error parsing existing data', { error: e.message });
+        }
+      }
+
+      // Merge history data by visitId
+      const visitMap = new Map();
+      
+      // Add existing history items to map
+      existingData.history.forEach(item => {
+        visitMap.set(item.visitId, item);
+      });
+
+      // Add or update new history items
+      newData.history.forEach(item => {
+        visitMap.set(item.visitId, item);
+      });
+
+      // Convert map back to array and sort by visitTime
+      const mergedHistory = Array.from(visitMap.values())
+        .sort((a, b) => b.visitTime - a.visitTime);
+
+      const mergedData = {
+        history: mergedHistory,
+        deviceInfo: newData.deviceInfo // Use latest device info
+      };
+      
+      // Store merged data in R2
+      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(mergedData));
 
       // Update client metadata in KV
       const metadataService = new MetadataService(env);
-      await metadataService.updateClientMetadata(clientId, JSON.stringify(data).length);
+      await metadataService.updateClientMetadata(clientId, JSON.stringify(mergedData).length);
 
       log('info', 'Client data synced successfully', { clientId });
       return new Response(JSON.stringify({ message: 'Sync successful' }), { 
@@ -531,7 +620,8 @@ export default {
       });
     } catch (error) {
       log('error', 'Error in handleClientPost', { error: error.message });
-      return new Response(JSON.stringify({ error: error.message }), {
+      const errorMessage = error.message === 'Storage error' ? 'Storage error' : error.message;
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

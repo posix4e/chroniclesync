@@ -10,6 +10,16 @@ export interface HistoryItem {
   browserVersion: string;
 }
 
+export interface HistoryFilters {
+  startDate?: number;
+  endDate?: number;
+  searchQuery?: string;
+  platform?: string;
+  browser?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export interface HistoryResponse {
   history: HistoryItem[];
   deviceInfo: {
@@ -18,5 +28,11 @@ export interface HistoryResponse {
     userAgent: string;
     browserName: string;
     browserVersion: string;
+  };
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
   };
 }

@@ -1,0 +1,3 @@
+2025/02/14-08:32:57.880 52df Reusing MANIFEST /workspace/chroniclesync/extension/test-user-data-dir/Default/Sync Data/LevelDB/MANIFEST-000001
+2025/02/14-08:32:57.880 52df Recovering log #3
+2025/02/14-08:32:57.880 52df Reusing old log /workspace/chroniclesync/extension/test-user-data-dir/Default/Sync Data/LevelDB/000003.log 

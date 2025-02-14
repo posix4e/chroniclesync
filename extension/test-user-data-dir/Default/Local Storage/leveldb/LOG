@@ -1,0 +1,5 @@
+2025/02/14-08:32:57.887 52f5 Reusing MANIFEST /workspace/chroniclesync/extension/test-user-data-dir/Default/Local Storage/leveldb/MANIFEST-000001
+2025/02/14-08:32:57.891 52f5 Recovering log #4
+2025/02/14-08:32:57.891 52f5 Reusing old log /workspace/chroniclesync/extension/test-user-data-dir/Default/Local Storage/leveldb/000004.log 
+2025/02/14-08:33:16.153 52f6 Level-0 table #7: started
+2025/02/14-08:33:16.154 52f6 Level-0 table #7: 48167 bytes OK

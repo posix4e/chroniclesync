@@ -17,6 +17,7 @@ async function initializeExtension() {
     
     return true;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to initialize extension:', error);
     return false;
   }
@@ -150,6 +151,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const config = await getConfig();
         sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error getting client ID:', error);
         sendResponse({ error: 'Failed to get client ID' });
       }

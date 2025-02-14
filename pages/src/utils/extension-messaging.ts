@@ -8,7 +8,7 @@ export const getClientIdFromExtension = async (): Promise<string | null> => {
     // Try to get the client ID through messaging
     const response = await chrome.runtime.sendMessage({ type: 'getClientId' });
     return response?.clientId || null;
-  } catch (error) {
+  } catch {
     // If there's an error (like extension not installed), return null
     return null;
   }

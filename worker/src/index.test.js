@@ -4,9 +4,10 @@ import './test-setup.js';
 /**
  * @param {string} path
  * @param {RequestInit} [init]
+ * @param {string} [baseUrl]
  */
-async function makeRequest(path, init) {
-  const url = new URL(path, 'https://api.chroniclesync.xyz');
+async function makeRequest(path, init, baseUrl = 'https://api.chroniclesync.xyz') {
+  const url = new URL(path, baseUrl);
   return worker.fetch(new Request(url, init), getMiniflareBindings());
 }
 
@@ -626,6 +627,7 @@ describe('Worker API', () => {
     describe('Production Environment', () => {
       beforeEach(() => {
         // Mock production URL
+        // eslint-disable-next-line no-func-assign
         makeRequest = (path, init) => {
           const url = new URL(path, 'https://api.chroniclesync.xyz');
           return worker.fetch(new Request(url, init), getMiniflareBindings());
@@ -657,6 +659,7 @@ describe('Worker API', () => {
     describe('Staging Environment', () => {
       beforeEach(() => {
         // Mock staging URL
+        // eslint-disable-next-line no-func-assign
         makeRequest = (path, init) => {
           const url = new URL(path, 'https://api-staging.chroniclesync.xyz');
           return worker.fetch(new Request(url, init), getMiniflareBindings());

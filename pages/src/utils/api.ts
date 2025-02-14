@@ -5,7 +5,7 @@ export const API_URL = (() => {
     return 'https://api.chroniclesync.xyz';
   }
   
-  if (hostname.endsWith('chroniclesync.pages.dev')) {
+  if (hostname.includes('chroniclesync-pages.pages.dev')) {
     return 'https://api-staging.chroniclesync.xyz';
   }
   

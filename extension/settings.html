@@ -10,9 +10,18 @@
         
         <section class="settings-section">
             <h2>Configuration</h2>
+            <div id="mnemonicContainer" class="setting-item">
+                <label for="mnemonic">Mnemonic Phrase:</label>
+                <textarea id="mnemonic" placeholder="Enter your 24-word mnemonic phrase" rows="3" required></textarea>
+                <div class="mnemonic-actions">
+                    <button id="generateMnemonic" class="secondary-button">Generate New</button>
+                    <button id="showMnemonic" class="secondary-button">Show/Hide</button>
+                </div>
+                <small class="help-text">Your mnemonic phrase is used to generate your unique client ID. Keep it safe!</small>
+            </div>
             <div class="setting-item">
                 <label for="clientId">Client ID:</label>
-                <input type="text" id="clientId" placeholder="Enter your client ID" required>
+                <input type="text" id="clientId" placeholder="Generated from mnemonic" readonly>
             </div>
             <div class="setting-item">
                 <label for="environment">Environment:</label>

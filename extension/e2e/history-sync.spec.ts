@@ -6,8 +6,8 @@ test('should sync browser history with the API', async ({ context, extensionId }
   await settingsPage.goto(getExtensionUrl(extensionId, 'settings.html'));
   await settingsPage.screenshot({ path: 'test-results/settings-page.png' });
   
-  // Set test client ID and environment
-  await settingsPage.fill('#clientId', 'test-client-id');
+  // Generate mnemonic and set environment
+  await settingsPage.click('#generateMnemonic');
   await settingsPage.selectOption('#environment', 'custom');
   await settingsPage.fill('#customApiUrl', process.env.API_URL || 'https://api-staging.chroniclesync.xyz');
   await settingsPage.click('#saveSettings');

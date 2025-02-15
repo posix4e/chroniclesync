@@ -44,7 +44,8 @@ label {
 
 input[type="text"],
 input[type="url"],
-select {
+select,
+textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
@@ -56,10 +57,64 @@ select {
 
 input[type="text"]:focus,
 input[type="url"]:focus,
-select:focus {
+select:focus,
+textarea:focus {
     outline: none;
     border-color: #4CAF50;
     box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: monospace;
+}
+
+input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.setting-item {
+    position: relative;
+}
+
+.secondary-button {
+    background-color: #2196F3;
+    color: white;
+    position: absolute;
+    right: 0;
+    top: 32px;
+    width: auto;
+    flex: none;
+}
+
+.secondary-button:hover {
+    background-color: #1976D2;
+    transform: translateY(-1px);
+}
+
+#generateMnemonic {
+    top: 100px;
+}
+
+.key-status {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.key-status.success {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #A5D6A7;
+}
+
+.key-status.error {
+    background-color: #FFEBEE;
+    color: #C62828;
+    border: 1px solid #FFCDD2;
 }
 
 .help-text {

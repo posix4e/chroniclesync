@@ -1,27 +1,19 @@
-import { EncryptionService } from '../services/encryption';
+class Settings {
+  constructor() {
+    this.config = null;
+    this.PROD_API_URL = 'https://api.chroniclesync.xyz';
+    this.STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
 
-interface SettingsConfig {
-  clientId: string;
-  mnemonic: string;
-  customApiUrl: string | null;
-  environment: 'production' | 'staging' | 'custom';
-}
+    this.DEFAULT_SETTINGS = {
+      clientId: '',
+      mnemonic: '',
+      customApiUrl: null,
+      environment: 'production'
+    };
+  }
 
-type StorageKeys = keyof SettingsConfig;
-
-export class Settings {
-  private config: SettingsConfig | null = null;
-  private readonly PROD_API_URL = 'https://api.chroniclesync.xyz';
-  private readonly STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
-
-  private readonly DEFAULT_SETTINGS: SettingsConfig = {
-    clientId: '',
-    mnemonic: '',
-    customApiUrl: null,
-    environment: 'production'
-  };
-
-  async init(): Promise<void> {
+  async init() {
+    console.log('Initializing settings...');
     const result = await this.getStorageData();
     this.config = {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
@@ -29,18 +21,20 @@ export class Settings {
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment
     };
+    console.log('Config loaded:', this.config);
     this.render();
     this.setupEventListeners();
+    console.log('Settings initialized');
   }
 
-  private async getStorageData(): Promise<Partial<SettingsConfig>> {
+  async getStorageData() {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['clientId', 'mnemonic', 'customApiUrl', 'environment'];
-      chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
+      const keys = ['clientId', 'mnemonic', 'customApiUrl', 'environment'];
+      chrome.storage.sync.get(keys, (result) => resolve(result));
     });
   }
 
-  getApiUrl(): string {
+  getApiUrl() {
     if (!this.config) throw new Error('Settings not initialized');
     
     switch (this.config.environment) {
@@ -55,15 +49,14 @@ export class Settings {
     }
   }
 
-  private render(): void {
+  render() {
     if (!this.config) return;
 
-    const mnemonicInput = document.getElementById('mnemonic') as HTMLInputElement;
-    const clientIdInput = document.getElementById('clientId') as HTMLInputElement;
-    const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
-    const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
-    const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
-    const generateKeysBtn = document.getElementById('generateKeys') as HTMLButtonElement;
+    const mnemonicInput = document.getElementById('mnemonic');
+    const clientIdInput = document.getElementById('clientId');
+    const environmentSelect = document.getElementById('environment');
+    const customUrlContainer = document.getElementById('customUrlContainer');
+    const customApiUrlInput = document.getElementById('customApiUrl');
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
@@ -74,7 +67,7 @@ export class Settings {
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
   }
 
-  private setupEventListeners(): void {
+  setupEventListeners() {
     document.getElementById('saveSettings')?.addEventListener('click', (e) => this.handleSave(e));
     document.getElementById('resetSettings')?.addEventListener('click', () => this.handleReset());
     document.getElementById('environment')?.addEventListener('change', () => this.handleEnvironmentChange());
@@ -82,54 +75,63 @@ export class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
   }
 
-  private handleEnvironmentChange(): void {
-    const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
-    const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
+  handleEnvironmentChange() {
+    const environmentSelect = document.getElementById('environment');
+    const customUrlContainer = document.getElementById('customUrlContainer');
     customUrlContainer.style.display = environmentSelect.value === 'custom' ? 'block' : 'none';
   }
 
-  private handleGenerateMnemonic(): void {
-    const mnemonicInput = document.getElementById('mnemonic') as HTMLInputElement;
+  handleGenerateMnemonic() {
+    const mnemonicInput = document.getElementById('mnemonic');
     mnemonicInput.value = EncryptionService.generateMnemonic();
   }
 
-  private async handleGenerateKeys(): Promise<void> {
-    const mnemonicInput = document.getElementById('mnemonic') as HTMLInputElement;
-    const clientIdInput = document.getElementById('clientId') as HTMLInputElement;
-    const keyStatus = document.querySelector('.key-status') as HTMLDivElement;
+  async handleGenerateKeys() {
+    console.log('Generating keys...');
+    const mnemonicInput = document.getElementById('mnemonic');
+    const clientIdInput = document.getElementById('clientId');
+    const keyStatus = document.querySelector('.key-status');
     const mnemonic = mnemonicInput.value.trim();
+    console.log('Mnemonic:', mnemonic);
 
     try {
       if (!EncryptionService.validateMnemonic(mnemonic)) {
+        console.log('Invalid mnemonic');
         keyStatus.textContent = 'Invalid mnemonic phrase';
         keyStatus.className = 'key-status error';
         return;
       }
 
+      console.log('Generating client ID...');
       const clientId = await EncryptionService.generateClientId(mnemonic);
+      console.log('Client ID:', clientId);
       clientIdInput.value = clientId;
 
       // Also derive the encryption key and store it securely
+      console.log('Deriving encryption key...');
       const encryptionKey = await EncryptionService.deriveEncryptionKey(mnemonic);
+      console.log('Encryption key derived');
       // The encryption key will be used for encrypting/decrypting data
 
       keyStatus.textContent = 'Keys generated successfully!';
       keyStatus.className = 'key-status success';
       this.showMessage('Keys generated successfully!', 'success');
+      console.log('Keys generated successfully');
     } catch (error) {
-      keyStatus.textContent = 'Error generating keys: ' + (error as Error).message;
+      console.error('Error generating keys:', error);
+      keyStatus.textContent = 'Error generating keys: ' + error.message;
       keyStatus.className = 'key-status error';
-      this.showMessage('Error generating keys: ' + (error as Error).message, 'error');
+      this.showMessage('Error generating keys: ' + error.message, 'error');
     }
   }
 
-  private async handleSave(event?: Event): Promise<void> {
+  async handleSave(event) {
     event?.preventDefault();
 
-    const mnemonicInput = document.getElementById('mnemonic') as HTMLInputElement;
-    const clientIdInput = document.getElementById('clientId') as HTMLInputElement;
-    const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
-    const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
+    const mnemonicInput = document.getElementById('mnemonic');
+    const clientIdInput = document.getElementById('clientId');
+    const environmentSelect = document.getElementById('environment');
+    const customApiUrlInput = document.getElementById('customApiUrl');
 
     const mnemonic = mnemonicInput.value.trim();
     if (!EncryptionService.validateMnemonic(mnemonic)) {
@@ -137,10 +139,10 @@ export class Settings {
       return;
     }
 
-    const newConfig: SettingsConfig = {
+    const newConfig = {
       mnemonic,
       clientId: clientIdInput.value.trim(),
-      environment: environmentSelect.value as SettingsConfig['environment'],
+      environment: environmentSelect.value,
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null
     };
 
@@ -149,7 +151,7 @@ export class Settings {
       return;
     }
 
-    await new Promise<void>((resolve) => {
+    await new Promise((resolve) => {
       chrome.storage.sync.set(newConfig, () => resolve());
     });
 
@@ -157,7 +159,7 @@ export class Settings {
     this.showMessage('Settings saved successfully!', 'success');
   }
 
-  private handleReset(): void {
+  handleReset() {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
       this.config = { ...this.DEFAULT_SETTINGS };
       this.render();
@@ -165,7 +167,7 @@ export class Settings {
     }
   }
 
-  private showMessage(text: string, type: 'success' | 'error'): void {
+  showMessage(text, type) {
     const status = document.createElement('div');
     status.className = `status-message ${type}`;
     status.textContent = text;
@@ -176,3 +178,9 @@ export class Settings {
     }, 3000);
   }
 }
+
+// Initialize settings when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+  const settings = new Settings();
+  settings.init();
+});

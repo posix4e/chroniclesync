@@ -1,0 +1,26 @@
+{
+  "name": "chroniclesync",
+  "version": "1.0.0",
+  "description": "ChronicleSync browser extension",
+  "scripts": {
+    "build": "webpack",
+    "test": "npm run build && playwright test",
+    "test:e2e": "npm run build && playwright test --project=chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.2",
+    "@types/chrome": "^0.0.304",
+    "@types/node": "^20.11.19",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.1",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "bip32": "^4.0.0",
+    "bip39": "^3.1.0",
+    "tiny-secp256k1": "^2.2.3"
+  }
+}

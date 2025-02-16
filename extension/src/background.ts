@@ -77,6 +77,12 @@ interface HistoryItem {
   browserVersion: string;
 }
 
+interface EncryptedHistoryItem extends Omit<HistoryItem, 'url' | 'title'> {
+  url: EncryptedData;
+  title: EncryptedData | null;
+  isEncrypted: boolean;
+}
+
 async function encryptHistoryItem(item: HistoryItem) {
   if (!encryptionManager) {
     throw new Error('Encryption manager not initialized');
@@ -190,7 +196,7 @@ async function syncHistory(forceFullSync = false) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const latestVisitTime = Math.max(...flattenedHistoryData.map((item: HistoryItem) => item.visitTime));
+    const latestVisitTime = Math.max(...flattenedHistoryData.map((item: EncryptedHistoryItem) => item.visitTime));
     
     const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
     if (latestVisitTime > currentLastSync) {

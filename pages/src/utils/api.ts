@@ -1,4 +1,5 @@
 import { HistoryResponse, HistoryFilters } from '../types/history';
+import { HistoryEncryption } from './encryption';
 
 export const API_URL = (() => {
   const hostname = window.location.hostname;
@@ -26,7 +27,17 @@ export const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+let encryptionInstance: HistoryEncryption | null = null;
+
+export const initializeEncryption = async (seed: Buffer) => {
+  encryptionInstance = new HistoryEncryption(seed);
+};
+
 export const fetchHistory = async (clientId: string, filters?: HistoryFilters): Promise<HistoryResponse> => {
+  if (!encryptionInstance) {
+    throw new Error('Encryption not initialized. Call initializeEncryption first.');
+  }
+
   const params = new URLSearchParams({ clientId });
   
   if (filters) {
@@ -49,9 +60,12 @@ export const fetchHistory = async (clientId: string, filters?: HistoryFilters): 
   if (!data || !Array.isArray(data.history)) {
     throw new Error('Invalid response format: missing history array');
   }
+
+  // Decrypt the history items
+  const decryptedHistory = await encryptionInstance.decryptHistoryItems(data.history);
   
   return {
-    history: data.history || [],
+    history: decryptedHistory,
     deviceInfo: data.deviceInfo || {
       deviceId: 'unknown',
       platform: 'unknown',

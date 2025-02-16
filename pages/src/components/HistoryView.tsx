@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { HistoryItem, HistoryFilters } from '../types/history';
-import { fetchHistory } from '../utils/api';
+import { fetchHistory, initializeEncryption } from '../utils/api';
 import debounce from 'lodash/debounce';
+import { Buffer } from 'buffer';
 
 interface HistoryViewProps {
   clientId: string;
@@ -62,12 +63,25 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
   );
 
   useEffect(() => {
-    if (clientId) {
-      if (filters.searchQuery) {
-        debouncedSearch(filters);
-      } else {
-        loadHistory(filters);
+    const initEncryption = async () => {
+      try {
+        // Use BIP32 seed from client ID (this is just an example - in production you'd want a more secure way to derive the seed)
+        const seed = Buffer.from(clientId.repeat(32).slice(0, 64), 'hex');
+        await initializeEncryption(seed);
+      } catch (err) {
+        console.error('Failed to initialize encryption:', err);
+        setError('Failed to initialize encryption');
       }
+    };
+
+    if (clientId) {
+      initEncryption().then(() => {
+        if (filters.searchQuery) {
+          debouncedSearch(filters);
+        } else {
+          loadHistory(filters);
+        }
+      });
     }
     return () => {
       debouncedSearch.cancel();

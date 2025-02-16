@@ -11,7 +11,7 @@ interface EncryptedHistoryItem extends Omit<HistoryItem, 'url' | 'title'> {
 }
 
 export class HistoryEncryption {
-  private key: any;
+  private key: ReturnType<typeof bip32.fromSeed>;
 
   constructor(seed: Buffer) {
     this.key = bip32.fromSeed(seed);
@@ -73,14 +73,16 @@ export class HistoryEncryption {
   async encryptHistoryItem(item: HistoryItem): Promise<EncryptedHistoryItem> {
     const encryptedUrl = await this.encrypt(item.url);
     const encryptedTitle = await this.encrypt(item.title);
+    const visitId = crypto.randomUUID();
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    const { url: _url, title: _title, ...rest } = item;
     return {
-      ...item,
+      ...rest,
       encryptedUrl,
       encryptedTitle,
-      url: '', // Clear original values
-      title: ''
-    } as EncryptedHistoryItem;
+      visitId
+    };
   }
 
   async decryptHistoryItem(item: EncryptedHistoryItem): Promise<HistoryItem> {

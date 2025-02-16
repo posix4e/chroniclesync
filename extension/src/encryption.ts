@@ -4,7 +4,7 @@ import * as ecc from 'tiny-secp256k1';
 const bip32 = BIP32Factory(ecc);
 
 export class HistoryEncryption {
-  private key: any;
+  private key: ReturnType<typeof bip32.fromSeed>;
 
   constructor(seed: Buffer) {
     this.key = bip32.fromSeed(seed);
@@ -63,7 +63,7 @@ export class HistoryEncryption {
     };
   }
 
-  async encryptHistoryItems(items: any[]) {
+  async encryptHistoryItems(items: Parameters<typeof this.encryptHistoryItem>[0][]) {
     return Promise.all(items.map(item => this.encryptHistoryItem(item)));
   }
 }

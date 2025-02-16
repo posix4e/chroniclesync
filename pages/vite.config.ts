@@ -19,6 +19,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: server.port
+    port: server.port,
+    host: '0.0.0.0'
   }
 });

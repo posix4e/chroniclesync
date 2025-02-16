@@ -99,7 +99,12 @@ export class HistoryEncryption {
     return Promise.all(items.map(item => this.encryptHistoryItem(item)));
   }
 
-  async decryptHistoryItems(items: EncryptedHistoryItem[]): Promise<HistoryItem[]> {
-    return Promise.all(items.map(item => this.decryptHistoryItem(item)));
+  async decryptHistoryItems(items: (EncryptedHistoryItem | HistoryItem)[]): Promise<HistoryItem[]> {
+    return Promise.all(items.map(item => {
+      if ('encrypted' in item && item.encrypted === false) {
+        return item;
+      }
+      return this.decryptHistoryItem(item as EncryptedHistoryItem);
+    }));
   }
 }

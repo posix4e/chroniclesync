@@ -13,6 +13,10 @@ export const API_URL = (() => {
   }
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // For e2e tests, we use the mock API
+    if (process.env.NODE_ENV === 'test') {
+      return window.location.origin;
+    }
     return 'http://localhost:8787';
   }
   

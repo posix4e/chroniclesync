@@ -3,7 +3,17 @@ import { createEncryptionManager } from './utils/encryption';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-let encryptionManager: any = null;
+interface EncryptedData {
+  iv: string;
+  data: string;
+  tag: string;
+}
+
+interface EncryptionManager {
+  encrypt(data: string): Promise<EncryptedData>;
+}
+
+let encryptionManager: EncryptionManager | null = null;
 
 // Initialize extension
 async function initializeExtension() {
@@ -53,7 +63,21 @@ async function getDeviceId() {
   return deviceId;
 }
 
-async function encryptHistoryItem(item: any) {
+interface HistoryItem {
+  url: string;
+  title?: string;
+  visitTime: number;
+  visitId: string;
+  referringVisitId: string;
+  transition: string;
+  deviceId: string;
+  platform: string;
+  userAgent: string;
+  browserName: string;
+  browserVersion: string;
+}
+
+async function encryptHistoryItem(item: HistoryItem) {
   if (!encryptionManager) {
     throw new Error('Encryption manager not initialized');
   }
@@ -119,17 +143,25 @@ async function syncHistory(forceFullSync = false) {
 
     // Get detailed visit information and encrypt sensitive data
     const historyData = await Promise.all(historyItems.map(async item => {
+      if (!item.url) {
+        return [];
+      }
+
       const visits = await chrome.history.getVisits({ url: item.url });
       
+      if (!visits) {
+        return [];
+      }
+
       const visitData = visits
-        .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
-        .map(visit => ({
-          url: item.url,
-          title: item.title,
-          visitTime: visit.visitTime,
-          visitId: visit.visitId,
-          referringVisitId: visit.referringVisitId,
-          transition: visit.transition,
+        .filter((visit: chrome.history.VisitItem) => visit.visitTime && visit.visitTime >= startTime && visit.visitTime <= now)
+        .map((visit: chrome.history.VisitItem) => ({
+          url: item.url || '',
+          title: item.title || '',
+          visitTime: visit.visitTime || 0,
+          visitId: visit.visitId || '',
+          referringVisitId: visit.referringVisitId || '',
+          transition: visit.transition || '',
           ...systemInfo
         }));
 
@@ -158,7 +190,7 @@ async function syncHistory(forceFullSync = false) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const latestVisitTime = Math.max(...flattenedHistoryData.map(item => item.visitTime));
+    const latestVisitTime = Math.max(...flattenedHistoryData.map((item: HistoryItem) => item.visitTime));
     
     const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
     if (latestVisitTime > currentLastSync) {

@@ -12,13 +12,13 @@ export interface EncryptedData {
 }
 
 export class DecryptionManager {
-  private key: Buffer;
+  private key: Uint8Array;
 
   constructor(clientId: string) {
     // Derive key from client ID using BIP32
     const seed = Buffer.from(clientId.padEnd(64, '0'));
     const node = bip32.fromSeed(seed);
-    this.key = node.privateKey!;
+    this.key = Buffer.from(node.privateKey!);
   }
 
   async decrypt(encryptedData: EncryptedData): Promise<string> {

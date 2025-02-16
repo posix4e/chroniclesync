@@ -170,11 +170,22 @@ async function syncHistory(forceFullSync = false) {
   }
 }
 
-// Initial sync with full history
-syncHistory(true);
+// Initialize on install or startup
+chrome.runtime.onInstalled.addListener(() => {
+  syncHistory(true);
+});
 
-// Set up periodic sync
-setInterval(() => syncHistory(false), SYNC_INTERVAL);
+// Set up periodic sync using alarms instead of setInterval
+chrome.alarms.create('syncAlarm', {
+  periodInMinutes: SYNC_INTERVAL / (60 * 1000) // Convert ms to minutes
+});
+
+// Listen for alarm events
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'syncAlarm') {
+    syncHistory(false);
+  }
+});
 
 // Listen for navigation events
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {

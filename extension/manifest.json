@@ -19,7 +19,8 @@
     "scripting",
     "tabs",
     "history",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "http://localhost:*/*",

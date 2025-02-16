@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { server } from '../config';
 
 test('history view displays browser history', async ({ page }) => {
   // Mock the API response
@@ -32,7 +33,7 @@ test('history view displays browser history', async ({ page }) => {
   });
 
   // First visit home page to set client ID
-  await page.goto('http://localhost:52691/');
+  await page.goto(server.webUrl);
   await page.fill('#clientId', 'test-client-id');
   await page.click('text=Initialize');
   await page.screenshot({ path: 'test-results/history-view-home.png' });

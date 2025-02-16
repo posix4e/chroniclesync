@@ -3,7 +3,7 @@ import { server } from '../config';
 
 test.describe('Pages', () => {
   test('home page loads correctly', async ({ page }) => {
-    await page.goto(server.webUrl);
+    await page.goto('/');
     
     // Wait for the page to be ready
     await page.waitForLoadState('networkidle');
@@ -34,7 +34,7 @@ test.describe('Pages', () => {
       }
     });
 
-    await page.goto(server.webUrl);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 

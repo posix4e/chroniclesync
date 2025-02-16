@@ -32,8 +32,10 @@ export default defineConfig({
   ],
   outputDir: 'test-results/',
   webServer: {
-    command: 'npm run dev',
-    port: Number(new URL(server.webUrl).port),
+    command: `PORT=51778 npm run dev -- --port 51778 --host 0.0.0.0`,
+    url: 'http://localhost:51778',
     reuseExistingServer: !process.env.CI,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });

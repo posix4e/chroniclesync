@@ -54,84 +54,14 @@ class Settings {
   async init() {
     await this.wordListPromise;
 
-    const result = await new Promise(resolve => {
-      chrome.storage.sync.get(['mnemonic', 'clientId', 'customApiUrl', 'environment'], resolve);
+    // Clear any existing storage
+    await new Promise(resolve => {
+      chrome.storage.sync.clear(resolve);
     });
 
-    if (result.mnemonic && result.clientId) {
-      this.config = {
-        mnemonic: result.mnemonic,
-        clientId: result.clientId,
-        customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
-        environment: result.environment || this.DEFAULT_SETTINGS.environment
-      };
-    } else {
-      // Generate initial mnemonic
-      this.config = { ...this.DEFAULT_SETTINGS };
-    }
-
+    this.config = { ...this.DEFAULT_SETTINGS };
     this.render();
     this.setupEventListeners();
-
-    // Wait for the page to load
-    await new Promise(resolve => {
-      if (document.readyState === 'complete') {
-        resolve();
-      } else {
-        window.addEventListener('load', resolve);
-      }
-    });
-
-    // Generate initial mnemonic if needed
-    if (!this.config.mnemonic || !this.config.clientId) {
-      const mnemonic = this.generateMnemonic();
-      if (mnemonic) {
-        const clientId = await this.generateClientId(mnemonic);
-        this.config = {
-          ...this.config,
-          mnemonic,
-          clientId
-        };
-        const mnemonicInput = document.getElementById('mnemonic');
-        const clientIdInput = document.getElementById('clientId');
-        if (mnemonicInput && clientIdInput) {
-          mnemonicInput.value = mnemonic;
-          clientIdInput.value = clientId;
-        }
-        await this.handleSave();
-      }
-    }
-
-    // Ensure we have a valid mnemonic and client ID
-    const mnemonicInput = document.getElementById('mnemonic');
-    const clientIdInput = document.getElementById('clientId');
-    if (mnemonicInput && clientIdInput) {
-      const mnemonic = mnemonicInput.value.trim();
-      const clientId = clientIdInput.value.trim();
-      if (!mnemonic || !clientId) {
-        const mnemonic = this.generateMnemonic();
-        if (mnemonic) {
-          const clientId = await this.generateClientId(mnemonic);
-          this.config = {
-            ...this.config,
-            mnemonic,
-            clientId
-          };
-          mnemonicInput.value = mnemonic;
-          clientIdInput.value = clientId;
-          await this.handleSave();
-        }
-      }
-    }
-
-    // Wait for the mnemonic and client ID to be saved
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const finalMnemonic = document.getElementById('mnemonic')?.value.trim();
-    const finalClientId = document.getElementById('clientId')?.value.trim();
-    if (!finalMnemonic || !finalClientId) {
-      await this.handleGenerateMnemonic();
-      await this.handleSave();
-    }
   }
 
   render() {
@@ -144,15 +74,15 @@ class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl');
 
     if (mnemonicInput) {
-      mnemonicInput.value = this.config.mnemonic;
+      mnemonicInput.value = '';
       mnemonicInput.classList.add('hidden');
     }
-    if (clientIdInput) clientIdInput.value = this.config.clientId;
-    if (environmentSelect) environmentSelect.value = this.config.environment;
-    if (customApiUrlInput) customApiUrlInput.value = this.config.customApiUrl || '';
+    if (clientIdInput) clientIdInput.value = '';
+    if (environmentSelect) environmentSelect.value = this.DEFAULT_SETTINGS.environment;
+    if (customApiUrlInput) customApiUrlInput.value = '';
     
     if (customUrlContainer) {
-      customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+      customUrlContainer.style.display = 'none';
     }
   }
 
@@ -223,6 +153,16 @@ class Settings {
 
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
+    // Remove any existing messages first
+    const existingMessages = document.querySelectorAll('.status-message');
+    existingMessages.forEach(msg => msg.remove());
+
+    // First check if custom environment has URL
+    if (environmentSelect.value === 'custom' && (!customApiUrlInput || !customApiUrlInput.value.trim())) {
+      this.showMessage('Custom API URL is required when using custom environment', 'error');
+      return;
+    }
+
     const mnemonic = mnemonicInput.value.trim();
     if (!this.validateMnemonic(mnemonic)) {
       this.showMessage('Please enter a valid 24-word mnemonic phrase', 'error');
@@ -238,11 +178,6 @@ class Settings {
       environment: environmentSelect.value,
       customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
     };
-
-    if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {
-      this.showMessage('Custom API URL is required when using custom environment', 'error');
-      return;
-    }
 
     await new Promise(resolve => {
       chrome.storage.sync.set(newConfig, resolve);
@@ -269,6 +204,10 @@ class Settings {
   }
 
   showMessage(text, type = 'success') {
+    // Remove any existing messages
+    const existingMessages = document.querySelectorAll('.status-message');
+    existingMessages.forEach(msg => msg.remove());
+
     const status = document.createElement('div');
     status.className = `status-message ${type}`;
     status.textContent = text;

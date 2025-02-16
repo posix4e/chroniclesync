@@ -66,7 +66,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
     const initEncryption = async () => {
       try {
         // Use BIP32 seed from client ID (this is just an example - in production you'd want a more secure way to derive the seed)
-        const seed = Buffer.from(clientId.repeat(32).slice(0, 64), 'hex');
+        const seed = Buffer.from(clientId.repeat(32).slice(0, 128), 'hex');
         await initializeEncryption(seed);
       } catch (err) {
         console.error('Failed to initialize encryption:', err);

@@ -11,7 +11,7 @@ interface EncryptedHistoryItem extends Omit<HistoryItem, 'url' | 'title'> {
 }
 
 export class HistoryEncryption {
-  private key: any;
+  private key: ReturnType<typeof bip32.fromSeed>;
 
   constructor(seed: Buffer) {
     this.key = bip32.fromSeed(seed);
@@ -74,13 +74,14 @@ export class HistoryEncryption {
     const encryptedUrl = await this.encrypt(item.url);
     const encryptedTitle = await this.encrypt(item.title);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    const { url: _, title: __, ...rest } = item;
     return {
-      ...item,
+      ...rest,
       encryptedUrl,
       encryptedTitle,
-      url: '', // Clear original values
-      title: ''
-    } as EncryptedHistoryItem;
+      visitId: crypto.randomUUID()
+    };
   }
 
   async decryptHistoryItem(item: EncryptedHistoryItem): Promise<HistoryItem> {
@@ -98,7 +99,12 @@ export class HistoryEncryption {
     return Promise.all(items.map(item => this.encryptHistoryItem(item)));
   }
 
-  async decryptHistoryItems(items: EncryptedHistoryItem[]): Promise<HistoryItem[]> {
-    return Promise.all(items.map(item => this.decryptHistoryItem(item)));
+  async decryptHistoryItems(items: (EncryptedHistoryItem | HistoryItem)[]): Promise<HistoryItem[]> {
+    return Promise.all(items.map(async item => {
+      if ('encryptedUrl' in item) {
+        return this.decryptHistoryItem(item as EncryptedHistoryItem);
+      }
+      return item as HistoryItem;
+    }));
   }
 }

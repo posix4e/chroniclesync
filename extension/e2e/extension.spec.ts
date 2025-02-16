@@ -23,14 +23,76 @@ test.describe('Chrome Extension', () => {
     expect(workerUrl).toContain('background');
   });
 
-  test('API health check should be successful', async ({ page }) => {
+  test('API health check should be successful', async ({ page, context, extensionId }) => {
+    // First, set up a client ID through the settings page
+    const settingsPage = await context.newPage();
+    await settingsPage.goto(getExtensionUrl(extensionId, 'settings.html'));
+
+    // Wait for initial mnemonic generation
+    await settingsPage.waitForTimeout(1000);
+    let mnemonic = await settingsPage.locator('#mnemonic').inputValue();
+    let clientId = await settingsPage.locator('#clientId').inputValue();
+
+    // Wait for up to 5 seconds for the mnemonic to be generated
+    for (let i = 0; i < 5; i++) {
+      if (mnemonic && clientId) break;
+      await settingsPage.waitForTimeout(1000);
+      mnemonic = await settingsPage.locator('#mnemonic').inputValue();
+      clientId = await settingsPage.locator('#clientId').inputValue();
+    }
+
+    // If still no mnemonic, try generating one
+    if (!mnemonic || !clientId) {
+      await settingsPage.locator('#generateMnemonic').click();
+      await settingsPage.waitForTimeout(1000);
+      mnemonic = await settingsPage.locator('#mnemonic').inputValue();
+      clientId = await settingsPage.locator('#clientId').inputValue();
+      await settingsPage.locator('#saveSettings').click();
+      await settingsPage.waitForTimeout(1000);
+    }
+
+    // Wait for up to 5 seconds for the mnemonic to be generated
+    for (let i = 0; i < 5; i++) {
+      if (mnemonic && clientId) break;
+      await settingsPage.waitForTimeout(1000);
+      mnemonic = await settingsPage.locator('#mnemonic').inputValue();
+      clientId = await settingsPage.locator('#clientId').inputValue();
+    }
+
+    // Ensure we have a valid mnemonic and client ID
+    if (!mnemonic || !clientId) {
+      throw new Error('Failed to generate mnemonic and client ID');
+    }
+
+    // Save the settings and wait for them to be saved
+    await settingsPage.locator('#saveSettings').click();
+    await settingsPage.waitForTimeout(1000);
+
+    // Now test the API health endpoint with the client ID
     const apiUrl = process.env.API_URL || server.apiUrl;
     console.log('Testing API health at:', `${apiUrl}/health`);
     
-    const healthResponse = await page.request.get(`${apiUrl}/health`);
+    // Wait for the settings to be saved
+    await settingsPage.waitForTimeout(1000);
+
+    const healthResponse = await page.request.get(`${apiUrl}/health`, {
+      headers: {
+        'X-Client-Id': clientId
+      }
+    });
     console.log('Health check status:', healthResponse.status());
     
-    const responseBody = await healthResponse.json();
+    let responseBody;
+    try {
+      responseBody = await healthResponse.json();
+    } catch (error) {
+      const responseText = await healthResponse.text();
+      console.log('Health check response text:', responseText);
+      if (responseText === 'Client ID required') {
+        throw new Error('Client ID was not properly set in the request headers');
+      }
+      throw error;
+    }
     console.log('Health check response:', responseBody);
     
     expect(healthResponse.ok()).toBeTruthy();

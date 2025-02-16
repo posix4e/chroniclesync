@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Settings } from '../src/settings/Settings';
+
+// Mock bip39 wordlist
+vi.mock('../../bip39-wordlist.js', () => ({
+  wordList: ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art']
+}));
 
 // Mock chrome.storage.sync
 global.chrome = {
@@ -11,11 +15,76 @@ global.chrome = {
   }
 };
 
+// Debug logging for crypto object state
+console.log('Initial crypto state:', {
+  hasCrypto: typeof crypto !== 'undefined',
+  hasGlobalCrypto: typeof global.crypto !== 'undefined',
+  cryptoType: typeof crypto,
+  globalCryptoType: typeof global.crypto,
+  hasSubtle: crypto && typeof crypto.subtle !== 'undefined',
+  hasGlobalSubtle: global.crypto && typeof global.crypto.subtle !== 'undefined',
+  subtleType: crypto && typeof crypto.subtle,
+  globalSubtleType: global.crypto && typeof global.crypto.subtle,
+});
+
+// Mock crypto API methods
+const mockGetRandomValues = vi.fn((array) => {
+  for (let i = 0; i < array.length; i++) {
+    array[i] = Math.floor(Math.random() * 256);
+  }
+  return array;
+});
+
+const mockDigest = vi.fn(async (_algorithm, _data) => {
+  // Simple mock that returns a fixed hash for testing
+  return new Uint8Array([
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+    0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+    0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+    0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20
+  ]).buffer;
+});
+
+// Ensure crypto objects exist before mocking
+if (!global.crypto) {
+  global.crypto = {};
+}
+if (!global.crypto.subtle) {
+  global.crypto.subtle = {};
+}
+
+// In Node.js test environment, crypto might be different from global.crypto
+if (typeof crypto === 'undefined' || !crypto) {
+  global.crypto = global.crypto || {};
+  global.crypto.subtle = global.crypto.subtle || {};
+  global.crypto.getRandomValues = global.crypto.getRandomValues || (() => {});
+  globalThis.crypto = global.crypto;
+}
+
+// Mock the methods on the crypto object
+vi.spyOn(global.crypto, 'getRandomValues').mockImplementation(mockGetRandomValues);
+vi.spyOn(global.crypto.subtle, 'digest').mockImplementation(mockDigest);
+
+// Debug logging for crypto object state after mocking
+console.log('Crypto state after mocking:', {
+  hasCrypto: typeof crypto !== 'undefined',
+  hasGlobalCrypto: typeof global.crypto !== 'undefined',
+  cryptoType: typeof crypto,
+  globalCryptoType: typeof global.crypto,
+  hasSubtle: crypto && typeof crypto.subtle !== 'undefined',
+  hasGlobalSubtle: global.crypto && typeof global.crypto.subtle !== 'undefined',
+  subtleType: crypto && typeof crypto.subtle,
+  globalSubtleType: global.crypto && typeof global.crypto.subtle,
+});
+
+// Import Settings after mocks
+import { Settings } from '../src/settings/Settings';
+
 describe('Settings', () => {
   let settings;
   let mockContainer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     settings = new Settings();
     mockContainer = document.createElement('div');
     mockContainer.id = 'settings-container';
@@ -24,6 +93,11 @@ describe('Settings', () => {
     // Add required form elements
     const form = document.createElement('form');
     
+    // Mnemonic input
+    const mnemonicInput = document.createElement('textarea');
+    mnemonicInput.id = 'mnemonic';
+    form.appendChild(mnemonicInput);
+
     // Client ID input
     const clientIdInput = document.createElement('input');
     clientIdInput.id = 'clientId';
@@ -72,6 +146,19 @@ describe('Settings', () => {
     // Reset mocks
     chrome.storage.sync.get.mockReset();
     chrome.storage.sync.set.mockReset();
+
+    // Mock storage to return default values
+    chrome.storage.sync.get.mockImplementation((keys, callback) => {
+      callback({
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
+        clientId: 'test-client',
+        environment: 'production',
+        customApiUrl: null
+      });
+    });
+
+    // Initialize settings
+    await settings.init();
   });
 
   afterEach(() => {
@@ -80,11 +167,13 @@ describe('Settings', () => {
   });
 
   it('initializes with null config', () => {
-    expect(settings.config).toBeNull();
+    const newSettings = new Settings();
+    expect(newSettings.config).toBeNull();
   });
 
   it('init loads and renders config', async () => {
     const mockConfig = {
+      mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
       environment: 'custom'
@@ -105,15 +194,18 @@ describe('Settings', () => {
 
   it('handleSave updates config and shows success message', async () => {
     const newConfig = {
+      mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
       environment: 'custom'
     };
 
-    settings.config = { ...settings.DEFAULT_SETTINGS };
+    // Mock generateClientId to return the expected client ID
+    vi.spyOn(settings, 'generateClientId').mockResolvedValue(newConfig.clientId);
     chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
     // Set up form values
+    document.getElementById('mnemonic').value = newConfig.mnemonic;
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('environment').value = newConfig.environment;
     document.getElementById('customApiUrl').value = newConfig.customApiUrl;
@@ -134,6 +226,7 @@ describe('Settings', () => {
     chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
     settings.config = {
+      mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'custom-client',
       customApiUrl: 'http://custom-api.com',
       environment: 'custom'
@@ -142,8 +235,9 @@ describe('Settings', () => {
     await settings.handleReset();
 
     expect(global.confirm).toHaveBeenCalled();
-    expect(chrome.storage.sync.set).toHaveBeenCalledWith(settings.DEFAULT_SETTINGS, expect.any(Function));
-    expect(settings.config).toEqual(settings.DEFAULT_SETTINGS);
+    expect(chrome.storage.sync.set).toHaveBeenCalledWith(expect.any(Object), expect.any(Function));
+    expect(settings.config.environment).toBe('production');
+    expect(settings.config.customApiUrl).toBeNull();
     expect(document.getElementById('customUrlContainer').style.display).toBe('none');
   });
 
@@ -151,6 +245,7 @@ describe('Settings', () => {
     // Mock storage to return custom environment
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
       callback({
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'custom',
         customApiUrl: 'http://test-api.com'
@@ -166,6 +261,7 @@ describe('Settings', () => {
     // Mock storage to return staging environment
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
       callback({
+        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'staging',
         customApiUrl: null
@@ -177,9 +273,8 @@ describe('Settings', () => {
   });
 
   it('validates custom URL when saving', async () => {
-    settings.config = { ...settings.DEFAULT_SETTINGS };
-    
     // Set up form values for custom environment without URL
+    document.getElementById('mnemonic').value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
     document.getElementById('clientId').value = 'test-client';
     document.getElementById('environment').value = 'custom';
     document.getElementById('customApiUrl').value = '';

@@ -15,9 +15,10 @@ const filesToCopy = [
   ['popup.css', 'popup.css'],
   ['settings.html', 'settings.html'],
   ['settings.css', 'settings.css'],
-  ['settings.js', 'settings.js'],
+  ['bip39-wordlist.js', 'bip39-wordlist.js'],
   [join('dist', 'popup.js'), 'popup.js'],
   [join('dist', 'background.js'), 'background.js'],
+  [join('dist', 'settings.js'), 'settings.js'],
   [join('dist', 'assets'), 'assets']
 ];
 

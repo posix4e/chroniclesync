@@ -13,6 +13,7 @@ const copyFiles = () => ({
     copyFileSync('popup.css', 'dist/popup.css');
     copyFileSync('settings.html', 'dist/settings.html');
     copyFileSync('settings.css', 'dist/settings.css');
+    copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
   }
 });
 

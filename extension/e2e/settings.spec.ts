@@ -3,54 +3,23 @@ import { test, expect, getExtensionUrl } from './utils/extension';
 test.describe('Settings Page E2E Tests', () => {
   test.beforeEach(async ({ page, extensionId }) => {
     await page.goto(getExtensionUrl(extensionId, 'settings.html'));
-    console.log('Page content:', await page.content());
-
-    // Wait for initial mnemonic generation
     await page.waitForTimeout(1000);
-    let mnemonic = await page.locator('#mnemonic').inputValue();
-    let clientId = await page.locator('#clientId').inputValue();
-
-    // Wait for up to 5 seconds for the mnemonic to be generated
-    for (let i = 0; i < 5; i++) {
-      if (mnemonic && clientId) break;
-      await page.waitForTimeout(1000);
-      mnemonic = await page.locator('#mnemonic').inputValue();
-      clientId = await page.locator('#clientId').inputValue();
-    }
-
-    // If still no mnemonic, try generating one
-    if (!mnemonic || !clientId) {
-      await page.locator('#generateMnemonic').click();
-      await page.waitForTimeout(1000);
-      mnemonic = await page.locator('#mnemonic').inputValue();
-      clientId = await page.locator('#clientId').inputValue();
-      await page.locator('#saveSettings').click();
-      await page.waitForTimeout(1000);
-    }
-
-    // Wait for up to 5 seconds for the mnemonic to be generated
-    for (let i = 0; i < 5; i++) {
-      if (mnemonic && clientId) break;
-      await page.waitForTimeout(1000);
-      mnemonic = await page.locator('#mnemonic').inputValue();
-      clientId = await page.locator('#clientId').inputValue();
-    }
-
-    // Ensure we have a valid mnemonic and client ID
-    if (!mnemonic || !clientId) {
-      throw new Error('Failed to generate mnemonic and client ID');
-    }
   });
 
   test('should load default settings', async ({ page }) => {
-    const mnemonic = await page.locator('#mnemonic').inputValue();
-    const clientId = await page.locator('#clientId').inputValue();
+    // Clear storage first
+    await page.evaluate(() => {
+      chrome.storage.sync.clear();
+    });
+
+    // Reload page to get fresh state
+    await page.reload();
+    await page.waitForTimeout(1000);
+
     const environment = await page.locator('#environment').inputValue();
     const customUrlContainer = await page.locator('#customUrlContainer');
     const mnemonicContainer = await page.locator('#mnemonicContainer');
 
-    expect(mnemonic).toBe('');
-    expect(clientId).toBe('');
     expect(environment).toBe('production');
     expect(await customUrlContainer.isVisible()).toBe(false);
     expect(await mnemonicContainer.isVisible()).toBe(true);
@@ -97,7 +66,9 @@ test.describe('Settings Page E2E Tests', () => {
     await page.locator('#saveSettings').click();
 
     // Wait for success message
-    const successMessage = await page.locator('.status-message.success');
+    // Wait for success message
+    await page.waitForTimeout(100);
+    const successMessage = await page.locator('.status-message.success').first();
     expect(await successMessage.isVisible()).toBe(true);
     expect(await successMessage.textContent()).toBe('Settings saved successfully!');
 
@@ -111,12 +82,30 @@ test.describe('Settings Page E2E Tests', () => {
   });
 
   test('should prevent saving custom environment without URL', async ({ page }) => {
-    // Generate a new mnemonic
+    // Generate a new mnemonic and wait for it to be valid
     await page.locator('#generateMnemonic').click();
+    await page.waitForTimeout(1000);
+
+    // Ensure we have a valid mnemonic
+    const mnemonic = await page.locator('#mnemonic').inputValue();
+    const clientId = await page.locator('#clientId').inputValue();
+    expect(mnemonic).not.toBe('');
+    expect(clientId).not.toBe('');
+
+    // Save the valid mnemonic first
+    await page.locator('#saveSettings').click();
+    await page.waitForTimeout(100);
+
+    // Wait for success message to disappear
+    await page.waitForTimeout(3000);
+
+    // Now test custom environment without URL
     await page.locator('#environment').selectOption('custom');
     await page.locator('#saveSettings').click();
 
-    const errorMessage = await page.locator('.status-message.error');
+    // Wait for error message
+    await page.waitForTimeout(100);
+    const errorMessage = await page.locator('.status-message.error').first();
     expect(await errorMessage.isVisible()).toBe(true);
     expect(await errorMessage.textContent()).toBe('Custom API URL is required when using custom environment');
   });

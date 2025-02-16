@@ -4,6 +4,12 @@ import { paths, server } from './config';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      crypto: 'crypto-browserify',
+      buffer: 'buffer'
+    }
+  },
   build: {
     outDir: paths.webDist,
     emptyOutDir: true,

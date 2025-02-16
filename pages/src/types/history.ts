@@ -1,3 +1,21 @@
+export interface EncryptedData {
+  version: number;
+  iv: string;
+  data: string;
+  tag: string;
+}
+
+export interface EncryptedHistoryItem {
+  visitTime: number;
+  encryptedData: EncryptedData;
+  visitCount: number;
+  deviceId: string;
+  platform: string;
+  userAgent: string;
+  browserName: string;
+  browserVersion: string;
+}
+
 export interface HistoryItem {
   url: string;
   title: string;
@@ -21,7 +39,7 @@ export interface HistoryFilters {
 }
 
 export interface HistoryResponse {
-  history: HistoryItem[];
+  history: EncryptedHistoryItem[];
   deviceInfo: {
     deviceId: string;
     platform: string;

@@ -48,5 +48,10 @@
     "typescript": "^5.0.2",
     "vite": "^5.0.12",
     "vitest": "^3.0.4"
+  },
+  "dependencies": {
+    "@scure/bip32": "^1.6.2",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1"
   }
 }

@@ -16,8 +16,11 @@
     "deploy": "wrangler pages deploy dist --project-name chroniclesync-pages"
   },
   "dependencies": {
+    "@scure/bip32": "^1.6.2",
     "@types/lodash": "^4.17.15",
     "@types/react-router-dom": "^5.3.3",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

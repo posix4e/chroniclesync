@@ -7,6 +7,7 @@ const bip32 = BIP32Factory(ecc);
 interface EncryptedHistoryItem extends Omit<HistoryItem, 'url' | 'title'> {
   encryptedUrl: string;
   encryptedTitle: string;
+  visitId: string; // Required for merging
 }
 
 export class HistoryEncryption {

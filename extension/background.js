@@ -1,4 +1,5 @@
 import { getConfig } from './config.js';
+import { HistoryEncryption } from './src/encryption';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -120,13 +121,20 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
+    // Initialize encryption with client ID as seed
+    const seed = Buffer.from(config.clientId.repeat(32).slice(0, 64), 'hex');
+    const encryption = new HistoryEncryption(seed);
+
+    // Encrypt history data
+    const encryptedHistory = await encryption.encryptHistoryItems(flattenedHistoryData);
+
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        history: flattenedHistoryData,
+        history: encryptedHistory,
         deviceInfo: systemInfo
       })
     });

@@ -1,6 +1,8 @@
+import { EncryptedData } from '../utils/encryption';
+
 export interface HistoryItem {
-  url: string;
-  title: string;
+  url: string | EncryptedData;
+  title: string | EncryptedData | null;
   visitTime: number;
   visitCount: number;
   deviceId: string;
@@ -8,6 +10,7 @@ export interface HistoryItem {
   userAgent: string;
   browserName: string;
   browserVersion: string;
+  isEncrypted?: boolean;
 }
 
 export interface HistoryFilters {

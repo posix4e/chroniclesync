@@ -48,5 +48,12 @@
     "typescript": "^5.0.2",
     "vite": "^5.0.12",
     "vitest": "^3.0.4"
+  },
+  "dependencies": {
+    "bip32": "^5.0.0-rc.0",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "stream-browserify": "^3.0.0",
+    "tiny-secp256k1": "^2.2.3"
   }
 }

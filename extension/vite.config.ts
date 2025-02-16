@@ -19,6 +19,13 @@ const copyFiles = () => ({
 
 export default defineConfig({
   plugins: [react(), copyFiles()],
+  resolve: {
+    alias: {
+      crypto: 'crypto-browserify',
+      stream: 'stream-browserify',
+      buffer: 'buffer'
+    }
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

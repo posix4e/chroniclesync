@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { HistoryItem, HistoryFilters } from '../types/history';
 import { fetchHistory } from '../utils/api';
 import debounce from 'lodash/debounce';
+import { createDecryptionManager, EncryptedData } from '../utils/encryption';
 
 interface HistoryViewProps {
   clientId: string;
@@ -36,12 +37,36 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
       if (!response?.history) {
         throw new Error('Invalid history data received');
       }
-      setHistory(response.history);
+
+      // Initialize decryption manager
+      const decryptionManager = createDecryptionManager(clientId);
+
+      // Decrypt history items
+      const decryptedHistory = await Promise.all(response.history.map(async item => {
+        if (item.isEncrypted) {
+          try {
+            const decryptedUrl = await decryptionManager.decrypt(item.url as unknown as EncryptedData);
+            const decryptedTitle = item.title ? await decryptionManager.decrypt(item.title as unknown as EncryptedData) : null;
+            return {
+              ...item,
+              url: decryptedUrl,
+              title: decryptedTitle,
+              isEncrypted: false
+            };
+          } catch (error) {
+            console.error('Failed to decrypt history item:', error);
+            return item;
+          }
+        }
+        return item;
+      }));
+
+      setHistory(decryptedHistory);
       setTotalPages(response.pagination.totalPages);
       
       // Update unique filters
-      const platforms = [...new Set(response.history.map(item => item.platform))];
-      const browsers = [...new Set(response.history.map(item => item.browserName))];
+      const platforms = [...new Set(decryptedHistory.map(item => item.platform))];
+      const browsers = [...new Set(decryptedHistory.map(item => item.browserName))];
       setUniquePlatforms(platforms);
       setUniqueBrowsers(browsers);
       

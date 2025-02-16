@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { paths, server } from './config';
+import wasm from 'vite-plugin-wasm';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [wasm(), react()],
   build: {
     outDir: paths.webDist,
     emptyOutDir: true,
+    target: 'esnext',
     rollupOptions: {
       output: {
         format: 'es',

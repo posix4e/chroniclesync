@@ -23,7 +23,7 @@ const mockGetRandomValues = vi.fn((array) => {
   return array;
 });
 
-const mockDigest = vi.fn(async (algorithm, data) => {
+const mockDigest = vi.fn(async (_algorithm, _data) => {
   // Simple mock that returns a fixed hash for testing
   return new Uint8Array([
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,

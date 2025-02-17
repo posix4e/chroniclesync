@@ -9,7 +9,7 @@ export const paths = {
 };
 
 export const server = {
-  port: parseInt(process.env.PORT || '3000', 10),
-  webUrl: process.env.WEB_URL || `http://localhost:${process.env.PORT || '3000'}`,
+  port: parseInt(process.env.PORT!, 10),
+  webUrl: process.env.WEB_URL!,
   apiUrl: process.env.API_URL || 'https://api-staging.chroniclesync.xyz'
 };

@@ -4,6 +4,27 @@ import { paths, server } from './config';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env': {},
+    'process.browser': true,
+    'global': {}
+  },
+  resolve: {
+    alias: {
+      crypto: 'crypto-browserify',
+      buffer: 'buffer',
+      stream: 'stream-browserify',
+      process: 'process/browser',
+      util: 'util'
+    }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
   build: {
     outDir: paths.webDist,
     emptyOutDir: true,

@@ -1,6 +1,8 @@
 import { getConfig } from './config.js';
+import { EncryptedHistoryService } from './src/services/encryptedHistory';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let encryptedHistoryService = null;
 
 // Initialize extension
 async function initializeExtension() {
@@ -120,13 +122,44 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
+    // Initialize encryption service if needed
+    if (!encryptedHistoryService) {
+      encryptedHistoryService = new EncryptedHistoryService(config.clientId);
+    }
+
+    // Encrypt history data
+    const encryptedHistoryData = await encryptedHistoryService.encryptHistoryItems(
+      flattenedHistoryData.map(item => ({
+        url: item.url,
+        title: item.title,
+        visitTime: item.visitTime
+      }))
+    );
+
+    // Combine encrypted data with system info while preserving encryption
+    const historyWithSystemInfo = encryptedHistoryData.map(item => {
+      const originalItem = flattenedHistoryData.find(h => h.visitTime === item.visitTime);
+      return {
+        visitTime: item.visitTime,
+        encryptedData: item.encryptedData,
+        // Add non-sensitive metadata
+        visitId: originalItem?.visitId,
+        referringVisitId: originalItem?.referringVisitId,
+        transition: originalItem?.transition,
+        deviceId: systemInfo.deviceId,
+        platform: systemInfo.platform,
+        browserName: systemInfo.browserName,
+        browserVersion: systemInfo.browserVersion
+      };
+    });
+
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        history: flattenedHistoryData,
+        history: historyWithSystemInfo,
         deviceInfo: systemInfo
       })
     });

@@ -14,8 +14,16 @@ export class EncryptionManager {
 
   async initialize() {
     if (!this.masterKey) {
-      // Use client ID as seed for deterministic key generation
-      const seed = Buffer.from(this.clientId, 'hex');
+      // Generate a deterministic seed from the client ID
+      // First create a buffer of 32 bytes (256 bits) filled with a repeating pattern based on client ID
+      const baseBuffer = Buffer.from(this.clientId);
+      const seed = Buffer.alloc(32); // 256 bits as recommended
+      
+      // Fill the seed buffer with repeating pattern of the client ID
+      for (let i = 0; i < seed.length; i++) {
+        seed[i] = baseBuffer[i % baseBuffer.length];
+      }
+      
       this.masterKey = HDKey.fromMasterSeed(seed);
       
       // Derive encryption key using BIP32
@@ -36,8 +44,8 @@ export class EncryptionManager {
     // Encrypt data
     const jsonData = JSON.stringify(data);
     const encryptedData = Buffer.concat([
-      cipher.update(jsonData, 'utf8'),
-      cipher.final()
+      Buffer.from(cipher.update(jsonData, 'utf8')),
+      Buffer.from(cipher.final())
     ]);
     
     // Get auth tag
@@ -70,8 +78,8 @@ export class EncryptionManager {
 
     // Decrypt data
     const decryptedData = Buffer.concat([
-      decipher.update(encryptedData),
-      decipher.final()
+      Buffer.from(decipher.update(encryptedData)),
+      Buffer.from(decipher.final())
     ]);
 
     return JSON.parse(decryptedData.toString('utf8'));

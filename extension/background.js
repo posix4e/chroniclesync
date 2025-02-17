@@ -136,14 +136,22 @@ async function syncHistory(forceFullSync = false) {
       }))
     );
 
-    // Combine encrypted data with system info
-    const historyWithSystemInfo = encryptedHistoryData.map(item => ({
-      ...item,
-      visitId: flattenedHistoryData.find(h => h.visitTime === item.visitTime)?.visitId,
-      referringVisitId: flattenedHistoryData.find(h => h.visitTime === item.visitTime)?.referringVisitId,
-      transition: flattenedHistoryData.find(h => h.visitTime === item.visitTime)?.transition,
-      ...systemInfo
-    }));
+    // Combine encrypted data with system info while preserving encryption
+    const historyWithSystemInfo = encryptedHistoryData.map(item => {
+      const originalItem = flattenedHistoryData.find(h => h.visitTime === item.visitTime);
+      return {
+        visitTime: item.visitTime,
+        encryptedData: item.encryptedData,
+        // Add non-sensitive metadata
+        visitId: originalItem?.visitId,
+        referringVisitId: originalItem?.referringVisitId,
+        transition: originalItem?.transition,
+        deviceId: systemInfo.deviceId,
+        platform: systemInfo.platform,
+        browserName: systemInfo.browserName,
+        browserVersion: systemInfo.browserVersion
+      };
+    });
 
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',

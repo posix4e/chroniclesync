@@ -4,10 +4,16 @@ import { paths, server } from './config';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env': {},
+    'process.browser': true
+  },
   resolve: {
     alias: {
       crypto: 'crypto-browserify',
-      buffer: 'buffer'
+      buffer: 'buffer',
+      stream: 'stream-browserify',
+      process: 'process/browser'
     }
   },
   build: {

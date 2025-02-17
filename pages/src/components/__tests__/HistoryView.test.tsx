@@ -8,7 +8,7 @@ jest.mock('../../utils/api');
 jest.mock('../../services/decryptionService', () => ({
   DecryptionService: jest.fn().mockImplementation(() => ({
     decryptHistoryItems: jest.fn().mockImplementation((items) => 
-      items.map(item => ({
+      items.map((item: { visitTime: number; visitCount: number; visitId: string; referringVisitId: string; transition: string; deviceId: string; platform: string; userAgent: string; browserName: string; browserVersion: string; }) => ({
         url: 'https://example.com',
         title: 'Example Website',
         visitTime: item.visitTime,

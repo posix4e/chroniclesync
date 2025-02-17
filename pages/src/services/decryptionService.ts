@@ -8,6 +8,7 @@ interface EncryptedHistoryItem {
     data: string;
     tag: string;
   };
+  visitCount: number;
   visitId: string;
   referringVisitId: string;
   transition: string;

@@ -6,14 +6,23 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'process.env': {},
-    'process.browser': true
+    'process.browser': true,
+    'global': {}
   },
   resolve: {
     alias: {
       crypto: 'crypto-browserify',
       buffer: 'buffer',
       stream: 'stream-browserify',
-      process: 'process/browser'
+      process: 'process/browser',
+      util: 'util'
+    }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
     }
   },
   build: {

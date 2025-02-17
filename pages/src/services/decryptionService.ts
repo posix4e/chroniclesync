@@ -22,6 +22,7 @@ interface DecryptedHistoryItem {
   url: string;
   title: string;
   visitTime: number;
+  visitCount: number;
   visitId: string;
   referringVisitId: string;
   transition: string;
@@ -46,6 +47,7 @@ export class DecryptionService {
       url: decryptedData.url,
       title: decryptedData.title,
       visitTime: item.visitTime,
+      visitCount: item.visitCount,
       visitId: item.visitId,
       referringVisitId: item.referringVisitId,
       transition: item.transition,

@@ -9,6 +9,9 @@ export interface EncryptedHistoryItem {
   visitTime: number;
   encryptedData: EncryptedData;
   visitCount: number;
+  visitId: string;
+  referringVisitId: string;
+  transition: string;
   deviceId: string;
   platform: string;
   userAgent: string;

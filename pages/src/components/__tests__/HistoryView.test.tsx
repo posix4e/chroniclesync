@@ -3,17 +3,44 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { HistoryView } from '../HistoryView';
 import { fetchHistory } from '../../utils/api';
 
-// Mock the API module
+// Mock the API module and decryption service
 jest.mock('../../utils/api');
+jest.mock('../../services/decryptionService', () => ({
+  DecryptionService: jest.fn().mockImplementation(() => ({
+    decryptHistoryItems: jest.fn().mockImplementation((items) => 
+      items.map(item => ({
+        url: 'https://example.com',
+        title: 'Example Website',
+        visitTime: item.visitTime,
+        visitCount: item.visitCount,
+        visitId: item.visitId,
+        referringVisitId: item.referringVisitId,
+        transition: item.transition,
+        deviceId: item.deviceId,
+        platform: item.platform,
+        userAgent: item.userAgent,
+        browserName: item.browserName,
+        browserVersion: item.browserVersion
+      }))
+    )
+  }))
+}));
 const mockFetchHistory = fetchHistory as jest.MockedFunction<typeof fetchHistory>;
 
 const mockHistoryData = {
   history: [
     {
-      url: 'https://example.com',
-      title: 'Example Website',
       visitTime: 1644825600000,
+      encryptedData: {
+        version: 1,
+        iv: 'test-iv',
+        data: 'encrypted-data',
+        tag: 'test-tag'
+      },
       visitCount: 1,
+      visitId: 'visit-1',
+      referringVisitId: '',
+      transition: 'link',
       deviceId: 'test-device',
       platform: 'Win32',
       userAgent: 'Chrome',

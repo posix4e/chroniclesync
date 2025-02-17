@@ -3,7 +3,7 @@ import { HDKey } from '@scure/bip32';
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 
 const ENCRYPTION_VERSION = 1;
-const KEY_PATH = "m/44'/0'/0'/0/0"; // BIP32 path for key derivation
+const KEY_PATH = 'm/44\'/0\'/0\'/0/0'; // BIP32 path for key derivation
 
 export class EncryptionManager {
   constructor(clientId) {

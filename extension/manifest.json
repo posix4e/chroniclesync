@@ -19,11 +19,18 @@
     "scripting",
     "tabs",
     "history",
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*"
-  ]
+  ],
+  "chrome_url_overrides": {
+    "history": "pages/history/history.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://api.chroniclesync.xyz https://api-staging.chroniclesync.xyz http://localhost:*"
+  }
 }

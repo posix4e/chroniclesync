@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History Viewer - ChronicleSync</title>
+    <link rel="stylesheet" href="history.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>History Viewer</h1>
+            <div class="sync-status">
+                <span id="sync-indicator" class="sync-indicator"></span>
+                <span id="sync-text">Last synced: Never</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="filters">
+                <input type="text" id="search" placeholder="Search history...">
+                <select id="timeFilter">
+                    <option value="all">All time</option>
+                    <option value="today">Today</option>
+                    <option value="week">Past week</option>
+                    <option value="month">Past month</option>
+                </select>
+            </div>
+
+            <div id="history-list" class="history-list">
+                <!-- History items will be populated here -->
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <span>Loading history...</span>
+            </div>
+
+            <div id="offline-notice" class="offline-notice hidden">
+                <span>⚠️ You're offline. Showing locally stored history.</span>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="history.ts"></script>
+</body>
+</html>

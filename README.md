@@ -9,7 +9,7 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 - **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
-## Development
+## Quick Start
 
 ### Prerequisites
 - GitHub account with repository access
@@ -17,19 +17,18 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 - Node.js 18 or later
 - npm package manager
 
-### Local Development Setup
-Checkout the github actions for info on building it
-
+### Developer Documentation
+- [Extension Developer Guide](extension/DEVELOPER.md) - Detailed guide for Chrome extension development
+- [Web Application Developer Guide](pages/DEVELOPER.md) - Complete documentation for the React web application
+- [Worker Developer Guide](worker/DEVELOPER.md) - Comprehensive guide for the Cloudflare Worker backend
 
 ### Project Structure
 
 ```
 chroniclesync/
 ├── pages/          # Frontend React application
-│   ├── src/        # Source code
-│   └── e2e/        # End-to-end tests for pages
 ├── extension/      # Chrome extension
-│   ├── src/        # Extension source code
-│   └── e2e/        # End-to-end tests for extension
 └── worker/         # Cloudflare Worker backend
 ```
+
+For detailed setup instructions and development guidelines, please refer to the developer guides above.

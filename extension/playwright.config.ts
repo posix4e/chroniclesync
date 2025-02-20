@@ -19,6 +19,7 @@ export default defineConfig({
     screenshot: 'on',
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
+    baseURL: process.env.API_URL || 'https://api-staging.chroniclesync.xyz',
     contextOptions: {
       logger: {
         isEnabled: () => true,

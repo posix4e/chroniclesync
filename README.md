@@ -20,6 +20,7 @@ A modern, secure IndexedDB synchronization service built with Cloudflare Workers
 ### Developer Documentation
 - [Extension Developer Guide](extension/DEVELOPER.md) - Detailed guide for Chrome extension development
 - [Web Application Developer Guide](pages/DEVELOPER.md) - Complete documentation for the React web application
+- [Worker Developer Guide](worker/DEVELOPER.md) - Comprehensive guide for the Cloudflare Worker backend
 
 ### Project Structure
 

@@ -16,6 +16,7 @@ export function App() {
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Load saved state and history when component mounts
   useEffect(() => {
@@ -34,8 +35,14 @@ export function App() {
 
     // Load history entries
     chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
-      if (response) {
+      if (chrome.runtime.lastError) {
+        setHistoryError(chrome.runtime.lastError.message);
+        return;
+      }
+      if (response && Array.isArray(response)) {
         setHistory(response);
+      } else {
+        setHistory([]);
       }
     });
 
@@ -119,21 +126,27 @@ export function App() {
       <div id="history" className="history-list">
         <h2>Recent History</h2>
         <div className="history-entries">
-          {history.map((entry) => (
-            <div key={entry.url} className={`history-entry ${entry.syncStatus}`}>
-              <div className="entry-title">{entry.title}</div>
-              <div className="entry-url">{entry.url}</div>
-              <div className="entry-meta">
-                <span className="visit-count">Visits: {entry.visitCount}</span>
-                <span className="last-visit">
-                  Last visit: {new Date(entry.lastVisitTime).toLocaleString()}
-                </span>
-                <span className="sync-status">
-                  Status: {entry.syncStatus}
-                </span>
+          {historyError ? (
+            <div className="history-error">{historyError}</div>
+          ) : history && history.length > 0 ? (
+            history.map((entry) => (
+              <div key={entry.url} className={`history-entry ${entry.syncStatus}`}>
+                <div className="entry-title">{entry.title}</div>
+                <div className="entry-url">{entry.url}</div>
+                <div className="entry-meta">
+                  <span className="visit-count">Visits: {entry.visitCount}</span>
+                  <span className="last-visit">
+                    Last visit: {new Date(entry.lastVisitTime).toLocaleString()}
+                  </span>
+                  <span className="sync-status">
+                    Status: {entry.syncStatus}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className="history-empty">No history entries yet</div>
+          )}
         </div>
       </div>
       <div className="settings-link">

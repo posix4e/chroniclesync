@@ -86,7 +86,7 @@ export class HistorySync {
     }
   }
 
-  async getHistory(limit = 100): Promise<any[]> {
+  async getHistory(limit = 100): Promise<HistoryEntry[]> {
     return this.store.getEntries(limit);
   }
 }

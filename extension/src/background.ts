@@ -21,16 +21,16 @@ class BackgroundService {
   private setupMessageListeners(): void {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.type) {
-        case 'getHistory':
-          this.historySync.getHistory(request.limit).then(sendResponse);
-          return true;
-        case 'startSync':
-          this.historySync.startSync().then(() => sendResponse({ success: true }));
-          return true;
-        case 'stopSync':
-          this.historySync.stopSync();
-          sendResponse({ success: true });
-          return false;
+      case 'getHistory':
+        this.historySync.getHistory(request.limit).then(sendResponse);
+        return true;
+      case 'startSync':
+        this.historySync.startSync().then(() => sendResponse({ success: true }));
+        return true;
+      case 'stopSync':
+        this.historySync.stopSync();
+        sendResponse({ success: true });
+        return false;
       }
     });
   }

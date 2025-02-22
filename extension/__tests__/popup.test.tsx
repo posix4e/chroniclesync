@@ -11,38 +11,7 @@ const mockChromeStorage = {
     }),
     set: vi.fn((data, callback) => {
       if (callback) callback();
-    }),
-    remove: vi.fn(),
-    clear: vi.fn(),
-    getBytesInUse: vi.fn(),
-    QUOTA_BYTES: 102400,
-    MAX_ITEMS: 512,
-    MAX_WRITE_OPERATIONS_PER_HOUR: 1800,
-    MAX_WRITE_OPERATIONS_PER_MINUTE: 120
-  },
-  local: {
-    get: vi.fn(),
-    set: vi.fn(),
-    remove: vi.fn(),
-    clear: vi.fn(),
-    getBytesInUse: vi.fn(),
-    QUOTA_BYTES: 5242880
-  },
-  managed: {
-    get: vi.fn(),
-    getBytesInUse: vi.fn()
-  },
-  session: {
-    get: vi.fn(),
-    set: vi.fn(),
-    remove: vi.fn(),
-    clear: vi.fn()
-  },
-  onChanged: {
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    hasListener: vi.fn(),
-    hasListeners: vi.fn()
+    })
   }
 };
 
@@ -51,19 +20,18 @@ const mockChrome = {
   storage: mockChromeStorage,
   runtime: {
     lastError: null,
-    id: 'test-extension-id',
+    sendMessage: vi.fn((message, callback) => {
+      if (message.type === 'getHistory') {
+        callback([]);
+      } else if (message.type === 'triggerSync') {
+        callback({ success: true });
+      }
+    }),
     onMessage: {
       addListener: vi.fn(),
-      removeListener: vi.fn(),
-      hasListener: vi.fn(),
-      hasListeners: vi.fn()
+      removeListener: vi.fn()
     },
-    onConnect: {
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      hasListener: vi.fn(),
-      hasListeners: vi.fn()
-    }
+    openOptionsPage: vi.fn()
   }
 } as unknown as typeof chrome;
 

@@ -19,21 +19,62 @@ export class HistorySync {
   }
 
   private setupHistoryListener(): void {
+    console.log('Setting up history listener...');
+    
+    // Load initial history
+    this.loadInitialHistory();
+
+    // Listen for new history entries
     chrome.history.onVisited.addListener(async (result) => {
+      console.log('New history entry:', result);
       if (result.url) {
         try {
+          // Get visit count from chrome.history API
+          const [historyItem] = await chrome.history.getVisits({ url: result.url });
+          const visitCount = historyItem ? 1 : 1; // Default to 1 if not found
+
           await this.store.addEntry({
             url: result.url,
             title: result.title || '',
             timestamp: Date.now(),
-            visitCount: 1,
+            visitCount,
             lastVisitTime: result.lastVisitTime || Date.now()
           });
+          console.log('History entry stored successfully');
         } catch (error) {
           console.error('Error storing history entry:', error);
         }
       }
     });
+  }
+
+  private async loadInitialHistory(): Promise<void> {
+    console.log('Loading initial history...');
+    try {
+      const items = await chrome.history.search({
+        text: '',
+        maxResults: 100,
+        startTime: Date.now() - (30 * 24 * 60 * 60 * 1000) // Last 30 days
+      });
+
+      console.log('Found initial history items:', items.length);
+
+      for (const item of items) {
+        if (item.url) {
+          const visits = await chrome.history.getVisits({ url: item.url });
+          await this.store.addEntry({
+            url: item.url,
+            title: item.title || '',
+            timestamp: Date.now(),
+            visitCount: visits.length,
+            lastVisitTime: item.lastVisitTime || Date.now()
+          });
+        }
+      }
+      console.log('Initial history loaded successfully');
+    } catch (error) {
+      console.error('Error loading initial history:', error);
+    }
   }
 
   async startSync(): Promise<void> {

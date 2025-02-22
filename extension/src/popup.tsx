@@ -10,6 +10,31 @@ export function App() {
   const [lastSync, setLastSync] = useState<string>('Never');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadHistory = () => {
+    console.log('Loading history...');
+    setIsLoading(true);
+    setHistoryError(null);
+
+    chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error?.message) {
+        console.error('Error loading history:', error.message);
+        setHistoryError(error.message);
+        setIsLoading(false);
+        return;
+      }
+      console.log('Received history response:', response);
+      if (response && Array.isArray(response)) {
+        setHistory(response);
+      } else {
+        console.log('No history entries found');
+        setHistory([]);
+      }
+      setIsLoading(false);
+    });
+  };
 
   // Load saved state and history when component mounts
   useEffect(() => {
@@ -25,26 +50,6 @@ export function App() {
         setLastSync(lastSyncDate.toLocaleString());
       }
     });
-
-    // Load history entries
-    const loadHistory = () => {
-      console.log('Loading history...');
-      chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
-        const error = chrome.runtime.lastError;
-        if (error?.message) {
-          console.error('Error loading history:', error.message);
-          setHistoryError(error.message);
-          return;
-        }
-        console.log('Received history response:', response);
-        if (response && Array.isArray(response)) {
-          setHistory(response);
-        } else {
-          console.log('No history entries found');
-          setHistory([]);
-        }
-      });
-    };
 
     loadHistory();
 
@@ -128,26 +133,36 @@ export function App() {
       <div id="history" className="history-list">
         <h2>Recent History</h2>
         <div className="history-entries">
-          {historyError ? (
-            <div className="history-error">{historyError}</div>
+          {isLoading ? (
+            <div className="history-loading">Loading history...</div>
+          ) : historyError ? (
+            <div className="history-error">
+              <div className="error-message">{historyError}</div>
+              <button onClick={loadHistory} className="retry-button">Retry</button>
+            </div>
           ) : history && history.length > 0 ? (
             history.map((entry) => (
               <div key={entry.url} className={`history-entry ${entry.syncStatus}`}>
-                <div className="entry-title">{entry.title}</div>
+                <div className="entry-title">{entry.title || 'Untitled'}</div>
                 <div className="entry-url">{entry.url}</div>
                 <div className="entry-meta">
                   <span className="visit-count">Visits: {entry.visitCount}</span>
                   <span className="last-visit">
                     Last visit: {new Date(entry.lastVisitTime).toLocaleString()}
                   </span>
-                  <span className="sync-status">
-                    Status: {entry.syncStatus}
+                  <span className={`sync-status ${entry.syncStatus}`}>
+                    {entry.syncStatus === 'pending' ? 'Pending sync' :
+                      entry.syncStatus === 'synced' ? 'Synced' :
+                        entry.syncStatus === 'error' ? 'Sync failed' : 'Unknown'}
                   </span>
                 </div>
               </div>
             ))
           ) : (
-            <div className="history-empty">No history entries yet</div>
+            <div className="history-empty">
+              <div className="empty-message">No history entries yet</div>
+              <button onClick={loadHistory} className="refresh-button">Refresh</button>
+            </div>
           )}
         </div>
       </div>

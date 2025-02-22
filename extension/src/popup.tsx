@@ -12,63 +12,82 @@ export function App() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadHistory = () => {
+  const loadHistory = async () => {
     console.log('Loading history...');
     setIsLoading(true);
     setHistoryError(null);
 
-    const timeoutId = setTimeout(() => {
-      console.warn('History request timed out');
-      setHistoryError('Request timed out. Please try again.');
-      setIsLoading(false);
-    }, 5000); // 5 second timeout
+    try {
+      const response = await new Promise<HistoryEntry[]>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Request timed out. Please try again.'));
+        }, 5000);
 
-    chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
-      clearTimeout(timeoutId);
+        chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
+          clearTimeout(timeoutId);
 
-      const error = chrome.runtime.lastError;
-      if (error?.message) {
-        console.error('Error loading history:', error.message);
-        setHistoryError(error.message);
-        setIsLoading(false);
-        return;
-      }
+          const error = chrome.runtime.lastError;
+          if (error) {
+            reject(new Error(error.message));
+            return;
+          }
+
+          if (response?.error) {
+            reject(new Error(response.error));
+            return;
+          }
+
+          if (!response || !Array.isArray(response)) {
+            resolve([]);
+            return;
+          }
+
+          resolve(response);
+        });
+      });
 
       console.log('Received history response:', response);
-      
-      if (response?.error) {
-        console.error('Error from background script:', response.error);
-        setHistoryError(response.error);
-        setIsLoading(false);
-        return;
-      }
-
-      if (response && Array.isArray(response)) {
-        setHistory(response);
-      } else {
-        console.log('No history entries found or invalid response:', response);
-        setHistory([]);
-      }
+      setHistory(response);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      setHistoryError(error instanceof Error ? error.message : 'Unknown error');
+      setHistory([]);
+    } finally {
       setIsLoading(false);
-    });
+    }
   };
 
   // Load saved state and history when component mounts
   useEffect(() => {
-    chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], (result) => {
-      if (result.clientId) {
-        setClientId(result.clientId);
-      }
-      if (result.initialized) {
-        setInitialized(result.initialized);
-      }
-      if (result.lastSync) {
-        const lastSyncDate = new Date(result.lastSync);
-        setLastSync(lastSyncDate.toLocaleString());
-      }
-    });
+    const initializePopup = async () => {
+      try {
+        // Load settings from storage
+        const result = await new Promise<{ clientId?: string; initialized?: boolean; lastSync?: string }>(resolve => {
+          chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], items => {
+            resolve(items as { clientId?: string; initialized?: boolean; lastSync?: string });
+          });
+        });
 
-    loadHistory();
+        if (result.clientId) {
+          setClientId(result.clientId);
+        }
+        if (result.initialized) {
+          setInitialized(result.initialized);
+        }
+        if (result.lastSync) {
+          const lastSyncDate = new Date(result.lastSync);
+          setLastSync(lastSyncDate.toLocaleString());
+        }
+
+        // Load history
+        await loadHistory();
+      } catch (error) {
+        console.error('Error initializing popup:', error);
+        setHistoryError('Failed to initialize. Please try again.');
+      }
+    };
+
+    initializePopup();
 
     // Listen for sync updates from background script
     const messageListener = (message: { type: string; success?: boolean; history?: HistoryEntry[] }) => {

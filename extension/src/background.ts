@@ -22,10 +22,23 @@ class BackgroundService {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.type) {
       case 'getHistory':
-        this.historySync.getHistory(request.limit).then(sendResponse);
+        this.historySync.getHistory(request.limit)
+          .then(history => {
+            console.log('Sending history:', history);
+            sendResponse(history);
+          })
+          .catch(error => {
+            console.error('Error getting history:', error);
+            sendResponse([]);
+          });
         return true;
       case 'startSync':
-        this.historySync.startSync().then(() => sendResponse({ success: true }));
+        this.historySync.startSync()
+          .then(() => sendResponse({ success: true }))
+          .catch(error => {
+            console.error('Error starting sync:', error);
+            sendResponse({ success: false, error: error.message });
+          });
         return true;
       case 'stopSync':
         this.historySync.stopSync();
@@ -36,7 +49,12 @@ class BackgroundService {
   }
 }
 
+console.log('Starting background service...');
 const service = new BackgroundService();
-service.init().catch(error => {
-  console.error('Error initializing background service:', error);
-});
+service.init()
+  .then(() => {
+    console.log('Background service initialized successfully');
+  })
+  .catch(error => {
+    console.error('Error initializing background service:', error);
+  });

@@ -27,18 +27,26 @@ export function App() {
     });
 
     // Load history entries
-    chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
-      const error = chrome.runtime.lastError;
-      if (error?.message) {
-        setHistoryError(error.message);
-        return;
-      }
-      if (response && Array.isArray(response)) {
-        setHistory(response);
-      } else {
-        setHistory([]);
-      }
-    });
+    const loadHistory = () => {
+      console.log('Loading history...');
+      chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
+        const error = chrome.runtime.lastError;
+        if (error?.message) {
+          console.error('Error loading history:', error.message);
+          setHistoryError(error.message);
+          return;
+        }
+        console.log('Received history response:', response);
+        if (response && Array.isArray(response)) {
+          setHistory(response);
+        } else {
+          console.log('No history entries found');
+          setHistory([]);
+        }
+      });
+    };
+
+    loadHistory();
 
     // Listen for sync updates from background script
     const messageListener = (message: { type: string; success?: boolean; history?: HistoryEntry[] }) => {

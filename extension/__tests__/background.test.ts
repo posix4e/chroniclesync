@@ -44,7 +44,11 @@ vi.mock('../src/services/HistorySync', () => ({
 }));
 
 describe('BackgroundService', () => {
-  let messageListener: Function;
+  let messageListener: (
+    request: { type: string; limit?: number },
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ) => boolean | void;
   let service: BackgroundService;
 
   beforeEach(async () => {

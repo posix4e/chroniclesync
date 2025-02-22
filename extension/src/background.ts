@@ -22,9 +22,10 @@ export class BackgroundService {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log('Received message:', request);
 
-      const handleError = (error: any) => {
+      const handleError = (error: Error | unknown) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error('Error handling message:', error);
-        sendResponse({ error: error.message || 'Unknown error' });
+        sendResponse({ error: errorMessage });
       };
 
       // Handle synchronous operations immediately

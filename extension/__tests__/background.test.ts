@@ -47,7 +47,7 @@ describe('BackgroundService', () => {
   let messageListener: (
     request: { type: string; limit?: number },
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response?: any) => void
+    sendResponse: (response?: unknown) => void
   ) => boolean | void;
   let service: BackgroundService;
 

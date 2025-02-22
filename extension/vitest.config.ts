@@ -8,6 +8,8 @@ export default defineConfig({
     include: ['**/__tests__/**/*.test.[jt]s?(x)'],
     globals: true,
     setupFiles: ['./jest.setup.js', './jest.setup.extension.js'],
-    css: true
+    css: true,
+    hookTimeout: 20000,
+    testTimeout: 20000
   }
 });

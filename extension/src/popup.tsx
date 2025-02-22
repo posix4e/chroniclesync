@@ -109,6 +109,9 @@ export function App() {
 
   const handleInitialize = () => {
     if (clientId) {
+      // Initialize encryption with client ID
+      encryptionManager.getOrCreateClientId();
+      
       // Save both clientId and initialized state
       chrome.storage.sync.set({
         clientId: clientId,

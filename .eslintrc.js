@@ -26,7 +26,8 @@ module.exports = {
       files: [
         '**/e2e/**/*',
         '**/scripts/**/*',
-        '**/playwright.config.ts'
+        '**/playwright.config.ts',
+        '**/src/**/*'
       ],
       rules: {
         'no-console': 'off'

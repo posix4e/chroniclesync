@@ -4,6 +4,20 @@ import { act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { App } from '../src/popup';
 
+// Mock encryption module
+vi.mock('../src/utils/encryption', () => ({
+  EncryptionManager: vi.fn().mockImplementation(() => ({
+    getOrCreateClientId: vi.fn(),
+    encrypt: vi.fn().mockImplementation(async (_data: string) => ({
+      iv: 'test-iv',
+      data: 'test-encrypted-data',
+      tag: 'test-tag',
+      encrypted: true,
+    })),
+    decrypt: vi.fn().mockImplementation(async (_data: { [key: string]: unknown }) => 'test-decrypted-data'),
+  })),
+}));
+
 // Mock Chrome API
 const mockChromeStorage = {
   sync: {
@@ -172,6 +186,44 @@ describe('Popup Component', () => {
     
     // Clean up
     alertMock.mockRestore();
+  });
+
+  it('handles encrypted history entries', async () => {
+    // Mock history response with encrypted data
+    const mockHistory = [{
+      visitId: 'test-visit',
+      url: {
+        iv: 'test-iv',
+        data: 'test-encrypted-data',
+        tag: 'test-tag',
+        encrypted: true,
+      },
+      title: {
+        iv: 'test-iv',
+        data: 'test-encrypted-data',
+        tag: 'test-tag',
+        encrypted: true,
+      },
+      visitTime: Date.now(),
+      platform: 'test-platform',
+      browserName: 'test-browser',
+      syncStatus: 'synced',
+    }];
+
+    mockChrome.runtime.sendMessage = vi.fn((message, callback) => {
+      if (message.type === 'getHistory') {
+        callback(mockHistory);
+      }
+    }) as unknown as typeof mockChrome.runtime.sendMessage;
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    // Wait for encrypted data to be displayed
+    await waitFor(() => {
+      expect(screen.getAllByText('Encrypted')).toHaveLength(2); // One for title, one for URL
+    });
   });
 
   it('preserves client ID after initialization', async () => {

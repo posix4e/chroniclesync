@@ -19,7 +19,7 @@ export class EncryptionManager {
     this.clientId = this.getOrCreateClientId();
   }
 
-  private getOrCreateClientId(): string {
+  getOrCreateClientId(): string {
     const storedId = localStorage.getItem('chroniclesync_client_id');
     if (storedId) {
       return storedId;

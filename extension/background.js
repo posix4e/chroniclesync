@@ -244,6 +244,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }));
       sendResponse(historyData);
     }).catch(error => {
+      // eslint-disable-next-line no-console
       console.error('Error fetching history:', error);
       sendResponse({ error: error.message });
     });

@@ -41,7 +41,7 @@ export class HistorySync {
             const platform = navigator.platform;
             const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
               navigator.userAgent.includes('Firefox') ? 'Firefox' : 
-              navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+                navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
 
             await this.store.addEntry({
               visitId,
@@ -74,7 +74,7 @@ export class HistorySync {
       const platform = navigator.platform;
       const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
         navigator.userAgent.includes('Firefox') ? 'Firefox' : 
-        navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+          navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
 
       for (const item of items) {
         if (item.url) {

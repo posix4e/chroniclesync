@@ -1,5 +1,6 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
+import { HistoryEntry } from '../types';
 
 export class HistorySync {
   private settings: Settings;

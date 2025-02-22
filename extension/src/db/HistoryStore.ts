@@ -1,11 +1,4 @@
-interface HistoryEntry {
-  url: string;
-  title: string;
-  timestamp: number;
-  visitCount: number;
-  lastVisitTime: number;
-  syncStatus: 'pending' | 'synced' | 'error';
-}
+import { HistoryEntry } from '../types';
 
 export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';

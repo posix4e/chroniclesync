@@ -2,14 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
 
-interface HistoryEntry {
-  url: string;
-  title: string;
-  timestamp: number;
-  visitCount: number;
-  lastVisitTime: number;
-  syncStatus: 'pending' | 'synced' | 'error';
-}
+import { HistoryEntry } from './types';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
@@ -35,8 +28,9 @@ export function App() {
 
     // Load history entries
     chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
-      if (chrome.runtime.lastError) {
-        setHistoryError(chrome.runtime.lastError.message);
+      const error = chrome.runtime.lastError;
+      if (error?.message) {
+        setHistoryError(error.message);
         return;
       }
       if (response && Array.isArray(response)) {

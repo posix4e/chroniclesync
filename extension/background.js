@@ -221,5 +221,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: error.message });
       });
     return true; // Will respond asynchronously
+  } else if (request.type === 'getHistory') {
+    const limit = request.limit || 50;
+    chrome.history.search({
+      text: '',
+      maxResults: limit,
+      startTime: 0
+    }).then(async historyItems => {
+      // Get detailed visit information for each history item
+      const historyData = await Promise.all(historyItems.map(async item => {
+        const visits = await chrome.history.getVisits({ url: item.url });
+        const latestVisit = visits[visits.length - 1];
+        return {
+          url: item.url,
+          title: item.title,
+          visitTime: latestVisit.visitTime,
+          visitId: latestVisit.visitId,
+          referringVisitId: latestVisit.referringVisitId,
+          transition: latestVisit.transition,
+          syncStatus: 'pending' // Default status
+        };
+      }));
+      sendResponse(historyData);
+    }).catch(error => {
+      // eslint-disable-next-line no-console
+      console.error('Error fetching history:', error);
+      sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
   }
 });

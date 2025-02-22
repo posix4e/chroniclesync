@@ -24,65 +24,47 @@ export class BackgroundService {
 
       const handleError = (error: any) => {
         console.error('Error handling message:', error);
-        try {
-          sendResponse({ error: error.message || 'Unknown error' });
-        } catch (e) {
-          console.error('Error sending response:', e);
-        }
+        sendResponse({ error: error.message || 'Unknown error' });
       };
 
-      try {
-        switch (request.type) {
-        case 'getHistory':
-          // Wrap in Promise.resolve to handle both synchronous and asynchronous errors
-          Promise.resolve()
-            .then(() => this.historySync.getHistory(request.limit))
-            .then(history => {
-              console.log('Sending history:', history);
-              try {
-                sendResponse(history || []);
-              } catch (e) {
-                console.error('Error sending history response:', e);
-              }
-            })
-            .catch(handleError);
-          return true; // Keep the message channel open
+      // Handle synchronous operations immediately
+      if (request.type === 'stopSync') {
+        try {
+          this.historySync.stopSync();
+          sendResponse({ success: true });
+        } catch (error) {
+          handleError(error);
+        }
+        return false; // No need to keep port open
+      }
 
-        case 'startSync':
-          Promise.resolve()
-            .then(() => this.historySync.startSync())
-            .then(() => {
-              try {
-                sendResponse({ success: true });
-              } catch (e) {
-                console.error('Error sending sync response:', e);
-              }
-            })
-            .catch(handleError);
-          return true; // Keep the message channel open
-
-        case 'stopSync':
+      // Handle asynchronous operations
+      if (request.type === 'getHistory' || request.type === 'startSync') {
+        // Create a promise to handle the async operation
+        const asyncOperation = async () => {
           try {
-            this.historySync.stopSync();
-            sendResponse({ success: true });
+            if (request.type === 'getHistory') {
+              const history = await this.historySync.getHistory(request.limit);
+              console.log('Sending history:', history);
+              sendResponse(history || []);
+            } else if (request.type === 'startSync') {
+              await this.historySync.startSync();
+              sendResponse({ success: true });
+            }
           } catch (error) {
             handleError(error);
           }
-          return true; // Keep the message channel open
+        };
 
-        default:
-          console.warn('Unknown message type:', request.type);
-          try {
-            sendResponse({ error: `Unknown message type: ${request.type}` });
-          } catch (e) {
-            console.error('Error sending error response:', e);
-          }
-          return true; // Keep the message channel open
-        }
-      } catch (error) {
-        handleError(error);
-        return true; // Keep the message channel open
+        // Execute the async operation and keep the message channel open
+        asyncOperation();
+        return true;
       }
+
+      // Handle unknown message types
+      console.warn('Unknown message type:', request.type);
+      sendResponse({ error: `Unknown message type: ${request.type}` });
+      return false;
     });
   }
 }

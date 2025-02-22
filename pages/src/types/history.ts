@@ -1,13 +1,14 @@
+import { EncryptedData } from '../utils/encryption';
+
 export interface HistoryItem {
-  url: string;
-  title: string;
+  visitId: string;
+  url: string | (EncryptedData & { encrypted: boolean });
+  title: string | (EncryptedData & { encrypted: boolean });
   visitTime: number;
-  visitCount: number;
-  deviceId: string;
+  visitCount?: number;
   platform: string;
-  userAgent: string;
   browserName: string;
-  browserVersion: string;
+  browserVersion?: string;
 }
 
 export interface HistoryFilters {
@@ -22,17 +23,9 @@ export interface HistoryFilters {
 
 export interface HistoryResponse {
   history: HistoryItem[];
-  deviceInfo: {
-    deviceId: string;
-    platform: string;
-    userAgent: string;
-    browserName: string;
-    browserVersion: string;
-  };
   pagination: {
-    total: number;
-    page: number;
-    pageSize: number;
     totalPages: number;
+    currentPage: number;
+    totalItems: number;
   };
 }

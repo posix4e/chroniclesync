@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
 
 import { HistoryEntry } from './types';
+import { EncryptionManager } from './utils/encryption';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
@@ -11,6 +12,7 @@ export function App() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [encryptionManager] = useState(() => new EncryptionManager());
 
   const loadHistory = async () => {
     console.log('Loading history...');
@@ -178,9 +180,13 @@ export function App() {
             </div>
           ) : history && history.length > 0 ? (
             history.map((entry) => (
-              <div key={entry.url} className={`history-entry ${entry.syncStatus}`}>
-                <div className="entry-title">{entry.title || 'Untitled'}</div>
-                <div className="entry-url">{entry.url}</div>
+              <div key={entry.visitId} className={`history-entry ${entry.syncStatus}`}>
+                <div className="entry-title">
+                  {typeof entry.title === 'string' ? entry.title : 'Encrypted'}
+                </div>
+                <div className="entry-url">
+                  {typeof entry.url === 'string' ? entry.url : 'Encrypted'}
+                </div>
                 <div className="entry-meta">
                   <span className="visit-time">
                     Visit time: {new Date(entry.visitTime).toLocaleString()}

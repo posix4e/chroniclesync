@@ -18,10 +18,14 @@
   "dependencies": {
     "@types/lodash": "^4.17.15",
     "@types/react-router-dom": "^5.3.3",
+    "bip32": "^4.0.0",
+    "buffer": "^6.0.3",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "tiny-secp256k1": "^2.2.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
@@ -34,6 +38,7 @@
     "@types/jest": "^29.5.14",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vitejs/plugin-react": "^4.2.0",
@@ -46,6 +51,7 @@
     "ts-jest": "^29.1.0",
     "typescript": "^5.0.2",
     "vite": "^5.0.0",
+    "vite-plugin-wasm": "^3.4.1",
     "wrangler": "^3.0.0"
   }
 }

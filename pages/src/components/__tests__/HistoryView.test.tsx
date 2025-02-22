@@ -10,24 +10,16 @@ const mockFetchHistory = fetchHistory as jest.MockedFunction<typeof fetchHistory
 const mockHistoryData = {
   history: [
     {
+      visitId: 'test-visit',
       url: 'https://example.com',
       title: 'Example Website',
       visitTime: 1644825600000,
       visitCount: 1,
-      deviceId: 'test-device',
       platform: 'Win32',
-      userAgent: 'Chrome',
       browserName: 'Chrome',
       browserVersion: '100.0.0'
     }
-  ],
-  deviceInfo: {
-    deviceId: 'test-device',
-    platform: 'Win32',
-    userAgent: 'Chrome',
-    browserName: 'Chrome',
-    browserVersion: '100.0.0'
-  }
+  ]
 };
 
 describe('HistoryView', () => {
@@ -45,9 +37,8 @@ describe('HistoryView', () => {
     mockFetchHistory.mockResolvedValue({
       ...mockHistoryData,
       pagination: {
-        total: mockHistoryData.history.length,
-        page: 1,
-        pageSize: 10,
+        totalItems: mockHistoryData.history.length,
+        currentPage: 1,
         totalPages: Math.ceil(mockHistoryData.history.length / 10)
       }
     });
@@ -73,11 +64,9 @@ describe('HistoryView', () => {
   it('displays no history message when history is empty', async () => {
     mockFetchHistory.mockResolvedValue({
       history: [],
-      deviceInfo: mockHistoryData.deviceInfo,
       pagination: {
-        total: 0,
-        page: 1,
-        pageSize: 10,
+        totalItems: 0,
+        currentPage: 1,
         totalPages: 0
       }
     });
@@ -92,9 +81,8 @@ describe('HistoryView', () => {
     mockFetchHistory.mockResolvedValue({
       ...mockHistoryData,
       pagination: {
-        total: mockHistoryData.history.length,
-        page: 1,
-        pageSize: 10,
+        totalItems: mockHistoryData.history.length,
+        currentPage: 1,
         totalPages: Math.ceil(mockHistoryData.history.length / 10)
       }
     });
@@ -122,9 +110,8 @@ describe('HistoryView', () => {
     mockFetchHistory.mockResolvedValue({
       ...mockHistoryData,
       pagination: {
-        total: 100,
-        page: 5,
-        pageSize: 10,
+        totalItems: 100,
+        currentPage: 5,
         totalPages: 10
       }
     });

@@ -1,12 +1,14 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
-import { HistoryEntry } from '../types';
+import { HistoryEntry, EncryptedHistoryVisit } from '../types';
 import { SyncService } from './SyncService';
+import { EncryptionManager } from '../utils/encryption';
 
 export class HistorySync {
   private settings: Settings;
   private store: HistoryStore;
   private syncService: SyncService;
+  private encryptionManager: EncryptionManager;
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -14,6 +16,7 @@ export class HistorySync {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+    this.encryptionManager = new EncryptionManager();
   }
 
   async init(): Promise<void> {
@@ -120,23 +123,40 @@ export class HistorySync {
     if (entries.length === 0) return;
 
     try {
-      // Convert entries to the format expected by the sync service
-      const historyVisits = entries.map(entry => ({
-        visitId: entry.visitId,
-        url: entry.url,
-        title: entry.title,
-        visitTime: entry.visitTime,
-        platform: entry.platform,
-        browserName: entry.browserName
+      // Convert and encrypt entries
+      const historyVisits = await Promise.all(entries.map(async entry => {
+        // Ensure we have string values to encrypt
+        const urlToEncrypt = typeof entry.url === 'string' ? entry.url : JSON.stringify(entry.url);
+        const titleToEncrypt = typeof entry.title === 'string' ? entry.title : JSON.stringify(entry.title);
+
+        const encryptedUrl = await this.encryptionManager.encrypt(urlToEncrypt);
+        const encryptedTitle = await this.encryptionManager.encrypt(titleToEncrypt);
+
+        const encryptedVisit: EncryptedHistoryVisit = {
+          visitId: entry.visitId,
+          url: {
+            encrypted: true,
+            ...encryptedUrl
+          },
+          title: {
+            encrypted: true,
+            ...encryptedTitle
+          },
+          visitTime: entry.visitTime,
+          platform: entry.platform,
+          browserName: entry.browserName
+        };
+
+        return encryptedVisit;
       }));
 
       // Sync with server
       await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));
 
-      console.log('Successfully synced entries:', entries.length);
+      console.log('Successfully synced encrypted entries:', entries.length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;
@@ -144,6 +164,21 @@ export class HistorySync {
   }
 
   async getHistory(limit = 100): Promise<HistoryEntry[]> {
-    return this.store.getEntries(limit);
+    const entries = await this.store.getEntries(limit);
+    
+    // Decrypt entries if they are encrypted
+    return Promise.all(entries.map(async entry => {
+      if (typeof entry.url === 'object' && entry.url.encrypted) {
+        const decryptedUrl = await this.encryptionManager.decrypt(entry.url);
+        entry.url = decryptedUrl;
+      }
+      
+      if (typeof entry.title === 'object' && entry.title.encrypted) {
+        const decryptedTitle = await this.encryptionManager.decrypt(entry.title);
+        entry.title = decryptedTitle;
+      }
+      
+      return entry;
+    }));
   }
 }

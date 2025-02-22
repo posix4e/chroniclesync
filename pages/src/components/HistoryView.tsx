@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { HistoryItem, HistoryFilters } from '../types/history';
 import { fetchHistory } from '../utils/api';
 import debounce from 'lodash/debounce';
+import { useEncryption } from '../hooks/useEncryption';
 
 interface HistoryViewProps {
   clientId: string;
@@ -16,6 +17,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { decryptHistoryEntries } = useEncryption();
   const [filters, setFilters] = useState<HistoryFilters>({
     startDate: MIN_DATE.getTime(),
     endDate: MAX_DATE.getTime(),
@@ -36,7 +38,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
       if (!response?.history) {
         throw new Error('Invalid history data received');
       }
-      setHistory(response.history);
+      const decryptedHistory = await decryptHistoryEntries(response.history);
+      setHistory(decryptedHistory);
       setTotalPages(response.pagination.totalPages);
       
       // Update unique filters
@@ -189,15 +192,17 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ clientId }) => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">
                       <a
-                        href={item.url}
+                        href={typeof item.url === 'string' ? item.url : '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800"
                       >
-                        {item.title || item.url}
+                        {typeof item.title === 'string' ? item.title : 'Encrypted'} 
                       </a>
                     </h3>
-                    <p className="text-gray-500 text-sm">{item.url}</p>
+                    <p className="text-gray-500 text-sm">
+                      {typeof item.url === 'string' ? item.url : 'Encrypted'}
+                    </p>
                     <div className="text-gray-400 text-xs mt-1">
                       Visited {new Date(item.visitTime).toLocaleString()} • 
                       {item.visitCount} {item.visitCount === 1 ? 'visit' : 'visits'}

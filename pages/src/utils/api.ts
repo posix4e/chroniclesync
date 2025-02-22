@@ -52,17 +52,9 @@ export const fetchHistory = async (clientId: string, filters?: HistoryFilters): 
   
   return {
     history: data.history || [],
-    deviceInfo: data.deviceInfo || {
-      deviceId: 'unknown',
-      platform: 'unknown',
-      userAgent: 'unknown',
-      browserName: 'unknown',
-      browserVersion: 'unknown'
-    },
     pagination: data.pagination || {
-      total: data.history?.length || 0,
-      page: filters?.page || 1,
-      pageSize: filters?.pageSize || 10,
+      totalItems: data.history?.length || 0,
+      currentPage: filters?.page || 1,
       totalPages: Math.ceil((data.history?.length || 0) / (filters?.pageSize || 10))
     }
   };

@@ -1,4 +1,5 @@
 import { Settings } from '../settings/Settings';
+import { EncryptedData } from '../utils/encryption';
 
 export interface DeviceInfo {
   platform: string;
@@ -9,8 +10,8 @@ export interface DeviceInfo {
 
 export interface HistoryVisit {
   visitId: string;
-  url: string;
-  title: string;
+  url: string | (EncryptedData & { encrypted: boolean });
+  title: string | (EncryptedData & { encrypted: boolean });
   visitTime: number;
   platform: string;
   browserName: string;

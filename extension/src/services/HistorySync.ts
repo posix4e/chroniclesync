@@ -1,16 +1,19 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
+import { SyncService } from './SyncService';
 
 export class HistorySync {
   private settings: Settings;
   private store: HistoryStore;
+  private syncService: SyncService;
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(settings: Settings) {
     this.settings = settings;
     this.store = new HistoryStore();
+    this.syncService = new SyncService(settings);
   }
 
   async init(): Promise<void> {
@@ -29,18 +32,27 @@ export class HistorySync {
       console.log('New history entry:', result);
       if (result.url) {
         try {
-          // Get visit count from chrome.history API
-          const [historyItem] = await chrome.history.getVisits({ url: result.url });
-          const visitCount = historyItem ? 1 : 1; // Default to 1 if not found
+          // Get visit details from chrome.history API
+          const visits = await chrome.history.getVisits({ url: result.url });
+          const latestVisit = visits[visits.length - 1];
 
-          await this.store.addEntry({
-            url: result.url,
-            title: result.title || '',
-            timestamp: Date.now(),
-            visitCount,
-            lastVisitTime: result.lastVisitTime || Date.now()
-          });
-          console.log('History entry stored successfully');
+          if (latestVisit) {
+            const visitId = `${latestVisit.visitId}`;
+            const platform = navigator.platform;
+            const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+              navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+              navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+
+            await this.store.addEntry({
+              visitId,
+              url: result.url,
+              title: result.title || '',
+              visitTime: result.lastVisitTime || Date.now(),
+              platform,
+              browserName
+            });
+            console.log('History entry stored successfully');
+          }
         } catch (error) {
           console.error('Error storing history entry:', error);
         }
@@ -59,16 +71,24 @@ export class HistorySync {
 
       console.log('Found initial history items:', items.length);
 
+      const platform = navigator.platform;
+      const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+        navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+        navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+
       for (const item of items) {
         if (item.url) {
           const visits = await chrome.history.getVisits({ url: item.url });
-          await this.store.addEntry({
-            url: item.url,
-            title: item.title || '',
-            timestamp: Date.now(),
-            visitCount: visits.length,
-            lastVisitTime: item.lastVisitTime || Date.now()
-          });
+          for (const visit of visits) {
+            await this.store.addEntry({
+              visitId: `${visit.visitId}`,
+              url: item.url,
+              title: item.title || '',
+              visitTime: visit.visitTime || Date.now(),
+              platform,
+              browserName
+            });
+          }
         }
       }
       console.log('Initial history loaded successfully');
@@ -99,29 +119,24 @@ export class HistorySync {
     const entries = await this.store.getUnsyncedEntries();
     if (entries.length === 0) return;
 
-    const apiUrl = this.settings.getApiUrl();
-    const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
-
-    if (!clientId) {
-      throw new Error('Client ID not found');
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/history/sync`, {
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/json',
-          'X-Client-ID': clientId
-        }),
-        body: JSON.stringify({ entries })
-      });
+      // Convert entries to the format expected by the sync service
+      const historyVisits = entries.map(entry => ({
+        visitId: entry.visitId,
+        url: entry.url,
+        title: entry.title,
+        visitTime: entry.visitTime,
+        platform: entry.platform,
+        browserName: entry.browserName
+      }));
 
-      if (!response.ok) {
-        throw new Error(`Sync failed: ${response.statusText}`);
-      }
+      // Sync with server
+      await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
       await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+
+      console.log('Successfully synced entries:', entries.length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;

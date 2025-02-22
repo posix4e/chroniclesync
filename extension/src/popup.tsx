@@ -163,9 +163,8 @@ export function App() {
                 <div className="entry-title">{entry.title || 'Untitled'}</div>
                 <div className="entry-url">{entry.url}</div>
                 <div className="entry-meta">
-                  <span className="visit-count">Visits: {entry.visitCount}</span>
-                  <span className="last-visit">
-                    Last visit: {new Date(entry.lastVisitTime).toLocaleString()}
+                  <span className="visit-time">
+                    Visit time: {new Date(entry.visitTime).toLocaleString()}
                   </span>
                   <span className={`sync-status ${entry.syncStatus}`}>
                     {entry.syncStatus === 'pending' ? 'Pending sync' :

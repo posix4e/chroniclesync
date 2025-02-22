@@ -1,8 +1,5 @@
-export interface HistoryEntry {
-  url: string;
-  title: string;
-  timestamp: number;
-  visitCount: number;
-  lastVisitTime: number;
+import { HistoryVisit } from '../services/SyncService';
+
+export interface HistoryEntry extends HistoryVisit {
   syncStatus: 'pending' | 'synced' | 'error';
 }

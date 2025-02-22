@@ -25,9 +25,10 @@ export class HistoryStore {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-          const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'url' });
-          store.createIndex('timestamp', 'timestamp');
+          const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'visitId' });
+          store.createIndex('visitTime', 'visitTime');
           store.createIndex('syncStatus', 'syncStatus');
+          store.createIndex('url', 'url');
           console.log('Created history store with indexes');
         }
       };
@@ -66,13 +67,13 @@ export class HistoryStore {
     });
   }
 
-  async markAsSynced(url: string): Promise<void> {
+  async markAsSynced(visitId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
-      const request = store.get(url);
+      const request = store.get(visitId);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
@@ -99,7 +100,7 @@ export class HistoryStore {
       console.log('Getting history entries...');
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
-      const index = store.index('timestamp');
+      const index = store.index('visitTime');
       const request = index.getAll(null, limit);
 
       request.onerror = () => {

@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "@babel/preset-env": "^7.22.20",
     "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",

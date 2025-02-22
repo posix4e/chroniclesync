@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { EncryptionManager } from '../utils/encryption';
+import { HistoryItem } from '../types/history';
 
 export function useEncryption() {
   const [encryptionManager, setEncryptionManager] = useState<EncryptionManager | null>(null);
@@ -9,7 +10,7 @@ export function useEncryption() {
     setEncryptionManager(manager);
   }, []);
 
-  const decryptHistoryEntry = async (entry: any) => {
+  const decryptHistoryEntry = async (entry: HistoryItem): Promise<HistoryItem> => {
     if (!encryptionManager) return entry;
 
     const decryptedEntry = { ...entry };
@@ -25,7 +26,7 @@ export function useEncryption() {
     return decryptedEntry;
   };
 
-  const decryptHistoryEntries = async (entries: any[]) => {
+  const decryptHistoryEntries = async (entries: HistoryItem[]): Promise<HistoryItem[]> => {
     if (!encryptionManager) return entries;
     return Promise.all(entries.map(decryptHistoryEntry));
   };

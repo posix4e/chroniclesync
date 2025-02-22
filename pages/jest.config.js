@@ -15,6 +15,9 @@ module.exports = {
     }],
     '^.+\\.(js|jsx)$': ['babel-jest', { rootMode: 'upward' }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(tiny-secp256k1|bip32|uuid|buffer|uint8array-tools)/)'
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',

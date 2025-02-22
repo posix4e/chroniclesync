@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
 
 // Mock IndexedDB
 const indexedDB = {
@@ -47,3 +48,7 @@ Object.entries(mockFunctions).forEach(([key, value]) => {
     configurable: true,
   });
 });
+
+// Add TextEncoder and TextDecoder to global
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;

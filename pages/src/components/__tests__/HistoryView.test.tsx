@@ -7,6 +7,15 @@ import { fetchHistory } from '../../utils/api';
 jest.mock('../../utils/api');
 const mockFetchHistory = fetchHistory as jest.MockedFunction<typeof fetchHistory>;
 
+// Mock the encryption hook
+jest.mock('../../hooks/useEncryption', () => ({
+  useEncryption: () => ({
+    encryptionManager: null,
+    decryptHistoryEntry: (entry: { [key: string]: unknown }) => entry,
+    decryptHistoryEntries: (entries: { [key: string]: unknown }[]) => entries,
+  }),
+}));
+
 const mockHistoryData = {
   history: [
     {

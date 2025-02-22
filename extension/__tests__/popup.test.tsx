@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { App } from '../src/popup';
 
@@ -53,8 +54,10 @@ describe('Popup Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders initial state correctly', () => {
-    render(<App />);
+  it('renders initial state correctly', async () => {
+    await act(async () => {
+      render(<App />);
+    });
     
     // Check for main elements
     expect(screen.getByText('ChronicleSync')).toBeInTheDocument();
@@ -67,15 +70,21 @@ describe('Popup Component', () => {
   });
 
   it('shows sync button after initialization', async () => {
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
     
     // Fill in client ID
     const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'test-client' } });
+    });
     
     // Click initialize button
     const initButton = screen.getByRole('button', { name: 'Initialize' });
-    fireEvent.click(initButton);
+    await act(async () => {
+      fireEvent.click(initButton);
+    });
     
     // Verify storage was updated
     expect(mockChromeStorage.sync.set).toHaveBeenCalledWith(
@@ -100,12 +109,16 @@ describe('Popup Component', () => {
     expect(screen.queryByRole('button', { name: 'Initialize' })).not.toBeInTheDocument();
   });
 
-  it('does not show sync button if client ID is empty', () => {
-    render(<App />);
+  it('does not show sync button if client ID is empty', async () => {
+    await act(async () => {
+      render(<App />);
+    });
     
     // Click initialize button without entering client ID
     const initButton = screen.getByRole('button', { name: 'Initialize' });
-    fireEvent.click(initButton);
+    await act(async () => {
+      fireEvent.click(initButton);
+    });
     
     // Initialize button should still be there
     expect(screen.getByRole('button', { name: 'Initialize' })).toBeInTheDocument();
@@ -133,16 +146,22 @@ describe('Popup Component', () => {
     });
     mockChrome.runtime.sendMessage = sendMessageMock as unknown as typeof mockChrome.runtime.sendMessage;
     
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
     
     // Initialize with client ID
     const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'test-client' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'test-client' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Initialize' }));
+    });
     
     // Click sync button
     const syncButton = await screen.findByRole('button', { name: 'Sync with Server' });
-    fireEvent.click(syncButton);
+    await act(async () => {
+      fireEvent.click(syncButton);
+    });
     
     // Check if message was sent and alert was shown
     expect(sendMessageMock).toHaveBeenCalledWith(
@@ -161,7 +180,9 @@ describe('Popup Component', () => {
       callback({ clientId: 'test-client', initialized: true });
     });
 
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
     
     // Client ID should be loaded from storage
     await waitFor(() => {
@@ -170,7 +191,9 @@ describe('Popup Component', () => {
     
     // Change client ID
     const input = screen.getByPlaceholderText('Client ID');
-    fireEvent.change(input, { target: { value: 'new-client' } });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'new-client' } });
+    });
     
     // Verify storage was updated with new client ID
     await waitFor(() => {

@@ -2,12 +2,22 @@ import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
 
+interface HistoryEntry {
+  url: string;
+  title: string;
+  timestamp: number;
+  visitCount: number;
+  lastVisitTime: number;
+  syncStatus: 'pending' | 'synced' | 'error';
+}
+
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  // Load saved state when component mounts
+  // Load saved state and history when component mounts
   useEffect(() => {
     chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], (result) => {
       if (result.clientId) {
@@ -22,10 +32,19 @@ export function App() {
       }
     });
 
+    // Load history entries
+    chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
+      if (response) {
+        setHistory(response);
+      }
+    });
+
     // Listen for sync updates from background script
-    const messageListener = (message: { type: string; success?: boolean }) => {
+    const messageListener = (message: { type: string; success?: boolean; history?: HistoryEntry[] }) => {
       if (message.type === 'syncComplete') {
         setLastSync(new Date().toLocaleString());
+      } else if (message.type === 'historyUpdated' && message.history) {
+        setHistory(message.history);
       }
     };
     chrome.runtime.onMessage.addListener(messageListener);
@@ -96,6 +115,26 @@ export function App() {
       </div>
       <div id="status" className="sync-status">
         Last sync: {lastSync}
+      </div>
+      <div id="history" className="history-list">
+        <h2>Recent History</h2>
+        <div className="history-entries">
+          {history.map((entry) => (
+            <div key={entry.url} className={`history-entry ${entry.syncStatus}`}>
+              <div className="entry-title">{entry.title}</div>
+              <div className="entry-url">{entry.url}</div>
+              <div className="entry-meta">
+                <span className="visit-count">Visits: {entry.visitCount}</span>
+                <span className="last-visit">
+                  Last visit: {new Date(entry.lastVisitTime).toLocaleString()}
+                </span>
+                <span className="sync-status">
+                  Status: {entry.syncStatus}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="settings-link">
         <button type="button" onClick={openSettings}>Settings</button>

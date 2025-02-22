@@ -17,7 +17,15 @@ export function App() {
     setIsLoading(true);
     setHistoryError(null);
 
+    const timeoutId = setTimeout(() => {
+      console.warn('History request timed out');
+      setHistoryError('Request timed out. Please try again.');
+      setIsLoading(false);
+    }, 5000); // 5 second timeout
+
     chrome.runtime.sendMessage({ type: 'getHistory', limit: 50 }, (response) => {
+      clearTimeout(timeoutId);
+
       const error = chrome.runtime.lastError;
       if (error?.message) {
         console.error('Error loading history:', error.message);
@@ -25,11 +33,20 @@ export function App() {
         setIsLoading(false);
         return;
       }
+
       console.log('Received history response:', response);
+      
+      if (response?.error) {
+        console.error('Error from background script:', response.error);
+        setHistoryError(response.error);
+        setIsLoading(false);
+        return;
+      }
+
       if (response && Array.isArray(response)) {
         setHistory(response);
       } else {
-        console.log('No history entries found');
+        console.log('No history entries found or invalid response:', response);
         setHistory([]);
       }
       setIsLoading(false);

@@ -1,7 +1,7 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
 
-class BackgroundService {
+export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
 
@@ -20,30 +20,68 @@ class BackgroundService {
 
   private setupMessageListeners(): void {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      switch (request.type) {
-      case 'getHistory':
-        this.historySync.getHistory(request.limit)
-          .then(history => {
-            console.log('Sending history:', history);
-            sendResponse(history);
-          })
-          .catch(error => {
-            console.error('Error getting history:', error);
-            sendResponse([]);
-          });
-        return true;
-      case 'startSync':
-        this.historySync.startSync()
-          .then(() => sendResponse({ success: true }))
-          .catch(error => {
-            console.error('Error starting sync:', error);
-            sendResponse({ success: false, error: error.message });
-          });
-        return true;
-      case 'stopSync':
-        this.historySync.stopSync();
-        sendResponse({ success: true });
-        return false;
+      console.log('Received message:', request);
+
+      const handleError = (error: any) => {
+        console.error('Error handling message:', error);
+        try {
+          sendResponse({ error: error.message || 'Unknown error' });
+        } catch (e) {
+          console.error('Error sending response:', e);
+        }
+      };
+
+      try {
+        switch (request.type) {
+        case 'getHistory':
+          // Wrap in Promise.resolve to handle both synchronous and asynchronous errors
+          Promise.resolve()
+            .then(() => this.historySync.getHistory(request.limit))
+            .then(history => {
+              console.log('Sending history:', history);
+              try {
+                sendResponse(history || []);
+              } catch (e) {
+                console.error('Error sending history response:', e);
+              }
+            })
+            .catch(handleError);
+          return true; // Keep the message channel open
+
+        case 'startSync':
+          Promise.resolve()
+            .then(() => this.historySync.startSync())
+            .then(() => {
+              try {
+                sendResponse({ success: true });
+              } catch (e) {
+                console.error('Error sending sync response:', e);
+              }
+            })
+            .catch(handleError);
+          return true; // Keep the message channel open
+
+        case 'stopSync':
+          try {
+            this.historySync.stopSync();
+            sendResponse({ success: true });
+          } catch (error) {
+            handleError(error);
+          }
+          return true; // Keep the message channel open
+
+        default:
+          console.warn('Unknown message type:', request.type);
+          try {
+            sendResponse({ error: `Unknown message type: ${request.type}` });
+          } catch (e) {
+            console.error('Error sending error response:', e);
+          }
+          return true; // Keep the message channel open
+        }
+      } catch (error) {
+        handleError(error);
+        return true; // Keep the message channel open
       }
     });
   }

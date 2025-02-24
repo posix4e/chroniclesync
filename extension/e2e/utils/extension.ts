@@ -177,7 +177,13 @@ export class ExtensionTestHelper {
   async addTestHistoryEntries(entries: Array<{ url: string; title: string; timestamp: number }>) {
     const page = await this.context.newPage();
     await page.evaluate((testEntries) => {
-      const historyStore = new (window as any).HistoryStore();
+      interface ExtendedWindow extends Window {
+        HistoryStore: new () => {
+          addEntry(entry: { url: string; title: string; timestamp: number; syncStatus: string }): void;
+        };
+      }
+      const extWindow = window as unknown as ExtendedWindow;
+      const historyStore = new extWindow.HistoryStore();
       testEntries.forEach(entry => {
         historyStore.addEntry({
           url: entry.url,

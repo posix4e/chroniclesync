@@ -144,6 +144,7 @@ export class HistorySync {
   }
 
   async getHistory(limit = 100): Promise<HistoryEntry[]> {
-    return this.store.getEntries(limit);
+    const { entries } = await this.store.getEntries({ offset: 0, limit });
+    return entries;
   }
 }

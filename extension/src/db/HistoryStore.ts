@@ -90,7 +90,7 @@ export class HistoryStore {
     });
   }
 
-  async getEntries(limit = 100): Promise<HistoryEntry[]> {
+  async getEntries(options: { offset: number; limit: number; searchTerm?: string } = { offset: 0, limit: 100 }): Promise<{ entries: HistoryEntry[]; total: number }> {
     if (!this.db) {
       console.error('Database not initialized');
       throw new Error('Database not initialized');
@@ -101,15 +101,35 @@ export class HistoryStore {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
       const index = store.index('visitTime');
-      const request = index.getAll(null, limit);
 
-      request.onerror = () => {
-        console.error('Error getting entries:', request.error);
-        reject(request.error);
+      // First get all entries for search and total count
+      const getAllRequest = index.getAll();
+
+      getAllRequest.onerror = () => {
+        console.error('Error getting entries:', getAllRequest.error);
+        reject(getAllRequest.error);
       };
-      request.onsuccess = () => {
-        console.log('Retrieved entries:', request.result);
-        resolve(request.result || []);
+
+      getAllRequest.onsuccess = () => {
+        let allEntries = getAllRequest.result || [];
+        
+        // Apply search filter if searchTerm is provided
+        if (options.searchTerm) {
+          const searchLower = options.searchTerm.toLowerCase();
+          allEntries = allEntries.filter(entry => 
+            entry.url.toLowerCase().includes(searchLower) ||
+            (entry.title && entry.title.toLowerCase().includes(searchLower))
+          );
+        }
+
+        // Apply pagination
+        const paginatedEntries = allEntries.slice(options.offset, options.offset + options.limit);
+        
+        console.log('Retrieved entries:', paginatedEntries);
+        resolve({
+          entries: paginatedEntries,
+          total: allEntries.length
+        });
       };
     });
   }

@@ -1,13 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
 
-interface HistoryEntry {
-  id: string;
-  url: string;
-  timestamp: number;
-  title: string;
-}
+import { HistoryEntry } from './types';
 
 const HistoryView: React.FC = () => {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
@@ -16,11 +11,7 @@ const HistoryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    loadHistory();
-  }, [page, searchTerm]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     const historyStore = new HistoryStore();
     const offset = (page - 1) * itemsPerPage;
     
@@ -32,7 +23,11 @@ const HistoryView: React.FC = () => {
 
     setEntries(historyEntries);
     setTotalPages(Math.ceil(total / itemsPerPage));
-  };
+  }, [page, itemsPerPage, searchTerm]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -65,12 +60,12 @@ const HistoryView: React.FC = () => {
       <div className="history-list">
         {entries.map((entry) => (
           <div
-            key={entry.id}
+            key={entry.visitId}
             className="history-item"
             onClick={() => handleEntryClick(entry.url)}
           >
             <div>{entry.title}</div>
-            <div>{new Date(entry.timestamp).toLocaleString()}</div>
+            <div>{new Date(entry.visitTime).toLocaleString()}</div>
             <div>{entry.url}</div>
           </div>
         ))}

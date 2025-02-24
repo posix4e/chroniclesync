@@ -1,5 +1,4 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
-import { server } from './test-config';
 
 test.describe('History View', () => {
   test('history view should load and display entries', async ({ context, extensionId }) => {

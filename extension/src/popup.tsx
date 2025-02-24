@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
+import { SeedPhraseManager } from './components/SeedPhraseManager';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [encryptionInitialized, setEncryptionInitialized] = useState(false);
   const openHistory = () => {
     chrome.windows.create({
       url: chrome.runtime.getURL('history.html'),
@@ -20,10 +22,23 @@ export function App() {
     const initializePopup = async () => {
       try {
         // Load settings from storage
-        const result = await new Promise<{ clientId?: string; initialized?: boolean; lastSync?: string }>(resolve => {
-          chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], items => {
-            resolve(items as { clientId?: string; initialized?: boolean; lastSync?: string });
-          });
+        const result = await new Promise<{ 
+          clientId?: string; 
+          initialized?: boolean; 
+          lastSync?: string;
+          encryptionInitialized?: boolean;
+        }>(resolve => {
+          chrome.storage.sync.get(
+            ['clientId', 'initialized', 'lastSync', 'encryptionInitialized'], 
+            items => {
+              resolve(items as { 
+                clientId?: string; 
+                initialized?: boolean; 
+                lastSync?: string;
+                encryptionInitialized?: boolean;
+              });
+            }
+          );
         });
 
         if (result.clientId) {
@@ -35,6 +50,9 @@ export function App() {
         if (result.lastSync) {
           const lastSyncDate = new Date(result.lastSync);
           setLastSync(lastSyncDate.toLocaleString());
+        }
+        if (result.encryptionInitialized) {
+          setEncryptionInitialized(result.encryptionInitialized);
         }
 
       } catch (error) {
@@ -96,33 +114,46 @@ export function App() {
     chrome.runtime.openOptionsPage();
   };
 
+  const handleEncryptionInitialized = () => {
+    chrome.storage.sync.set({ encryptionInitialized: true }, () => {
+      setEncryptionInitialized(true);
+    });
+  };
+
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
-      <div id="adminLogin">
-        <h2>Admin Login</h2>
-        <form>
-          <input
-            type="text"
-            id="clientId"
-            placeholder="Client ID"
-            value={clientId}
-            onChange={handleClientIdChange}
-          />
-          {!initialized ? (
-            <button type="button" onClick={handleInitialize}>Initialize</button>
-          ) : (
-            <button type="button" onClick={handleSync}>Sync with Server</button>
-          )}
-        </form>
-      </div>
-      <div id="status" className="sync-status">
-        Last sync: {lastSync}
-      </div>
-      <div className="action-buttons">
-        <button type="button" onClick={openHistory}>View History</button>
-        <button type="button" onClick={openSettings}>Settings</button>
-      </div>
+      
+      {!encryptionInitialized ? (
+        <SeedPhraseManager onInitialized={handleEncryptionInitialized} />
+      ) : (
+        <>
+          <div id="adminLogin">
+            <h2>Admin Login</h2>
+            <form>
+              <input
+                type="text"
+                id="clientId"
+                placeholder="Client ID"
+                value={clientId}
+                onChange={handleClientIdChange}
+              />
+              {!initialized ? (
+                <button type="button" onClick={handleInitialize}>Initialize</button>
+              ) : (
+                <button type="button" onClick={handleSync}>Sync with Server</button>
+              )}
+            </form>
+          </div>
+          <div id="status" className="sync-status">
+            Last sync: {lastSync}
+          </div>
+          <div className="action-buttons">
+            <button type="button" onClick={openHistory}>View History</button>
+            <button type="button" onClick={openSettings}>Settings</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

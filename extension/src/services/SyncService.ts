@@ -1,4 +1,5 @@
 import { Settings } from '../settings/Settings';
+import { KeyManager } from './KeyManager';
 
 export interface DeviceInfo {
   platform: string;
@@ -24,10 +25,16 @@ export interface SyncPayload {
 export class SyncService {
   private settings: Settings;
   private deviceInfo: DeviceInfo;
+  private keyManager: KeyManager | null = null;
 
   constructor(settings: Settings) {
     this.settings = settings;
     this.deviceInfo = this.getDeviceInfo();
+    this.initializeKeyManager();
+  }
+
+  private async initializeKeyManager() {
+    this.keyManager = await KeyManager.getInstance();
   }
 
   private getDeviceInfo(): DeviceInfo {
@@ -60,6 +67,10 @@ export class SyncService {
   }
 
   async syncHistory(history: HistoryVisit[]): Promise<void> {
+    if (!this.keyManager) {
+      throw new Error('Encryption not initialized');
+    }
+
     const apiUrl = this.settings.getApiUrl();
     const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 
@@ -72,14 +83,20 @@ export class SyncService {
       deviceInfo: this.deviceInfo
     };
 
-    console.log('Syncing history with payload:', payload);
+    // Encrypt the payload
+    const encryptedPayload = await this.keyManager.encrypt(payload);
+
+    console.log('Syncing encrypted history');
 
     const response = await fetch(`${apiUrl}/history/sync?clientId=${clientId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        encryptedData: encryptedPayload,
+        metadata: encryptedPayload.metadata
+      })
     });
 
     if (!response.ok) {
@@ -93,6 +110,10 @@ export class SyncService {
   }
 
   async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {
+    if (!this.keyManager) {
+      throw new Error('Encryption not initialized');
+    }
+
     const apiUrl = this.settings.getApiUrl();
     const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 
@@ -116,6 +137,17 @@ export class SyncService {
     }
 
     const result = await response.json();
-    return result.history || [];
+    if (!result.encryptedData) {
+      return [];
+    }
+
+    // Decrypt the history data
+    try {
+      const decrypted = await this.keyManager.decrypt(result.encryptedData);
+      return decrypted.history || [];
+    } catch (error) {
+      console.error('Failed to decrypt history:', error);
+      throw new Error('Failed to decrypt history data');
+    }
   }
 }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HistoryStore } from './db/HistoryStore';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -28,10 +27,14 @@ const HistoryView: React.FC = () => {
   }, [searchTerm, history]);
 
   const loadHistory = async () => {
-    const historyStore = new HistoryStore();
-    await historyStore.init();
-    const items = await historyStore.getEntries();
-    setHistory(items.sort((a, b) => b.visitTime - a.visitTime));
+    // Send message to background script to get history
+    chrome.runtime.sendMessage({ type: 'getHistory', limit: 100 }, (response) => {
+      if (response && !response.error) {
+        setHistory(response.sort((a, b) => b.visitTime - a.visitTime));
+      } else {
+        console.error('Error loading history:', response?.error);
+      }
+    });
   };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {

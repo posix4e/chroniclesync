@@ -33,9 +33,9 @@ test.describe('History View', () => {
 
     // Create some test history entries
     const testPages = [
-      'https://example.com',
-      'https://test.com',
-      'https://demo.com'
+      'http://example.com',
+      'http://example.org',
+      'http://example.net'
     ];
 
     // Visit test pages to create history entries

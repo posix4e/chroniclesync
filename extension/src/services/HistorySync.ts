@@ -2,6 +2,7 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { EncryptionService } from './EncryptionService';
 
 export class HistorySync {
   private settings: Settings;
@@ -10,10 +11,15 @@ export class HistorySync {
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-  constructor(settings: Settings) {
+  constructor(settings: Settings, encryptionService?: EncryptionService) {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+
+    if (encryptionService) {
+      this.store.setEncryptionService(encryptionService);
+      this.syncService.setEncryptionService(encryptionService);
+    }
   }
 
   async init(): Promise<void> {
@@ -134,7 +140,7 @@ export class HistorySync {
       await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));
 
       console.log('Successfully synced entries:', entries.length);
     } catch (error) {

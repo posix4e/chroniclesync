@@ -1,9 +1,15 @@
-import { HistoryEntry } from '../types';
+import { EncryptedHistoryVisit, HistoryEntry } from '../types';
+import { EncryptionService } from '../services/EncryptionService';
 
 export class HistoryStore {
+  private encryptionService: EncryptionService | null = null;
   private readonly DB_NAME = 'chroniclesync';
   private readonly STORE_NAME = 'history';
   private db: IDBDatabase | null = null;
+
+  setEncryptionService(service: EncryptionService) {
+    this.encryptionService = service;
+  }
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -35,21 +41,75 @@ export class HistoryStore {
     });
   }
 
+  private async encryptEntry(entry: Omit<HistoryEntry, 'syncStatus'>): Promise<EncryptedHistoryVisit> {
+    if (!this.encryptionService) {
+      throw new Error('Encryption service not initialized');
+    }
+
+    const urlEncrypted = await this.encryptionService.encrypt(entry.url);
+    const titleEncrypted = await this.encryptionService.encrypt(entry.title);
+
+    return {
+      id: entry.visitId,
+      url: urlEncrypted,
+      title: titleEncrypted,
+      visitTime: entry.visitTime,
+      lastVisitTime: entry.lastVisitTime
+    };
+  }
+
+  private async decryptEntry(entry: EncryptedHistoryVisit): Promise<Omit<HistoryEntry, 'syncStatus'>> {
+    if (!this.encryptionService) {
+      throw new Error('Encryption service not initialized');
+    }
+
+    const url = await this.encryptionService.decrypt(entry.url.ciphertext, entry.url.iv);
+    const title = await this.encryptionService.decrypt(entry.title.ciphertext, entry.title.iv);
+
+    return {
+      visitId: entry.id,
+      url,
+      title,
+      visitTime: entry.visitTime,
+      lastVisitTime: entry.lastVisitTime
+    };
+  }
+
   async addEntry(entry: Omit<HistoryEntry, 'syncStatus'>): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(this.STORE_NAME);
+    return new Promise(async (resolve, reject) => {
+      try {
+        const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
 
-      const fullEntry: HistoryEntry = {
-        ...entry,
-        syncStatus: 'pending'
-      };
+        let fullEntry: HistoryEntry;
+        if (this.encryptionService) {
+          const encryptedEntry = await this.encryptEntry(entry);
+          fullEntry = {
+            visitId: entry.visitId,
+            url: entry.url,
+            title: entry.title,
+            visitTime: entry.visitTime,
+            lastVisitTime: entry.lastVisitTime,
+            syncStatus: 'pending',
+            encrypted: true,
+            encryptedData: encryptedEntry
+          };
+        } else {
+          fullEntry = {
+            ...entry,
+            syncStatus: 'pending',
+            encrypted: false
+          };
+        }
 
-      const request = store.put(fullEntry);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+        const request = store.put(fullEntry);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -63,7 +123,24 @@ export class HistoryStore {
       const request = index.getAll('pending');
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = async () => {
+        try {
+          const entries = request.result;
+          if (this.encryptionService) {
+            // If entries are encrypted, decrypt them before returning
+            for (const entry of entries) {
+              if (entry.encrypted && entry.encryptedData) {
+                const decrypted = await this.decryptEntry(entry.encryptedData);
+                entry.url = decrypted.url;
+                entry.title = decrypted.title;
+              }
+            }
+          }
+          resolve(entries);
+        } catch (error) {
+          reject(error);
+        }
+      };
     });
   }
 
@@ -107,9 +184,25 @@ export class HistoryStore {
         console.error('Error getting entries:', request.error);
         reject(request.error);
       };
-      request.onsuccess = () => {
-        console.log('Retrieved entries:', request.result);
-        resolve(request.result || []);
+      request.onsuccess = async () => {
+        try {
+          const entries = request.result || [];
+          if (this.encryptionService) {
+            // If entries are encrypted, decrypt them before returning
+            for (const entry of entries) {
+              if (entry.encrypted && entry.encryptedData) {
+                const decrypted = await this.decryptEntry(entry.encryptedData);
+                entry.url = decrypted.url;
+                entry.title = decrypted.title;
+              }
+            }
+          }
+          console.log('Retrieved and decrypted entries:', entries);
+          resolve(entries);
+        } catch (error) {
+          console.error('Error decrypting entries:', error);
+          reject(error);
+        }
       };
     });
   }

@@ -7,6 +7,8 @@ export interface DeviceInfo {
   userAgent: string;
 }
 
+import { EncryptedData } from '../types';
+
 export interface HistoryVisit {
   visitId: string;
   url: string;
@@ -16,18 +18,33 @@ export interface HistoryVisit {
   browserName: string;
 }
 
+export interface EncryptedHistoryVisit {
+  visitId: string;
+  url: EncryptedData;
+  title: EncryptedData;
+  visitTime: number;
+  platform: string;
+  browserName: string;
+}
+
 export interface SyncPayload {
-  history: HistoryVisit[];
+  history: (HistoryVisit | EncryptedHistoryVisit)[];
   deviceInfo: DeviceInfo;
+  encrypted?: boolean;
 }
 
 export class SyncService {
   private settings: Settings;
   private deviceInfo: DeviceInfo;
+  private encryptionService: EncryptionService | null = null;
 
   constructor(settings: Settings) {
     this.settings = settings;
     this.deviceInfo = this.getDeviceInfo();
+  }
+
+  setEncryptionService(service: EncryptionService | null) {
+    this.encryptionService = service;
   }
 
   private getDeviceInfo(): DeviceInfo {
@@ -67,9 +84,28 @@ export class SyncService {
       throw new Error('Client ID not found');
     }
 
+    let encryptedHistory = history;
+    if (this.encryptionService) {
+      encryptedHistory = await Promise.all(
+        history.map(async (entry) => {
+          const urlEncrypted = await this.encryptionService!.encrypt(entry.url);
+          const titleEncrypted = await this.encryptionService!.encrypt(entry.title);
+          return {
+            visitId: entry.visitId,
+            url: urlEncrypted,
+            title: titleEncrypted,
+            visitTime: entry.visitTime,
+            platform: entry.platform,
+            browserName: entry.browserName
+          } as EncryptedHistoryVisit;
+        })
+      );
+    }
+
     const payload: SyncPayload = {
-      history,
-      deviceInfo: this.deviceInfo
+      history: encryptedHistory,
+      deviceInfo: this.deviceInfo,
+      encrypted: !!this.encryptionService
     };
 
     console.log('Syncing history with payload:', payload);
@@ -116,6 +152,25 @@ export class SyncService {
     }
 
     const result = await response.json();
-    return result.history || [];
+    const history = result.history || [];
+
+    if (this.encryptionService && result.encrypted) {
+      return await Promise.all(
+        history.map(async (entry: EncryptedHistoryVisit) => {
+          const url = await this.encryptionService!.decrypt(entry.url.ciphertext, entry.url.iv);
+          const title = await this.encryptionService!.decrypt(entry.title.ciphertext, entry.title.iv);
+          return {
+            visitId: entry.visitId,
+            url,
+            title,
+            visitTime: entry.visitTime,
+            platform: entry.platform,
+            browserName: entry.browserName
+          };
+        })
+      );
+    }
+
+    return history;
   }
 }

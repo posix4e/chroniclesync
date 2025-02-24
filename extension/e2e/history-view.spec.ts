@@ -1,6 +1,20 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
+import { createTestServer } from './test-server';
+
+const TEST_PORT = 51016;
 
 test.describe('History View', () => {
+  let cleanup: () => void;
+
+  test.beforeAll(async () => {
+    cleanup = await createTestServer(TEST_PORT);
+  });
+
+  test.afterAll(async () => {
+    if (cleanup) {
+      cleanup();
+    }
+  });
   test('history view should load and display entries', async ({ context, extensionId }) => {
     // First, set up a client ID through the settings page
     const settingsPage = await context.newPage();
@@ -33,9 +47,9 @@ test.describe('History View', () => {
 
     // Create some test history entries
     const testPages = [
-      'https://example.com',
-      'https://test.com',
-      'https://demo.com'
+      `http://localhost:${TEST_PORT}/page1`,
+      `http://localhost:${TEST_PORT}/page2`,
+      `http://localhost:${TEST_PORT}/page3`
     ];
 
     // Visit test pages to create history entries

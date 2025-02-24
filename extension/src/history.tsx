@@ -2,12 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
 
-interface HistoryEntry {
-  id: string;
-  url: string;
-  timestamp: number;
-  title: string;
-}
+import { HistoryEntry } from './types';
 
 const HistoryView: React.FC = () => {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
@@ -24,13 +19,16 @@ const HistoryView: React.FC = () => {
     const historyStore = new HistoryStore();
     const offset = (page - 1) * itemsPerPage;
     
-    const { entries: historyEntries, total } = await historyStore.getEntries({
-      offset,
-      limit: itemsPerPage,
-      searchTerm
-    });
+    const historyEntries = await historyStore.getEntries(50);
+    const filteredEntries = historyEntries
+      .filter(entry => 
+        entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.url.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .slice(offset, offset + itemsPerPage);
+    const total = historyEntries.length;
 
-    setEntries(historyEntries);
+    setEntries(filteredEntries);
     setTotalPages(Math.ceil(total / itemsPerPage));
   };
 
@@ -65,13 +63,20 @@ const HistoryView: React.FC = () => {
       <div className="history-list">
         {entries.map((entry) => (
           <div
-            key={entry.id}
+            key={entry.visitId}
             className="history-item"
             onClick={() => handleEntryClick(entry.url)}
           >
-            <div>{entry.title}</div>
-            <div>{new Date(entry.timestamp).toLocaleString()}</div>
-            <div>{entry.url}</div>
+            <div className="entry-title">{entry.title || 'Untitled'}</div>
+            <div className="entry-url">{entry.url}</div>
+            <div className="entry-meta">
+              <span className="visit-time">
+                Visit time: {new Date(entry.visitTime).toLocaleString()}
+              </span>
+              <span className="platform">
+                {entry.platform} - {entry.browserName}
+              </span>
+            </div>
           </div>
         ))}
       </div>

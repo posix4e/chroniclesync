@@ -6,7 +6,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 export default {
   entry: {
     background: './src/background.ts',
-    popup: './src/popup.tsx'
+    popup: './src/popup.tsx',
+    history: './src/history.tsx'
   },
   output: {
     path: resolve(__dirname, 'dist'),

@@ -14,6 +14,8 @@ const copyFiles = () => ({
     copyFileSync('settings.html', 'dist/settings.html');
     copyFileSync('settings.css', 'dist/settings.css');
     copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
+    copyFileSync('history.html', 'dist/history.html');
+    copyFileSync('history.css', 'dist/history.css');
   }
 });
 
@@ -26,7 +28,8 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'background.js'),
-        settings: resolve(__dirname, 'src/settings/index.ts')
+        settings: resolve(__dirname, 'src/settings/index.ts'),
+        history: resolve(__dirname, 'src/history.tsx')
       },
       output: {
         format: 'es',

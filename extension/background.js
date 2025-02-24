@@ -1,4 +1,5 @@
 import { getConfig } from './config.js';
+import { HistoryStore } from './src/db/HistoryStore';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -120,6 +121,15 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
+    // Store entries in IndexedDB before syncing
+    const historyStore = new HistoryStore();
+    await historyStore.init();
+    
+    // Store each history entry
+    for (const entry of flattenedHistoryData) {
+      await historyStore.addEntry(entry);
+    }
+
     const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
       method: 'POST',
       headers: {
@@ -133,6 +143,11 @@ async function syncHistory(forceFullSync = false) {
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Mark entries as synced after successful API call
+    for (const entry of flattenedHistoryData) {
+      await historyStore.markAsSynced(entry.visitId);
     }
 
     // Get the latest visit time from our synced data
@@ -223,29 +238,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
     const limit = request.limit || 50;
-    chrome.history.search({
-      text: '',
-      maxResults: limit,
-      startTime: 0
-    }).then(async historyItems => {
-      // Get detailed visit information for each history item
-      const historyData = await Promise.all(historyItems.map(async item => {
-        const visits = await chrome.history.getVisits({ url: item.url });
-        const latestVisit = visits[visits.length - 1];
-        return {
-          url: item.url,
-          title: item.title,
-          visitTime: latestVisit.visitTime,
-          visitId: latestVisit.visitId,
-          referringVisitId: latestVisit.referringVisitId,
-          transition: latestVisit.transition,
-          syncStatus: 'pending' // Default status
-        };
-      }));
-      sendResponse(historyData);
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const entries = await historyStore.getEntries(limit);
+        sendResponse(entries);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching history from IndexedDB:', error);
+        sendResponse({ error: error.message });
+      }
     }).catch(error => {
       // eslint-disable-next-line no-console
-      console.error('Error fetching history:', error);
+      console.error('Error initializing IndexedDB:', error);
       sendResponse({ error: error.message });
     });
     return true; // Will respond asynchronously

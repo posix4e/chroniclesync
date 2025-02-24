@@ -1,4 +1,8 @@
 import { getConfig } from './config.js';
+import { HistoryStore } from './src/db/HistoryStore';
+
+// Make HistoryStore available to service worker
+self.HistoryStore = HistoryStore;
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 

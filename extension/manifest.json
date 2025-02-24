@@ -10,6 +10,10 @@
     "page": "settings.html",
     "open_in_tab": true
   },
+  "web_accessible_resources": [{
+    "resources": ["history.html"],
+    "matches": ["<all_urls>"]
+  }],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -19,7 +23,9 @@
     "scripting",
     "tabs",
     "history",
-    "storage"
+    "storage",
+    "unlimitedStorage",
+    "windows"
   ],
   "host_permissions": [
     "http://localhost:*/*",

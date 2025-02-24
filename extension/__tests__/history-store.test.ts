@@ -16,16 +16,14 @@ describe('HistoryStore', () => {
   };
 
   beforeEach(async () => {
-    // Clear IndexedDB before each test
-    const databases = await window.indexedDB.databases();
-    await Promise.all(
-      databases.map(db => window.indexedDB.deleteDatabase(db.name!))
-    );
+    // Set up mock IndexedDB
+    const { setupIndexedDBMock } = await import('./mocks/indexedDB');
+    setupIndexedDBMock();
 
     historyStore = new HistoryStore();
     await historyStore.init();
 
-    encryptionService = new EncryptionService(testMnemonic);
+    encryptionService = await EncryptionService.create(testMnemonic);
   });
 
   it('should store unencrypted entries when encryption service is not set', async () => {

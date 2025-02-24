@@ -7,7 +7,7 @@ export class EncryptionService {
   private static readonly KEY_LENGTH = 32; // 256 bits
   private static readonly ITERATIONS = 100000;
 
-  constructor(mnemonic: string) {
+  private static async createKey(mnemonic: string): Promise<CryptoKey> {
     // Derive encryption key from mnemonic using PBKDF2
     const derivedKey = pbkdf2Sync(
       mnemonic,
@@ -18,13 +18,22 @@ export class EncryptionService {
     );
 
     // Import the key for use with Web Crypto API
-    this.key = await crypto.subtle.importKey(
+    return await crypto.subtle.importKey(
       'raw',
       derivedKey,
       { name: 'AES-GCM' },
       false,
       ['encrypt', 'decrypt']
     );
+  }
+
+  static async create(mnemonic: string): Promise<EncryptionService> {
+    const key = await EncryptionService.createKey(mnemonic);
+    return new EncryptionService(key);
+  }
+
+  private constructor(key: CryptoKey) {
+    this.key = key;
   }
 
   async encrypt(data: string): Promise<{ ciphertext: string; iv: string }> {

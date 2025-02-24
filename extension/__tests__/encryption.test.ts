@@ -5,7 +5,7 @@ describe('EncryptionService', () => {
   let encryptionService: EncryptionService;
 
   beforeEach(async () => {
-    encryptionService = new EncryptionService(testMnemonic);
+    encryptionService = await EncryptionService.create(testMnemonic);
   });
 
   it('should encrypt and decrypt data correctly', async () => {

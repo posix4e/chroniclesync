@@ -10,30 +10,28 @@ describe('HistorySync', () => {
   const testMnemonic = 'test test test test test test test test test test test junk';
 
   beforeEach(async () => {
-    // Clear IndexedDB before each test
-    const databases = await window.indexedDB.databases();
-    await Promise.all(
-      databases.map(db => window.indexedDB.deleteDatabase(db.name!))
-    );
+    // Set up mock IndexedDB
+    const { setupIndexedDBMock } = await import('./mocks/indexedDB');
+    setupIndexedDBMock();
 
     // Mock chrome.history API
     global.chrome = {
       history: {
-        search: jest.fn(),
-        getVisits: jest.fn(),
+        search: vi.fn(),
+        getVisits: vi.fn(),
         onVisited: {
-          addListener: jest.fn()
+          addListener: vi.fn()
         }
       },
       storage: {
         sync: {
-          get: jest.fn().mockResolvedValue({ clientId: 'test-client' })
+          get: vi.fn().mockResolvedValue({ clientId: 'test-client' })
         }
       }
     } as any;
 
     settings = new Settings();
-    encryptionService = new EncryptionService(testMnemonic);
+    encryptionService = await EncryptionService.create(testMnemonic);
     historySync = new HistorySync(settings, encryptionService);
     await historySync.init();
   });
@@ -114,8 +112,8 @@ describe('HistorySync', () => {
   it('should handle encryption errors gracefully', async () => {
     // Create invalid encryption service
     const invalidEncryptionService = {
-      encrypt: jest.fn().mockRejectedValue(new Error('Encryption failed')),
-      decrypt: jest.fn().mockRejectedValue(new Error('Decryption failed'))
+      encrypt: vi.fn().mockRejectedValue(new Error('Encryption failed')),
+      decrypt: vi.fn().mockRejectedValue(new Error('Decryption failed'))
     };
 
     historySync = new HistorySync(settings, invalidEncryptionService as any);

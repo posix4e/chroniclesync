@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
 
-import { HistoryEntry } from './types';
-
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');

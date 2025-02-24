@@ -4,7 +4,7 @@ import { ClientSection } from './components/ClientSection';
 import { AdminPanel } from './components/AdminPanel';
 import { AdminLogin } from './components/AdminLogin';
 import { HealthCheck } from './components/HealthCheck';
-import { HistoryView } from './components/HistoryView';
+
 import { DB } from './utils/db';
 import { getClientIdFromExtension } from './utils/extension-messaging';
 
@@ -38,9 +38,7 @@ export function App() {
             <li>
               <Link to="/" className="text-blue-600 hover:text-blue-800">Home</Link>
             </li>
-            <li>
-              <Link to="/history" className="text-blue-600 hover:text-blue-800">History</Link>
-            </li>
+
           </ul>
         </nav>
 
@@ -64,19 +62,7 @@ export function App() {
             </div>
           } />
           
-          <Route path="/history" element={
-            clientId ? (
-              <HistoryView clientId={clientId} />
-            ) : (
-              <div className="text-center p-4">
-                {window.chrome?.storage?.sync ? (
-                  'Loading client ID from extension...'
-                ) : (
-                  'Please set your client ID on the home page first'
-                )}
-              </div>
-            )
-          } />
+
         </Routes>
       </div>
     </Router>

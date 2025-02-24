@@ -109,3 +109,84 @@ export const expect = test.expect;
 export function getExtensionUrl(extensionId: string, path: string) {
   return `chrome-extension://${extensionId}/${path}`;
 }
+
+export class ExtensionTestHelper {
+  private context: BrowserContext;
+  private extensionId: string;
+
+  private constructor(context: BrowserContext, extensionId: string) {
+    this.context = context;
+    this.extensionId = extensionId;
+  }
+
+  static async create(): Promise<ExtensionTestHelper> {
+    const context = await chromium.launchPersistentContext('', {
+      headless: false,
+      args: [
+        `--disable-extensions-except=${paths.extension}`,
+        `--load-extension=${paths.extension}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+      ],
+    });
+
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+    await page.waitForTimeout(1000);
+
+    const workers = await context.serviceWorkers();
+    const extensionId = workers[0].url().split('/')[2];
+    await page.close();
+
+    return new ExtensionTestHelper(context, extensionId);
+  }
+
+  async cleanup() {
+    await this.context.close();
+  }
+
+  async openPopup() {
+    const popup = await this.context.newPage();
+    await popup.goto(getExtensionUrl(this.extensionId, 'popup.html'));
+    return popup;
+  }
+
+  async openHistoryPopout() {
+    const popup = await this.openPopup();
+    await popup.click('text=View History');
+    const historyWindow = await this.waitForPopup('history.html');
+    await popup.close();
+    return historyWindow;
+  }
+
+  async waitForPopup(path: string) {
+    const expectedUrl = getExtensionUrl(this.extensionId, path);
+    let targetPage = null;
+
+    while (!targetPage) {
+      const pages = this.context.pages();
+      targetPage = pages.find(page => page.url() === expectedUrl);
+      if (!targetPage) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    return targetPage;
+  }
+
+  async addTestHistoryEntries(entries: Array<{ url: string; title: string; timestamp: number }>) {
+    const page = await this.context.newPage();
+    await page.evaluate((testEntries) => {
+      const historyStore = new (window as any).HistoryStore();
+      testEntries.forEach(entry => {
+        historyStore.addEntry({
+          url: entry.url,
+          title: entry.title,
+          timestamp: entry.timestamp,
+          syncStatus: 'synced'
+        });
+      });
+    }, entries);
+    await page.close();
+  }
+}

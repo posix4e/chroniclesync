@@ -124,8 +124,8 @@ test.describe('History View', () => {
     await settingsPage.waitForTimeout(1000);
 
     // Generate and save client ID if needed
-    let mnemonic = await settingsPage.locator('#mnemonic').inputValue();
-    let clientId = await settingsPage.locator('#clientId').inputValue();
+    const mnemonic = await settingsPage.locator('#mnemonic').inputValue();
+    const clientId = await settingsPage.locator('#clientId').inputValue();
     if (!mnemonic || !clientId) {
       await settingsPage.locator('#generateMnemonic').click();
       await settingsPage.waitForTimeout(1000);

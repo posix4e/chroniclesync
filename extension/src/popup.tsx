@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
+import { aiService } from './services/AIService';
 import '../popup.css';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [summary, setSummary] = useState<string>('');
+  const [sentiment, setSentiment] = useState<{label: string, score: number} | null>(null);
   const openHistory = () => {
     chrome.windows.create({
       url: chrome.runtime.getURL('history.html'),
@@ -96,6 +100,40 @@ export function App() {
     chrome.runtime.openOptionsPage();
   };
 
+  const analyzeCurrentPage = async () => {
+    try {
+      setAnalyzing(true);
+      // Get the active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab.id) return;
+
+      // Execute script to get page content
+      const [{result}] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const article = document.querySelector('article');
+          if (article) return article.textContent;
+          return document.body.textContent;
+        }
+      });
+
+      if (result) {
+        // Get summary
+        const summary = await aiService.summarizeText(result);
+        setSummary(summary);
+
+        // Get sentiment
+        const sentiment = await aiService.analyzeText(result);
+        setSentiment(sentiment);
+      }
+    } catch (error) {
+      console.error('Error analyzing page:', error);
+      alert('Error analyzing page. Please try again.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
@@ -122,7 +160,29 @@ export function App() {
       <div className="action-buttons">
         <button type="button" onClick={openHistory}>View History</button>
         <button type="button" onClick={openSettings}>Settings</button>
+        <button type="button" onClick={analyzeCurrentPage} disabled={analyzing}>
+          {analyzing ? 'Analyzing...' : 'Analyze Page'}
+        </button>
       </div>
+
+      {(summary || sentiment) && (
+        <div className="ai-analysis">
+          {summary && (
+            <div className="summary">
+              <h3>Summary</h3>
+              <p>{summary}</p>
+            </div>
+          )}
+          {sentiment && (
+            <div className="sentiment">
+              <h3>Sentiment</h3>
+              <p>
+                {sentiment.label} ({Math.round(sentiment.score * 100)}% confidence)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

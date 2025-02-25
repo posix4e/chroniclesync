@@ -161,3 +161,50 @@ button:hover {
   margin-top: 20px;
   text-align: center;
 }
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.action-buttons button {
+  padding: 8px 16px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.action-buttons button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.ai-analysis {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ai-analysis h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.summary, .sentiment {
+  margin-bottom: 15px;
+}
+
+.summary p, .sentiment p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #555;
+}

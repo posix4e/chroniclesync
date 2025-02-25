@@ -147,5 +147,4 @@ export class HistoryStore {
       ...sensitiveData
     } as PlainHistoryEntry;
   }
-  }
 }

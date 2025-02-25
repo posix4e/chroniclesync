@@ -1,21 +1,20 @@
 # ChronicleSync
 
-A modern, secure IndexedDB synchronization service built with Cloudflare Workers and Pages. ChronicleSync enables seamless data synchronization across browsers and devices while maintaining robust security and offline capabilities.
+Sync stuff across browsers
 
 ## Features
 
 - **Offline-First**: Continue working without internet connection with automatic background sync
-- **Secure**: End-to-end HTTPS encryption and robust access controls
-- **Chrome Extension**: Easy-to-use browser integration with dedicated window interface
+- **Not Secure**: I'm to lazy and the models suck too much for local encryption, but it's coming.
+- **Not Multiplatform**: We haven't added IOS support cause basic stuff still doesn't work.
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
 ## Quick Start
 
 ### Prerequisites
-- GitHub account with repository access
+- GitHub CI/CD
 - Cloudflare account for deployments
-- Node.js 18 or later
-- npm package manager
+- Node.js ... Just read the github actions
 
 ### Developer Documentation
 - [Extension Developer Guide](extension/DEVELOPER.md) - Detailed guide for Chrome extension development
@@ -30,5 +29,3 @@ chroniclesync/
 ├── extension/      # Chrome extension
 └── worker/         # Cloudflare Worker backend
 ```
-
-For detailed setup instructions and development guidelines, please refer to the developer guides above.

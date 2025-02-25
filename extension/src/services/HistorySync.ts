@@ -21,6 +21,34 @@ export class HistorySync {
     this.setupHistoryListener();
   }
 
+  private async getSystemInfo() {
+    const platform = navigator.platform;
+    const userAgent = navigator.userAgent;
+    const browserName = userAgent.includes('Chrome') ? 'Chrome' : 
+      userAgent.includes('Firefox') ? 'Firefox' : 
+        userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+    const browserVersion = (userAgent.match(/Chrome\/([0-9.]+)/) || ['', 'unknown'])[1];
+    const deviceId = await this.getDeviceId();
+
+    return {
+      deviceId,
+      platform,
+      userAgent,
+      browserName,
+      browserVersion
+    };
+  }
+
+  private async getDeviceId(): Promise<string> {
+    const result = await chrome.storage.local.get(['deviceId']);
+    if (result.deviceId) {
+      return result.deviceId;
+    }
+    const deviceId = 'device_' + Math.random().toString(36).substring(2);
+    await chrome.storage.local.set({ deviceId });
+    return deviceId;
+  }
+
   private setupHistoryListener(): void {
     console.log('Setting up history listener...');
     
@@ -37,19 +65,15 @@ export class HistorySync {
           const latestVisit = visits[visits.length - 1];
 
           if (latestVisit) {
-            const visitId = `${latestVisit.visitId}`;
-            const platform = navigator.platform;
-            const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
-              navigator.userAgent.includes('Firefox') ? 'Firefox' : 
-                navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
-
+            const systemInfo = await this.getSystemInfo();
             await this.store.addEntry({
-              visitId,
+              visitId: `${latestVisit.visitId}`,
               url: result.url,
               title: result.title || '',
               visitTime: result.lastVisitTime || Date.now(),
-              platform,
-              browserName
+              referringVisitId: latestVisit.referringVisitId?.toString() || '0',
+              transition: latestVisit.transition,
+              ...systemInfo
             });
             console.log('History entry stored successfully');
           }
@@ -72,10 +96,7 @@ export class HistorySync {
 
       console.log('Found initial history items:', items.length);
 
-      const platform = navigator.platform;
-      const browserName = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
-        navigator.userAgent.includes('Firefox') ? 'Firefox' : 
-          navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+      const systemInfo = await this.getSystemInfo();
 
       for (const item of items) {
         if (item.url) {
@@ -86,8 +107,9 @@ export class HistorySync {
               url: item.url,
               title: item.title || '',
               visitTime: visit.visitTime || Date.now(),
-              platform,
-              browserName
+              referringVisitId: visit.referringVisitId?.toString() || '0',
+              transition: visit.transition,
+              ...systemInfo
             });
           }
         }

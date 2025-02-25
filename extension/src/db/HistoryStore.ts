@@ -132,7 +132,7 @@ export class HistoryStore {
       request.onsuccess = () => {
         const entries = request.result || [];
         // Filter out deleted entries unless explicitly requested
-        const filteredEntries = entries.filter(entry => !entry.deleted);
+        const filteredEntries = entries.filter((entry: HistoryEntry) => !entry.deleted);
         console.log('Retrieved entries:', filteredEntries.length);
         resolve(filteredEntries);
       };

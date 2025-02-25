@@ -82,19 +82,17 @@ export class HistoryStore {
   async getUnsyncedEntries(): Promise<HistoryEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
       const index = store.index('syncStatus');
       const request = index.getAll('pending');
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = async () => {
-        try {
-          const encryptedEntries: EncryptedHistoryEntry[] = request.result;
-          const decryptedEntries = await Promise.all(
-            encryptedEntries.map(async (entry) => {
-              const decryptedData = await this.encryptionService.decrypt(entry.encryptedData, entry.iv);
+      request.onsuccess = () => {
+        Promise.all(request.result.map(entry => 
+          this.encryptionService.decrypt(entry.encryptedData, entry.iv)
+            .then(decryptedData => {
               const sensitiveData = JSON.parse(decryptedData);
               return {
                 visitId: entry.visitId,
@@ -103,11 +101,9 @@ export class HistoryStore {
                 ...sensitiveData
               } as HistoryEntry;
             })
-          );
-          resolve(decryptedEntries);
-        } catch (error) {
-          reject(error);
-        }
+        ))
+          .then(resolve)
+          .catch(reject);
       };
     });
   }
@@ -141,23 +137,17 @@ export class HistoryStore {
       throw new Error('Database not initialized');
     }
 
-    return new Promise(async (resolve, reject) => {
-      console.log('Getting history entries...');
+    return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
       const index = store.index('visitTime');
       const request = index.getAll(null, limit);
 
-      request.onerror = () => {
-        console.error('Error getting entries:', request.error);
-        reject(request.error);
-      };
-      request.onsuccess = async () => {
-        try {
-          const encryptedEntries: EncryptedHistoryEntry[] = request.result || [];
-          const decryptedEntries = await Promise.all(
-            encryptedEntries.map(async (entry) => {
-              const decryptedData = await this.encryptionService.decrypt(entry.encryptedData, entry.iv);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        Promise.all((request.result || []).map(entry => 
+          this.encryptionService.decrypt(entry.encryptedData, entry.iv)
+            .then(decryptedData => {
               const sensitiveData = JSON.parse(decryptedData);
               return {
                 visitId: entry.visitId,
@@ -166,13 +156,9 @@ export class HistoryStore {
                 ...sensitiveData
               } as HistoryEntry;
             })
-          );
-          console.log('Retrieved and decrypted entries:', decryptedEntries.length);
-          resolve(decryptedEntries);
-        } catch (error) {
-          console.error('Error decrypting entries:', error);
-          reject(error);
-        }
+        ))
+          .then(resolve)
+          .catch(reject);
       };
     });
   }

@@ -14,17 +14,12 @@ export interface HistoryVisit {
   visitTime: number;
   platform: string;
   browserName: string;
-}
-
-export interface EncryptedHistoryVisit {
-  visitId: string;
-  encryptedData: string;
-  iv: string;
-  visitTime: number;
+  encryptedData?: string;
+  iv?: string;
 }
 
 export interface SyncPayload {
-  history: EncryptedHistoryVisit[];
+  history: HistoryVisit[];
   deviceInfo: DeviceInfo;
 }
 

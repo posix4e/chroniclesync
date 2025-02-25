@@ -1,5 +1,7 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { EncryptionService } from '../src/services/EncryptionService';
 import { Settings } from '../src/settings/Settings';
+import { vi } from 'vitest';
 
 describe('EncryptionService', () => {
   let encryptionService: EncryptionService;
@@ -8,7 +10,7 @@ describe('EncryptionService', () => {
   beforeEach(async () => {
     // Mock Settings class
     settings = {
-      getMnemonic: jest.fn().mockResolvedValue('test test test test test test test test test test test test test test test test test test test test test test test test')
+      getMnemonic: vi.fn().mockResolvedValue('test test test test test test test test test test test test test test test test test test test test test test test test')
     } as unknown as Settings;
 
     encryptionService = new EncryptionService(settings);
@@ -59,7 +61,7 @@ describe('EncryptionService', () => {
 
   it('should fail to initialize without mnemonic', async () => {
     const emptySettings = {
-      getMnemonic: jest.fn().mockResolvedValue('')
+      getMnemonic: vi.fn().mockResolvedValue('')
     } as unknown as Settings;
 
     const service = new EncryptionService(emptySettings);

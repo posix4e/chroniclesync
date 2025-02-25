@@ -136,10 +136,9 @@ export class HistorySync {
         const { ciphertext, iv } = await this.encryptionService.encrypt(JSON.stringify(sensitiveData));
 
         return {
-          visitId: entry.visitId,
+          ...entry,
           encryptedData: ciphertext,
-          iv,
-          visitTime: entry.visitTime
+          iv
         };
       }));
 

@@ -104,6 +104,11 @@ export class Settings {
     }
   }
 
+  async getMnemonic(): Promise<string> {
+    if (!this.config) throw new Error('Settings not initialized');
+    return this.config.mnemonic;
+  }
+
   private render(): void {
     if (!this.config) return;
 

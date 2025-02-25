@@ -1,12 +1,14 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
-import { HistoryEntry } from '../types';
+import { HistoryEntry, EncryptedHistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { EncryptionService } from './EncryptionService';
 
 export class HistorySync {
   private settings: Settings;
   private store: HistoryStore;
   private syncService: SyncService;
+  private encryptionService: EncryptionService;
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -14,9 +16,11 @@ export class HistorySync {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+    this.encryptionService = new EncryptionService(settings);
   }
 
   async init(): Promise<void> {
+    await this.encryptionService.init();
     await this.store.init();
     this.setupHistoryListener();
   }
@@ -120,25 +124,34 @@ export class HistorySync {
     if (entries.length === 0) return;
 
     try {
-      // Convert entries to the format expected by the sync service
-      const historyVisits = entries.map(entry => ({
-        visitId: entry.visitId,
-        url: entry.url,
-        title: entry.title,
-        visitTime: entry.visitTime,
-        platform: entry.platform,
-        browserName: entry.browserName
+      // Convert entries to encrypted format
+      const encryptedEntries = await Promise.all(entries.map(async entry => {
+        const sensitiveData = {
+          url: entry.url,
+          title: entry.title,
+          platform: entry.platform,
+          browserName: entry.browserName
+        };
+
+        const { ciphertext, iv } = await this.encryptionService.encrypt(JSON.stringify(sensitiveData));
+
+        return {
+          visitId: entry.visitId,
+          encryptedData: ciphertext,
+          iv,
+          visitTime: entry.visitTime
+        };
       }));
 
-      // Sync with server
-      await this.syncService.syncHistory(historyVisits);
+      // Sync encrypted data with server
+      await this.syncService.syncHistory(encryptedEntries);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));
 
-      console.log('Successfully synced entries:', entries.length);
+      console.log('Successfully synced encrypted entries:', entries.length);
     } catch (error) {
-      console.error('Error syncing history:', error);
+      console.error('Error syncing encrypted history:', error);
       throw error;
     }
   }

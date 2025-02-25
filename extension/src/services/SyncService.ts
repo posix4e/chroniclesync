@@ -16,8 +16,15 @@ export interface HistoryVisit {
   browserName: string;
 }
 
+export interface EncryptedHistoryVisit {
+  visitId: string;
+  encryptedData: string;
+  iv: string;
+  visitTime: number;
+}
+
 export interface SyncPayload {
-  history: HistoryVisit[];
+  history: EncryptedHistoryVisit[];
   deviceInfo: DeviceInfo;
 }
 
@@ -67,12 +74,20 @@ export class SyncService {
       throw new Error('Client ID not found');
     }
 
+    // Convert history entries to encrypted format
+    const encryptedHistory: EncryptedHistoryVisit[] = history.map(entry => ({
+      visitId: entry.visitId,
+      encryptedData: entry.encryptedData,
+      iv: entry.iv,
+      visitTime: entry.visitTime
+    }));
+
     const payload: SyncPayload = {
-      history,
+      history: encryptedHistory,
       deviceInfo: this.deviceInfo
     };
 
-    console.log('Syncing history with payload:', payload);
+    console.log('Syncing encrypted history with payload:', payload);
 
     const response = await fetch(`${apiUrl}/history/sync?clientId=${clientId}`, {
       method: 'POST',
@@ -92,7 +107,7 @@ export class SyncService {
     console.log('Sync successful:', result);
   }
 
-  async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {
+  async getHistory(page = 1, pageSize = 50): Promise<EncryptedHistoryVisit[]> {
     const apiUrl = this.settings.getApiUrl();
     const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 

@@ -7,13 +7,17 @@ export interface DeviceInfo {
   userAgent: string;
 }
 
+export interface EncryptedData {
+  ciphertext: string;
+  iv: string;
+}
+
 export interface HistoryVisit {
   visitId: string;
-  url: string;
-  title: string;
   visitTime: number;
   platform: string;
   browserName: string;
+  encryptedData: EncryptedData;
 }
 
 export interface SyncPayload {

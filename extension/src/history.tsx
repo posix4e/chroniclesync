@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
+import { EncryptionService } from './services/EncryptionService';
+import { EncryptedHistoryEntry } from './types';
 
 const ITEMS_PER_PAGE = 10;
 
-import { HistoryEntry } from './types';
-
 const HistoryView: React.FC = () => {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<EncryptedHistoryEntry[]>([]);
+  const [filteredHistory, setFilteredHistory] = useState<EncryptedHistoryEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -18,17 +18,17 @@ const HistoryView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = history.filter(item => 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.url.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredHistory(filtered);
-    setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    // With encrypted data, we can't filter by content
+    setFilteredHistory(history);
+    setTotalPages(Math.ceil(history.length / ITEMS_PER_PAGE));
     setCurrentPage(1);
-  }, [searchTerm, history]);
+  }, [history]);
 
   const loadHistory = async () => {
-    const historyStore = new HistoryStore();
+    const settings = await chrome.storage.sync.get(['mnemonic']);
+    const encryptionService = new EncryptionService();
+    await encryptionService.init(settings.mnemonic);
+    const historyStore = new HistoryStore(encryptionService);
     await historyStore.init();
     const items = await historyStore.getEntries();
     setHistory(items.sort((a, b) => b.visitTime - a.visitTime));
@@ -47,7 +47,15 @@ const HistoryView: React.FC = () => {
     setCurrentPage(page);
   };
 
-  const handleItemClick = (url: string) => {
+  const handleItemClick = async (item: EncryptedHistoryEntry) => {
+    const settings = await chrome.storage.sync.get(['mnemonic']);
+    const encryptionService = new EncryptionService();
+    await encryptionService.init(settings.mnemonic);
+    const decryptedData = await encryptionService.decrypt(
+      item.encryptedData.ciphertext,
+      item.encryptedData.iv
+    );
+    const { url } = JSON.parse(decryptedData);
     chrome.tabs.create({ url });
   };
 
@@ -68,11 +76,11 @@ const HistoryView: React.FC = () => {
           <div
             key={item.visitId}
             className="history-item"
-            onClick={() => handleItemClick(item.url)}
+            onClick={() => handleItemClick(item)}
           >
-            <div>{item.title}</div>
+            <div>[Encrypted Entry]</div>
             <div style={{ fontSize: '0.8em', color: '#666' }}>
-              {item.url}
+              [Click to open]
               <br />
               {new Date(item.visitTime).toLocaleString()}
             </div>

@@ -236,4 +236,9 @@ export class Settings {
       status.remove();
     }, 3000);
   }
+
+  getMnemonic(): string {
+    if (!this.config) throw new Error('Settings not initialized');
+    return this.config.mnemonic;
+  }
 }

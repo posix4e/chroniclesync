@@ -1,14 +1,27 @@
 import { HistoryEntry } from '../types';
+import { EncryptionService } from '../services/EncryptionService';
+
+interface EncryptedHistoryEntry extends Omit<HistoryEntry, 'url' | 'title'> {
+  encryptedData: {
+    ciphertext: string;
+    iv: string;
+  };
+}
 
 export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly STORE_NAME = 'history';
   private db: IDBDatabase | null = null;
+  private encryptionService: EncryptionService;
+
+  constructor(encryptionService: EncryptionService) {
+    this.encryptionService = encryptionService;
+  }
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
       console.log('Initializing IndexedDB...');
-      const request = indexedDB.open(this.DB_NAME, 1);
+      const request = indexedDB.open(this.DB_NAME, 2);
 
       request.onerror = () => {
         console.error('Error opening IndexedDB:', request.error);
@@ -35,25 +48,25 @@ export class HistoryStore {
     });
   }
 
-  async addEntry(entry: Omit<HistoryEntry, 'syncStatus'>): Promise<void> {
+  async addEntry(entry: Omit<EncryptedHistoryEntry, 'syncStatus'>): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
 
-      const fullEntry: HistoryEntry = {
+      const encryptedEntry: EncryptedHistoryEntry = {
         ...entry,
         syncStatus: 'pending'
       };
 
-      const request = store.put(fullEntry);
+      const request = store.put(encryptedEntry);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
   }
 
-  async getUnsyncedEntries(): Promise<HistoryEntry[]> {
+  async getUnsyncedEntries(): Promise<EncryptedHistoryEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -90,7 +103,7 @@ export class HistoryStore {
     });
   }
 
-  async getEntries(limit = 100): Promise<HistoryEntry[]> {
+  async getEntries(limit = 100): Promise<EncryptedHistoryEntry[]> {
     if (!this.db) {
       console.error('Database not initialized');
       throw new Error('Database not initialized');
@@ -108,7 +121,7 @@ export class HistoryStore {
         reject(request.error);
       };
       request.onsuccess = () => {
-        console.log('Retrieved entries:', request.result);
+        console.log('Retrieved encrypted entries');
         resolve(request.result || []);
       };
     });

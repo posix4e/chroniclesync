@@ -1,4 +1,8 @@
-import { pipeline, Pipeline } from '@huggingface/transformers';
+import { pipeline } from '@huggingface/transformers';
+
+// Use any for now since the types from the package are not properly exported
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Pipeline = any;
 
 export class ModelHandler {
   private translationPipeline: Pipeline | null = null;

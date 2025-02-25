@@ -13,6 +13,14 @@ const mockChromeStorage = {
     set: vi.fn((data, callback) => {
       if (callback) callback();
     })
+  },
+  local: {
+    get: vi.fn((keys, callback) => {
+      callback({ textToSummarize: '' });
+    }),
+    set: vi.fn((data, callback) => {
+      if (callback) callback();
+    })
   }
 };
 
@@ -184,23 +192,25 @@ describe('Popup Component', () => {
       render(<App />);
     });
     
-    // Client ID should be loaded from storage
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Client ID')).toHaveValue('test-client');
+    // Wait for the component to finish initializing
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
     });
     
-    // Change client ID
+    // Client ID should be loaded from storage
     const input = screen.getByPlaceholderText('Client ID');
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveValue('test-client');
+    
+    // Change client ID
     await act(async () => {
       fireEvent.change(input, { target: { value: 'new-client' } });
     });
     
     // Verify storage was updated with new client ID
-    await waitFor(() => {
-      expect(mockChromeStorage.sync.set).toHaveBeenCalledWith(
-        { clientId: 'new-client' },
-        expect.any(Function)
-      );
-    });
+    expect(mockChromeStorage.sync.set).toHaveBeenCalledWith(
+      { clientId: 'new-client' },
+      expect.any(Function)
+    );
   });
 });

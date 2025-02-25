@@ -80,6 +80,13 @@ async function syncHistory(forceFullSync = false) {
     // Use stored lastSync time unless forcing full sync
     const startTime = forceFullSync ? 0 : storedLastSync;
 
+    // Initialize history store
+    const historyStore = new HistoryStore();
+    await historyStore.init();
+
+    // Update device info
+    await historyStore.updateDevice(systemInfo);
+
     // Get history since last sync
     const historyItems = await chrome.history.search({
       text: '',
@@ -87,10 +94,6 @@ async function syncHistory(forceFullSync = false) {
       endTime: now,
       maxResults: 10000 // Increased limit for full sync
     });
-
-    if (historyItems.length === 0) {
-      return;
-    }
 
     // Get detailed visit information for each history item
     const historyData = await Promise.all(historyItems.map(async item => {
@@ -115,66 +118,91 @@ async function syncHistory(forceFullSync = false) {
 
     // Flatten the array of visit arrays
     const flattenedHistoryData = historyData.flat();
-
-    // Only proceed if we have visits to sync
-    if (flattenedHistoryData.length === 0) {
-      return;
-    }
-
-    // Store entries in IndexedDB before syncing
-    const historyStore = new HistoryStore();
-    await historyStore.init();
     
     // Store each history entry
     for (const entry of flattenedHistoryData) {
       await historyStore.addEntry(entry);
     }
 
-    const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        history: flattenedHistoryData,
-        deviceInfo: systemInfo
-      })
-    });
+    // Get all unsynced entries (including deleted ones)
+    const unsyncedEntries = await historyStore.getUnsyncedEntries();
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (unsyncedEntries.length > 0) {
+      // Send unsynced entries to server
+      const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          history: unsyncedEntries,
+          deviceInfo: systemInfo,
+          lastSync: storedLastSync
+        })
+      });
 
-    // Mark entries as synced after successful API call
-    for (const entry of flattenedHistoryData) {
-      await historyStore.markAsSynced(entry.visitId);
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    // Get the latest visit time from our synced data
-    const latestVisitTime = Math.max(...flattenedHistoryData.map(item => item.visitTime));
-    
-    // Store lastSync time in both local and sync storage, but only update if we have a newer time
-    const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
-    if (latestVisitTime > currentLastSync) {
-      const lastSyncDate = new Date(latestVisitTime).toLocaleString();
-      await chrome.storage.local.set({ lastSync: latestVisitTime });
+      // Parse response which contains remote entries
+      const syncResponse = await response.json();
+
+      // Merge remote entries into local store
+      if (syncResponse.history && syncResponse.history.length > 0) {
+        await historyStore.mergeRemoteEntries(syncResponse.history);
+      }
+
+      // Update device list
+      if (syncResponse.devices) {
+        for (const device of syncResponse.devices) {
+          await historyStore.updateDevice(device);
+        }
+      }
+
+      // Mark our entries as synced
+      for (const entry of unsyncedEntries) {
+        await historyStore.markAsSynced(entry.visitId);
+      }
+
+      // Update lastSync time
+      const newLastSync = syncResponse.lastSyncTime || now;
+      const lastSyncDate = new Date(newLastSync).toLocaleString();
+      await chrome.storage.local.set({ lastSync: newLastSync });
       await chrome.storage.sync.set({ lastSync: lastSyncDate });
+
+      try {
+        // Notify UI about sync completion
+        chrome.runtime.sendMessage({ 
+          type: 'syncComplete',
+          stats: {
+            sent: unsyncedEntries.length,
+            received: syncResponse.history?.length || 0,
+            devices: syncResponse.devices?.length || 0
+          }
+        }).catch(() => {
+          // Ignore error when no receivers are present
+        });
+      } catch {
+        // Catch any other messaging errors
+      }
     }
 
+    // eslint-disable-next-line no-console
+    console.debug(`Successfully completed sync`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error syncing history:', error);
     try {
-      // Only send message if there are active listeners
-      chrome.runtime.sendMessage({ type: 'syncComplete' }).catch(() => {
+      chrome.runtime.sendMessage({ 
+        type: 'syncError',
+        error: error.message
+      }).catch(() => {
         // Ignore error when no receivers are present
       });
     } catch {
       // Catch any other messaging errors
     }
-    // eslint-disable-next-line no-console
-    console.debug(`Successfully synced ${historyData.length} history items`);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Error syncing history:', error);
-    // Don't throw the error to prevent the extension from breaking
     return;
   }
 }
@@ -224,15 +252,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .then(() => {
         // Send success response and notify popup about sync completion
         sendResponse({ success: true, message: 'Sync successful' });
-        try {
-          const lastSyncDate = new Date().toLocaleString();
-          chrome.storage.sync.set({ lastSync: lastSyncDate });
-          chrome.runtime.sendMessage({ type: 'syncComplete', success: true, lastSync: lastSyncDate }).catch(() => {
-            // Ignore error when no receivers are present
-          });
-        } catch {
-          // Catch any other messaging errors
-        }
       })
       .catch(error => {
         // eslint-disable-next-line no-console
@@ -241,15 +260,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
-    const limit = request.limit || 50;
+    const { deviceId, since, limit } = request;
     const historyStore = new HistoryStore();
     historyStore.init().then(async () => {
       try {
-        const entries = await historyStore.getEntries(limit);
-        sendResponse(entries);
+        const entries = await historyStore.getEntries(deviceId, since);
+        // Apply limit if specified
+        const limitedEntries = limit ? entries.slice(0, limit) : entries;
+        sendResponse(limitedEntries);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error fetching history from IndexedDB:', error);
+        sendResponse({ error: error.message });
+      }
+    }).catch(error => {
+      // eslint-disable-next-line no-console
+      console.error('Error initializing IndexedDB:', error);
+      sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getDevices') {
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const devices = await historyStore.getDevices();
+        sendResponse(devices);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching devices from IndexedDB:', error);
+        sendResponse({ error: error.message });
+      }
+    }).catch(error => {
+      // eslint-disable-next-line no-console
+      console.error('Error initializing IndexedDB:', error);
+      sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'deleteHistory') {
+    const { visitId } = request;
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        await historyStore.deleteEntry(visitId);
+        // Trigger sync to propagate deletion
+        await syncHistory(false);
+        sendResponse({ success: true });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error deleting history entry:', error);
         sendResponse({ error: error.message });
       }
     }).catch(error => {

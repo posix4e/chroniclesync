@@ -9,11 +9,9 @@ export interface DeviceInfo {
 
 export interface HistoryVisit {
   visitId: string;
-  url: string;
-  title: string;
-  visitTime: number;
   platform: string;
   browserName: string;
+  encryptedData: string;
 }
 
 export interface SyncPayload {

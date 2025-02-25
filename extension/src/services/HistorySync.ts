@@ -2,18 +2,31 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { EncryptionService } from './EncryptionService';
 
 export class HistorySync {
   private settings: Settings;
   private store: HistoryStore;
   private syncService: SyncService;
+  private encryptionService: EncryptionService;
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(settings: Settings) {
     this.settings = settings;
-    this.store = new HistoryStore();
+    this.encryptionService = new EncryptionService();
+    this.store = new HistoryStore(this.encryptionService);
     this.syncService = new SyncService(settings);
+  }
+
+  async init(): Promise<void> {
+    const mnemonic = await chrome.storage.sync.get(['mnemonic']).then(result => result.mnemonic);
+    if (!mnemonic) {
+      throw new Error('Mnemonic not found');
+    }
+    await this.encryptionService.init(mnemonic);
+    await this.store.init();
+    this.setupHistoryListener();
   }
 
   async init(): Promise<void> {
@@ -123,20 +136,18 @@ export class HistorySync {
       // Convert entries to the format expected by the sync service
       const historyVisits = entries.map(entry => ({
         visitId: entry.visitId,
-        url: entry.url,
-        title: entry.title,
-        visitTime: entry.visitTime,
         platform: entry.platform,
-        browserName: entry.browserName
+        browserName: entry.browserName,
+        encryptedData: entry.encryptedData
       }));
 
       // Sync with server
       await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));
 
-      console.log('Successfully synced entries:', entries.length);
+      console.log('Successfully synced encrypted entries:', entries.length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;

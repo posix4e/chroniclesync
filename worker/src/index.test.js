@@ -104,9 +104,9 @@ describe('Worker API', () => {
     const baseTime = 1707894000000; // Fixed timestamp for consistent string length
     const testData = {
       history: [
-        { visitId: 'v1', visitTime: baseTime - 1000, title: 'Test Page 1', url: 'https://test1.com', platform: 'Windows', browserName: 'Chrome' },
-        { visitId: 'v2', visitTime: baseTime - 2000, title: 'Test Page 2', url: 'https://test2.com', platform: 'Mac', browserName: 'Safari' },
-        { visitId: 'v3', visitTime: baseTime - 3000, title: 'Another Page', url: 'https://test3.com', platform: 'Windows', browserName: 'Firefox' }
+        { visitId: 'v1', platform: 'Windows', browserName: 'Chrome', encryptedData: 'encrypted1' },
+        { visitId: 'v2', platform: 'Mac', browserName: 'Safari', encryptedData: 'encrypted2' },
+        { visitId: 'v3', platform: 'Windows', browserName: 'Firefox', encryptedData: 'encrypted3' }
       ],
       deviceInfo: { key: 'value' }
     };
@@ -158,25 +158,12 @@ describe('Worker API', () => {
     expect(getData3.history.length).toBe(1);
     expect(getData3.history[0].browserName).toBe('Safari');
 
-    // Test search filter
-    const getResp4 = await makeRequest('/?clientId=' + clientId + '&searchQuery=another');
-    expect(getResp4.status).toBe(200);
-    const getData4 = await getResp4.json();
-    expect(getData4.history.length).toBe(1);
-    expect(getData4.history[0].title).toBe('Another Page');
-
-    // Test date range filter
-    const getResp5 = await makeRequest('/?clientId=' + clientId + '&startDate=' + (baseTime - 2500) + '&endDate=' + (baseTime - 500));
-    expect(getResp5.status).toBe(200);
-    const getData5 = await getResp5.json();
-    expect(getData5.history.length).toBe(2);
-
     // Test combined filters
-    const getResp6 = await makeRequest('/?clientId=' + clientId + '&platform=Windows&browser=Chrome&searchQuery=test');
+    const getResp6 = await makeRequest('/?clientId=' + clientId + '&platform=Windows&browser=Chrome');
     expect(getResp6.status).toBe(200);
     const getData6 = await getResp6.json();
     expect(getData6.history.length).toBe(1);
-    expect(getData6.history[0].title).toBe('Test Page 1');
+    expect(getData6.history[0].encryptedData).toBe('encrypted1');
   });
 
   it('requires authentication for admin access', async () => {

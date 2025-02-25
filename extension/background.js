@@ -73,9 +73,16 @@ async function syncHistory(forceFullSync = false) {
     const systemInfo = await getSystemInfo();
     const now = Date.now();
 
-    // Get stored lastSync time
+    // Initialize HistoryStore
+    const historyStore = new HistoryStore();
+    await historyStore.init();
+
+    // Get stored lastSync time from both sources
     const stored = await chrome.storage.local.get(['lastSync']);
-    const storedLastSync = stored.lastSync || 0;
+    const idbLastSync = await historyStore.getLastSyncTime();
+    
+    // Use the most recent sync time
+    const storedLastSync = Math.max(stored.lastSync || 0, idbLastSync || 0);
 
     // Use stored lastSync time unless forcing full sync
     const startTime = forceFullSync ? 0 : storedLastSync;
@@ -153,11 +160,11 @@ async function syncHistory(forceFullSync = false) {
     // Get the latest visit time from our synced data
     const latestVisitTime = Math.max(...flattenedHistoryData.map(item => item.visitTime));
     
-    // Store lastSync time in storage, but only update if we have a newer time
-    const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
-    if (latestVisitTime > currentLastSync) {
-      await chrome.storage.local.set({ lastSync: latestVisitTime });
-    }
+    // Store lastSync time in both storage locations
+    await Promise.all([
+      chrome.storage.local.set({ lastSync: latestVisitTime }),
+      historyStore.setLastSyncTime(latestVisitTime)
+    ]);
 
     try {
       // Only send message if there are active listeners
@@ -176,6 +183,18 @@ async function syncHistory(forceFullSync = false) {
     return;
   }
 }
+
+// Handle extension installation/update
+chrome.runtime.onInstalled.addListener(async () => {
+  const historyStore = new HistoryStore();
+  await historyStore.init();
+  
+  // Migrate any existing lastSync time from local storage to IndexedDB
+  const stored = await chrome.storage.local.get(['lastSync']);
+  if (stored.lastSync) {
+    await historyStore.setLastSyncTime(stored.lastSync);
+  }
+});
 
 // Initial sync with full history
 syncHistory(true);

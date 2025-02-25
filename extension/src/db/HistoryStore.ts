@@ -3,6 +3,7 @@ import { HistoryEntry } from '../types';
 export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly STORE_NAME = 'history';
+  private readonly METADATA_STORE = 'metadata';
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -30,6 +31,10 @@ export class HistoryStore {
           store.createIndex('syncStatus', 'syncStatus');
           store.createIndex('url', 'url');
           console.log('Created history store with indexes');
+        }
+        if (!db.objectStoreNames.contains(this.METADATA_STORE)) {
+          db.createObjectStore(this.METADATA_STORE, { keyPath: 'key' });
+          console.log('Created metadata store');
         }
       };
     });
@@ -111,6 +116,35 @@ export class HistoryStore {
         console.log('Retrieved entries:', request.result);
         resolve(request.result || []);
       };
+    });
+  }
+
+  async setLastSyncTime(time: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.METADATA_STORE], 'readwrite');
+      const store = transaction.objectStore(this.METADATA_STORE);
+      const request = store.put({
+        key: 'lastSync',
+        value: time
+      });
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  async getLastSyncTime(): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.METADATA_STORE], 'readonly');
+      const store = transaction.objectStore(this.METADATA_STORE);
+      const request = store.get('lastSync');
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result?.value || 0);
     });
   }
 }

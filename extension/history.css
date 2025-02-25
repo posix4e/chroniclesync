@@ -11,12 +11,31 @@
   margin-bottom: 16px;
 }
 
+.history-filters {
+  margin-bottom: 16px;
+}
+
 .history-search {
   width: 100%;
   padding: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.platform-filter,
+.browser-filter {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
 }
 
 .history-list {

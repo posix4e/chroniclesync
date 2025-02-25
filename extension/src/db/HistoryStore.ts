@@ -1,4 +1,4 @@
-import { HistoryEntry, EncryptedHistoryEntry } from '../types';
+import { HistoryEntry } from '../types';
 import { EncryptionService } from '../services/EncryptionService';
 import { Settings } from '../settings/Settings';
 
@@ -65,7 +65,7 @@ export class HistoryStore {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
 
-      const encryptedEntry: EncryptedHistoryEntry = {
+      const encryptedEntry: HistoryEntry = {
         visitId: entry.visitId,
         encryptedData: ciphertext,
         iv,

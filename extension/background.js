@@ -153,10 +153,12 @@ async function syncHistory(forceFullSync = false) {
     // Get the latest visit time from our synced data
     const latestVisitTime = Math.max(...flattenedHistoryData.map(item => item.visitTime));
     
-    // Store lastSync time in storage, but only update if we have a newer time
+    // Store lastSync time in both local and sync storage, but only update if we have a newer time
     const currentLastSync = (await chrome.storage.local.get(['lastSync'])).lastSync || 0;
     if (latestVisitTime > currentLastSync) {
+      const lastSyncDate = new Date(latestVisitTime).toLocaleString();
       await chrome.storage.local.set({ lastSync: latestVisitTime });
+      await chrome.storage.sync.set({ lastSync: lastSyncDate });
     }
 
     try {
@@ -223,7 +225,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Send success response and notify popup about sync completion
         sendResponse({ success: true, message: 'Sync successful' });
         try {
-          chrome.runtime.sendMessage({ type: 'syncComplete', success: true }).catch(() => {
+          const lastSyncDate = new Date().toLocaleString();
+          chrome.storage.sync.set({ lastSync: lastSyncDate });
+          chrome.runtime.sendMessage({ type: 'syncComplete', success: true, lastSync: lastSyncDate }).catch(() => {
             // Ignore error when no receivers are present
           });
         } catch {

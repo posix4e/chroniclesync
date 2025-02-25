@@ -1,21 +1,36 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+import { EncryptionService } from './services/Encryption';
+import { HistoryStore } from './db/HistoryStore';
+
+const DEFAULT_SEED = 'chroniclesync-default-seed'; // TODO: Get from settings
 
 export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
+  private encryptionService: EncryptionService;
+  private historyStore: HistoryStore;
 
   constructor() {
     this.settings = new Settings();
+    this.encryptionService = new EncryptionService();
+    this.historyStore = new HistoryStore(this.encryptionService);
     this.historySync = new HistorySync(this.settings);
   }
 
   async init(): Promise<void> {
-    await this.settings.init();
-    await this.historySync.init();
-    await this.historySync.startSync();
+    try {
+      await this.settings.init();
+      await this.historyStore.initializeEncryption(DEFAULT_SEED);
+      await this.historyStore.init();
+      await this.historySync.init();
+      await this.historySync.startSync();
 
-    this.setupMessageListeners();
+      this.setupMessageListeners();
+    } catch (error) {
+      console.error('Failed to initialize background service:', error);
+      throw error;
+    }
   }
 
   private setupMessageListeners(): void {
@@ -45,7 +60,7 @@ export class BackgroundService {
         const asyncOperation = async () => {
           try {
             if (request.type === 'getHistory') {
-              const history = await this.historySync.getHistory(request.limit);
+              const history = await this.historyStore.getEntries(request.limit);
               console.log('Sending history:', history);
               sendResponse(history || []);
             } else if (request.type === 'startSync') {

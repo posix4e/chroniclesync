@@ -11,16 +11,24 @@ export class HistorySync {
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-  constructor(settings: Settings) {
+  constructor(settings: Settings, store?: HistoryStore) {
     this.settings = settings;
-    const encryptionService = new EncryptionService();
-    this.store = new HistoryStore(encryptionService);
-    this.syncService = new SyncService(settings, encryptionService);
+    if (store) {
+      this.store = store;
+      const encryptionService = new EncryptionService();
+      this.syncService = new SyncService(settings, encryptionService);
+    } else {
+      const encryptionService = new EncryptionService();
+      this.store = new HistoryStore(encryptionService);
+      this.syncService = new SyncService(settings, encryptionService);
+    }
   }
 
   async init(): Promise<void> {
     try {
-      await this.store.initializeEncryption('chroniclesync-default-seed'); // TODO: Get from settings
+      if (!this.store) {
+        throw new Error('HistoryStore not initialized');
+      }
       await this.store.init();
       this.setupHistoryListener();
     } catch (error) {
@@ -142,7 +150,7 @@ export class HistorySync {
       await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));
 
       console.log('Successfully synced entries:', entries.length);
     } catch (error) {

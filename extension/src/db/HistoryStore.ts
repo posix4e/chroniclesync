@@ -79,38 +79,33 @@ export class HistoryStore {
   async getUnsyncedEntries(): Promise<HistoryEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
       const index = store.index('syncStatus');
       const request = index.getAll('pending');
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = async () => {
-        try {
-          const encryptedEntries: EncryptedHistoryEntry[] = request.result;
-          const decryptedEntries = await Promise.all(
-            encryptedEntries.map(async (entry) => {
-              const { url, title } = await this.encryptionService.decryptHistoryItem(
-                entry.encryptedUrl,
-                entry.encryptedTitle
-              );
-              
-              return {
-                visitId: entry.visitId,
-                url,
-                title,
-                visitTime: entry.visitTime,
-                platform: entry.platform,
-                browserName: entry.browserName,
-                syncStatus: entry.syncStatus
-              } as HistoryEntry;
-            })
-          );
-          resolve(decryptedEntries);
-        } catch (error) {
-          reject(error);
-        }
+      request.onsuccess = () => {
+        const encryptedEntries: EncryptedHistoryEntry[] = request.result;
+        Promise.all(
+          encryptedEntries.map(async (entry) => {
+            const { url, title } = await this.encryptionService.decryptHistoryItem(
+              entry.encryptedUrl,
+              entry.encryptedTitle
+            );
+            
+            return {
+              visitId: entry.visitId,
+              url,
+              title,
+              visitTime: entry.visitTime,
+              platform: entry.platform,
+              browserName: entry.browserName,
+              syncStatus: entry.syncStatus
+            } as HistoryEntry;
+          })
+        ).then(resolve).catch(reject);
       };
     });
   }
@@ -144,7 +139,7 @@ export class HistoryStore {
       throw new Error('Database not initialized');
     }
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       console.log('Getting history entries...');
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
@@ -156,33 +151,32 @@ export class HistoryStore {
         reject(request.error);
       };
       
-      request.onsuccess = async () => {
-        try {
-          const encryptedEntries: EncryptedHistoryEntry[] = request.result || [];
-          const decryptedEntries = await Promise.all(
-            encryptedEntries.map(async (entry) => {
-              const { url, title } = await this.encryptionService.decryptHistoryItem(
-                entry.encryptedUrl,
-                entry.encryptedTitle
-              );
-              
-              return {
-                visitId: entry.visitId,
-                url,
-                title,
-                visitTime: entry.visitTime,
-                platform: entry.platform,
-                browserName: entry.browserName,
-                syncStatus: entry.syncStatus
-              } as HistoryEntry;
-            })
-          );
+      request.onsuccess = () => {
+        const encryptedEntries: EncryptedHistoryEntry[] = request.result || [];
+        Promise.all(
+          encryptedEntries.map(async (entry) => {
+            const { url, title } = await this.encryptionService.decryptHistoryItem(
+              entry.encryptedUrl,
+              entry.encryptedTitle
+            );
+            
+            return {
+              visitId: entry.visitId,
+              url,
+              title,
+              visitTime: entry.visitTime,
+              platform: entry.platform,
+              browserName: entry.browserName,
+              syncStatus: entry.syncStatus
+            } as HistoryEntry;
+          })
+        ).then(decryptedEntries => {
           console.log('Retrieved and decrypted entries:', decryptedEntries.length);
           resolve(decryptedEntries);
-        } catch (error) {
+        }).catch(error => {
           console.error('Error decrypting entries:', error);
           reject(error);
-        }
+        });
       };
     });
   }

@@ -20,7 +20,7 @@ export class HistorySync {
 
   async init(): Promise<void> {
     try {
-      await (this.store as HistoryStore & { encryptionService: EncryptionService }).encryptionService.initializeFromSeed('chroniclesync-default-seed'); // TODO: Get from settings
+      await this.store.initializeEncryption('chroniclesync-default-seed'); // TODO: Get from settings
       await this.store.init();
       this.setupHistoryListener();
     } catch (error) {

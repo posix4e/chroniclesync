@@ -32,9 +32,8 @@ const HistoryView: React.FC = () => {
   const loadHistory = async () => {
     try {
       const encryptionService = new EncryptionService();
-      await encryptionService.initializeFromSeed(DEFAULT_SEED);
-      
       const historyStore = new HistoryStore(encryptionService);
+      await historyStore.initializeEncryption(DEFAULT_SEED);
       await historyStore.init();
       const items = await historyStore.getEntries();
       setHistory(items.sort((a, b) => b.visitTime - a.visitTime));

@@ -12,6 +12,10 @@ export class HistoryStore {
     this.encryptionService = encryptionService;
   }
 
+  async initializeEncryption(seed: string): Promise<void> {
+    await this.encryptionService.initializeFromSeed(seed);
+  }
+
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
       console.log('Initializing IndexedDB...');

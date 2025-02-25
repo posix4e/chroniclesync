@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import '../popup.css';
+import { AITextProcessor } from './components/AITextProcessor';
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [textToSummarize, setTextToSummarize] = useState('');
   const openHistory = () => {
     chrome.windows.create({
       url: chrome.runtime.getURL('history.html'),
@@ -20,9 +22,16 @@ export function App() {
     const initializePopup = async () => {
       try {
         // Load settings from storage
-        const result = await new Promise<{ clientId?: string; initialized?: boolean; lastSync?: string }>(resolve => {
+        const result = await new Promise<{ clientId?: string; initialized?: boolean; lastSync?: string; textToSummarize?: string }>(resolve => {
           chrome.storage.sync.get(['clientId', 'initialized', 'lastSync'], items => {
-            resolve(items as { clientId?: string; initialized?: boolean; lastSync?: string });
+            resolve(items as { clientId?: string; initialized?: boolean; lastSync?: string; textToSummarize?: string });
+          });
+        });
+
+        // Also get the text to summarize from local storage
+        const localResult = await new Promise<{ textToSummarize?: string }>(resolve => {
+          chrome.storage.local.get(['textToSummarize'], items => {
+            resolve(items as { textToSummarize?: string });
           });
         });
 
@@ -35,6 +44,10 @@ export function App() {
         if (result.lastSync) {
           const lastSyncDate = new Date(result.lastSync);
           setLastSync(lastSyncDate.toLocaleString());
+        }
+
+        if (localResult.textToSummarize) {
+          setTextToSummarize(localResult.textToSummarize);
         }
 
       } catch (error) {
@@ -122,6 +135,42 @@ export function App() {
       <div className="action-buttons">
         <button type="button" onClick={openHistory}>View History</button>
         <button type="button" onClick={openSettings}>Settings</button>
+      </div>
+
+      <div className="summarization-section">
+        <h2>Text Summarization</h2>
+        <button
+          type="button"
+          onClick={async () => {
+            // Get the active tab's text content
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab.id) {
+              chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                  // Get all text content from the page
+                  return document.body.innerText;
+                }
+              }, (results) => {
+                if (chrome.runtime.lastError) {
+                  console.error(chrome.runtime.lastError);
+                  return;
+                }
+                if (results && results[0]) {
+                  const text = results[0].result;
+                  // Store the text in chrome.storage for the summary component to access
+                  chrome.storage.local.set({ textToSummarize: text });
+                }
+              });
+            }
+          }}
+        >
+          Summarize Current Page
+        </button>
+        <AITextProcessor 
+          text={textToSummarize}
+          mode="summarize"
+        />
       </div>
     </div>
   );

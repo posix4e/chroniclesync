@@ -50,5 +50,8 @@
     "typescript": "^5.0.2",
     "vite": "^5.0.12",
     "vitest": "^3.0.4"
+  },
+  "dependencies": {
+    "translate": "^3.0.1"
   }
 }

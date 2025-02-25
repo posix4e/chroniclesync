@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
+import translate from 'translate';
 
 const ITEMS_PER_PAGE = 10;
 
 import { HistoryEntry } from './types';
+
+// Configure translate defaults
+const translateConfig = { engine: 'google', from: 'auto' };
 
 interface FilterOptions {
   platform: string;
@@ -20,6 +24,10 @@ const HistoryView: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({ platform: '', browserName: '' });
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableBrowsers, setAvailableBrowsers] = useState<string[]>([]);
+  const [translatedItems, setTranslatedItems] = useState<Record<string, string>>({});
+  const [summarizedItems, setSummarizedItems] = useState<Record<string, string>>({});
+  const [isTranslating, setIsTranslating] = useState<Record<string, boolean>>({});
+  const [isSummarizing, setIsSummarizing] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadHistory();
@@ -82,6 +90,31 @@ const HistoryView: React.FC = () => {
     chrome.tabs.create({ url });
   };
 
+  const handleTranslate = async (visitId: string, text: string, targetLang: string = 'en') => {
+    try {
+      setIsTranslating(prev => ({ ...prev, [visitId]: true }));
+      const translated = await translate(text, { ...translateConfig, to: targetLang });
+      setTranslatedItems(prev => ({ ...prev, [visitId]: translated }));
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(prev => ({ ...prev, [visitId]: false }));
+    }
+  };
+
+  const handleSummarize = async (visitId: string, text: string) => {
+    try {
+      setIsSummarizing(prev => ({ ...prev, [visitId]: true }));
+      const summary = await translate(text, { ...translateConfig, to: 'en' });
+      const summarized = await translate(`Summarize this text in 2-3 sentences: ${summary}`, { ...translateConfig, to: 'en' });
+      setSummarizedItems(prev => ({ ...prev, [visitId]: summarized }));
+    } catch (error) {
+      console.error('Summarization error:', error);
+    } finally {
+      setIsSummarizing(prev => ({ ...prev, [visitId]: false }));
+    }
+  };
+
   return (
     <div className="history-container">
       <div className="history-header">
@@ -123,18 +156,51 @@ const HistoryView: React.FC = () => {
           <div
             key={item.visitId}
             className="history-item"
-            onClick={() => handleItemClick(item.url)}
           >
-            <div>{item.title}</div>
-            <div style={{ fontSize: '0.8em', color: '#666' }}>
-              {item.url}
-              <br />
-              {new Date(item.visitTime).toLocaleString()}
-              <br />
-              <span style={{ color: '#888' }}>
-                {item.platform} • {item.browserName}
-              </span>
+            <div onClick={() => handleItemClick(item.url)} style={{ cursor: 'pointer' }}>
+              <div>{item.title}</div>
+              <div style={{ fontSize: '0.8em', color: '#666' }}>
+                {item.url}
+                <br />
+                {new Date(item.visitTime).toLocaleString()}
+                <br />
+                <span style={{ color: '#888' }}>
+                  {item.platform} • {item.browserName}
+                </span>
+              </div>
             </div>
+            <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTranslate(item.visitId, item.title);
+                }}
+                disabled={isTranslating[item.visitId]}
+                style={{ fontSize: '0.8em', padding: '4px 8px' }}
+              >
+                {isTranslating[item.visitId] ? 'Translating...' : 'Translate'}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSummarize(item.visitId, item.title);
+                }}
+                disabled={isSummarizing[item.visitId]}
+                style={{ fontSize: '0.8em', padding: '4px 8px' }}
+              >
+                {isSummarizing[item.visitId] ? 'Summarizing...' : 'Summarize'}
+              </button>
+            </div>
+            {translatedItems[item.visitId] && (
+              <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#2c5282', padding: '8px', backgroundColor: '#ebf8ff', borderRadius: '4px' }}>
+                <strong>Translation:</strong> {translatedItems[item.visitId]}
+              </div>
+            )}
+            {summarizedItems[item.visitId] && (
+              <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#2c5282', padding: '8px', backgroundColor: '#f0fff4', borderRadius: '4px' }}>
+                <strong>Summary:</strong> {summarizedItems[item.visitId]}
+              </div>
+            )}
           </div>
         ))}
       </div>

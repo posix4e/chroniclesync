@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BackgroundService } from '../src/background';
+import { mockIndexedDB } from './mocks/indexedDB';
+
+// Mock indexedDB
+global.indexedDB = mockIndexedDB;
 
 // Mock chrome API
 const mockChrome = {
@@ -30,6 +34,32 @@ global.chrome = mockChrome as unknown as typeof chrome;
 vi.mock('../src/settings/Settings', () => ({
   Settings: vi.fn().mockImplementation(() => ({
     init: vi.fn().mockResolvedValue(undefined)
+  }))
+}));
+
+// Mock HistoryStore class
+vi.mock('../src/db/HistoryStore', () => ({
+  HistoryStore: vi.fn().mockImplementation(() => ({
+    init: vi.fn().mockResolvedValue(undefined),
+    initializeEncryption: vi.fn().mockResolvedValue(undefined),
+    getEntries: vi.fn().mockResolvedValue([]),
+    addEntry: vi.fn().mockResolvedValue(undefined),
+    getUnsyncedEntries: vi.fn().mockResolvedValue([]),
+    markAsSynced: vi.fn().mockResolvedValue(undefined)
+  }))
+}));
+
+// Mock EncryptionService class
+vi.mock('../src/services/Encryption', () => ({
+  EncryptionService: vi.fn().mockImplementation(() => ({
+    initializeFromSeed: vi.fn().mockResolvedValue(undefined),
+    encrypt: vi.fn().mockResolvedValue({ ciphertext: 'test', iv: 'test', tag: 'test' }),
+    decrypt: vi.fn().mockResolvedValue('test'),
+    encryptHistoryItem: vi.fn().mockResolvedValue({
+      encryptedUrl: { ciphertext: 'test', iv: 'test', tag: 'test' },
+      encryptedTitle: { ciphertext: 'test', iv: 'test', tag: 'test' }
+    }),
+    decryptHistoryItem: vi.fn().mockResolvedValue({ url: 'test', title: 'test' })
   }))
 }));
 

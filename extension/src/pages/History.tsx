@@ -53,14 +53,14 @@ const History: React.FC = () => {
   const getTimeFilterValue = (): number | undefined => {
     const now = Date.now();
     switch (timeFilter) {
-      case 'day':
-        return now - 24 * 60 * 60 * 1000;
-      case 'week':
-        return now - 7 * 24 * 60 * 60 * 1000;
-      case 'month':
-        return now - 30 * 24 * 60 * 60 * 1000;
-      default:
-        return undefined;
+    case 'day':
+      return now - 24 * 60 * 60 * 1000;
+    case 'week':
+      return now - 7 * 24 * 60 * 60 * 1000;
+    case 'month':
+      return now - 30 * 24 * 60 * 60 * 1000;
+    default:
+      return undefined;
     }
   };
 

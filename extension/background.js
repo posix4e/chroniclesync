@@ -189,7 +189,7 @@ async function syncHistory(forceFullSync = false) {
     }
 
     // eslint-disable-next-line no-console
-    console.debug(`Successfully completed sync`);
+    console.debug('Successfully completed sync');
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error syncing history:', error);

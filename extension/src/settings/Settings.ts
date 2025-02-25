@@ -110,7 +110,7 @@ export class Settings {
     }
   }
 
-  private render(): void {
+  private async render(): Promise<void> {
     if (!this.config) return;
 
     const mnemonicInput = document.getElementById('mnemonic') as HTMLTextAreaElement;
@@ -129,7 +129,11 @@ export class Settings {
     selectedModel.value = this.config.selectedModel || this.DEFAULT_SETTINGS.selectedModel;
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
-  }
+
+    // Load models if API key is available
+    if (this.config.openRouterApiKey) {
+      await this.updateModelList();
+    }
 
   private setupEventListeners(): void {
     document.getElementById('saveSettings')?.addEventListener('click', (e) => this.handleSave(e));
@@ -138,6 +142,22 @@ export class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+
+    // OpenRouter event listeners
+    const openRouterApiKey = document.getElementById('openRouterApiKey');
+    const selectedModel = document.getElementById('selectedModel');
+    
+    if (openRouterApiKey) {
+      let debounceTimer: number;
+      openRouterApiKey.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(() => this.updateModelList(), 500);
+      });
+    }
+    
+    if (selectedModel) {
+      selectedModel.addEventListener('change', () => this.updateModelInfo());
+    }
   }
 
   private async handleMnemonicInput(): Promise<void> {
@@ -260,5 +280,90 @@ export class Settings {
   async getSelectedModel(): Promise<string> {
     if (!this.config) throw new Error('Settings not initialized');
     return this.config.selectedModel;
+  }
+
+  async fetchModels(): Promise<any[]> {
+    if (!this.config?.openRouterApiKey) return [];
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${this.config.openRouterApiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': chrome.runtime.getURL(''),
+          'X-Title': 'ChronicleSync'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      this.showMessage('Failed to fetch models: ' + (error instanceof Error ? error.message : String(error)), 'error');
+      return [];
+    }
+  }
+
+  async updateModelList(): Promise<void> {
+    const models = await this.fetchModels();
+    const modelSelect = document.getElementById('selectedModel') as HTMLSelectElement;
+    const modelInfo = document.getElementById('modelInfo') as HTMLDivElement;
+    
+    if (!modelSelect || !modelInfo) return;
+
+    // Clear existing options
+    modelSelect.innerHTML = '';
+    
+    if (models.length === 0) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = this.config?.openRouterApiKey ? 'Failed to load models' : 'Enter API key to load models';
+      modelSelect.appendChild(option);
+      modelInfo.style.display = 'none';
+      return;
+    }
+
+    // Add options for each model
+    models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = model.name;
+      option.dataset.description = model.description;
+      option.dataset.contextLength = model.context_length;
+      option.dataset.pricing = `${model.pricing.prompt.toFixed(6)}/${model.pricing.completion.toFixed(6)} per token`;
+      modelSelect.appendChild(option);
+    });
+
+    // Set the previously selected model if it exists
+    if (this.config?.selectedModel) {
+      modelSelect.value = this.config.selectedModel;
+    }
+
+    this.updateModelInfo();
+  }
+
+  private updateModelInfo(): void {
+    const modelSelect = document.getElementById('selectedModel') as HTMLSelectElement;
+    const modelInfo = document.getElementById('modelInfo') as HTMLDivElement;
+    const description = modelInfo.querySelector('.model-description') as HTMLParagraphElement;
+    const contextLength = modelInfo.querySelector('.context-length') as HTMLSpanElement;
+    const pricing = modelInfo.querySelector('.pricing') as HTMLSpanElement;
+
+    if (!modelSelect || !modelInfo || !description || !contextLength || !pricing) return;
+
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      modelInfo.style.display = 'none';
+      return;
+    }
+
+    description.textContent = selectedOption.dataset.description || '';
+    contextLength.textContent = `Context: ${selectedOption.dataset.contextLength || '0'} tokens`;
+    pricing.textContent = `Price: ${selectedOption.dataset.pricing || '0/0 per token'}`;
+    modelInfo.style.display = 'block';
   }
 }

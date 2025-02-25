@@ -90,7 +90,7 @@ export class HistoryStore {
     });
   }
 
-  async getEntries(limit = 100): Promise<HistoryEntry[]> {
+  async getEntries(): Promise<HistoryEntry[]> {
     if (!this.db) {
       console.error('Database not initialized');
       throw new Error('Database not initialized');
@@ -101,7 +101,7 @@ export class HistoryStore {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = transaction.objectStore(this.STORE_NAME);
       const index = store.index('visitTime');
-      const request = index.getAll(null, limit);
+      const request = index.getAll();
 
       request.onerror = () => {
         console.error('Error getting entries:', request.error);

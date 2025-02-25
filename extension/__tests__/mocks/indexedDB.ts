@@ -1,55 +1,85 @@
-class MockIDBRequest {
-  result: any = null;
-  error: Error | null = null;
-  source: any = null;
-  transaction: any = null;
-  readyState: string = 'pending';
-  onerror: ((this: IDBRequest, ev: Event) => any) | null = null;
-  onsuccess: ((this: IDBRequest, ev: Event) => any) | null = null;
-  onupgradeneeded: ((this: IDBRequest, ev: Event) => any) | null = null;
+interface IDBEventTarget {
+  addEventListener(type: string, listener: EventListener): void;
+  removeEventListener(type: string, listener: EventListener): void;
+}
 
-  dispatchEvent(event: { type: string }) {
-    if (event.type === 'error' && this.onerror) {
-      this.onerror(new Event('error'));
-    } else if (event.type === 'success' && this.onsuccess) {
-      this.onsuccess(new Event('success'));
-    } else if (event.type === 'upgradeneeded' && this.onupgradeneeded) {
-      this.onupgradeneeded(new Event('upgradeneeded'));
+class MockIDBRequest implements IDBEventTarget {
+  result: unknown = null;
+  error: Error | null = null;
+  source: unknown = null;
+  transaction: unknown = null;
+  readyState: 'pending' | 'done' = 'pending';
+  onerror: ((this: IDBRequest, ev: Event) => void) | null = null;
+  onsuccess: ((this: IDBRequest, ev: Event) => void) | null = null;
+  onupgradeneeded: ((this: IDBRequest, ev: Event) => void) | null = null;
+  onblocked: ((this: IDBRequest, ev: Event) => void) | null = null;
+
+  private listeners: Map<string, Set<EventListener>> = new Map();
+
+  addEventListener(type: string, listener: EventListener): void {
+    if (!this.listeners.has(type)) {
+      this.listeners.set(type, new Set());
     }
+    this.listeners.get(type)?.add(listener);
+  }
+
+  removeEventListener(type: string, listener: EventListener): void {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  dispatchEvent(event: Event): void {
+    if (event.type === 'error' && this.onerror) {
+      this.onerror.call(this as unknown as IDBRequest, event);
+    } else if (event.type === 'success' && this.onsuccess) {
+      this.onsuccess.call(this as unknown as IDBRequest, event);
+    } else if (event.type === 'upgradeneeded' && this.onupgradeneeded) {
+      this.onupgradeneeded.call(this as unknown as IDBRequest, event);
+    } else if (event.type === 'blocked' && this.onblocked) {
+      this.onblocked.call(this as unknown as IDBRequest, event);
+    }
+
+    this.listeners.get(event.type)?.forEach(listener => listener(event));
   }
 }
 
+interface StoredData {
+  visitId: string;
+  [key: string]: unknown;
+}
+
 class MockIDBObjectStore {
-  private data: Map<string, any> = new Map();
+  private data: Map<string, StoredData> = new Map();
   name: string;
 
   constructor(name: string) {
     this.name = name;
   }
 
-  put(value: any): MockIDBRequest {
+  put(value: StoredData): MockIDBRequest {
     const request = new MockIDBRequest();
     this.data.set(value.visitId, value);
     request.result = value.visitId;
-    setTimeout(() => request.dispatchEvent({ type: 'success' }), 0);
+    setTimeout(() => request.dispatchEvent(new Event('success')), 0);
     return request;
   }
 
   get(key: string): MockIDBRequest {
     const request = new MockIDBRequest();
     request.result = this.data.get(key) || null;
-    setTimeout(() => request.dispatchEvent({ type: 'success' }), 0);
+    setTimeout(() => request.dispatchEvent(new Event('success')), 0);
     return request;
   }
 
   getAll(): MockIDBRequest {
     const request = new MockIDBRequest();
     request.result = Array.from(this.data.values());
-    setTimeout(() => request.dispatchEvent({ type: 'success' }), 0);
+    setTimeout(() => request.dispatchEvent(new Event('success')), 0);
     return request;
   }
 
-  createIndex(name: string, keyPath: string): void {}
+  createIndex(_indexName: string, _keyPath: string): void {
+    // Index creation is not needed for the mock
+  }
 }
 
 class MockIDBTransaction {
@@ -60,7 +90,11 @@ class MockIDBTransaction {
   }
 
   objectStore(name: string): MockIDBObjectStore {
-    return this.stores.get(name)!;
+    const store = this.stores.get(name);
+    if (!store) {
+      throw new Error(`Store ${name} not found`);
+    }
+    return store;
   }
 }
 
@@ -76,7 +110,7 @@ class MockIDBDatabase {
     return store;
   }
 
-  transaction(storeNames: string[]): MockIDBTransaction {
+  transaction(_storeNames: string[]): MockIDBTransaction {
     return new MockIDBTransaction(this.stores);
   }
 
@@ -85,14 +119,37 @@ class MockIDBDatabase {
   }
 }
 
-export const mockIndexedDB = {
-  open: (name: string, version?: number): MockIDBRequest => {
+class MockIDBFactoryImpl {
+  private dbs = new Map<string, MockIDBDatabase>();
+
+  open(_name: string, _version?: number): IDBOpenDBRequest {
     const request = new MockIDBRequest();
-    request.result = new MockIDBDatabase();
+    const db = new MockIDBDatabase();
+    this.dbs.set(_name, db);
+    request.result = db;
     setTimeout(() => {
-      request.dispatchEvent({ type: 'upgradeneeded' });
-      request.dispatchEvent({ type: 'success' });
+      request.dispatchEvent(new Event('upgradeneeded'));
+      request.dispatchEvent(new Event('success'));
     }, 0);
-    return request;
+    return request as unknown as IDBOpenDBRequest;
   }
-};
+
+  deleteDatabase(_name: string): IDBOpenDBRequest {
+    const request = new MockIDBRequest();
+    this.dbs.delete(_name);
+    setTimeout(() => request.dispatchEvent(new Event('success')), 0);
+    return request as unknown as IDBOpenDBRequest;
+  }
+
+  databases(): Promise<IDBDatabaseInfo[]> {
+    return Promise.resolve(
+      Array.from(this.dbs.keys()).map(name => ({ name, version: 1 }))
+    );
+  }
+
+  cmp(a: unknown, b: unknown): number {
+    return String(a).localeCompare(String(b));
+  }
+}
+
+export const mockIndexedDB = new MockIDBFactoryImpl() as unknown as IDBFactory;

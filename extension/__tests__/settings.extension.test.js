@@ -125,6 +125,44 @@ describe('Settings', () => {
     customUrlContainer.appendChild(customApiUrlInput);
     
     form.appendChild(customUrlContainer);
+
+    // OpenRouter API key input
+    const openRouterApiKey = document.createElement('input');
+    openRouterApiKey.id = 'openRouterApiKey';
+    openRouterApiKey.type = 'password';
+    form.appendChild(openRouterApiKey);
+
+    // Model select
+    const selectedModel = document.createElement('select');
+    selectedModel.id = 'selectedModel';
+    const modelOption = document.createElement('option');
+    modelOption.value = 'anthropic/claude-2';
+    modelOption.textContent = 'Claude 2';
+    selectedModel.appendChild(modelOption);
+    form.appendChild(selectedModel);
+
+    // Model info container
+    const modelInfo = document.createElement('div');
+    modelInfo.id = 'modelInfo';
+    modelInfo.style.display = 'none';
+    
+    const modelDescription = document.createElement('p');
+    modelDescription.className = 'model-description';
+    modelInfo.appendChild(modelDescription);
+
+    const modelStats = document.createElement('div');
+    modelStats.className = 'model-stats';
+    
+    const contextLength = document.createElement('span');
+    contextLength.className = 'context-length';
+    modelStats.appendChild(contextLength);
+
+    const pricing = document.createElement('span');
+    pricing.className = 'pricing';
+    modelStats.appendChild(pricing);
+
+    modelInfo.appendChild(modelStats);
+    form.appendChild(modelInfo);
     mockContainer.appendChild(form);
 
     // Add settings actions container with buttons
@@ -153,7 +191,9 @@ describe('Settings', () => {
         mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'production',
-        customApiUrl: null
+        customApiUrl: null,
+        openRouterApiKey: '',
+        selectedModel: ''
       });
     });
 
@@ -176,7 +216,9 @@ describe('Settings', () => {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      openRouterApiKey: '',
+      selectedModel: 'anthropic/claude-2'
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -197,7 +239,9 @@ describe('Settings', () => {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      openRouterApiKey: 'test-key',
+      selectedModel: 'anthropic/claude-2'
     };
 
     // Mock generateClientId to return the expected client ID
@@ -209,6 +253,8 @@ describe('Settings', () => {
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('environment').value = newConfig.environment;
     document.getElementById('customApiUrl').value = newConfig.customApiUrl;
+    document.getElementById('openRouterApiKey').value = newConfig.openRouterApiKey;
+    document.getElementById('selectedModel').value = newConfig.selectedModel;
 
     const mockEvent = {
       preventDefault: vi.fn()

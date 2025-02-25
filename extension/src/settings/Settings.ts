@@ -90,7 +90,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'openRouterApiKey', 'selectedModel'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }
@@ -118,11 +118,15 @@ export class Settings {
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
+    const openRouterApiKey = document.getElementById('openRouterApiKey') as HTMLInputElement;
+    const selectedModel = document.getElementById('selectedModel') as HTMLSelectElement;
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
     customApiUrlInput.value = this.config.customApiUrl || '';
+    openRouterApiKey.value = this.config.openRouterApiKey || '';
+    selectedModel.value = this.config.selectedModel || this.DEFAULT_SETTINGS.selectedModel;
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
   }
@@ -196,11 +200,16 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    const openRouterApiKey = document.getElementById('openRouterApiKey') as HTMLInputElement;
+    const selectedModel = document.getElementById('selectedModel') as HTMLSelectElement;
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
-      customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
+      openRouterApiKey: openRouterApiKey ? openRouterApiKey.value.trim() : '',
+      selectedModel: selectedModel ? selectedModel.value : this.DEFAULT_SETTINGS.selectedModel
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

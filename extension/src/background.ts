@@ -1,13 +1,16 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+import { OpenRouter } from './services/OpenRouter';
 
 export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
+  private openRouter: OpenRouter;
 
   constructor() {
     this.settings = new Settings();
     this.historySync = new HistorySync(this.settings);
+    this.openRouter = new OpenRouter(this.settings);
   }
 
   async init(): Promise<void> {
@@ -40,7 +43,7 @@ export class BackgroundService {
       }
 
       // Handle asynchronous operations
-      if (request.type === 'getHistory' || request.type === 'startSync') {
+      if (request.type === 'getHistory' || request.type === 'startSync' || request.type === 'summarizeText') {
         // Create a promise to handle the async operation
         const asyncOperation = async () => {
           try {
@@ -51,6 +54,9 @@ export class BackgroundService {
             } else if (request.type === 'startSync') {
               await this.historySync.startSync();
               sendResponse({ success: true });
+            } else if (request.type === 'summarizeText') {
+              const summary = await this.openRouter.summarizeText(request.text);
+              sendResponse({ summary });
             }
           } catch (error) {
             handleError(error);

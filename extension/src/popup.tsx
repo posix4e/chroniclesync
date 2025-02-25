@@ -6,6 +6,7 @@ export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [summary, setSummary] = useState<string>('');
   const openHistory = () => {
     chrome.windows.create({
       url: chrome.runtime.getURL('history.html'),
@@ -96,6 +97,45 @@ export function App() {
     chrome.runtime.openOptionsPage();
   };
 
+  const handleSummarize = async () => {
+    try {
+      // Get the current active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab.id) return;
+
+      // Execute script to get page content
+      const [{result}] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const article = document.querySelector('article');
+          if (article) return article.textContent;
+          return document.body.textContent;
+        }
+      });
+
+      if (!result) {
+        setSummary('No content found to summarize');
+        return;
+      }
+
+      // Send content to background script for summarization
+      chrome.runtime.sendMessage({ 
+        type: 'summarizeText', 
+        text: result 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          setSummary('Error: ' + chrome.runtime.lastError.message);
+        } else if (response.error) {
+          setSummary('Error: ' + response.error);
+        } else {
+          setSummary(response.summary);
+        }
+      });
+    } catch (error) {
+      setSummary('Error: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   return (
     <div className="app">
       <h1>ChronicleSync</h1>
@@ -122,7 +162,14 @@ export function App() {
       <div className="action-buttons">
         <button type="button" onClick={openHistory}>View History</button>
         <button type="button" onClick={openSettings}>Settings</button>
+        <button type="button" onClick={handleSummarize}>Summarize Page</button>
       </div>
+      {summary && (
+        <div className="summary">
+          <h3>Summary</h3>
+          <p>{summary}</p>
+        </div>
+      )}
     </div>
   );
 }

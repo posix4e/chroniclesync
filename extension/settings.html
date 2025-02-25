@@ -38,6 +38,28 @@
             </div>
         </section>
 
+        <section class="settings-section">
+            <h2>OpenRouter Configuration</h2>
+            <div class="setting-item">
+                <label for="openRouterApiKey">OpenRouter API Key:</label>
+                <input type="password" id="openRouterApiKey" placeholder="Enter your OpenRouter API key">
+                <small class="help-text">Get your API key from <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a></small>
+            </div>
+            <div class="setting-item">
+                <label for="selectedModel">Model:</label>
+                <select id="selectedModel" required>
+                    <option value="anthropic/claude-2">Claude 2</option>
+                    <option value="anthropic/claude-instant-v1">Claude Instant</option>
+                    <option value="google/palm-2-chat-bison">PaLM 2 Chat</option>
+                    <option value="meta-llama/llama-2-70b-chat">Llama 2 70B Chat</option>
+                    <option value="mistral-ai/mistral-7b-instruct">Mistral 7B Instruct</option>
+                    <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="openai/gpt-4">GPT-4</option>
+                </select>
+                <small class="help-text">Select the model to use for summarization</small>
+            </div>
+        </section>
+
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>
             <button id="resetSettings" class="reset-settings">Reset to Default</button>

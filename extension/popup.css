@@ -45,3 +45,26 @@ body {
 .action-buttons button:hover {
   background-color: #e0e0e0;
 }
+
+.summary {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.summary h3 {
+  margin: 0 0 10px 0;
+  color: #343a40;
+  font-size: 16px;
+}
+
+.summary p {
+  margin: 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.5;
+}

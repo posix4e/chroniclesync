@@ -3,6 +3,8 @@ interface SettingsConfig {
   clientId: string;
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
+  openRouterApiKey: string;
+  selectedModel: string;
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -17,7 +19,9 @@ export class Settings {
     mnemonic: '',
     clientId: '',
     customApiUrl: null,
-    environment: 'production'
+    environment: 'production',
+    openRouterApiKey: '',
+    selectedModel: 'anthropic/claude-2'
   };
 
   async init(): Promise<void> {
@@ -34,7 +38,9 @@ export class Settings {
       mnemonic: result.mnemonic || this.DEFAULT_SETTINGS.mnemonic,
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
-      environment: result.environment || this.DEFAULT_SETTINGS.environment
+      environment: result.environment || this.DEFAULT_SETTINGS.environment,
+      openRouterApiKey: result.openRouterApiKey || this.DEFAULT_SETTINGS.openRouterApiKey,
+      selectedModel: result.selectedModel || this.DEFAULT_SETTINGS.selectedModel
     };
 
     // Generate initial mnemonic if needed
@@ -235,5 +241,15 @@ export class Settings {
     setTimeout(() => {
       status.remove();
     }, 3000);
+  }
+
+  async getOpenRouterApiKey(): Promise<string> {
+    if (!this.config) throw new Error('Settings not initialized');
+    return this.config.openRouterApiKey;
+  }
+
+  async getSelectedModel(): Promise<string> {
+    if (!this.config) throw new Error('Settings not initialized');
+    return this.config.selectedModel;
   }
 }

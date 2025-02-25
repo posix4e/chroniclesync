@@ -129,7 +129,6 @@ async function syncHistory(forceFullSync = false) {
     }
 
     // Store entries in IndexedDB before syncing
-    const historyStore = new HistoryStore();
     await historyStore.init();
     
     // Store each history entry

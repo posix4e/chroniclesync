@@ -10,10 +10,16 @@
     "page": "settings.html",
     "open_in_tab": true
   },
-  "web_accessible_resources": [{
-    "resources": ["history.html"],
-    "matches": ["<all_urls>"]
-  }],
+  "web_accessible_resources": [
+    {
+      "resources": ["history.html"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["models/*", "tokenizer.json"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

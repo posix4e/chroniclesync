@@ -1,6 +1,6 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
-import { HistoryEntry, EncryptedHistoryEntry } from '../types';
+import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
 import { EncryptionService } from './EncryptionService';
 

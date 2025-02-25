@@ -63,10 +63,11 @@ export class HistorySync {
   private async loadInitialHistory(): Promise<void> {
     console.log('Loading initial history...');
     try {
+      const expirationDays = this.settings.config?.expirationDays || 7;
       const items = await chrome.history.search({
         text: '',
         maxResults: 100,
-        startTime: Date.now() - (30 * 24 * 60 * 60 * 1000) // Last 30 days
+        startTime: Date.now() - (expirationDays * 24 * 60 * 60 * 1000)
       });
 
       console.log('Found initial history items:', items.length);
@@ -116,12 +117,16 @@ export class HistorySync {
   }
 
   private async syncPendingEntries(): Promise<void> {
+    const expirationDays = this.settings.config?.expirationDays || 7;
+    const expirationTime = Date.now() - (expirationDays * 24 * 60 * 60 * 1000);
+    
     const entries = await this.store.getUnsyncedEntries();
-    if (entries.length === 0) return;
+    const validEntries = entries.filter(entry => entry.visitTime >= expirationTime);
+    if (validEntries.length === 0) return;
 
     try {
       // Convert entries to the format expected by the sync service
-      const historyVisits = entries.map(entry => ({
+      const historyVisits = validEntries.map(entry => ({
         visitId: entry.visitId,
         url: entry.url,
         title: entry.title,
@@ -134,9 +139,9 @@ export class HistorySync {
       await this.syncService.syncHistory(historyVisits);
 
       // Mark entries as synced
-      await Promise.all(entries.map(entry => this.store.markAsSynced(entry.url)));
+      await Promise.all(validEntries.map(entry => this.store.markAsSynced(entry.url)));
 
-      console.log('Successfully synced entries:', entries.length);
+      console.log('Successfully synced entries:', validEntries.length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;
@@ -144,6 +149,9 @@ export class HistorySync {
   }
 
   async getHistory(): Promise<HistoryEntry[]> {
-    return this.store.getEntries();
+    const expirationDays = this.settings.config?.expirationDays || 7;
+    const expirationTime = Date.now() - (expirationDays * 24 * 60 * 60 * 1000);
+    const entries = await this.store.getEntries();
+    return entries.filter(entry => entry.visitTime >= expirationTime);
   }
 }

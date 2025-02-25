@@ -36,6 +36,11 @@
                 <input type="url" id="customApiUrl" placeholder="https://your-custom-api.com">
                 <small class="help-text">Only used when Environment is set to Custom</small>
             </div>
+            <div class="setting-item">
+                <label for="expirationDays">History Expiration (Days):</label>
+                <input type="number" id="expirationDays" min="1" placeholder="7" required>
+                <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
+            </div>
         </section>
 
         <div class="settings-actions">

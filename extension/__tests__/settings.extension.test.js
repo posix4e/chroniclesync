@@ -124,6 +124,14 @@ describe('Settings', () => {
     customApiUrlInput.type = 'url';
     customUrlContainer.appendChild(customApiUrlInput);
     
+    // Expiration days input
+    const expirationDaysInput = document.createElement('input');
+    expirationDaysInput.id = 'expirationDays';
+    expirationDaysInput.type = 'number';
+    expirationDaysInput.min = '1';
+    expirationDaysInput.value = '7';
+    form.appendChild(expirationDaysInput);
+    
     form.appendChild(customUrlContainer);
     mockContainer.appendChild(form);
 
@@ -153,7 +161,8 @@ describe('Settings', () => {
         mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'production',
-        customApiUrl: null
+        customApiUrl: null,
+        expirationDays: 7
       });
     });
 
@@ -176,7 +185,8 @@ describe('Settings', () => {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      expirationDays: 7
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -197,7 +207,8 @@ describe('Settings', () => {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      expirationDays: 7
     };
 
     // Mock generateClientId to return the expected client ID

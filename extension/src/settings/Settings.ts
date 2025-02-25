@@ -3,12 +3,13 @@ interface SettingsConfig {
   clientId: string;
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
+  expirationDays: number;
 }
 
 type StorageKeys = keyof SettingsConfig;
 
 export class Settings {
-  private config: SettingsConfig | null = null;
+  config: SettingsConfig | null = null;
   private readonly PROD_API_URL = 'https://api.chroniclesync.xyz';
   private readonly STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
   private bip39WordList: string[] | null = null;
@@ -17,7 +18,8 @@ export class Settings {
     mnemonic: '',
     clientId: '',
     customApiUrl: null,
-    environment: 'production'
+    environment: 'production',
+    expirationDays: 7
   };
 
   async init(): Promise<void> {
@@ -34,7 +36,8 @@ export class Settings {
       mnemonic: result.mnemonic || this.DEFAULT_SETTINGS.mnemonic,
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
-      environment: result.environment || this.DEFAULT_SETTINGS.environment
+      environment: result.environment || this.DEFAULT_SETTINGS.environment,
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
     };
 
     // Generate initial mnemonic if needed
@@ -84,7 +87,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }
@@ -112,11 +115,13 @@ export class Settings {
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
+    const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
     customApiUrlInput.value = this.config.customApiUrl || '';
+    expirationDaysInput.value = this.config.expirationDays.toString();
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
   }
@@ -180,10 +185,17 @@ export class Settings {
     const clientIdInput = document.getElementById('clientId') as HTMLInputElement;
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
+    const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
     const mnemonic = mnemonicInput.value.trim();
     if (!this.validateMnemonic(mnemonic)) {
       this.showMessage('Please enter a valid 24-word mnemonic phrase', 'error');
+      return;
+    }
+
+    const expirationDays = parseInt(expirationDaysInput.value);
+    if (isNaN(expirationDays) || expirationDays < 1) {
+      this.showMessage('Please enter a valid number of days for expiration (minimum 1)', 'error');
       return;
     }
 
@@ -194,7 +206,8 @@ export class Settings {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
-      customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
+      expirationDays
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

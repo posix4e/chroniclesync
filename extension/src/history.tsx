@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
+import { TranslationService } from './services/TranslationService';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -20,6 +21,7 @@ const HistoryView: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({ platform: '', browserName: '' });
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableBrowsers, setAvailableBrowsers] = useState<string[]>([]);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -82,10 +84,32 @@ const HistoryView: React.FC = () => {
     chrome.tabs.create({ url });
   };
 
+  const handleTranslateAll = async () => {
+    setIsTranslating(true);
+    try {
+      const historyStore = new HistoryStore();
+      await historyStore.init();
+      const translationService = new TranslationService(historyStore);
+      await translationService.translateUntranslatedEntries();
+      await loadHistory();
+    } catch (error) {
+      console.error('Error translating history:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <div className="history-container">
       <div className="history-header">
         <h2>Browsing History</h2>
+        <button
+          onClick={handleTranslateAll}
+          disabled={isTranslating}
+          className="translate-button"
+        >
+          {isTranslating ? 'Translating...' : 'Summarize All'}
+        </button>
       </div>
       <div className="history-filters">
         <input
@@ -134,6 +158,22 @@ const HistoryView: React.FC = () => {
               <span style={{ color: '#888' }}>
                 {item.platform} • {item.browserName}
               </span>
+              {item.summary && (
+                <>
+                  <br />
+                  <span style={{ color: '#444', fontStyle: 'italic' }}>
+                    {item.summary}
+                  </span>
+                </>
+              )}
+              {item.translationStatus === 'error' && (
+                <>
+                  <br />
+                  <span style={{ color: '#f44336', fontSize: '0.9em' }}>
+                    Translation error: {item.translationError}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         ))}

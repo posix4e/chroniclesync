@@ -29,6 +29,7 @@ export class HistoryStore {
           store.createIndex('visitTime', 'visitTime');
           store.createIndex('syncStatus', 'syncStatus');
           store.createIndex('url', 'url');
+          store.createIndex('translationStatus', 'translationStatus');
           console.log('Created history store with indexes');
         }
       };
@@ -110,6 +111,71 @@ export class HistoryStore {
       request.onsuccess = () => {
         console.log('Retrieved entries:', request.result);
         resolve(request.result || []);
+      };
+    });
+  }
+
+  async getUntranslatedEntries(): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readonly');
+      const store = transaction.objectStore(this.STORE_NAME);
+      const index = store.index('translationStatus');
+      const request = index.getAll(undefined);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result.filter(entry => !entry.translationStatus || entry.translationStatus === 'error');
+        resolve(entries);
+      };
+    });
+  }
+
+  async updateTranslation(visitId: string, summary: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+      const request = store.get(visitId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.summary = summary;
+          entry.translationStatus = 'completed';
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async markTranslationError(visitId: string, error: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+      const request = store.get(visitId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.translationStatus = 'error';
+          entry.translationError = error;
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
       };
     });
   }

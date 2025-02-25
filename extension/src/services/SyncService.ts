@@ -14,6 +14,9 @@ export interface HistoryVisit {
   visitTime: number;
   platform: string;
   browserName: string;
+  summary?: string;
+  translationStatus?: 'pending' | 'completed' | 'error';
+  translationError?: string;
 }
 
 export interface SyncPayload {

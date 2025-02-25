@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@xenova/transformers": "^2.15.0",
+    "onnxruntime-web": "^1.17.0",
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

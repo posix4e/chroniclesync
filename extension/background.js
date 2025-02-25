@@ -1,6 +1,9 @@
 import { getConfig } from './config.js';
 import { HistoryStore } from './src/db/HistoryStore';
 
+// Initialize the model worker
+const modelWorker = new Worker(new URL('./src/model-worker.js', import.meta.url), { type: 'module' });
+
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // Initialize extension
@@ -121,12 +124,42 @@ async function syncHistory(forceFullSync = false) {
       return;
     }
 
+    // Process history items with the model worker
+    const historyForEmbedding = flattenedHistoryData.map(item => ({
+      id: item.visitId,
+      title: item.title,
+      url: item.url,
+      lastVisitTime: item.visitTime
+    }));
+
+    // Send history items to worker for processing
+    modelWorker.postMessage({
+      type: 'process_history',
+      data: historyForEmbedding
+    });
+
+    // Wait for embeddings
+    const embeddings = await new Promise((resolve, reject) => {
+      modelWorker.onmessage = (event) => {
+        if (event.data.type === 'embeddings_ready') {
+          resolve(event.data.data);
+        } else if (event.data.type === 'error') {
+          reject(new Error(event.data.error));
+        }
+      };
+    });
+
     // Store entries in IndexedDB before syncing
     const historyStore = new HistoryStore();
     await historyStore.init();
     
-    // Store each history entry
-    for (const entry of flattenedHistoryData) {
+    // Store each history entry with its embedding
+    for (let i = 0; i < flattenedHistoryData.length; i++) {
+      const entry = flattenedHistoryData[i];
+      const embedding = embeddings.find(e => e.id === entry.visitId);
+      if (embedding) {
+        entry.embedding = embedding.embedding;
+      }
       await historyStore.addEntry(entry);
     }
 

@@ -45,9 +45,13 @@ export function App() {
     initializePopup();
 
     // Listen for sync updates from background script
-    const messageListener = (message: { type: string; success?: boolean }) => {
+    const messageListener = (message: { type: string; success?: boolean; lastSync?: string }) => {
       if (message.type === 'syncComplete') {
-        setLastSync(new Date().toLocaleString());
+        if (message.lastSync) {
+          setLastSync(message.lastSync);
+        } else {
+          setLastSync(new Date().toLocaleString());
+        }
       }
     };
     chrome.runtime.onMessage.addListener(messageListener);

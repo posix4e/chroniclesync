@@ -4,14 +4,15 @@ import { HistoryStore } from './db/HistoryStore';
 
 const ITEMS_PER_PAGE = 10;
 
-import { HistoryEntry } from './types';
+import { PlainHistoryEntry } from './types';
 
 const HistoryView: React.FC = () => {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<PlainHistoryEntry[]>([]);
+  const [filteredHistory, setFilteredHistory] = useState<PlainHistoryEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [historyStore] = useState(() => new HistoryStore());
 
   useEffect(() => {
     loadHistory();
@@ -28,10 +29,12 @@ const HistoryView: React.FC = () => {
   }, [searchTerm, history]);
 
   const loadHistory = async () => {
-    const historyStore = new HistoryStore();
     await historyStore.init();
-    const items = await historyStore.getEntries();
-    setHistory(items.sort((a, b) => b.visitTime - a.visitTime));
+    const encryptedItems = await historyStore.getEntries();
+    const decryptedItems = await Promise.all(
+      encryptedItems.map(item => historyStore.decryptEntry(item))
+    );
+    setHistory(decryptedItems.sort((a, b) => b.visitTime - a.visitTime));
   };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {

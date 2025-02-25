@@ -79,7 +79,7 @@ export class HistoryStore {
     });
   }
 
-  async getUnsyncedEntries(): Promise<HistoryEntry[]> {
+  async getUnsyncedEntries(): Promise<EncryptedHistoryEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -90,20 +90,7 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        Promise.all(request.result.map((entry: EncryptedHistoryEntry) => 
-          this.encryptionService.decrypt(entry.encryptedData, entry.iv)
-            .then(decryptedData => {
-              const sensitiveData = JSON.parse(decryptedData);
-              return {
-                visitId: entry.visitId,
-                visitTime: entry.visitTime,
-                syncStatus: entry.syncStatus,
-                ...sensitiveData
-              } as PlainHistoryEntry;
-            })
-        ))
-          .then(resolve)
-          .catch(reject);
+        resolve(request.result);
       };
     });
   }
@@ -131,7 +118,7 @@ export class HistoryStore {
     });
   }
 
-  async getEntries(limit = 100): Promise<HistoryEntry[]> {
+  async getEntries(limit = 100): Promise<EncryptedHistoryEntry[]> {
     if (!this.db) {
       console.error('Database not initialized');
       throw new Error('Database not initialized');
@@ -145,21 +132,20 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        Promise.all((request.result || []).map((entry: EncryptedHistoryEntry) => 
-          this.encryptionService.decrypt(entry.encryptedData, entry.iv)
-            .then(decryptedData => {
-              const sensitiveData = JSON.parse(decryptedData);
-              return {
-                visitId: entry.visitId,
-                visitTime: entry.visitTime,
-                syncStatus: entry.syncStatus,
-                ...sensitiveData
-              } as PlainHistoryEntry;
-            })
-        ))
-          .then(resolve)
-          .catch(reject);
+        resolve(request.result || []);
       };
     });
+  }
+
+  async decryptEntry(entry: EncryptedHistoryEntry): Promise<PlainHistoryEntry> {
+    const decryptedData = await this.encryptionService.decrypt(entry.encryptedData, entry.iv);
+    const sensitiveData = JSON.parse(decryptedData);
+    return {
+      visitId: entry.visitId,
+      visitTime: entry.visitTime,
+      syncStatus: entry.syncStatus,
+      ...sensitiveData
+    } as PlainHistoryEntry;
+  }
   }
 }

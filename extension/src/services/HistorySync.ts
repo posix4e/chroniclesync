@@ -124,26 +124,8 @@ export class HistorySync {
     if (entries.length === 0) return;
 
     try {
-      // Convert entries to encrypted format
-      const encryptedEntries = await Promise.all(entries.map(async entry => {
-        const sensitiveData = {
-          url: entry.url,
-          title: entry.title,
-          platform: entry.platform,
-          browserName: entry.browserName
-        };
-
-        const { ciphertext, iv } = await this.encryptionService.encrypt(JSON.stringify(sensitiveData));
-
-        return {
-          ...entry,
-          encryptedData: ciphertext,
-          iv
-        };
-      }));
-
-      // Sync encrypted data with server
-      await this.syncService.syncHistory(encryptedEntries);
+      // Entries are already encrypted from storage
+      await this.syncService.syncHistory(entries);
 
       // Mark entries as synced
       await Promise.all(entries.map(entry => this.store.markAsSynced(entry.visitId)));

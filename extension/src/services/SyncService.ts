@@ -1,4 +1,6 @@
 import { Settings } from '../settings/Settings';
+import { EncryptionService } from './Encryption';
+import { EncryptedHistoryEntry } from '../types/encryption';
 
 export interface DeviceInfo {
   platform: string;
@@ -17,16 +19,18 @@ export interface HistoryVisit {
 }
 
 export interface SyncPayload {
-  history: HistoryVisit[];
+  history: EncryptedHistoryEntry[];
   deviceInfo: DeviceInfo;
 }
 
 export class SyncService {
   private settings: Settings;
   private deviceInfo: DeviceInfo;
+  private encryptionService: EncryptionService;
 
-  constructor(settings: Settings) {
+  constructor(settings: Settings, encryptionService: EncryptionService) {
     this.settings = settings;
+    this.encryptionService = encryptionService;
     this.deviceInfo = this.getDeviceInfo();
   }
 
@@ -36,7 +40,6 @@ export class SyncService {
     let browserName = 'Unknown';
     let browserVersion = 'Unknown';
 
-    // Parse browser name and version
     if (ua.includes('Chrome')) {
       browserName = 'Chrome';
       browserVersion = ua.match(/Chrome\/([0-9.]+)/)?.[1] || 'Unknown';
@@ -67,12 +70,32 @@ export class SyncService {
       throw new Error('Client ID not found');
     }
 
+    // Encrypt history items before syncing
+    const encryptedHistory = await Promise.all(
+      history.map(async (entry) => {
+        const { encryptedUrl, encryptedTitle } = await this.encryptionService.encryptHistoryItem(
+          entry.url,
+          entry.title
+        );
+
+        return {
+          visitId: entry.visitId,
+          encryptedUrl,
+          encryptedTitle,
+          visitTime: entry.visitTime,
+          platform: entry.platform,
+          browserName: entry.browserName,
+          syncStatus: 'pending' as const
+        };
+      })
+    );
+
     const payload: SyncPayload = {
-      history,
+      history: encryptedHistory,
       deviceInfo: this.deviceInfo
     };
 
-    console.log('Syncing history with payload:', payload);
+    console.log('Syncing encrypted history');
 
     const response = await fetch(`${apiUrl}/history/sync?clientId=${clientId}`, {
       method: 'POST',
@@ -89,7 +112,7 @@ export class SyncService {
     }
 
     const result = await response.json();
-    console.log('Sync successful:', result);
+    console.log('Sync successful');
   }
 
   async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {
@@ -116,6 +139,27 @@ export class SyncService {
     }
 
     const result = await response.json();
-    return result.history || [];
+    const encryptedHistory: EncryptedHistoryEntry[] = result.history || [];
+
+    // Decrypt history items
+    const decryptedHistory = await Promise.all(
+      encryptedHistory.map(async (entry) => {
+        const { url, title } = await this.encryptionService.decryptHistoryItem(
+          entry.encryptedUrl,
+          entry.encryptedTitle
+        );
+
+        return {
+          visitId: entry.visitId,
+          url,
+          title,
+          visitTime: entry.visitTime,
+          platform: entry.platform,
+          browserName: entry.browserName
+        };
+      })
+    );
+
+    return decryptedHistory;
   }
 }

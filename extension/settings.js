@@ -5,7 +5,9 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      openRouterApiKey: '',
+      selectedModel: ''
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -51,6 +53,89 @@ class Settings {
       });
   }
 
+  async fetchOpenRouterModels() {
+    const apiKey = document.getElementById('openRouterApiKey')?.value;
+    if (!apiKey) return [];
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': chrome.runtime.getURL(''),
+          'X-Title': 'ChronicleSync'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      this.showMessage('Failed to fetch models: ' + error.message, 'error');
+      return [];
+    }
+  }
+
+  async updateModelList() {
+    const models = await this.fetchOpenRouterModels();
+    const modelSelect = document.getElementById('selectedModel');
+    const modelInfo = document.getElementById('modelInfo');
+    
+    if (!modelSelect || !modelInfo) return;
+
+    // Clear existing options
+    modelSelect.innerHTML = '';
+    
+    if (models.length === 0) {
+      modelSelect.innerHTML = '<option value="">Enter API key to load models</option>';
+      modelInfo.style.display = 'none';
+      return;
+    }
+
+    // Add options for each model
+    models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = model.name;
+      option.dataset.description = model.description;
+      option.dataset.contextLength = model.context_length;
+      option.dataset.pricing = `${model.pricing.prompt.toFixed(6)}/${model.pricing.completion.toFixed(6)} per token`;
+      modelSelect.appendChild(option);
+    });
+
+    // Set the previously selected model if it exists
+    if (this.config.selectedModel) {
+      modelSelect.value = this.config.selectedModel;
+    }
+
+    this.updateModelInfo();
+  }
+
+  updateModelInfo() {
+    const modelSelect = document.getElementById('selectedModel');
+    const modelInfo = document.getElementById('modelInfo');
+    const description = modelInfo.querySelector('.model-description');
+    const contextLength = modelInfo.querySelector('.context-length');
+    const pricing = modelInfo.querySelector('.pricing');
+
+    if (!modelSelect || !modelInfo || !description || !contextLength || !pricing) return;
+
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      modelInfo.style.display = 'none';
+      return;
+    }
+
+    description.textContent = selectedOption.dataset.description;
+    contextLength.textContent = `Context: ${selectedOption.dataset.contextLength} tokens`;
+    pricing.textContent = `Price: ${selectedOption.dataset.pricing}`;
+    modelInfo.style.display = 'block';
+  }
+
   async init() {
     await this.wordListPromise;
 
@@ -72,6 +157,8 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    const openRouterApiKey = document.getElementById('openRouterApiKey');
+    const selectedModel = document.getElementById('selectedModel');
 
     if (mnemonicInput) {
       mnemonicInput.value = '';
@@ -80,6 +167,8 @@ class Settings {
     if (clientIdInput) clientIdInput.value = '';
     if (environmentSelect) environmentSelect.value = this.DEFAULT_SETTINGS.environment;
     if (customApiUrlInput) customApiUrlInput.value = '';
+    if (openRouterApiKey) openRouterApiKey.value = this.config.openRouterApiKey || '';
+    if (selectedModel) selectedModel.value = this.config.selectedModel || '';
     
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
@@ -93,6 +182,8 @@ class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+    document.getElementById('openRouterApiKey')?.addEventListener('input', () => this.updateModelList());
+    document.getElementById('selectedModel')?.addEventListener('change', () => this.updateModelInfo());
   }
 
   async handleMnemonicInput() {
@@ -172,11 +263,16 @@ class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    const openRouterApiKey = document.getElementById('openRouterApiKey');
+    const selectedModel = document.getElementById('selectedModel');
+
     const newConfig = {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      openRouterApiKey: openRouterApiKey ? openRouterApiKey.value.trim() : '',
+      selectedModel: selectedModel ? selectedModel.value : ''
     };
 
     await new Promise(resolve => {

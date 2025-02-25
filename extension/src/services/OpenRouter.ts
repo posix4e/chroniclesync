@@ -9,6 +9,13 @@ interface OpenRouterModel {
     prompt: number;
     completion: number;
   };
+  top_provider?: {
+    max_completion_tokens?: number;
+    max_context_tokens?: number;
+    max_parallel_requests?: number;
+    max_requests_per_min?: number;
+    max_tokens_per_min?: number;
+  };
 }
 
 interface OpenRouterResponse {

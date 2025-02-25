@@ -143,7 +143,7 @@ export class HistorySync {
     }
   }
 
-  async getHistory(limit = 100): Promise<HistoryEntry[]> {
-    return this.store.getEntries(limit);
+  async getHistory(): Promise<HistoryEntry[]> {
+    return this.store.getEntries();
   }
 }

@@ -45,7 +45,7 @@ export class BackgroundService {
         const asyncOperation = async () => {
           try {
             if (request.type === 'getHistory') {
-              const history = await this.historySync.getHistory(request.limit);
+              const history = await this.historySync.getHistory();
               console.log('Sending history:', history);
               sendResponse(history || []);
             } else if (request.type === 'startSync') {

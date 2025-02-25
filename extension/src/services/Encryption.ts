@@ -39,8 +39,9 @@ export class EncryptionService {
         true,
         ['encrypt', 'decrypt']
       );
-    } catch (error) {
-      throw new Error(`Failed to initialize encryption key: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to initialize encryption key: ${message}`);
     }
   }
 
@@ -72,8 +73,9 @@ export class EncryptionService {
         iv: Buffer.from(iv).toString('base64'),
         tag: '', // AES-GCM combines the tag with ciphertext
       };
-    } catch (error) {
-      throw new Error(`Encryption failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Encryption failed: ${message}`);
     }
   }
 
@@ -95,8 +97,9 @@ export class EncryptionService {
 
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
-    } catch (error) {
-      throw new Error(`Decryption failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Decryption failed: ${message}`);
     }
   }
 

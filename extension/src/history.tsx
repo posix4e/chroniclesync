@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HistoryStore } from './db/HistoryStore';
+import { EncryptionService } from './services/Encryption';
 
 const ITEMS_PER_PAGE = 10;
+const DEFAULT_SEED = 'chroniclesync-default-seed'; // TODO: Get from settings
 
 import { HistoryEntry } from './types';
 
@@ -28,10 +30,18 @@ const HistoryView: React.FC = () => {
   }, [searchTerm, history]);
 
   const loadHistory = async () => {
-    const historyStore = new HistoryStore();
-    await historyStore.init();
-    const items = await historyStore.getEntries();
-    setHistory(items.sort((a, b) => b.visitTime - a.visitTime));
+    try {
+      const encryptionService = new EncryptionService();
+      await encryptionService.initializeFromSeed(DEFAULT_SEED);
+      
+      const historyStore = new HistoryStore(encryptionService);
+      await historyStore.init();
+      const items = await historyStore.getEntries();
+      setHistory(items.sort((a, b) => b.visitTime - a.visitTime));
+    } catch (error) {
+      console.error('Failed to load history:', error);
+      // TODO: Show error to user
+    }
   };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {

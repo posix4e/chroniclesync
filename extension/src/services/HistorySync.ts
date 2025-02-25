@@ -2,6 +2,7 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { EncryptionService } from './Encryption';
 
 export class HistorySync {
   private settings: Settings;
@@ -12,13 +13,20 @@ export class HistorySync {
 
   constructor(settings: Settings) {
     this.settings = settings;
-    this.store = new HistoryStore();
-    this.syncService = new SyncService(settings);
+    const encryptionService = new EncryptionService();
+    this.store = new HistoryStore(encryptionService);
+    this.syncService = new SyncService(settings, encryptionService);
   }
 
   async init(): Promise<void> {
-    await this.store.init();
-    this.setupHistoryListener();
+    try {
+      await (this.store as any).encryptionService.initializeFromSeed('chroniclesync-default-seed'); // TODO: Get from settings
+      await this.store.init();
+      this.setupHistoryListener();
+    } catch (error) {
+      console.error('Failed to initialize HistorySync:', error);
+      throw error;
+    }
   }
 
   private setupHistoryListener(): void {

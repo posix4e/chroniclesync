@@ -3,20 +3,24 @@ import { pipeline, env } from '@xenova/transformers';
 // Configure transformers.js to use WASM
 env.backends.onnx.wasm.numThreads = 1;
 
-class AIService {
-  private summarizer: any = null;
-  private textAnalyzer: any = null;
+// Define types for pipeline results
+type SummarizerPipeline = (text: string, options: { max_length: number; min_length: number }) => Promise<Array<{ summary_text: string }>>;
+type TextAnalyzerPipeline = (text: string) => Promise<Array<{ label: string; score: number }>>;
 
-  async initializeSummarizer() {
+class AIService {
+  private summarizer: SummarizerPipeline | null = null;
+  private textAnalyzer: TextAnalyzerPipeline | null = null;
+
+  async initializeSummarizer(): Promise<SummarizerPipeline> {
     if (!this.summarizer) {
-      this.summarizer = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
+      this.summarizer = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6') as SummarizerPipeline;
     }
     return this.summarizer;
   }
 
-  async initializeTextAnalyzer() {
+  async initializeTextAnalyzer(): Promise<TextAnalyzerPipeline> {
     if (!this.textAnalyzer) {
-      this.textAnalyzer = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+      this.textAnalyzer = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english') as TextAnalyzerPipeline;
     }
     return this.textAnalyzer;
   }

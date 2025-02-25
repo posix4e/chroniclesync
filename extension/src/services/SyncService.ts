@@ -7,16 +7,24 @@ export interface DeviceInfo {
   userAgent: string;
 }
 
-export interface HistoryVisit {
+export interface BaseHistoryVisit {
   visitId: string;
+  visitTime: number;
+}
+
+export interface PlainHistoryVisit extends BaseHistoryVisit {
   url: string;
   title: string;
-  visitTime: number;
   platform: string;
   browserName: string;
-  encryptedData?: string;
-  iv?: string;
 }
+
+export interface EncryptedHistoryVisit extends BaseHistoryVisit {
+  encryptedData: string;
+  iv: string;
+}
+
+export type HistoryVisit = PlainHistoryVisit | EncryptedHistoryVisit;
 
 export interface SyncPayload {
   history: HistoryVisit[];

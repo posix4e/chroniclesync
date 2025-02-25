@@ -1,5 +1,11 @@
-import { HistoryVisit } from '../services/SyncService';
+import { BaseHistoryVisit, PlainHistoryVisit, EncryptedHistoryVisit } from '../services/SyncService';
 
-export interface HistoryEntry extends HistoryVisit {
+interface BaseHistoryEntry extends BaseHistoryVisit {
   syncStatus: 'pending' | 'synced' | 'error';
 }
+
+export interface PlainHistoryEntry extends PlainHistoryVisit, BaseHistoryEntry {}
+
+export interface EncryptedHistoryEntry extends EncryptedHistoryVisit, BaseHistoryEntry {}
+
+export type HistoryEntry = PlainHistoryEntry | EncryptedHistoryEntry;

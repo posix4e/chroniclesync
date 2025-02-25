@@ -1,4 +1,4 @@
-import { HistoryEntry } from '../types';
+import { HistoryEntry, PlainHistoryEntry, EncryptedHistoryEntry } from '../types';
 import { EncryptionService } from '../services/EncryptionService';
 import { Settings } from '../settings/Settings';
 
@@ -48,7 +48,7 @@ export class HistoryStore {
     });
   }
 
-  async addEntry(entry: Omit<HistoryEntry, 'syncStatus'>): Promise<void> {
+  async addEntry(entry: Omit<PlainHistoryEntry, 'syncStatus'>): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     // Encrypt the sensitive data
@@ -65,7 +65,7 @@ export class HistoryStore {
       const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
       const store = transaction.objectStore(this.STORE_NAME);
 
-      const encryptedEntry: HistoryEntry = {
+      const encryptedEntry: EncryptedHistoryEntry = {
         visitId: entry.visitId,
         encryptedData: ciphertext,
         iv,
@@ -90,7 +90,7 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        Promise.all(request.result.map(entry => 
+        Promise.all(request.result.map((entry: EncryptedHistoryEntry) => 
           this.encryptionService.decrypt(entry.encryptedData, entry.iv)
             .then(decryptedData => {
               const sensitiveData = JSON.parse(decryptedData);
@@ -99,7 +99,7 @@ export class HistoryStore {
                 visitTime: entry.visitTime,
                 syncStatus: entry.syncStatus,
                 ...sensitiveData
-              } as HistoryEntry;
+              } as PlainHistoryEntry;
             })
         ))
           .then(resolve)
@@ -145,7 +145,7 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        Promise.all((request.result || []).map(entry => 
+        Promise.all((request.result || []).map((entry: EncryptedHistoryEntry) => 
           this.encryptionService.decrypt(entry.encryptedData, entry.iv)
             .then(decryptedData => {
               const sensitiveData = JSON.parse(decryptedData);
@@ -154,7 +154,7 @@ export class HistoryStore {
                 visitTime: entry.visitTime,
                 syncStatus: entry.syncStatus,
                 ...sensitiveData
-              } as HistoryEntry;
+              } as PlainHistoryEntry;
             })
         ))
           .then(resolve)

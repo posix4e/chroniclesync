@@ -23,6 +23,12 @@ export interface SyncPayload {
   deviceInfo: DeviceInfo;
 }
 
+export interface SyncResponse {
+  success: boolean;
+  syncedEntries: string[]; // Array of visitIds that were successfully synced
+  message?: string;
+}
+
 export class SyncService {
   private settings: Settings;
   private deviceInfo: DeviceInfo;
@@ -62,7 +68,7 @@ export class SyncService {
     };
   }
 
-  async syncHistory(history: HistoryVisit[]): Promise<void> {
+  async syncHistory(history: HistoryVisit[]): Promise<string[]> {
     const apiUrl = this.settings.getApiUrl();
     const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 
@@ -111,8 +117,14 @@ export class SyncService {
       throw new Error(`Sync failed: ${error}`);
     }
 
-    const result = await response.json();
-    console.log('Sync successful');
+    const result = await response.json() as SyncResponse;
+    console.log('Sync successful:', result.message || 'No additional details');
+    
+    if (!result.success) {
+      throw new Error(`Sync completed but server reported failure: ${result.message}`);
+    }
+    
+    return result.syncedEntries;
   }
 
   async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {

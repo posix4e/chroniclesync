@@ -6,12 +6,14 @@ export class ModelHandler {
 
   async initialize(): Promise<void> {
     // Load small, optimized models
+    // Initialize translation pipeline with a public model
     this.translationPipeline = await pipeline('translation', 
-      'Xenova/nllb-200-distilled-600M-int8'  // Quantized model for efficiency
+      'Xenova/m2m100_418M'  // Public model with good multilingual support
     );
     
+    // Initialize summarization pipeline with a public model
     this.summarizationPipeline = await pipeline('summarization',
-      'Xenova/distilbart-cnn-6-6-int8' // Quantized model for efficiency  
+      'Xenova/distilbart-cnn-6-6' // Public model for summarization
     );
   }
 

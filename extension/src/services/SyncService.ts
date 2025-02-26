@@ -7,6 +7,14 @@ export interface DeviceInfo {
   userAgent: string;
 }
 
+export interface SummaryData {
+  content: string;
+  status: 'completed' | 'error';
+  error?: string;
+  lastModified: number;
+  version: number;
+}
+
 export interface HistoryVisit {
   visitId: string;
   url: string;
@@ -14,9 +22,11 @@ export interface HistoryVisit {
   visitTime: number;
   platform: string;
   browserName: string;
-  summary?: string;
+  summary?: SummaryData;
   summaryStatus?: 'pending' | 'completed' | 'error';
   summaryError?: string;
+  summaryLastModified?: number;
+  summaryVersion?: number;
 }
 
 export interface SyncPayload {
@@ -70,8 +80,25 @@ export class SyncService {
       throw new Error('Client ID not found');
     }
 
+    // Prepare history entries with summaries
+    const historyWithSummaries = history.map(entry => {
+      if (entry.summaryStatus === 'completed' && entry.summary) {
+        return {
+          ...entry,
+          summary: {
+            content: entry.summary.content,
+            status: entry.summary.status,
+            error: entry.summary.error,
+            lastModified: entry.summaryLastModified || Date.now(),
+            version: entry.summaryVersion || 1
+          }
+        };
+      }
+      return entry;
+    });
+
     const payload: SyncPayload = {
-      history,
+      history: historyWithSummaries,
       deviceInfo: this.deviceInfo
     };
 
@@ -93,6 +120,34 @@ export class SyncService {
 
     const result = await response.json();
     console.log('Sync successful:', result);
+  }
+
+  async syncSummaries(since?: number): Promise<void> {
+    const apiUrl = this.settings.getApiUrl();
+    const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
+
+    if (!clientId) {
+      throw new Error('Client ID not found');
+    }
+
+    // Get summaries modified since the last sync
+    const response = await fetch(
+      `${apiUrl}/summaries?clientId=${clientId}${since ? `&since=${since}` : ''}`,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Failed to get summaries:', error);
+      throw new Error(`Failed to get summaries: ${error}`);
+    }
+
+    const result = await response.json();
+    return result.summaries || [];
   }
 
   async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {

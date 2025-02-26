@@ -147,15 +147,27 @@ export class HistorySync {
     if (validEntries.length === 0) return;
 
     try {
+      // Get entries with completed summaries
+      const entriesWithSummaries = await this.store.getEntriesWithSummaries();
+      const summaryMap = new Map(entriesWithSummaries.map(entry => [entry.visitId, entry]));
+
       // Convert entries to the format expected by the sync service
-      const historyVisits = validEntries.map(entry => ({
-        visitId: entry.visitId,
-        url: entry.url,
-        title: entry.title,
-        visitTime: entry.visitTime,
-        platform: entry.platform,
-        browserName: entry.browserName
-      }));
+      const historyVisits = validEntries.map(entry => {
+        const summaryEntry = summaryMap.get(entry.visitId);
+        return {
+          visitId: entry.visitId,
+          url: entry.url,
+          title: entry.title,
+          visitTime: entry.visitTime,
+          platform: entry.platform,
+          browserName: entry.browserName,
+          summary: summaryEntry?.summary,
+          summaryStatus: summaryEntry?.summaryStatus,
+          summaryError: summaryEntry?.summaryError,
+          summaryLastModified: summaryEntry?.summaryLastModified,
+          summaryVersion: summaryEntry?.summaryVersion
+        };
+      });
 
       // Sync with server
       await this.syncService.syncHistory(historyVisits);
@@ -163,11 +175,41 @@ export class HistorySync {
       // Mark entries as synced
       await Promise.all(validEntries.map(entry => this.store.markAsSynced(entry.url)));
 
+      // Sync summaries from other devices
+      const lastSyncTime = await this.getLastSyncTime();
+      const remoteSummaries = await this.syncService.syncSummaries(lastSyncTime);
+      
+      // Update local summaries
+      await Promise.all(
+        remoteSummaries.map(summary => 
+          this.store.updateSummary(summary.visitId, {
+            content: summary.content,
+            status: summary.status,
+            error: summary.error,
+            lastModified: summary.lastModified,
+            version: summary.version
+          })
+        )
+      );
+
+      // Update last sync time
+      await this.updateLastSyncTime();
+
       console.log('Successfully synced entries:', validEntries.length);
+      console.log('Successfully synced summaries:', remoteSummaries.length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;
     }
+  }
+
+  private async getLastSyncTime(): Promise<number> {
+    const result = await chrome.storage.local.get(['lastSummarySync']);
+    return result.lastSummarySync || 0;
+  }
+
+  private async updateLastSyncTime(): Promise<void> {
+    await chrome.storage.local.set({ lastSummarySync: Date.now() });
   }
 
   async getHistory(): Promise<HistoryEntry[]> {

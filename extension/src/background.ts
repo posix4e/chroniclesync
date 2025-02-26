@@ -1,19 +1,23 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+import { SummaryService } from './services/SummaryService';
 
 export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
+  private summaryService: SummaryService;
 
   constructor() {
     this.settings = new Settings();
     this.historySync = new HistorySync(this.settings);
+    this.summaryService = new SummaryService(this.historySync.getHistoryStore());
   }
 
   async init(): Promise<void> {
     await this.settings.init();
     await this.historySync.init();
     await this.historySync.startSync();
+    await this.summaryService.startBackgroundProcessing();
 
     this.setupMessageListeners();
   }
@@ -32,6 +36,7 @@ export class BackgroundService {
       if (request.type === 'stopSync') {
         try {
           this.historySync.stopSync();
+          this.summaryService.stopBackgroundProcessing();
           sendResponse({ success: true });
         } catch (error) {
           handleError(error);

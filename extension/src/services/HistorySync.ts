@@ -176,4 +176,8 @@ export class HistorySync {
     const entries = await this.store.getEntries();
     return entries.filter(entry => entry.visitTime >= expirationTime);
   }
+
+  getHistoryStore(): HistoryStore {
+    return this.store;
+  }
 }

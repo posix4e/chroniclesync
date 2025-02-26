@@ -9,27 +9,27 @@ interface SummaryProps {
 export const Summary: React.FC<SummaryProps> = ({ entry, onRegenerate }) => {
   const getStatusColor = () => {
     switch (entry.summaryStatus) {
-      case 'completed':
-        return '#4CAF50';
-      case 'pending':
-        return '#FFC107';
-      case 'error':
-        return '#F44336';
-      default:
-        return '#9E9E9E';
+    case 'completed':
+      return '#4CAF50';
+    case 'pending':
+      return '#FFC107';
+    case 'error':
+      return '#F44336';
+    default:
+      return '#9E9E9E';
     }
   };
 
   const getStatusText = () => {
     switch (entry.summaryStatus) {
-      case 'completed':
-        return 'Summary available';
-      case 'pending':
-        return 'Generating summary...';
-      case 'error':
-        return `Error: ${entry.summaryError || 'Failed to generate summary'}`;
-      default:
-        return 'No summary';
+    case 'completed':
+      return 'Summary available';
+    case 'pending':
+      return 'Generating summary...';
+    case 'error':
+      return `Error: ${entry.summaryError || 'Failed to generate summary'}`;
+    default:
+      return 'No summary';
     }
   };
 

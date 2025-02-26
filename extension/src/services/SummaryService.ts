@@ -1,6 +1,6 @@
-import { HistoryStore } from '../db/HistoryStore';
 import { HistoryVisit } from './SyncService';
 import { ModelService } from './ModelService';
+import { HistorySync } from './HistorySync';
 
 export class SummaryService {
   private isProcessing: boolean = false;

@@ -1,9 +1,23 @@
+interface SummaryConfig {
+  enabled: boolean;
+  summaryLength: number; // Percentage of original content (1-100)
+  minSentences: number;
+  maxSentences: number;
+  autoSummarize: boolean;
+  contentPriority: {
+    headlines: boolean; // Prioritize text that appears to be headlines
+    lists: boolean;     // Prioritize list items
+    quotes: boolean;    // Prioritize quoted text
+  };
+}
+
 interface SettingsConfig {
   mnemonic: string;
   clientId: string;
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  summary: SummaryConfig;
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +33,19 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    summary: {
+      enabled: true,
+      summaryLength: 20, // 20% of original content
+      minSentences: 2,
+      maxSentences: 5,
+      autoSummarize: true,
+      contentPriority: {
+        headlines: true,
+        lists: true,
+        quotes: false
+      }
+    }
   };
 
   async init(): Promise<void> {
@@ -117,6 +143,18 @@ export class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
+    // Summary settings
+    const summaryEnabled = document.getElementById('summaryEnabled') as HTMLInputElement;
+    const autoSummarize = document.getElementById('autoSummarize') as HTMLInputElement;
+    const summaryLength = document.getElementById('summaryLength') as HTMLInputElement;
+    const summaryLengthValue = document.getElementById('summaryLengthValue') as HTMLSpanElement;
+    const minSentences = document.getElementById('minSentences') as HTMLInputElement;
+    const maxSentences = document.getElementById('maxSentences') as HTMLInputElement;
+    const priorityHeadlines = document.getElementById('priorityHeadlines') as HTMLInputElement;
+    const priorityLists = document.getElementById('priorityLists') as HTMLInputElement;
+    const priorityQuotes = document.getElementById('priorityQuotes') as HTMLInputElement;
+
+    // Basic settings
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
@@ -124,6 +162,17 @@ export class Settings {
     expirationDaysInput.value = this.config.expirationDays.toString();
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+
+    // Summary settings
+    summaryEnabled.checked = this.config.summary.enabled;
+    autoSummarize.checked = this.config.summary.autoSummarize;
+    summaryLength.value = this.config.summary.summaryLength.toString();
+    summaryLengthValue.textContent = `${this.config.summary.summaryLength}%`;
+    minSentences.value = this.config.summary.minSentences.toString();
+    maxSentences.value = this.config.summary.maxSentences.toString();
+    priorityHeadlines.checked = this.config.summary.contentPriority.headlines;
+    priorityLists.checked = this.config.summary.contentPriority.lists;
+    priorityQuotes.checked = this.config.summary.contentPriority.quotes;
   }
 
   private setupEventListeners(): void {
@@ -133,6 +182,30 @@ export class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+
+    // Summary settings event listeners
+    document.getElementById('summaryLength')?.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      document.getElementById('summaryLengthValue')!.textContent = `${value}%`;
+    });
+
+    document.getElementById('minSentences')?.addEventListener('input', (e) => {
+      const min = parseInt((e.target as HTMLInputElement).value);
+      const maxInput = document.getElementById('maxSentences') as HTMLInputElement;
+      const max = parseInt(maxInput.value);
+      if (min > max) {
+        maxInput.value = min.toString();
+      }
+    });
+
+    document.getElementById('maxSentences')?.addEventListener('input', (e) => {
+      const max = parseInt((e.target as HTMLInputElement).value);
+      const minInput = document.getElementById('minSentences') as HTMLInputElement;
+      const min = parseInt(minInput.value);
+      if (max < min) {
+        minInput.value = max.toString();
+      }
+    });
   }
 
   private async handleMnemonicInput(): Promise<void> {
@@ -187,6 +260,16 @@ export class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
+    // Summary settings
+    const summaryEnabled = document.getElementById('summaryEnabled') as HTMLInputElement;
+    const autoSummarize = document.getElementById('autoSummarize') as HTMLInputElement;
+    const summaryLength = document.getElementById('summaryLength') as HTMLInputElement;
+    const minSentences = document.getElementById('minSentences') as HTMLInputElement;
+    const maxSentences = document.getElementById('maxSentences') as HTMLInputElement;
+    const priorityHeadlines = document.getElementById('priorityHeadlines') as HTMLInputElement;
+    const priorityLists = document.getElementById('priorityLists') as HTMLInputElement;
+    const priorityQuotes = document.getElementById('priorityQuotes') as HTMLInputElement;
+
     const mnemonic = mnemonicInput.value.trim();
     if (!this.validateMnemonic(mnemonic)) {
       this.showMessage('Please enter a valid 24-word mnemonic phrase', 'error');
@@ -202,12 +285,36 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Validate summary settings
+    const minSentencesValue = parseInt(minSentences.value);
+    const maxSentencesValue = parseInt(maxSentences.value);
+    if (isNaN(minSentencesValue) || minSentencesValue < 1) {
+      this.showMessage('Please enter a valid minimum number of sentences (minimum 1)', 'error');
+      return;
+    }
+    if (isNaN(maxSentencesValue) || maxSentencesValue < minSentencesValue) {
+      this.showMessage('Maximum sentences must be greater than or equal to minimum sentences', 'error');
+      return;
+    }
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
-      expirationDays
+      expirationDays,
+      summary: {
+        enabled: summaryEnabled.checked,
+        autoSummarize: autoSummarize.checked,
+        summaryLength: parseInt(summaryLength.value),
+        minSentences: minSentencesValue,
+        maxSentences: maxSentencesValue,
+        contentPriority: {
+          headlines: priorityHeadlines.checked,
+          lists: priorityLists.checked,
+          quotes: priorityQuotes.checked
+        }
+      }
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

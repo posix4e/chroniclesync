@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -35,6 +35,9 @@ export class HistoryStore {
           store.createIndex('url', 'url');
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
+          store.createIndex('summaryStatus', 'summaryStatus');
+          store.createIndex('summaryLastModified', 'summaryLastModified');
+          store.createIndex('summaryVersion', 'summaryVersion');
           console.log('Created history store with indexes');
         }
 
@@ -64,6 +67,83 @@ export class HistoryStore {
       const request = store.put(fullEntry);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
+    });
+  }
+
+  async updateEntry(entry: HistoryEntry): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+
+      const updatedEntry = {
+        ...entry,
+        lastModified: Date.now()
+      };
+
+      const request = store.put(updatedEntry);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  async updateSummary(visitId: string, summary: SummaryData): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.get(visitId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (!entry) {
+          resolve(); // Entry not found, ignore
+          return;
+        }
+
+        // Check if we should update the summary
+        if (entry.summaryVersion && entry.summaryVersion > summary.version) {
+          resolve(); // Local version is newer, ignore update
+          return;
+        }
+
+        const updatedEntry = {
+          ...entry,
+          summary,
+          summaryStatus: summary.status,
+          summaryError: summary.error,
+          summaryLastModified: summary.lastModified,
+          summaryVersion: summary.version,
+          lastModified: Date.now()
+        };
+
+        const updateRequest = store.put(updatedEntry);
+        updateRequest.onerror = () => reject(updateRequest.error);
+        updateRequest.onsuccess = () => resolve();
+      };
+    });
+  }
+
+  async getEntriesWithSummaries(since?: number): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const index = store.index('summaryLastModified');
+      
+      const request = since
+        ? index.getAll(IDBKeyRange.lowerBound(since))
+        : store.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result || [];
+        resolve(entries.filter(entry => entry.summaryStatus === 'completed'));
+      };
     });
   }
 

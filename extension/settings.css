@@ -185,3 +185,55 @@ button {
     background-color: #f5f5f5;
     cursor: not-allowed;
 }
+
+/* Summary Settings Styles */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.range-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.range-container input[type="range"] {
+    flex: 1;
+}
+
+.range-container span {
+    min-width: 48px;
+    text-align: right;
+}
+
+.sentence-limits {
+    display: flex;
+    gap: 24px;
+}
+
+.sentence-limits > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.small-input {
+    width: 60px;
+    padding: 4px 8px;
+}
+
+.content-priority {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}

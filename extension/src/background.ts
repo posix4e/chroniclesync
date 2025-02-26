@@ -1,21 +1,40 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+import { SummaryService } from './services/SummaryService';
 
 export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
+  private summaryService: SummaryService;
 
   constructor() {
     this.settings = new Settings();
     this.historySync = new HistorySync(this.settings);
+    this.summaryService = new SummaryService(this.historySync.getHistoryStore());
   }
 
   async init(): Promise<void> {
-    await this.settings.init();
-    await this.historySync.init();
-    await this.historySync.startSync();
+    try {
+      await this.settings.init();
+      await this.historySync.init();
+      
+      // Initialize model in parallel with sync
+      const [modelInit] = await Promise.allSettled([
+        this.summaryService['initModel'](),
+        this.historySync.startSync()
+      ]);
 
-    this.setupMessageListeners();
+      if (modelInit.status === 'rejected') {
+        console.error('Failed to initialize summarization model:', modelInit.reason);
+      } else {
+        await this.summaryService.startBackgroundProcessing();
+      }
+
+      this.setupMessageListeners();
+    } catch (error) {
+      console.error('Error during initialization:', error);
+      throw error;
+    }
   }
 
   private setupMessageListeners(): void {
@@ -32,6 +51,7 @@ export class BackgroundService {
       if (request.type === 'stopSync') {
         try {
           this.historySync.stopSync();
+          this.summaryService.stopBackgroundProcessing();
           sendResponse({ success: true });
         } catch (error) {
           handleError(error);
@@ -58,6 +78,35 @@ export class BackgroundService {
         };
 
         // Execute the async operation and keep the message channel open
+        asyncOperation();
+        return true;
+      }
+
+      // Handle summary regeneration
+      if (request.type === 'regenerateSummary') {
+        const asyncOperation = async () => {
+          try {
+            const entry = await this.historySync.getHistoryEntry(request.visitId);
+            if (!entry) {
+              throw new Error('Entry not found');
+            }
+
+            // Reset summary status and trigger regeneration
+            await this.historySync.getHistoryStore().updateEntry({
+              ...entry,
+              summaryStatus: 'pending',
+              summary: undefined,
+              summaryError: undefined
+            });
+
+            // Process the entry
+            await this.summaryService['processEntry'](entry);
+            sendResponse({ success: true });
+          } catch (error) {
+            handleError(error);
+          }
+        };
+
         asyncOperation();
         return true;
       }

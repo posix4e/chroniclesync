@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -35,6 +35,8 @@ export class HistoryStore {
           store.createIndex('url', 'url');
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
+          store.createIndex('summary', 'summary');
+          store.createIndex('summaryStatus', 'summaryStatus');
           console.log('Created history store with indexes');
         }
 
@@ -58,6 +60,7 @@ export class HistoryStore {
       const fullEntry: HistoryEntry = {
         ...entry,
         syncStatus: 'pending',
+        summaryStatus: 'pending',
         lastModified: Date.now()
       };
 
@@ -238,6 +241,70 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  async getEntriesNeedingSummary(): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const index = store.index('summaryStatus');
+      const request = index.getAll('pending');
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+  }
+
+  async updateSummary(visitId: string, summary: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.get(visitId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.summary = summary;
+          entry.summaryStatus = 'completed';
+          entry.lastModified = Date.now();
+          entry.syncStatus = 'pending'; // Mark for sync since we updated the summary
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async markSummaryError(visitId: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.get(visitId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.summaryStatus = 'error';
+          entry.lastModified = Date.now();
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
     });
   }
 

@@ -1,19 +1,23 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+import { BackgroundSummaryService } from './services/BackgroundSummaryService';
 
 export class BackgroundService {
   private settings: Settings;
   private historySync: HistorySync;
+  private backgroundSummary: BackgroundSummaryService;
 
   constructor() {
     this.settings = new Settings();
     this.historySync = new HistorySync(this.settings);
+    this.backgroundSummary = BackgroundSummaryService.getInstance();
   }
 
   async init(): Promise<void> {
     await this.settings.init();
     await this.historySync.init();
     await this.historySync.startSync();
+    await this.backgroundSummary.start();
 
     this.setupMessageListeners();
   }

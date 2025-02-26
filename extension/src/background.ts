@@ -10,7 +10,7 @@ export class BackgroundService {
   constructor() {
     this.settings = new Settings();
     this.historySync = new HistorySync(this.settings);
-    this.summaryService = new SummaryService(this.historySync.getHistoryStore());
+    this.summaryService = new SummaryService(this.historySync);
   }
 
   async init(): Promise<void> {
@@ -92,7 +92,7 @@ export class BackgroundService {
             }
 
             // Reset summary status and trigger regeneration
-            await this.historySync.getHistoryStore().updateEntry({
+            await this.historySync.updateHistoryEntry({
               ...entry,
               summaryStatus: 'pending',
               summary: undefined,

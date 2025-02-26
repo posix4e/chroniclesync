@@ -63,7 +63,8 @@ export class Settings {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment,
-      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+      summary: result.summary || this.DEFAULT_SETTINGS.summary
     };
 
     // Generate initial mnemonic if needed
@@ -113,7 +114,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays', 'summary'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }

@@ -3,12 +3,12 @@ import { HistoryVisit } from './SyncService';
 import { ModelService } from './ModelService';
 
 export class SummaryService {
-  private historyStore: HistoryStore;
   private isProcessing: boolean = false;
   private modelService: ModelService;
+  private historySync: HistorySync;
 
-  constructor(historyStore: HistoryStore) {
-    this.historyStore = historyStore;
+  constructor(historySync: HistorySync) {
+    this.historySync = historySync;
     this.modelService = ModelService.getInstance();
   }
 
@@ -47,7 +47,7 @@ export class SummaryService {
 
   private async getPendingSummaries(): Promise<HistoryVisit[]> {
     // Get entries that need summarization
-    const entries = await this.historyStore.getEntries();
+    const entries = await this.historySync.getHistory();
     return entries.filter(entry => 
       !entry.summaryStatus || 
       entry.summaryStatus === 'pending'
@@ -121,28 +121,17 @@ export class SummaryService {
   }
 
   private async updateSummary(visitId: string, summary: string): Promise<void> {
-    const transaction = this.historyStore['db']!.transaction(['history'], 'readwrite');
-    const store = transaction.objectStore('history');
-    
-    return new Promise((resolve, reject) => {
-      const request = store.get(visitId);
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const entry = request.result;
-        if (entry) {
-          entry.summary = summary;
-          entry.summaryStatus = 'completed';
-          entry.lastModified = Date.now();
-          
-          const updateRequest = store.put(entry);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve();
-        } else {
-          resolve();
-        }
-      };
-    });
+    const entry = await this.historySync.getHistoryEntry(visitId);
+    if (!entry) return;
+
+    const updatedEntry = {
+      ...entry,
+      summary,
+      summaryStatus: 'completed' as const,
+      lastModified: Date.now()
+    };
+
+    await this.historySync.updateHistoryEntry(updatedEntry);
   }
 
   private async updateSummaryStatus(
@@ -150,29 +139,16 @@ export class SummaryService {
     status: 'pending' | 'completed' | 'error',
     error?: string
   ): Promise<void> {
-    const transaction = this.historyStore['db']!.transaction(['history'], 'readwrite');
-    const store = transaction.objectStore('history');
-    
-    return new Promise((resolve, reject) => {
-      const request = store.get(visitId);
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const entry = request.result;
-        if (entry) {
-          entry.summaryStatus = status;
-          if (error) {
-            entry.summaryError = error;
-          }
-          entry.lastModified = Date.now();
-          
-          const updateRequest = store.put(entry);
-          updateRequest.onerror = () => reject(updateRequest.error);
-          updateRequest.onsuccess = () => resolve();
-        } else {
-          resolve();
-        }
-      };
-    });
+    const entry = await this.historySync.getHistoryEntry(visitId);
+    if (!entry) return;
+
+    const updatedEntry = {
+      ...entry,
+      summaryStatus: status,
+      summaryError: error,
+      lastModified: Date.now()
+    };
+
+    await this.historySync.updateHistoryEntry(updatedEntry);
   }
 }

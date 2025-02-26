@@ -132,6 +132,55 @@ describe('Settings', () => {
     expirationDaysInput.value = '7';
     form.appendChild(expirationDaysInput);
     
+    // Summary settings
+    const summaryEnabled = document.createElement('input');
+    summaryEnabled.id = 'summaryEnabled';
+    summaryEnabled.type = 'checkbox';
+    form.appendChild(summaryEnabled);
+
+    const autoSummarize = document.createElement('input');
+    autoSummarize.id = 'autoSummarize';
+    autoSummarize.type = 'checkbox';
+    form.appendChild(autoSummarize);
+
+    const summaryLength = document.createElement('input');
+    summaryLength.id = 'summaryLength';
+    summaryLength.type = 'range';
+    summaryLength.min = '1';
+    summaryLength.max = '100';
+    form.appendChild(summaryLength);
+
+    const summaryLengthValue = document.createElement('span');
+    summaryLengthValue.id = 'summaryLengthValue';
+    form.appendChild(summaryLengthValue);
+
+    const minSentences = document.createElement('input');
+    minSentences.id = 'minSentences';
+    minSentences.type = 'number';
+    minSentences.min = '1';
+    form.appendChild(minSentences);
+
+    const maxSentences = document.createElement('input');
+    maxSentences.id = 'maxSentences';
+    maxSentences.type = 'number';
+    maxSentences.min = '1';
+    form.appendChild(maxSentences);
+
+    const priorityHeadlines = document.createElement('input');
+    priorityHeadlines.id = 'priorityHeadlines';
+    priorityHeadlines.type = 'checkbox';
+    form.appendChild(priorityHeadlines);
+
+    const priorityLists = document.createElement('input');
+    priorityLists.id = 'priorityLists';
+    priorityLists.type = 'checkbox';
+    form.appendChild(priorityLists);
+
+    const priorityQuotes = document.createElement('input');
+    priorityQuotes.id = 'priorityQuotes';
+    priorityQuotes.type = 'checkbox';
+    form.appendChild(priorityQuotes);
+    
     form.appendChild(customUrlContainer);
     mockContainer.appendChild(form);
 
@@ -162,7 +211,19 @@ describe('Settings', () => {
         clientId: 'test-client',
         environment: 'production',
         customApiUrl: null,
-        expirationDays: 7
+        expirationDays: 7,
+        summary: {
+          enabled: true,
+          summaryLength: 20,
+          minSentences: 2,
+          maxSentences: 5,
+          autoSummarize: true,
+          contentPriority: {
+            headlines: true,
+            lists: true,
+            quotes: false
+          }
+        }
       });
     });
 
@@ -186,7 +247,19 @@ describe('Settings', () => {
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      summary: {
+        enabled: true,
+        summaryLength: 30,
+        minSentences: 3,
+        maxSentences: 6,
+        autoSummarize: false,
+        contentPriority: {
+          headlines: false,
+          lists: true,
+          quotes: true
+        }
+      }
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -200,6 +273,16 @@ describe('Settings', () => {
     expect(document.getElementById('environment').value).toBe(mockConfig.environment);
     expect(document.getElementById('customApiUrl').value).toBe(mockConfig.customApiUrl);
     expect(document.getElementById('customUrlContainer').style.display).toBe('block');
+
+    // Check summary settings
+    expect(document.getElementById('summaryEnabled').checked).toBe(mockConfig.summary.enabled);
+    expect(document.getElementById('autoSummarize').checked).toBe(mockConfig.summary.autoSummarize);
+    expect(document.getElementById('summaryLength').value).toBe(mockConfig.summary.summaryLength.toString());
+    expect(document.getElementById('minSentences').value).toBe(mockConfig.summary.minSentences.toString());
+    expect(document.getElementById('maxSentences').value).toBe(mockConfig.summary.maxSentences.toString());
+    expect(document.getElementById('priorityHeadlines').checked).toBe(mockConfig.summary.contentPriority.headlines);
+    expect(document.getElementById('priorityLists').checked).toBe(mockConfig.summary.contentPriority.lists);
+    expect(document.getElementById('priorityQuotes').checked).toBe(mockConfig.summary.contentPriority.quotes);
   });
 
   it('handleSave updates config and shows success message', async () => {
@@ -208,7 +291,19 @@ describe('Settings', () => {
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      summary: {
+        enabled: true,
+        summaryLength: 20,
+        minSentences: 2,
+        maxSentences: 5,
+        autoSummarize: true,
+        contentPriority: {
+          headlines: true,
+          lists: true,
+          quotes: false
+        }
+      }
     };
 
     // Mock generateClientId to return the expected client ID

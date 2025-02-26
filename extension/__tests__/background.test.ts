@@ -39,8 +39,29 @@ vi.mock('../src/services/HistorySync', () => ({
     init: vi.fn().mockResolvedValue(undefined),
     getHistory: vi.fn().mockResolvedValue([]),
     startSync: vi.fn().mockResolvedValue(undefined),
-    stopSync: vi.fn()
+    stopSync: vi.fn(),
+    getHistoryEntry: vi.fn().mockResolvedValue(null),
+    updateHistoryEntry: vi.fn().mockResolvedValue(undefined)
   }))
+}));
+
+// Mock SummaryService class
+vi.mock('../src/services/SummaryService', () => ({
+  SummaryService: vi.fn().mockImplementation(() => ({
+    startBackgroundProcessing: vi.fn().mockResolvedValue(undefined),
+    stopBackgroundProcessing: vi.fn(),
+    initModel: vi.fn().mockResolvedValue(undefined)
+  }))
+}));
+
+// Mock ModelService class
+vi.mock('../src/services/ModelService', () => ({
+  ModelService: {
+    getInstance: vi.fn().mockReturnValue({
+      init: vi.fn().mockResolvedValue(undefined),
+      generateSummary: vi.fn().mockResolvedValue('Test summary')
+    })
+  }
 }));
 
 describe('BackgroundService', () => {

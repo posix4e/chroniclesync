@@ -14,12 +14,27 @@ export class BackgroundService {
   }
 
   async init(): Promise<void> {
-    await this.settings.init();
-    await this.historySync.init();
-    await this.historySync.startSync();
-    await this.summaryService.startBackgroundProcessing();
+    try {
+      await this.settings.init();
+      await this.historySync.init();
+      
+      // Initialize model in parallel with sync
+      const [modelInit] = await Promise.allSettled([
+        this.summaryService['initModel'](),
+        this.historySync.startSync()
+      ]);
 
-    this.setupMessageListeners();
+      if (modelInit.status === 'rejected') {
+        console.error('Failed to initialize summarization model:', modelInit.reason);
+      } else {
+        await this.summaryService.startBackgroundProcessing();
+      }
+
+      this.setupMessageListeners();
+    } catch (error) {
+      console.error('Error during initialization:', error);
+      throw error;
+    }
   }
 
   private setupMessageListeners(): void {

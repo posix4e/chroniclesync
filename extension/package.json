@@ -16,6 +16,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.17.0",
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3"
+  },
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",

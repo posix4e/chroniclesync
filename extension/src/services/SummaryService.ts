@@ -1,20 +1,19 @@
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryVisit } from './SyncService';
+import { ModelService } from './ModelService';
 
 export class SummaryService {
   private historyStore: HistoryStore;
   private isProcessing: boolean = false;
-  private model: any; // Will hold the local model instance
+  private modelService: ModelService;
 
   constructor(historyStore: HistoryStore) {
     this.historyStore = historyStore;
-    this.initModel();
+    this.modelService = ModelService.getInstance();
   }
 
   private async initModel() {
-    // TODO: Initialize the local model
-    // This will depend on which model we choose to use
-    // Could be TensorFlow.js, ONNX Runtime, or other lightweight options
+    await this.modelService.init();
   }
 
   async startBackgroundProcessing() {
@@ -101,9 +100,24 @@ export class SummaryService {
   }
 
   private async generateSummary(content: string): Promise<string> {
-    // TODO: Implement actual summarization using the local model
-    // For now, return a placeholder
-    return 'Summary placeholder - implement local model summarization';
+    try {
+      // Clean up the content
+      const cleanContent = content
+        .replace(/\s+/g, ' ')
+        .replace(/[^\w\s.,!?]/g, '')
+        .trim();
+
+      if (!cleanContent) {
+        throw new Error('No valid content to summarize');
+      }
+
+      // Generate summary using the model
+      const summary = await this.modelService.generateSummary(cleanContent);
+      return summary;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      throw error;
+    }
   }
 
   private async updateSummary(visitId: string, summary: string): Promise<void> {

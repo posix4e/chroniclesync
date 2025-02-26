@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { HistoryEntry, DeviceInfo } from '../types';
+import { Summary } from '../components/Summary';
 
 const History: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -74,6 +75,30 @@ const History: React.FC = () => {
       } else {
         // Reload history after deletion
         loadHistory(selectedDevice, getTimeFilterValue());
+      }
+    });
+  };
+
+  const handleRegenerateSummary = (visitId: string) => {
+    chrome.runtime.sendMessage({
+      type: 'regenerateSummary',
+      visitId
+    }, (response) => {
+      if (response.error) {
+        setError(response.error);
+      } else {
+        // Update the entry in the local state
+        setHistory(prevHistory => prevHistory.map(entry => {
+          if (entry.visitId === visitId) {
+            return {
+              ...entry,
+              summaryStatus: 'pending',
+              summary: undefined,
+              summaryError: undefined
+            };
+          }
+          return entry;
+        }));
       }
     });
   };
@@ -155,6 +180,10 @@ const History: React.FC = () => {
                     {formatDate(entry.visitTime)}
                   </span>
                 </div>
+                <Summary
+                  entry={entry}
+                  onRegenerate={() => handleRegenerateSummary(entry.visitId)}
+                />
               </div>
             ))
           )}

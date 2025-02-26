@@ -82,6 +82,35 @@ export class BackgroundService {
         return true;
       }
 
+      // Handle summary regeneration
+      if (request.type === 'regenerateSummary') {
+        const asyncOperation = async () => {
+          try {
+            const entry = await this.historySync.getHistoryEntry(request.visitId);
+            if (!entry) {
+              throw new Error('Entry not found');
+            }
+
+            // Reset summary status and trigger regeneration
+            await this.historySync.getHistoryStore().updateEntry({
+              ...entry,
+              summaryStatus: 'pending',
+              summary: undefined,
+              summaryError: undefined
+            });
+
+            // Process the entry
+            await this.summaryService['processEntry'](entry);
+            sendResponse({ success: true });
+          } catch (error) {
+            handleError(error);
+          }
+        };
+
+        asyncOperation();
+        return true;
+      }
+
       // Handle unknown message types
       console.warn('Unknown message type:', request.type);
       sendResponse({ error: `Unknown message type: ${request.type}` });

@@ -72,3 +72,53 @@
   background: #eee;
   cursor: not-allowed;
 }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.summary-container {
+  margin-top: 8px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.summary-status {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.summary-content {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.summary-loading {
+  padding: 8px;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}

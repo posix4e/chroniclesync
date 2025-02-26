@@ -177,6 +177,11 @@ export class HistorySync {
     return entries.filter(entry => entry.visitTime >= expirationTime);
   }
 
+  async getHistoryEntry(visitId: string): Promise<HistoryEntry | null> {
+    const entries = await this.store.getEntries();
+    return entries.find(entry => entry.visitId === visitId) || null;
+  }
+
   getHistoryStore(): HistoryStore {
     return this.store;
   }

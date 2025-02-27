@@ -1,9 +1,12 @@
+import { SummarySettings, DEFAULT_SUMMARY_SETTINGS } from '../types/summary';
+
 interface SettingsConfig {
   mnemonic: string;
   clientId: string;
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  summarySettings: SummarySettings;
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +22,8 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    summarySettings: DEFAULT_SUMMARY_SETTINGS
   };
 
   async init(): Promise<void> {
@@ -37,7 +41,8 @@ export class Settings {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment,
-      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+      summarySettings: result.summarySettings || this.DEFAULT_SETTINGS.summarySettings
     };
 
     // Generate initial mnemonic if needed
@@ -87,7 +92,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays', 'summarySettings'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }
@@ -117,6 +122,16 @@ export class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
+    // Summary settings
+    const summaryEnabled = document.getElementById('summaryEnabled') as HTMLInputElement;
+    const summaryLength = document.getElementById('summaryLength') as HTMLInputElement;
+    const minSentences = document.getElementById('minSentences') as HTMLInputElement;
+    const maxSentences = document.getElementById('maxSentences') as HTMLInputElement;
+    const autoSummarize = document.getElementById('autoSummarize') as HTMLInputElement;
+    const priorityHeadlines = document.getElementById('priorityHeadlines') as HTMLInputElement;
+    const priorityLists = document.getElementById('priorityLists') as HTMLInputElement;
+    const priorityQuotes = document.getElementById('priorityQuotes') as HTMLInputElement;
+
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
@@ -124,6 +139,16 @@ export class Settings {
     expirationDaysInput.value = this.config.expirationDays.toString();
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+
+    // Set summary settings
+    summaryEnabled.checked = this.config.summarySettings.enabled;
+    summaryLength.value = this.config.summarySettings.summaryLength.toString();
+    minSentences.value = this.config.summarySettings.minSentences.toString();
+    maxSentences.value = this.config.summarySettings.maxSentences.toString();
+    autoSummarize.checked = this.config.summarySettings.autoSummarize;
+    priorityHeadlines.checked = this.config.summarySettings.contentPriority.headlines;
+    priorityLists.checked = this.config.summarySettings.contentPriority.lists;
+    priorityQuotes.checked = this.config.summarySettings.contentPriority.quotes;
   }
 
   private setupEventListeners(): void {
@@ -202,12 +227,56 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Get summary settings
+    const summaryEnabled = (document.getElementById('summaryEnabled') as HTMLInputElement).checked;
+    const summaryLength = parseInt((document.getElementById('summaryLength') as HTMLInputElement).value);
+    const minSentences = parseInt((document.getElementById('minSentences') as HTMLInputElement).value);
+    const maxSentences = parseInt((document.getElementById('maxSentences') as HTMLInputElement).value);
+    const autoSummarize = (document.getElementById('autoSummarize') as HTMLInputElement).checked;
+    const priorityHeadlines = (document.getElementById('priorityHeadlines') as HTMLInputElement).checked;
+    const priorityLists = (document.getElementById('priorityLists') as HTMLInputElement).checked;
+    const priorityQuotes = (document.getElementById('priorityQuotes') as HTMLInputElement).checked;
+
+    // Validate summary settings
+    if (isNaN(summaryLength) || summaryLength < 10 || summaryLength > 100) {
+      this.showMessage('Summary length must be between 10 and 100 words', 'error');
+      return;
+    }
+
+    if (isNaN(minSentences) || minSentences < 1 || minSentences > 10) {
+      this.showMessage('Minimum sentences must be between 1 and 10', 'error');
+      return;
+    }
+
+    if (isNaN(maxSentences) || maxSentences < 1 || maxSentences > 20) {
+      this.showMessage('Maximum sentences must be between 1 and 20', 'error');
+      return;
+    }
+
+    if (minSentences > maxSentences) {
+      this.showMessage('Minimum sentences cannot be greater than maximum sentences', 'error');
+      return;
+    }
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
-      expirationDays
+      expirationDays,
+      summarySettings: {
+        enabled: summaryEnabled,
+        summaryLength,
+        minSentences,
+        maxSentences,
+        autoSummarize,
+        contentPriority: {
+          headlines: priorityHeadlines,
+          lists: priorityLists,
+          quotes: priorityQuotes
+        },
+        modelConfig: this.config!.summarySettings.modelConfig
+      }
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {
@@ -220,6 +289,13 @@ export class Settings {
     });
 
     this.config = newConfig;
+
+    // Notify background script about summary settings change
+    chrome.runtime.sendMessage({
+      type: 'updateSummarySettings',
+      settings: newConfig.summarySettings
+    });
+
     this.showMessage('Settings saved successfully!', 'success');
   }
 
@@ -231,10 +307,17 @@ export class Settings {
         this.config = {
           ...this.DEFAULT_SETTINGS,
           mnemonic,
-          clientId
+          clientId,
+          summarySettings: DEFAULT_SUMMARY_SETTINGS
         };
         this.render();
         await this.handleSave();
+
+        // Notify background script about summary settings change
+        chrome.runtime.sendMessage({
+          type: 'updateSummarySettings',
+          settings: DEFAULT_SUMMARY_SETTINGS
+        });
       }
     }
   }

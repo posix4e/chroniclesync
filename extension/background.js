@@ -1,5 +1,7 @@
 import { getConfig } from './config.js';
 import { HistoryStore } from './src/db/HistoryStore';
+import { SummaryService } from './src/services/SummaryService';
+import { DEFAULT_SUMMARY_SETTINGS } from './src/types/summary';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -213,11 +215,59 @@ syncHistory(true);
 // Set up periodic sync
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
+// Initialize summary service
+let summaryService: SummaryService | null = null;
+
+async function initializeSummaryService() {
+  const stored = await chrome.storage.local.get(['summarySettings']);
+  const settings = stored.summarySettings || DEFAULT_SUMMARY_SETTINGS;
+  summaryService = new SummaryService(settings);
+}
+
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
-  if (changeInfo.url) {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
     // eslint-disable-next-line no-console
-    console.debug(`Navigation to: ${changeInfo.url}`);
+    console.debug(`Navigation completed: ${tab.url}`);
+
+    // Initialize summary service if needed
+    if (!summaryService) {
+      await initializeSummaryService();
+    }
+
+    // Capture page content and generate summary
+    try {
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => document.documentElement.outerHTML
+      });
+
+      if (result?.result && summaryService) {
+        console.log('[Summary] Processing page content');
+        const summary = await summaryService.summarize(tab.url, result.result);
+
+        // Store summary in history entry
+        const historyStore = new HistoryStore();
+        await historyStore.init();
+        await historyStore.updateEntrySummary(tab.url, summary);
+
+        // Notify UI about new summary
+        try {
+          chrome.runtime.sendMessage({
+            type: 'summaryUpdated',
+            url: tab.url,
+            summary
+          }).catch(() => {
+            // Ignore error when no receivers are present
+          });
+        } catch {
+          // Catch any other messaging errors
+        }
+      }
+    } catch (error) {
+      console.error('[Summary] Error capturing page content:', error);
+    }
+
     // Trigger sync after a short delay to allow history to be updated
     setTimeout(() => syncHistory(false), 1000);
   }
@@ -293,6 +343,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }).catch(error => {
       // eslint-disable-next-line no-console
       console.error('Error initializing IndexedDB:', error);
+      sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getSummarySettings') {
+    chrome.storage.local.get(['summarySettings']).then(result => {
+      sendResponse(result.summarySettings || DEFAULT_SUMMARY_SETTINGS);
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'updateSummarySettings') {
+    const { settings } = request;
+    chrome.storage.local.set({ summarySettings: settings }).then(() => {
+      // Reinitialize summary service with new settings
+      if (summaryService) {
+        summaryService.dispose();
+      }
+      summaryService = new SummaryService(settings);
+
+      // Update all existing summaries with new settings
+      const historyStore = new HistoryStore();
+      historyStore.init().then(async () => {
+        try {
+          const entries = await historyStore.getEntries();
+          for (const entry of entries) {
+            if (entry.summary) {
+              const newSummary = await summaryService.summarize(entry.url, entry.summary.content);
+              await historyStore.updateEntrySummary(entry.url, newSummary);
+            }
+          }
+          console.log('[Summary] Updated all existing summaries with new settings');
+        } catch (error) {
+          console.error('[Summary] Error updating existing summaries:', error);
+        }
+      });
+
+      sendResponse({ success: true });
+    }).catch(error => {
+      console.error('[Summary] Error updating settings:', error);
       sendResponse({ error: error.message });
     });
     return true; // Will respond asynchronously

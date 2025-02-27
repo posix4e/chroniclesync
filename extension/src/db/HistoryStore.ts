@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -26,6 +26,7 @@ export class HistoryStore {
       request.onupgradeneeded = (event) => {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
         // Create or update history store
         if (!db.objectStoreNames.contains(this.HISTORY_STORE)) {
@@ -35,6 +36,7 @@ export class HistoryStore {
           store.createIndex('url', 'url');
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
+          store.createIndex('summary', 'summary');
           console.log('Created history store with indexes');
         }
 
@@ -43,6 +45,15 @@ export class HistoryStore {
           const deviceStore = db.createObjectStore(this.DEVICE_STORE, { keyPath: 'deviceId' });
           deviceStore.createIndex('lastSeen', 'lastSeen');
           console.log('Created devices store');
+        }
+
+        // Add summary index to existing history store if upgrading from version 2
+        if (oldVersion < 3 && db.objectStoreNames.contains(this.HISTORY_STORE)) {
+          const store = request.transaction!.objectStore(this.HISTORY_STORE);
+          if (!store.indexNames.contains('summary')) {
+            store.createIndex('summary', 'summary');
+            console.log('Added summary index to history store');
+          }
         }
       };
     });
@@ -238,6 +249,61 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  async updateEntrySummary(url: string, summary: { content: string; status: string }): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const index = store.index('url');
+      const request = index.getAll(url);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result;
+        if (entries && entries.length > 0) {
+          // Update all entries with the same URL
+          let completed = 0;
+          let errors = 0;
+
+          entries.forEach(entry => {
+            entry.summary = {
+              ...summary,
+              version: 1,
+              lastModified: Date.now()
+            };
+            entry.syncStatus = 'pending';
+            entry.lastModified = Date.now();
+
+            const updateRequest = store.put(entry);
+            updateRequest.onerror = () => {
+              errors++;
+              if (completed + errors === entries.length) {
+                if (errors > 0) {
+                  reject(new Error(`Failed to update ${errors} entries`));
+                } else {
+                  resolve();
+                }
+              }
+            };
+            updateRequest.onsuccess = () => {
+              completed++;
+              if (completed + errors === entries.length) {
+                if (errors > 0) {
+                  reject(new Error(`Failed to update ${errors} entries`));
+                } else {
+                  resolve();
+                }
+              }
+            };
+          });
+        } else {
+          resolve();
+        }
+      };
     });
   }
 

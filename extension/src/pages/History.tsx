@@ -19,7 +19,32 @@ const History: React.FC = () => {
       }
     });
 
+    // Listen for summary updates
+    const handleSummaryUpdate = (message: any) => {
+      if (message.type === 'summaryUpdated') {
+        setHistory(prevHistory => prevHistory.map(entry => {
+          if (entry.url === message.url) {
+            return {
+              ...entry,
+              summary: {
+                content: message.summary.content,
+                status: message.summary.status,
+                version: 1,
+                lastModified: Date.now()
+              }
+            };
+          }
+          return entry;
+        }));
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleSummaryUpdate);
     loadHistory();
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleSummaryUpdate);
+    };
   }, []);
 
   const loadHistory = (deviceId?: string, since?: number) => {
@@ -136,9 +161,10 @@ const History: React.FC = () => {
             history.map(entry => (
               <div key={entry.visitId} className="history-item">
                 <div className="history-item-header">
-                  <a href={entry.url} target="_blank" rel="noopener noreferrer">
+                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="history-item-title">
                     {entry.title || entry.url}
                   </a>
+                  <div className="url-display">{entry.url}</div>
                   <button
                     onClick={() => handleDelete(entry.visitId)}
                     className="delete-button"
@@ -147,6 +173,13 @@ const History: React.FC = () => {
                     ×
                   </button>
                 </div>
+                {entry.summary && (
+                  <div className={`history-item-summary ${entry.summary.status}`}>
+                    {entry.summary.status === 'pending' ? 'Generating summary...' :
+                     entry.summary.status === 'error' ? 'Error generating summary' :
+                     entry.summary.content}
+                  </div>
+                )}
                 <div className="history-item-meta">
                   <span className="device-info" title={`${entry.browserName} ${entry.browserVersion}`}>
                     {getDeviceName(entry.deviceId)}

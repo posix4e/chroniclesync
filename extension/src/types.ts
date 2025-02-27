@@ -21,6 +21,12 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  summary?: {
+    content: string;
+    status: 'pending' | 'completed' | 'error';
+    version: number;
+    lastModified: number;
+  };
 }
 
 export interface SyncResponse {

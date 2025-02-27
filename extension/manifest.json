@@ -24,11 +24,14 @@
     "tabs",
     "history",
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
-    "https://api-staging.chroniclesync.xyz/*"
+    "https://api-staging.chroniclesync.xyz/*",
+    "<all_urls>"
   ]
 }

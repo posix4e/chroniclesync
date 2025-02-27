@@ -44,9 +44,54 @@
 }
 
 .history-item {
-  padding: 8px;
+  padding: 12px 8px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
+}
+
+.history-item-header {
+  margin-bottom: 4px;
+}
+
+.history-item-title {
+  color: #1a0dab;
+  font-size: 16px;
+  line-height: 1.3;
+  margin-bottom: 3px;
+  text-decoration: none;
+  display: block;
+}
+
+.history-item-title:hover {
+  text-decoration: underline;
+}
+
+.url-display {
+  color: #006621;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.history-item-summary {
+  color: #4d5156;
+  font-size: 13px;
+  line-height: 1.58;
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-summary.pending {
+  color: #70757a;
+  font-style: italic;
+}
+
+.history-item-summary.error {
+  color: #ea4335;
+  font-style: italic;
 }
 
 .history-item:hover {

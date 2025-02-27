@@ -14,6 +14,11 @@
     "resources": ["history.html", "src/services/ModelService.js", "src/services/SummaryService.js"],
     "matches": ["<all_urls>"]
   }],
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }],
   "background": {
     "service_worker": "background.js",
     "type": "module"

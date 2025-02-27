@@ -28,6 +28,19 @@ export class BackgroundService {
         sendResponse({ error: errorMessage });
       };
 
+      // Handle content extraction messages
+      if (request.type === 'pageContent' && request.content) {
+        console.log('Received page content:', request.content);
+        // Store the content for the current tab
+        if (sender.tab?.id) {
+          chrome.storage.local.set({
+            [`pageContent_${sender.tab.id}`]: request.content
+          });
+        }
+        sendResponse({ success: true });
+        return false;
+      }
+
       // Handle synchronous operations immediately
       if (request.type === 'stopSync') {
         try {

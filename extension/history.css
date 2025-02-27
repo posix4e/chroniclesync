@@ -57,11 +57,19 @@
   margin-bottom: 4px;
 }
 
+.url-display {
+  color: #006621;
+  font-size: 12px;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
 .history-item-header a {
   color: #1a0dab;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.3;
+  font-family: arial, sans-serif;
 }
 
 .history-item-header a:hover {
@@ -70,13 +78,15 @@
 
 .history-item-summary {
   color: #4d5156;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.58;
-  margin: 4px 0;
+  margin: 3px 0 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-width: 600px;
+  font-family: arial, sans-serif;
 }
 
 .history-item-summary.error {

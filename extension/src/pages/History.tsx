@@ -136,6 +136,7 @@ const History: React.FC = () => {
             history.map(entry => (
               <div key={entry.visitId} className="history-item">
                 <div className="history-item-header">
+                  <div className="url-display">{new URL(entry.url).hostname}</div>
                   <a href={entry.url} target="_blank" rel="noopener noreferrer">
                     {entry.title || entry.url}
                   </a>

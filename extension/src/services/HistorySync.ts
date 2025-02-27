@@ -1,6 +1,7 @@
 import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
-import { HistoryEntry } from '../types';
+import { HistoryEntry } from '../types/history';
+
 import { SyncService } from './SyncService';
 
 export class HistorySync {
@@ -73,6 +74,7 @@ export class HistorySync {
               visitTime: result.lastVisitTime || Date.now(),
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
+              version: 1,
               ...systemInfo
             });
             console.log('History entry stored successfully');
@@ -109,6 +111,7 @@ export class HistorySync {
               visitTime: visit.visitTime || Date.now(),
               referringVisitId: visit.referringVisitId?.toString() || '0',
               transition: visit.transition,
+              version: 1,
               ...systemInfo
             });
           }
@@ -159,9 +162,14 @@ export class HistorySync {
           url: entry.url,
           title: entry.title,
           visitTime: entry.visitTime,
-          platform: entry.platform,
-          browserName: entry.browserName,
-          summary: summaryEntry?.summary,
+          platform: entry.platform || 'unknown',
+          browserName: entry.browserName || 'unknown',
+          summary: summaryEntry?.summary ? {
+            content: summaryEntry.summary.content,
+            status: summaryEntry.summaryStatus === 'completed' ? 'completed' as const : 'error' as const,
+            lastModified: summaryEntry.summaryLastModified || Date.now(),
+            version: summaryEntry.summaryVersion || 1
+          } : undefined,
           summaryStatus: summaryEntry?.summaryStatus,
           summaryError: summaryEntry?.summaryError,
           summaryLastModified: summaryEntry?.summaryLastModified,
@@ -177,26 +185,32 @@ export class HistorySync {
 
       // Sync summaries from other devices
       const lastSyncTime = await this.getLastSyncTime();
-      const remoteSummaries = await this.syncService.syncSummaries(lastSyncTime);
+      const remoteSummaries = (await this.syncService.syncSummaries(lastSyncTime)) as Array<{
+        visitId: string;
+        text: string;
+        lastModified: number;
+        version: number;
+      }> | undefined;
       
       // Update local summaries
-      await Promise.all(
-        remoteSummaries.map(summary => 
-          this.store.updateSummary(summary.visitId, {
-            content: summary.content,
-            status: summary.status,
-            error: summary.error,
-            lastModified: summary.lastModified,
-            version: summary.version
-          })
-        )
-      );
+      if (remoteSummaries && remoteSummaries.length > 0) {
+        await Promise.all(
+          remoteSummaries.map(summary => 
+            this.store.updateSummary(summary.visitId, {
+              content: summary.text,
+              status: 'completed',
+              lastModified: summary.lastModified,
+              version: summary.version
+            })
+          )
+        );
+      }
 
       // Update last sync time
       await this.updateLastSyncTime();
 
       console.log('Successfully synced entries:', validEntries.length);
-      console.log('Successfully synced summaries:', remoteSummaries.length);
+      console.log('Successfully synced summaries:', (remoteSummaries || []).length);
     } catch (error) {
       console.error('Error syncing history:', error);
       throw error;
@@ -226,5 +240,9 @@ export class HistorySync {
 
   getHistoryStore(): HistoryStore {
     return this.store;
+  }
+
+  async initStore(): Promise<void> {
+    await this.store.init();
   }
 }

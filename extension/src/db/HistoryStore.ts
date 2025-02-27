@@ -1,4 +1,5 @@
-import { HistoryEntry, DeviceInfo } from '../types';
+import { DeviceInfo } from '../types';
+import { HistoryEntry, SummaryData } from '../types/history';
 
 export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
@@ -113,8 +114,7 @@ export class HistoryStore {
         const updatedEntry = {
           ...entry,
           summary,
-          summaryStatus: summary.status,
-          summaryError: summary.error,
+          summaryStatus: 'completed',
           summaryLastModified: summary.lastModified,
           summaryVersion: summary.version,
           lastModified: Date.now()

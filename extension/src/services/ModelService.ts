@@ -18,13 +18,14 @@ export class ModelService {
 
   async init(): Promise<void> {
     if (this.model) return;
-    if (this.isLoading) {
+    if (this.isLoading && this.loadingPromise) {
       return this.loadingPromise;
     }
 
     this.isLoading = true;
     this.loadingPromise = this.loadModel();
-    return this.loadingPromise;
+    await this.loadingPromise;
+    return;
   }
 
   private async loadModel(): Promise<void> {
@@ -53,9 +54,10 @@ export class ModelService {
       
       // Get embeddings for all sentences
       const embeddings = await this.model.embed(sentences);
+      const embeddingsTensor = embeddings as unknown as tf.Tensor2D;
       
       // Calculate sentence importance scores using cosine similarity
-      const scores = await this.calculateSentenceScores(embeddings);
+      const scores = await this.calculateSentenceScores(embeddingsTensor);
       
       // Select top sentences (about 20% of the total)
       const numSentences = Math.max(1, Math.ceil(sentences.length * 0.2));
@@ -69,7 +71,7 @@ export class ModelService {
     }
   }
 
-  private async calculateSentenceScores(embeddings: tf.Tensor): Promise<number[]> {
+  private async calculateSentenceScores(embeddings: tf.Tensor2D): Promise<number[]> {
     return tf.tidy(() => {
       // Calculate pairwise cosine similarity between sentences
       const normalizedEmbeddings = tf.div(

@@ -16,6 +16,7 @@ export class BackgroundService {
   async init(): Promise<void> {
     try {
       await this.settings.init();
+      await this.historySync.initStore();
       await this.historySync.init();
       
       // Initialize model in parallel with sync

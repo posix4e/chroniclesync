@@ -83,7 +83,7 @@ export const Summary: React.FC<SummaryProps> = ({ entry, onRegenerate }) => {
           borderRadius: '4px',
           border: '1px solid #e0e0e0'
         }}>
-          {entry.summary}
+          {entry.summary?.content || ''}
         </div>
       )}
       {entry.summaryStatus === 'pending' && (

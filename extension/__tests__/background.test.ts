@@ -33,13 +33,27 @@ vi.mock('../src/settings/Settings', () => ({
   }))
 }));
 
+// Mock ModelService class
+vi.mock('../src/services/ModelService', () => ({
+  ModelService: {
+    getInstance: vi.fn().mockReturnValue({
+      init: vi.fn().mockResolvedValue(undefined),
+      generateSummary: vi.fn().mockResolvedValue('Test summary')
+    })
+  }
+}));
+
 // Mock HistorySync class
 vi.mock('../src/services/HistorySync', () => ({
   HistorySync: vi.fn().mockImplementation(() => ({
     init: vi.fn().mockResolvedValue(undefined),
     getHistory: vi.fn().mockResolvedValue([]),
     startSync: vi.fn().mockResolvedValue(undefined),
-    stopSync: vi.fn()
+    stopSync: vi.fn(),
+    initStore: vi.fn().mockResolvedValue(undefined),
+    getHistoryStore: vi.fn().mockReturnValue({
+      init: vi.fn().mockResolvedValue(undefined)
+    })
   }))
 }));
 

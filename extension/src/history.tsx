@@ -4,7 +4,7 @@ import { HistoryStore } from './db/HistoryStore';
 
 const ITEMS_PER_PAGE = 10;
 
-import { HistoryEntry } from './types';
+import { HistoryEntry } from './types/history';
 
 interface FilterOptions {
   platform: string;
@@ -27,8 +27,8 @@ const HistoryView: React.FC = () => {
 
   useEffect(() => {
     if (history.length > 0) {
-      const platforms = [...new Set(history.map(item => item.platform))];
-      const browsers = [...new Set(history.map(item => item.browserName))];
+      const platforms = [...new Set(history.map(item => item.platform || 'unknown'))];
+      const browsers = [...new Set(history.map(item => item.browserName || 'unknown'))];
       setAvailablePlatforms(platforms);
       setAvailableBrowsers(browsers);
     }

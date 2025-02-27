@@ -1,6 +1,6 @@
 import { HistoryStore } from '../db/HistoryStore';
-import { HistoryVisit } from './SyncService';
 import { ModelService } from './ModelService';
+import { SummaryStatus } from '../types/history';
 
 export class SummaryService {
   private historyStore: HistoryStore;
@@ -45,16 +45,19 @@ export class SummaryService {
     this.isProcessing = false;
   }
 
-  private async getPendingSummaries(): Promise<HistoryVisit[]> {
+  private async getPendingSummaries(): Promise<{ visitId: string; url: string }[]> {
     // Get entries that need summarization
     const entries = await this.historyStore.getEntries();
     return entries.filter(entry => 
       !entry.summaryStatus || 
       entry.summaryStatus === 'pending'
-    );
+    ).map(entry => ({
+      visitId: entry.visitId,
+      url: entry.url
+    }));
   }
 
-  private async processEntry(entry: HistoryVisit) {
+  private async processEntry(entry: { visitId: string; url: string }) {
     try {
       // Mark as pending before processing
       await this.updateSummaryStatus(entry.visitId, 'pending');
@@ -72,7 +75,8 @@ export class SummaryService {
       await this.updateSummary(entry.visitId, summary);
     } catch (error) {
       console.error(`Error processing entry ${entry.visitId}:`, error);
-      await this.updateSummaryStatus(entry.visitId, 'error', error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      await this.updateSummaryStatus(entry.visitId, 'error', errorMessage);
     }
   }
 
@@ -120,7 +124,7 @@ export class SummaryService {
     }
   }
 
-  private async updateSummary(visitId: string, summary: string): Promise<void> {
+  private async updateSummary(visitId: string, text: string): Promise<void> {
     const transaction = this.historyStore['db']!.transaction(['history'], 'readwrite');
     const store = transaction.objectStore('history');
     
@@ -131,9 +135,17 @@ export class SummaryService {
       request.onsuccess = () => {
         const entry = request.result;
         if (entry) {
-          entry.summary = summary;
+          const now = Date.now();
+          entry.summary = {
+            content: text,
+            status: 'completed',
+            version: 1,
+            lastModified: now
+          };
           entry.summaryStatus = 'completed';
-          entry.lastModified = Date.now();
+          entry.summaryLastModified = now;
+          entry.summaryVersion = 1;
+          entry.lastModified = now;
           
           const updateRequest = store.put(entry);
           updateRequest.onerror = () => reject(updateRequest.error);
@@ -147,7 +159,7 @@ export class SummaryService {
 
   private async updateSummaryStatus(
     visitId: string, 
-    status: 'pending' | 'completed' | 'error',
+    status: SummaryStatus,
     error?: string
   ): Promise<void> {
     const transaction = this.historyStore['db']!.transaction(['history'], 'readwrite');

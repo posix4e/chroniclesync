@@ -15,9 +15,15 @@ export class SummaryService {
     return this.settings;
   }
 
-  async summarizeContent(url: string, content: { elements: string[] }): Promise<SummaryData> {
+  async summarizeContent(url: string, content: { elements: string[] } | null): Promise<SummaryData> {
     if (!this.settings.enabled) {
       return this.createSummaryData('', 'completed');
+    }
+
+    // Validate content
+    if (!content) {
+      console.error('[Summary] Content is null');
+      return this.createSummaryData('', 'error');
     }
 
     // Check if already processing
@@ -52,7 +58,12 @@ export class SummaryService {
   }
 
   private extractMainContent(content: { elements: string[], stats?: any }): string {
-    if (!content.elements || content.elements.length === 0) {
+    if (!Array.isArray(content.elements)) {
+      console.error('[Summary] Content elements is not an array:', typeof content.elements);
+      throw new Error('Content elements is not an array');
+    }
+
+    if (content.elements.length === 0) {
       console.error('[Summary] No elements found in content');
       throw new Error('No content elements found');
     }

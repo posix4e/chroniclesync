@@ -10,12 +10,13 @@ export class SummaryService {
 
   constructor(settings: Settings) {
     this.settings = settings;
-    this.modelService = new ModelService({
+    const modelConfig = settings.config?.summary?.modelConfig || {
       modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
       inputLength: 512,
       outputLength: 512,
       threshold: 0.3
-    });
+    };
+    this.modelService = new ModelService(modelConfig);
   }
 
   async init(): Promise<void> {

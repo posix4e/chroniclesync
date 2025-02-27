@@ -18,6 +18,7 @@ export interface SummarySettings {
     lists: boolean;
     quotes: boolean;
   };
+  modelConfig: SummaryModelConfig;
 }
 
 export interface SummaryModelConfig {

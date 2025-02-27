@@ -20,7 +20,7 @@ const copyFiles = () => ({
 });
 
 export default defineConfig({
-  plugins: [react(), copyFiles()],
+  plugins: [react()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

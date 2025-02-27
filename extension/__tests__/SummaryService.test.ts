@@ -10,27 +10,34 @@ describe('SummaryService', () => {
   let mockSettings: Settings;
 
   beforeEach(() => {
-    mockSettings = {
-      config: {
-        mnemonic: '',
-        clientId: '',
-        customApiUrl: null,
-        environment: 'production',
-        expirationDays: 7,
-        summary: {
-          enabled: true,
-          summaryLength: 30,
-          minSentences: 3,
-          maxSentences: 10,
-          autoSummarize: true,
-          contentPriority: {
-            headlines: true,
-            lists: true,
-            quotes: false
-          }
+    const defaultSettings = {
+      mnemonic: '',
+      clientId: '',
+      customApiUrl: null,
+      environment: 'production' as const,
+      expirationDays: 7,
+      summary: {
+        enabled: true,
+        summaryLength: 30,
+        minSentences: 3,
+        maxSentences: 10,
+        autoSummarize: true,
+        contentPriority: {
+          headlines: true,
+          lists: true,
+          quotes: false
+        },
+        modelConfig: {
+          modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+          inputLength: 512,
+          outputLength: 512,
+          threshold: 0.3
         }
       }
-    } as Settings;
+    };
+
+    mockSettings = new Settings();
+    mockSettings.config = defaultSettings;
 
     summaryService = new SummaryService(mockSettings);
   });

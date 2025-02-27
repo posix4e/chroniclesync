@@ -1,3 +1,5 @@
+import { SummaryData } from './types/summary';
+
 export interface DeviceInfo {
   deviceId: string;
   platform: string;
@@ -21,6 +23,10 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  content?: string;
+  summaryStatus?: 'pending' | 'completed' | 'error';
+  summary?: SummaryData;
+  summaryError?: string;
 }
 
 export interface SyncResponse {

@@ -25,8 +25,11 @@ export class ModelService {
     }
 
     const sentences = this.splitIntoSentences(text);
-    const encodings = await this.encoder.predict(tf.tensor2d([text])) as tf.Tensor2D;
-    return encodings;
+    return tf.tidy(() => {
+      const input = tf.tensor1d([text]);
+      const output = this.encoder!.predict(input) as tf.Tensor;
+      return output.reshape([1, -1]) as tf.Tensor2D;
+    });
   }
 
   private splitIntoSentences(text: string): string[] {
@@ -38,8 +41,8 @@ export class ModelService {
       const normalizedEncodings = tf.div(
         encodings,
         tf.norm(encodings, 2, -1, true)
-      );
-      return tf.matMul(normalizedEncodings, normalizedEncodings.transpose());
+      ) as tf.Tensor2D;
+      return tf.matMul(normalizedEncodings, normalizedEncodings.transpose()) as tf.Tensor2D;
     });
   }
 

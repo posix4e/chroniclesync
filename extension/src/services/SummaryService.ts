@@ -99,9 +99,7 @@ export class SummaryService {
       return {
         ...entry,
         summary: summaryData,
-        summaryStatus: 'completed',
-        summaryLastModified: summaryData.lastModified,
-        summaryVersion: summaryData.version
+        summaryStatus: 'completed'
       };
 
     } catch (error) {

@@ -151,7 +151,6 @@ export class SummaryService {
 
     console.log(`[Summary] Completed processing all pending entries`);
   }
-  }
 
   dispose(): void {
     this.modelService.dispose();

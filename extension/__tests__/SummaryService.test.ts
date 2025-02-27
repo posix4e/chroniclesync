@@ -42,7 +42,16 @@ describe('SummaryService', () => {
       title: 'Test Page',
       content: '<p>Test content</p>',
       visitTime: Date.now(),
-      syncStatus: 'pending'
+      syncStatus: 'pending',
+      visitId: '1',
+      referringVisitId: '0',
+      transition: 'link',
+      deviceId: 'test-device',
+      platform: 'test',
+      userAgent: 'test',
+      browserName: 'test',
+      browserVersion: '1.0',
+      lastModified: Date.now()
     };
 
     const result = await summaryService.processEntry(entry);
@@ -55,7 +64,16 @@ describe('SummaryService', () => {
       title: 'Test Page',
       content: '<main><p>Test content with multiple sentences. This is another sentence. And a third one.</p></main>',
       visitTime: Date.now(),
-      syncStatus: 'pending'
+      syncStatus: 'pending',
+      visitId: '1',
+      referringVisitId: '0',
+      transition: 'link',
+      deviceId: 'test-device',
+      platform: 'test',
+      userAgent: 'test',
+      browserName: 'test',
+      browserVersion: '1.0',
+      lastModified: Date.now()
     };
 
     (ModelService.prototype.summarize as jest.Mock).mockResolvedValue('Test content with multiple sentences.');
@@ -63,6 +81,7 @@ describe('SummaryService', () => {
     const result = await summaryService.processEntry(entry);
     expect(result.summaryStatus).toBe('completed');
     expect(result.summary?.content).toBe('Test content with multiple sentences.');
+    expect(result.summary?.status).toBe('completed');
   });
 
   test('processEntry handles errors gracefully', async () => {
@@ -71,7 +90,16 @@ describe('SummaryService', () => {
       title: 'Test Page',
       content: '<p>Test content</p>',
       visitTime: Date.now(),
-      syncStatus: 'pending'
+      syncStatus: 'pending',
+      visitId: '1',
+      referringVisitId: '0',
+      transition: 'link',
+      deviceId: 'test-device',
+      platform: 'test',
+      userAgent: 'test',
+      browserName: 'test',
+      browserVersion: '1.0',
+      lastModified: Date.now()
     };
 
     (ModelService.prototype.summarize as jest.Mock).mockRejectedValue(new Error('Test error'));
@@ -88,7 +116,16 @@ describe('SummaryService', () => {
         title: 'Test Page 1',
         content: '<p>Test content 1</p>',
         visitTime: Date.now(),
-        syncStatus: 'pending'
+        syncStatus: 'pending',
+        visitId: '1',
+        referringVisitId: '0',
+        transition: 'link',
+        deviceId: 'test-device',
+        platform: 'test',
+        userAgent: 'test',
+        browserName: 'test',
+        browserVersion: '1.0',
+        lastModified: Date.now()
       },
       {
         url: 'https://example2.com',
@@ -96,7 +133,16 @@ describe('SummaryService', () => {
         content: '<p>Test content 2</p>',
         visitTime: Date.now(),
         syncStatus: 'pending',
-        summaryStatus: 'pending'
+        summaryStatus: 'pending',
+        visitId: '2',
+        referringVisitId: '1',
+        transition: 'link',
+        deviceId: 'test-device',
+        platform: 'test',
+        userAgent: 'test',
+        browserName: 'test',
+        browserVersion: '1.0',
+        lastModified: Date.now()
       }
     ];
 

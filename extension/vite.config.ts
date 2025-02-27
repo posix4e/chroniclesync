@@ -8,14 +8,24 @@ const copyFiles = () => ({
   name: 'copy-files',
   closeBundle: () => {
     // Copy HTML, CSS, and manifest files to dist
-    copyFileSync('popup.html', 'dist/popup.html');
-    copyFileSync('manifest.json', 'dist/manifest.json');
-    copyFileSync('popup.css', 'dist/popup.css');
-    copyFileSync('settings.html', 'dist/settings.html');
-    copyFileSync('settings.css', 'dist/settings.css');
-    copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
-    copyFileSync('history.html', 'dist/history.html');
-    copyFileSync('history.css', 'dist/history.css');
+    const files = [
+      'popup.html',
+      'manifest.json',
+      'popup.css',
+      'settings.html',
+      'settings.css',
+      'bip39-wordlist.js',
+      'history.html',
+      'history.css'
+    ];
+
+    for (const file of files) {
+      try {
+        copyFileSync(file, `dist/${file}`);
+      } catch (error: any) {
+        console.warn(`Warning: Could not copy ${file} - ${error?.message || error}`);
+      }
+    }
   }
 });
 
@@ -27,7 +37,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'background.js'),
+        background: resolve(__dirname, 'src/background.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
         history: resolve(__dirname, 'src/history.tsx')
       },

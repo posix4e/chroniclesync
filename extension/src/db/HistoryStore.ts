@@ -267,4 +267,24 @@ export class HistoryStore {
       };
     });
   }
+
+  async updateEntry(entry: HistoryEntry): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      
+      // Update entry with new lastModified timestamp and pending sync status
+      const updatedEntry = {
+        ...entry,
+        lastModified: Date.now(),
+        syncStatus: 'pending'
+      };
+
+      const request = store.put(updatedEntry);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
 }

@@ -213,12 +213,94 @@ syncHistory(true);
 // Set up periodic sync
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
+// Function to capture page content
+async function capturePageContent(tabId) {
+  try {
+    // Execute script to get page content
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          content: document.documentElement.outerHTML,
+          title: document.title,
+          url: window.location.href
+        };
+      }
+    });
+
+    if (result && result[0] && result[0].result) {
+      return result[0].result;
+    }
+  } catch (error) {
+    console.error('Error capturing page content:', error);
+  }
+  return null;
+}
+
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
-  if (changeInfo.url) {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
     // eslint-disable-next-line no-console
-    console.debug(`Navigation to: ${changeInfo.url}`);
-    // Trigger sync after a short delay to allow history to be updated
+    console.debug(`Navigation completed: ${tab.url}`);
+
+    // Get page content
+    const pageData = await capturePageContent(tabId);
+    if (pageData) {
+      // Initialize history store
+      const historyStore = new HistoryStore();
+      await historyStore.init();
+
+      // Get system info
+      const systemInfo = await getSystemInfo();
+
+      // Get visit information
+      const visits = await chrome.history.getVisits({ url: tab.url });
+      const latestVisit = visits[visits.length - 1];
+
+      if (latestVisit) {
+        // Create history entry with content
+        const entry = {
+          url: tab.url,
+          title: tab.title,
+          content: pageData.content,
+          visitTime: latestVisit.visitTime,
+          visitId: latestVisit.visitId,
+          referringVisitId: latestVisit.referringVisitId,
+          transition: latestVisit.transition,
+          ...systemInfo
+        };
+
+        // Store entry with content
+        await historyStore.addEntry(entry);
+
+        // Get settings to check if auto-summarization is enabled
+        const config = await getConfig();
+        if (config.summary?.enabled && config.summary?.autoSummarize) {
+          // Import and initialize SummaryService
+          const { SummaryService } = await import('./src/services/SummaryService.js');
+          const { Settings } = await import('./src/settings/Settings.js');
+          
+          const settings = new Settings();
+          await settings.init();
+          
+          const summaryService = new SummaryService(settings);
+          await summaryService.init();
+
+          // Process the entry for summarization
+          const processedEntry = await summaryService.processEntry(entry);
+          
+          // Update the entry with summary if generated
+          if (processedEntry.summary) {
+            await historyStore.updateEntry(processedEntry);
+          }
+
+          // Clean up
+          summaryService.dispose();
+        }
+      }
+    }
+
+    // Trigger sync after processing
     setTimeout(() => syncHistory(false), 1000);
   }
 });

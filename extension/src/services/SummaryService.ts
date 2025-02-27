@@ -15,7 +15,7 @@ export class SummaryService {
     return this.settings;
   }
 
-  async summarizeContent(url: string, content: string): Promise<SummaryData> {
+  async summarizeContent(url: string, content: { elements: string[] }): Promise<SummaryData> {
     if (!this.settings.enabled) {
       return this.createSummaryData('', 'completed');
     }
@@ -39,7 +39,7 @@ export class SummaryService {
     }
   }
 
-  private async processSummary(content: string): Promise<SummaryData> {
+  private async processSummary(content: { elements: string[] }): Promise<SummaryData> {
     try {
       console.log('[Summary] Processing content');
       const extractedContent = this.extractMainContent(content);

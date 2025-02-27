@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "cp src/content.js dist/ && vite build",
+    "build": "mkdir -p dist && cp src/content.js dist/ && vite build",
     "build:extension": "node scripts/build-extension.cjs",
     "preview": "vite preview",
     "test": "vitest run",

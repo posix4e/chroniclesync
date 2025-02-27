@@ -241,6 +241,34 @@ export class HistoryStore {
     });
   }
 
+  async updateEntry(url: string, data: Partial<HistoryEntry>): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const urlIndex = store.index('url');
+      const request = urlIndex.get(url);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          const updatedEntry = {
+            ...entry,
+            ...data,
+            lastModified: Date.now()
+          };
+          const updateRequest = store.put(updatedEntry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
   async deleteEntry(visitId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 

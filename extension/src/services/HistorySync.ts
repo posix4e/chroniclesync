@@ -176,4 +176,8 @@ export class HistorySync {
     const entries = await this.store.getEntries();
     return entries.filter(entry => entry.visitTime >= expirationTime);
   }
+
+  async updateEntry(url: string, data: Partial<HistoryEntry>): Promise<void> {
+    await this.store.updateEntry(url, data);
+  }
 }

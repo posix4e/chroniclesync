@@ -79,7 +79,9 @@ export class HistorySync {
               visitTime: result.lastVisitTime || Date.now(),
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
-              ...systemInfo
+              ...systemInfo,
+              syncStatus: 'pending',
+              lastModified: Date.now()
             };
             
             await this.store.addEntry(entry);
@@ -123,7 +125,9 @@ export class HistorySync {
               visitTime: visit.visitTime || Date.now(),
               referringVisitId: visit.referringVisitId?.toString() || '0',
               transition: visit.transition,
-              ...systemInfo
+              ...systemInfo,
+              syncStatus: 'pending',
+              lastModified: Date.now()
             };
             entries.push(entry);
             await this.store.addEntry(entry);

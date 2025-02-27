@@ -147,6 +147,16 @@ const History: React.FC = () => {
                     ×
                   </button>
                 </div>
+                {entry.summary && entry.summary.status === 'completed' && (
+                  <div className="history-item-summary">
+                    {entry.summary.content}
+                  </div>
+                )}
+                {entry.summaryStatus === 'error' && (
+                  <div className="history-item-summary error">
+                    Failed to generate summary: {entry.summaryError}
+                  </div>
+                )}
                 <div className="history-item-meta">
                   <span className="device-info" title={`${entry.browserName} ${entry.browserVersion}`}>
                     {getDeviceName(entry.deviceId)}

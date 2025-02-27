@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync } from 'fs';
+import { copyFileSync, existsSync } from 'fs';
 
 // Custom plugin to copy files after build
 const copyFiles = () => ({
@@ -16,6 +16,7 @@ const copyFiles = () => ({
     copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
     copyFileSync('history.html', 'dist/history.html');
     copyFileSync('history.css', 'dist/history.css');
+    copyFileSync('src/content.js', 'dist/content.js');
   }
 });
 

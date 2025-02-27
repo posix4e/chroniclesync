@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ES2020",
+    "module": "None",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "rootDir": "src",
+    "outFile": "dist/content.js",
     "types": ["chrome"]
   },
-  "include": ["src/content.ts"],
-  "exclude": ["node_modules"]
+  "files": ["src/content.ts"]
 }

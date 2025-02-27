@@ -5,7 +5,25 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      summarySettings: {
+        enabled: true,
+        summaryLength: 30,
+        minSentences: 3,
+        maxSentences: 10,
+        autoSummarize: true,
+        contentPriority: {
+          headlines: true,
+          lists: true,
+          quotes: false
+        },
+        modelConfig: {
+          modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+          inputLength: 512,
+          outputLength: 512,
+          threshold: 0.3
+        }
+      }
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -73,6 +91,16 @@ class Settings {
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
 
+    // Summary settings
+    const summaryEnabled = document.getElementById('summaryEnabled');
+    const summaryLength = document.getElementById('summaryLength');
+    const minSentences = document.getElementById('minSentences');
+    const maxSentences = document.getElementById('maxSentences');
+    const autoSummarize = document.getElementById('autoSummarize');
+    const priorityHeadlines = document.getElementById('priorityHeadlines');
+    const priorityLists = document.getElementById('priorityLists');
+    const priorityQuotes = document.getElementById('priorityQuotes');
+
     if (mnemonicInput) {
       mnemonicInput.value = '';
       mnemonicInput.classList.add('hidden');
@@ -84,6 +112,16 @@ class Settings {
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
     }
+
+    // Set summary settings
+    if (summaryEnabled) summaryEnabled.checked = this.config.summarySettings?.enabled ?? true;
+    if (summaryLength) summaryLength.value = this.config.summarySettings?.summaryLength ?? 30;
+    if (minSentences) minSentences.value = this.config.summarySettings?.minSentences ?? 3;
+    if (maxSentences) maxSentences.value = this.config.summarySettings?.maxSentences ?? 10;
+    if (autoSummarize) autoSummarize.checked = this.config.summarySettings?.autoSummarize ?? true;
+    if (priorityHeadlines) priorityHeadlines.checked = this.config.summarySettings?.contentPriority?.headlines ?? true;
+    if (priorityLists) priorityLists.checked = this.config.summarySettings?.contentPriority?.lists ?? true;
+    if (priorityQuotes) priorityQuotes.checked = this.config.summarySettings?.contentPriority?.quotes ?? false;
   }
 
   setupEventListeners() {
@@ -151,6 +189,16 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customApiUrlInput = document.getElementById('customApiUrl');
 
+    // Summary settings
+    const summaryEnabled = document.getElementById('summaryEnabled');
+    const summaryLength = document.getElementById('summaryLength');
+    const minSentences = document.getElementById('minSentences');
+    const maxSentences = document.getElementById('maxSentences');
+    const autoSummarize = document.getElementById('autoSummarize');
+    const priorityHeadlines = document.getElementById('priorityHeadlines');
+    const priorityLists = document.getElementById('priorityLists');
+    const priorityQuotes = document.getElementById('priorityQuotes');
+
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
     // Remove any existing messages first
@@ -176,7 +224,20 @@ class Settings {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      summarySettings: {
+        enabled: summaryEnabled?.checked ?? true,
+        summaryLength: parseInt(summaryLength?.value ?? '30', 10),
+        minSentences: parseInt(minSentences?.value ?? '3', 10),
+        maxSentences: parseInt(maxSentences?.value ?? '10', 10),
+        autoSummarize: autoSummarize?.checked ?? true,
+        contentPriority: {
+          headlines: priorityHeadlines?.checked ?? true,
+          lists: priorityLists?.checked ?? true,
+          quotes: priorityQuotes?.checked ?? false
+        },
+        modelConfig: this.DEFAULT_SETTINGS.summarySettings.modelConfig
+      }
     };
 
     await new Promise(resolve => {

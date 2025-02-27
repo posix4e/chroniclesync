@@ -1,10 +1,11 @@
 import { HistoryEntry, DeviceInfo } from '../types';
+import { SummaryData } from '../types/summary';
 
 export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -35,6 +36,7 @@ export class HistoryStore {
           store.createIndex('url', 'url');
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
+          store.createIndex('summary', 'summary');
           console.log('Created history store with indexes');
         }
 
@@ -238,6 +240,74 @@ export class HistoryStore {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  async updateSummary(url: string, summary: SummaryData): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const urlIndex = store.index('url');
+      const request = urlIndex.getAll(url);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result;
+        if (entries && entries.length > 0) {
+          // Update all entries with the same URL
+          let completed = 0;
+          let errors = 0;
+
+          entries.forEach(entry => {
+            entry.summary = summary;
+            entry.lastModified = Date.now();
+            const updateRequest = store.put(entry);
+
+            updateRequest.onerror = () => {
+              errors++;
+              if (completed + errors === entries.length) {
+                if (errors > 0) {
+                  reject(new Error(`Failed to update ${errors} entries`));
+                } else {
+                  resolve();
+                }
+              }
+            };
+
+            updateRequest.onsuccess = () => {
+              completed++;
+              if (completed + errors === entries.length) {
+                if (errors > 0) {
+                  reject(new Error(`Failed to update ${errors} entries`));
+                } else {
+                  resolve();
+                }
+              }
+            };
+          });
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async getSummary(url: string): Promise<SummaryData | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const urlIndex = store.index('url');
+      const request = urlIndex.get(url);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        resolve(entry?.summary || null);
+      };
     });
   }
 

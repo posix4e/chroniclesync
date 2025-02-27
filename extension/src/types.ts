@@ -6,6 +6,8 @@ export interface DeviceInfo {
   browserVersion: string;
 }
 
+import { SummaryData } from './types/summary';
+
 export interface HistoryEntry {
   url: string;
   title: string;
@@ -21,6 +23,7 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  summary?: SummaryData;
 }
 
 export interface SyncResponse {

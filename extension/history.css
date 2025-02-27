@@ -44,9 +44,48 @@
 }
 
 .history-item {
-  padding: 8px;
+  padding: 12px 8px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
+}
+
+.history-item-header {
+  margin-bottom: 4px;
+}
+
+.history-item-title {
+  color: #1a0dab;
+  font-size: 18px;
+  line-height: 1.3;
+  margin-bottom: 3px;
+  text-decoration: none;
+}
+
+.history-item-title:hover {
+  text-decoration: underline;
+}
+
+.url-display {
+  color: #006621;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.history-item-summary {
+  color: #4d5156;
+  font-size: 13px;
+  line-height: 1.58;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.summary-status {
+  font-size: 11px;
+  color: #70757a;
+  margin-top: 2px;
 }
 
 .history-item:hover {

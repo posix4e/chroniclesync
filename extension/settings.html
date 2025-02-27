@@ -43,6 +43,49 @@
             </div>
         </section>
 
+        <section class="settings-section">
+            <h2>Summary Settings</h2>
+            <div class="setting-item">
+                <label for="summaryEnabled">Enable Summarization:</label>
+                <input type="checkbox" id="summaryEnabled" checked>
+            </div>
+            <div class="setting-item">
+                <label for="summaryLength">Summary Length:</label>
+                <input type="number" id="summaryLength" min="10" max="100" value="30">
+                <small class="help-text">Target length of generated summaries (words)</small>
+            </div>
+            <div class="setting-item">
+                <label for="minSentences">Minimum Sentences:</label>
+                <input type="number" id="minSentences" min="1" max="5" value="3">
+            </div>
+            <div class="setting-item">
+                <label for="maxSentences">Maximum Sentences:</label>
+                <input type="number" id="maxSentences" min="5" max="20" value="10">
+            </div>
+            <div class="setting-item">
+                <label for="autoSummarize">Auto-Summarize:</label>
+                <input type="checkbox" id="autoSummarize" checked>
+                <small class="help-text">Automatically generate summaries for new pages</small>
+            </div>
+            <div class="setting-item">
+                <label>Content Priority:</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="priorityHeadlines" checked>
+                        Headlines
+                    </label>
+                    <label>
+                        <input type="checkbox" id="priorityLists" checked>
+                        Lists
+                    </label>
+                    <label>
+                        <input type="checkbox" id="priorityQuotes">
+                        Quotes
+                    </label>
+                </div>
+            </div>
+        </section>
+
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>
             <button id="resetSettings" class="reset-settings">Reset to Default</button>

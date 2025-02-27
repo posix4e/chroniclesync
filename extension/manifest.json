@@ -11,7 +11,7 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html"],
+    "resources": ["history.html", "src/services/ModelService.js", "src/services/SummaryService.js"],
     "matches": ["<all_urls>"]
   }],
   "background": {
@@ -24,11 +24,14 @@
     "tabs",
     "history",
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
-    "https://api-staging.chroniclesync.xyz/*"
+    "https://api-staging.chroniclesync.xyz/*",
+    "<all_urls>"
   ]
 }

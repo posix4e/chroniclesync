@@ -1,5 +1,7 @@
 import { getConfig } from './config.js';
 import { HistoryStore } from './src/db/HistoryStore';
+import { SummaryService } from './src/services/SummaryService';
+import { DEFAULT_SUMMARY_SETTINGS } from './src/types/summary';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -213,12 +215,46 @@ syncHistory(true);
 // Set up periodic sync
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
+// Initialize summary service
+let summaryService = null;
+
+async function initializeSummaryService() {
+  const config = await getConfig();
+  const settings = config.summarySettings || DEFAULT_SUMMARY_SETTINGS;
+  summaryService = new SummaryService(settings);
+}
+
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
-  if (changeInfo.url) {
-    // eslint-disable-next-line no-console
-    console.debug(`Navigation to: ${changeInfo.url}`);
-    // Trigger sync after a short delay to allow history to be updated
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    console.debug(`[Background] Navigation completed: ${tab.url}`);
+    
+    // Initialize summary service if needed
+    if (!summaryService) {
+      await initializeSummaryService();
+    }
+
+    try {
+      // Capture page content
+      const [{ result }] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => document.documentElement.outerHTML
+      });
+
+      // Generate summary
+      const summary = await summaryService.summarizeContent(tab.url, result);
+      
+      // Store summary in history entry
+      const historyStore = new HistoryStore();
+      await historyStore.init();
+      await historyStore.updateSummary(tab.url, summary);
+
+      console.debug(`[Summary] Generated summary for ${tab.url}`);
+    } catch (error) {
+      console.error('[Summary] Error processing page:', error);
+    }
+
+    // Trigger sync after processing
     setTimeout(() => syncHistory(false), 1000);
   }
 });
@@ -293,6 +329,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }).catch(error => {
       // eslint-disable-next-line no-console
       console.error('Error initializing IndexedDB:', error);
+      sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getSummary') {
+    const { url } = request;
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const summary = await historyStore.getSummary(url);
+        sendResponse(summary);
+      } catch (error) {
+        console.error('[Summary] Error fetching summary:', error);
+        sendResponse({ error: error.message });
+      }
+    }).catch(error => {
+      console.error('[Summary] Error initializing IndexedDB:', error);
       sendResponse({ error: error.message });
     });
     return true; // Will respond asynchronously

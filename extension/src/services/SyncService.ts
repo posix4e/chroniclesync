@@ -27,35 +27,31 @@ export class SyncService {
 
   constructor(settings: Settings) {
     this.settings = settings;
-    this.deviceInfo = this.getDeviceInfo();
+    this.deviceInfo = {
+      platform: 'unknown',
+      browserName: 'Chrome',
+      browserVersion: 'unknown',
+      userAgent: 'Chrome Extension'
+    };
+    this.initDeviceInfo();
   }
 
-  private getDeviceInfo(): DeviceInfo {
-    const platform = navigator.platform;
-    const ua = navigator.userAgent;
-    let browserName = 'Unknown';
-    let browserVersion = 'Unknown';
+  private async initDeviceInfo(): Promise<void> {
+    this.deviceInfo = await this.getDeviceInfo();
+  }
 
-    // Parse browser name and version
-    if (ua.includes('Chrome')) {
-      browserName = 'Chrome';
-      browserVersion = ua.match(/Chrome\/([0-9.]+)/)?.[1] || 'Unknown';
-    } else if (ua.includes('Firefox')) {
-      browserName = 'Firefox';
-      browserVersion = ua.match(/Firefox\/([0-9.]+)/)?.[1] || 'Unknown';
-    } else if (ua.includes('Safari')) {
-      browserName = 'Safari';
-      browserVersion = ua.match(/Version\/([0-9.]+)/)?.[1] || 'Unknown';
-    } else if (ua.includes('Edge')) {
-      browserName = 'Edge';
-      browserVersion = ua.match(/Edge\/([0-9.]+)/)?.[1] || 'Unknown';
-    }
+  private async getDeviceInfo(): Promise<DeviceInfo> {
+    // Get platform info from chrome.runtime API
+    const platform = await chrome.runtime.getPlatformInfo();
+
+    // Get browser version from chrome.runtime API
+    const version = chrome.runtime.getManifest().version;
 
     return {
-      platform,
-      browserName,
-      browserVersion,
-      userAgent: ua
+      platform: platform.os,
+      browserName: 'Chrome',
+      browserVersion: version,
+      userAgent: 'Chrome Extension'
     };
   }
 

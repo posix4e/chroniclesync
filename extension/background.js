@@ -26,16 +26,16 @@ async function initializeExtension() {
 }
 
 async function getSystemInfo() {
-  const platform = navigator.platform;
-  const userAgent = navigator.userAgent;
   const deviceId = await getDeviceId();
+  const platform = await chrome.runtime.getPlatformInfo();
+  const manifest = chrome.runtime.getManifest();
 
   return {
     deviceId,
-    platform,
-    userAgent,
+    platform: platform.os,
+    userAgent: 'Chrome Extension',
     browserName: 'Chrome',
-    browserVersion: /Chrome\/([0-9.]+)/.exec(userAgent)?.[1] || 'unknown'
+    browserVersion: manifest.version
   };
 }
 

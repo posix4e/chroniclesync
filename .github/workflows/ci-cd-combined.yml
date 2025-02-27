@@ -58,14 +58,10 @@ jobs:
           npm run test
           npm run build
 
-      - name: Test Extension
+      - name: Build Extension
         working-directory: extension
-        env:
-          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
         run: |
           npm ci
-          npm run lint
-          npm run test
           npm run build
 
       - name: Package Chrome Extension
@@ -82,6 +78,12 @@ jobs:
           name: chrome-extension
           path: extension/chrome-extension.zip
           retention-days: 14
+
+      - name: Test Extension
+        working-directory: extension
+        run: |
+          npm run lint
+          npm run test
 
       - name: Test Worker
         working-directory: worker

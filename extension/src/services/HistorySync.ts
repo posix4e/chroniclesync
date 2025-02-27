@@ -71,15 +71,23 @@ export class HistorySync {
           const latestVisit = visits[visits.length - 1];
 
           if (latestVisit) {
-            // Fetch page content
-            console.log('[HistorySync] Fetching page content...');
+            // Get page content using chrome.scripting
+            console.log('[HistorySync] Getting page content...');
             let content = '';
             try {
-              const response = await fetch(result.url);
-              content = await response.text();
-              console.log('[HistorySync] Page content fetched successfully');
+              const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+              if (tab?.id) {
+                const results = await chrome.scripting.executeScript({
+                  target: { tabId: tab.id },
+                  func: () => document.documentElement.outerHTML
+                });
+                content = results[0]?.result?.toString() || '';
+                console.log('[HistorySync] Page content captured successfully');
+              } else {
+                console.warn('[HistorySync] No active tab found');
+              }
             } catch (error) {
-              console.error('[HistorySync] Error fetching page content:', error);
+              console.error('[HistorySync] Error getting page content:', error);
             }
 
             const systemInfo = await this.getSystemInfo();
@@ -128,15 +136,28 @@ export class HistorySync {
 
       for (const item of items) {
         if (item.url) {
-          // Fetch page content
-          console.log(`[HistorySync] Fetching content for ${item.url}...`);
+          // Get page content using chrome.scripting
+          console.log(`[HistorySync] Getting content for ${item.url}...`);
           let content = '';
           try {
-            const response = await fetch(item.url);
-            content = await response.text();
-            console.log(`[HistorySync] Content fetched for ${item.url}`);
+            // Create a new tab to get the content
+            const tab = await chrome.tabs.create({ url: item.url, active: false });
+            if (tab?.id) {
+              // Wait for the page to load
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const results = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => document.documentElement.outerHTML
+              });
+              content = results[0]?.result?.toString() || '';
+              console.log(`[HistorySync] Content captured for ${item.url}`);
+              
+              // Close the tab
+              await chrome.tabs.remove(tab.id);
+            }
           } catch (error) {
-            console.error(`[HistorySync] Error fetching content for ${item.url}:`, error);
+            console.error(`[HistorySync] Error getting content for ${item.url}:`, error);
           }
 
           const visits = await chrome.history.getVisits({ url: item.url });
@@ -228,5 +249,39 @@ export class HistorySync {
     await this.summaryService.processPendingEntries(validEntries);
     
     return validEntries;
+  }
+
+  async processPageContent(pageData: { url: string; title: string; content: string; visitTime: number }): Promise<void> {
+    console.log('[HistorySync] Processing page content for:', pageData.url);
+    
+    try {
+      // Get visit details from chrome.history API
+      const visits = await chrome.history.getVisits({ url: pageData.url });
+      const latestVisit = visits[visits.length - 1];
+
+      if (latestVisit) {
+        const systemInfo = await this.getSystemInfo();
+        const entry: HistoryEntry = {
+          visitId: `${latestVisit.visitId}`,
+          url: pageData.url,
+          title: pageData.title,
+          visitTime: pageData.visitTime,
+          referringVisitId: latestVisit.referringVisitId?.toString() || '0',
+          transition: latestVisit.transition,
+          content: pageData.content,
+          ...systemInfo,
+          syncStatus: 'pending',
+          lastModified: Date.now()
+        };
+
+        await this.store.addEntry(entry);
+        console.log('[HistorySync] Entry stored, processing summary...');
+        await this.summaryService.processEntry(entry);
+        console.log('[HistorySync] Summary processing complete');
+      }
+    } catch (error) {
+      console.error('[HistorySync] Error processing page content:', error);
+      throw error;
+    }
   }
 }

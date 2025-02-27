@@ -62,6 +62,31 @@ export class BackgroundService {
         return true;
       }
 
+      // Handle page content
+      if (request.type === 'pageContent') {
+        console.log('[Background] Received page content for:', request.url);
+        // Create a promise to handle the async operation
+        const asyncOperation = async () => {
+          try {
+            const entry = {
+              url: request.url,
+              title: request.title,
+              content: request.content,
+              visitTime: Date.now()
+            };
+            await this.historySync.processPageContent(entry);
+            sendResponse({ success: true });
+          } catch (error) {
+            console.error('[Background] Error processing page content:', error);
+            sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+          }
+        };
+        
+        // Execute the async operation and keep the message channel open
+        asyncOperation();
+        return true;
+      }
+
       // Handle unknown message types
       console.warn('Unknown message type:', request.type);
       sendResponse({ error: `Unknown message type: ${request.type}` });

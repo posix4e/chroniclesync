@@ -14,6 +14,11 @@
     "resources": ["history.html"],
     "matches": ["<all_urls>"]
   }],
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_end"
+  }],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -24,7 +29,9 @@
     "tabs",
     "history",
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "<all_urls>",

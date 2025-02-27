@@ -33,6 +33,12 @@ export class Settings {
         headlines: true,
         lists: true,
         quotes: false
+      },
+      modelConfig: {
+        modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+        inputLength: 512,
+        outputLength: 512,
+        threshold: 0.3
       }
     }
   };

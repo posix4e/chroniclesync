@@ -133,6 +133,7 @@ export class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
 
+    // Basic settings
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
@@ -140,6 +141,35 @@ export class Settings {
     expirationDaysInput.value = this.config.expirationDays.toString();
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+
+    // Summarization settings
+    const summaryEnabled = document.getElementById('summaryEnabled') as HTMLInputElement;
+    const autoSummarize = document.getElementById('autoSummarize') as HTMLInputElement;
+    const summaryLength = document.getElementById('summaryLength') as HTMLInputElement;
+    const minSentences = document.getElementById('minSentences') as HTMLInputElement;
+    const maxSentences = document.getElementById('maxSentences') as HTMLInputElement;
+    const priorityHeadlines = document.getElementById('priorityHeadlines') as HTMLInputElement;
+    const priorityLists = document.getElementById('priorityLists') as HTMLInputElement;
+    const priorityQuotes = document.getElementById('priorityQuotes') as HTMLInputElement;
+    const modelUrl = document.getElementById('modelUrl') as HTMLInputElement;
+    const inputLength = document.getElementById('inputLength') as HTMLInputElement;
+    const outputLength = document.getElementById('outputLength') as HTMLInputElement;
+    const threshold = document.getElementById('threshold') as HTMLInputElement;
+
+    if (this.config.summary) {
+      summaryEnabled.checked = this.config.summary.enabled;
+      autoSummarize.checked = this.config.summary.autoSummarize;
+      summaryLength.value = this.config.summary.summaryLength.toString();
+      minSentences.value = this.config.summary.minSentences.toString();
+      maxSentences.value = this.config.summary.maxSentences.toString();
+      priorityHeadlines.checked = this.config.summary.contentPriority.headlines;
+      priorityLists.checked = this.config.summary.contentPriority.lists;
+      priorityQuotes.checked = this.config.summary.contentPriority.quotes;
+      modelUrl.value = this.config.summary.modelConfig.modelUrl;
+      inputLength.value = this.config.summary.modelConfig.inputLength.toString();
+      outputLength.value = this.config.summary.modelConfig.outputLength.toString();
+      threshold.value = this.config.summary.modelConfig.threshold.toString();
+    }
   }
 
   private setupEventListeners(): void {
@@ -218,13 +248,76 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Get summarization settings
+    const summaryEnabled = (document.getElementById('summaryEnabled') as HTMLInputElement).checked;
+    const autoSummarize = (document.getElementById('autoSummarize') as HTMLInputElement).checked;
+    const summaryLength = parseInt((document.getElementById('summaryLength') as HTMLInputElement).value);
+    const minSentences = parseInt((document.getElementById('minSentences') as HTMLInputElement).value);
+    const maxSentences = parseInt((document.getElementById('maxSentences') as HTMLInputElement).value);
+    const priorityHeadlines = (document.getElementById('priorityHeadlines') as HTMLInputElement).checked;
+    const priorityLists = (document.getElementById('priorityLists') as HTMLInputElement).checked;
+    const priorityQuotes = (document.getElementById('priorityQuotes') as HTMLInputElement).checked;
+    const modelUrl = (document.getElementById('modelUrl') as HTMLInputElement).value.trim();
+    const inputLength = parseInt((document.getElementById('inputLength') as HTMLInputElement).value);
+    const outputLength = parseInt((document.getElementById('outputLength') as HTMLInputElement).value);
+    const threshold = parseFloat((document.getElementById('threshold') as HTMLInputElement).value);
+
+    // Validate summarization settings
+    if (summaryEnabled) {
+      if (isNaN(summaryLength) || summaryLength < 1 || summaryLength > 100) {
+        this.showMessage('Summary length must be between 1 and 100', 'error');
+        return;
+      }
+      if (isNaN(minSentences) || minSentences < 1) {
+        this.showMessage('Minimum sentences must be at least 1', 'error');
+        return;
+      }
+      if (isNaN(maxSentences) || maxSentences < minSentences) {
+        this.showMessage('Maximum sentences must be greater than or equal to minimum sentences', 'error');
+        return;
+      }
+      if (!modelUrl) {
+        this.showMessage('Model URL is required when summarization is enabled', 'error');
+        return;
+      }
+      if (isNaN(inputLength) || inputLength < 1) {
+        this.showMessage('Input length must be at least 1', 'error');
+        return;
+      }
+      if (isNaN(outputLength) || outputLength < 1) {
+        this.showMessage('Output length must be at least 1', 'error');
+        return;
+      }
+      if (isNaN(threshold) || threshold < 0 || threshold > 1) {
+        this.showMessage('Threshold must be between 0 and 1', 'error');
+        return;
+      }
+    }
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
       expirationDays,
-      summary: this.config?.summary || this.DEFAULT_SETTINGS.summary
+      summary: {
+        enabled: summaryEnabled,
+        autoSummarize,
+        summaryLength,
+        minSentences,
+        maxSentences,
+        contentPriority: {
+          headlines: priorityHeadlines,
+          lists: priorityLists,
+          quotes: priorityQuotes
+        },
+        modelConfig: {
+          modelUrl,
+          inputLength,
+          outputLength,
+          threshold
+        }
+      }
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

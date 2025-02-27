@@ -277,8 +277,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         const config = await getConfig();
         if (config.summary?.enabled && config.summary?.autoSummarize) {
           // Import and initialize SummaryService
-          const { SummaryService } = await import('./src/services/SummaryService.ts');
-          const { Settings } = await import('./src/settings/Settings.ts');
+          const { SummaryService } = await import('./src/services/SummaryService');
+          const { Settings } = await import('./src/settings/Settings');
           
           const settings = new Settings();
           await settings.init();

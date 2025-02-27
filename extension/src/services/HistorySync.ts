@@ -2,11 +2,13 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { SummaryService } from './SummaryService';
 
 export class HistorySync {
   private settings: Settings;
   private store: HistoryStore;
   private syncService: SyncService;
+  private summaryService: SummaryService;
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -14,10 +16,14 @@ export class HistorySync {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+    this.summaryService = new SummaryService(settings);
   }
 
   async init(): Promise<void> {
+    console.log('[HistorySync] Initializing services...');
     await this.store.init();
+    await this.summaryService.init();
+    console.log('[HistorySync] Services initialized');
     this.setupHistoryListener();
   }
 
@@ -57,7 +63,7 @@ export class HistorySync {
 
     // Listen for new history entries
     chrome.history.onVisited.addListener(async (result) => {
-      console.log('New history entry:', result);
+      console.log('[HistorySync] New history entry:', result);
       if (result.url) {
         try {
           // Get visit details from chrome.history API
@@ -66,7 +72,7 @@ export class HistorySync {
 
           if (latestVisit) {
             const systemInfo = await this.getSystemInfo();
-            await this.store.addEntry({
+            const entry: HistoryEntry = {
               visitId: `${latestVisit.visitId}`,
               url: result.url,
               title: result.title || '',
@@ -74,18 +80,25 @@ export class HistorySync {
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
               ...systemInfo
-            });
-            console.log('History entry stored successfully');
+            };
+            
+            await this.store.addEntry(entry);
+            console.log('[HistorySync] History entry stored successfully');
+
+            // Process summary for the new entry
+            console.log('[HistorySync] Processing summary for new entry...');
+            await this.summaryService.processEntry(entry);
+            console.log('[HistorySync] Summary processing complete');
           }
         } catch (error) {
-          console.error('Error storing history entry:', error);
+          console.error('[HistorySync] Error storing history entry:', error);
         }
       }
     });
   }
 
   private async loadInitialHistory(): Promise<void> {
-    console.log('Loading initial history...');
+    console.log('[HistorySync] Loading initial history...');
     try {
       const expirationDays = this.settings.config?.expirationDays || 7;
       const items = await chrome.history.search({
@@ -94,15 +107,16 @@ export class HistorySync {
         startTime: Date.now() - (expirationDays * 24 * 60 * 60 * 1000)
       });
 
-      console.log('Found initial history items:', items.length);
+      console.log('[HistorySync] Found initial history items:', items.length);
 
       const systemInfo = await this.getSystemInfo();
+      const entries: HistoryEntry[] = [];
 
       for (const item of items) {
         if (item.url) {
           const visits = await chrome.history.getVisits({ url: item.url });
           for (const visit of visits) {
-            await this.store.addEntry({
+            const entry: HistoryEntry = {
               visitId: `${visit.visitId}`,
               url: item.url,
               title: item.title || '',
@@ -110,13 +124,18 @@ export class HistorySync {
               referringVisitId: visit.referringVisitId?.toString() || '0',
               transition: visit.transition,
               ...systemInfo
-            });
+            };
+            entries.push(entry);
+            await this.store.addEntry(entry);
           }
         }
       }
-      console.log('Initial history loaded successfully');
+
+      console.log('[HistorySync] Processing summaries for initial entries...');
+      await this.summaryService.processPendingEntries(entries);
+      console.log('[HistorySync] Initial history loaded and processed successfully');
     } catch (error) {
-      console.error('Error loading initial history:', error);
+      console.error('[HistorySync] Error loading initial history:', error);
     }
   }
 
@@ -171,9 +190,15 @@ export class HistorySync {
   }
 
   async getHistory(): Promise<HistoryEntry[]> {
+    console.log('[HistorySync] Fetching history entries...');
     const expirationDays = this.settings.config?.expirationDays || 7;
     const expirationTime = Date.now() - (expirationDays * 24 * 60 * 60 * 1000);
     const entries = await this.store.getEntries();
-    return entries.filter(entry => entry.visitTime >= expirationTime);
+    const validEntries = entries.filter(entry => entry.visitTime >= expirationTime);
+    
+    console.log('[HistorySync] Processing summaries for entries...');
+    await this.summaryService.processPendingEntries(validEntries);
+    
+    return validEntries;
   }
 }

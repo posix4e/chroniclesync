@@ -11,6 +11,10 @@ export class SummaryService {
     this.modelService = new ModelService(settings.modelConfig);
   }
 
+  getSettings(): SummarySettings {
+    return this.settings;
+  }
+
   async summarizeContent(url: string, content: string): Promise<SummaryData> {
     if (!this.settings.enabled) {
       return this.createSummaryData('', 'completed');
@@ -47,31 +51,8 @@ export class SummaryService {
     }
   }
 
-  private extractMainContent(content: string): string {
-    const doc = new DOMParser().parseFromString(content, 'text/html');
-    const elements: string[] = [];
-
-    if (this.settings.contentPriority.headlines) {
-      elements.push(...Array.from(doc.querySelectorAll('h1, h2, h3'))
-        .map(el => el.textContent || ''));
-    }
-
-    if (this.settings.contentPriority.lists) {
-      elements.push(...Array.from(doc.querySelectorAll('ul, ol'))
-        .map(el => el.textContent || ''));
-    }
-
-    const paragraphs = Array.from(doc.querySelectorAll('p'))
-      .map(el => el.textContent || '');
-
-    if (this.settings.contentPriority.quotes) {
-      elements.push(...Array.from(doc.querySelectorAll('blockquote'))
-        .map(el => el.textContent || ''));
-    }
-
-    elements.push(...paragraphs);
-
-    return elements
+  private extractMainContent(content: { elements: string[] }): string {
+    return content.elements
       .filter(text => text.trim().length > 0)
       .join(' ')
       .slice(0, this.settings.modelConfig.inputLength);

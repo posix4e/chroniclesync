@@ -235,10 +235,34 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     }
 
     try {
-      // Capture page content
+      // Capture page content with priority settings
       const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
-        func: () => document.documentElement.outerHTML
+        func: (settings) => {
+          const elements = [];
+          
+          if (settings.contentPriority.headlines) {
+            elements.push(...Array.from(document.querySelectorAll('h1, h2, h3'))
+              .map(el => el.textContent || ''));
+          }
+
+          if (settings.contentPriority.lists) {
+            elements.push(...Array.from(document.querySelectorAll('ul, ol'))
+              .map(el => el.textContent || ''));
+          }
+
+          const paragraphs = Array.from(document.querySelectorAll('p'))
+            .map(el => el.textContent || '');
+
+          if (settings.contentPriority.quotes) {
+            elements.push(...Array.from(document.querySelectorAll('blockquote'))
+              .map(el => el.textContent || ''));
+          }
+
+          elements.push(...paragraphs);
+          return { elements };
+        },
+        args: [summaryService.getSettings().contentPriority]
       });
 
       // Generate summary

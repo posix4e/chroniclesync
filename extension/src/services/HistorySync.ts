@@ -71,6 +71,17 @@ export class HistorySync {
           const latestVisit = visits[visits.length - 1];
 
           if (latestVisit) {
+            // Fetch page content
+            console.log('[HistorySync] Fetching page content...');
+            let content = '';
+            try {
+              const response = await fetch(result.url);
+              content = await response.text();
+              console.log('[HistorySync] Page content fetched successfully');
+            } catch (error) {
+              console.error('[HistorySync] Error fetching page content:', error);
+            }
+
             const systemInfo = await this.getSystemInfo();
             const entry: HistoryEntry = {
               visitId: `${latestVisit.visitId}`,
@@ -79,6 +90,7 @@ export class HistorySync {
               visitTime: result.lastVisitTime || Date.now(),
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
+              content,
               ...systemInfo,
               syncStatus: 'pending',
               lastModified: Date.now()
@@ -116,6 +128,17 @@ export class HistorySync {
 
       for (const item of items) {
         if (item.url) {
+          // Fetch page content
+          console.log(`[HistorySync] Fetching content for ${item.url}...`);
+          let content = '';
+          try {
+            const response = await fetch(item.url);
+            content = await response.text();
+            console.log(`[HistorySync] Content fetched for ${item.url}`);
+          } catch (error) {
+            console.error(`[HistorySync] Error fetching content for ${item.url}:`, error);
+          }
+
           const visits = await chrome.history.getVisits({ url: item.url });
           for (const visit of visits) {
             const entry: HistoryEntry = {
@@ -125,6 +148,7 @@ export class HistorySync {
               visitTime: visit.visitTime || Date.now(),
               referringVisitId: visit.referringVisitId?.toString() || '0',
               transition: visit.transition,
+              content,
               ...systemInfo,
               syncStatus: 'pending',
               lastModified: Date.now()

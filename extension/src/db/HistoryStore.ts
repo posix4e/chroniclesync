@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -35,6 +35,7 @@ export class HistoryStore {
           store.createIndex('url', 'url');
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
+          store.createIndex('summaryStatus', 'summaryStatus');
           console.log('Created history store with indexes');
         }
 

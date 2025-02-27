@@ -27,9 +27,9 @@
     "unlimitedStorage"
   ],
   "host_permissions": [
+    "<all_urls>",
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
-    "https://api-staging.chroniclesync.xyz/*",
-    "<all_urls>"
+    "https://api-staging.chroniclesync.xyz/*"
   ]
 }

@@ -235,32 +235,78 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     }
 
     try {
+      console.log('[Background] Extracting content from tab:', {
+        url: tab.url,
+        title: tab.title,
+        id: tabId
+      });
+
       // Capture page content with priority settings
       const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
         func: (settings) => {
-          const elements = [];
-          
-          if (settings.contentPriority.headlines) {
-            elements.push(...Array.from(document.querySelectorAll('h1, h2, h3'))
-              .map(el => el.textContent || ''));
+          try {
+            const elements = [];
+            const selectors = {
+              headlines: 'h1, h2, h3',
+              lists: 'ul, ol',
+              paragraphs: 'p, article, .article, .content, .main',
+              quotes: 'blockquote'
+            };
+            
+            // Debug info
+            console.log('[Content] Document ready state:', document.readyState);
+            console.log('[Content] Page title:', document.title);
+            
+            // Extract headlines
+            if (settings.contentPriority.headlines) {
+              const headlines = Array.from(document.querySelectorAll(selectors.headlines))
+                .map(el => el.textContent?.trim())
+                .filter(text => text && text.length > 0);
+              console.log('[Content] Found headlines:', headlines.length);
+              elements.push(...headlines);
+            }
+
+            // Extract lists
+            if (settings.contentPriority.lists) {
+              const lists = Array.from(document.querySelectorAll(selectors.lists))
+                .map(el => el.textContent?.trim())
+                .filter(text => text && text.length > 0);
+              console.log('[Content] Found lists:', lists.length);
+              elements.push(...lists);
+            }
+
+            // Extract main content
+            const mainContent = Array.from(document.querySelectorAll(selectors.paragraphs))
+              .map(el => el.textContent?.trim())
+              .filter(text => text && text.length > 0);
+            console.log('[Content] Found content blocks:', mainContent.length);
+            elements.push(...mainContent);
+
+            // Extract quotes
+            if (settings.contentPriority.quotes) {
+              const quotes = Array.from(document.querySelectorAll(selectors.quotes))
+                .map(el => el.textContent?.trim())
+                .filter(text => text && text.length > 0);
+              console.log('[Content] Found quotes:', quotes.length);
+              elements.push(...quotes);
+            }
+
+            // Log extraction results
+            console.log('[Content] Total elements extracted:', elements.length);
+            
+            return { 
+              elements,
+              stats: {
+                totalElements: elements.length,
+                documentState: document.readyState,
+                url: document.location.href
+              }
+            };
+          } catch (error) {
+            console.error('[Content] Error extracting content:', error);
+            throw error;
           }
-
-          if (settings.contentPriority.lists) {
-            elements.push(...Array.from(document.querySelectorAll('ul, ol'))
-              .map(el => el.textContent || ''));
-          }
-
-          const paragraphs = Array.from(document.querySelectorAll('p'))
-            .map(el => el.textContent || '');
-
-          if (settings.contentPriority.quotes) {
-            elements.push(...Array.from(document.querySelectorAll('blockquote'))
-              .map(el => el.textContent || ''));
-          }
-
-          elements.push(...paragraphs);
-          return { elements };
         },
         args: [summaryService.getSettings().contentPriority]
       });

@@ -28,10 +28,40 @@ export class Settings {
 
   async init(): Promise<void> {
     try {
-      const { wordList } = await import('../../bip39-wordlist.js');
-      this.bip39WordList = wordList;
+      // Static import of wordlist
+      const imported = await import('../../bip39-wordlist.js');
+      const wordList = imported.wordList as string | string[];
+      this.bip39WordList = typeof wordList === 'string' ? wordList.split('\n') : wordList;
     } catch (error) {
       console.error('Error loading wordlist:', error);
+      return;
+    }
+
+    // Skip DOM operations in service worker context
+    if (typeof window === 'undefined') {
+      const result = await this.getStorageData();
+      this.config = {
+        mnemonic: result.mnemonic || this.DEFAULT_SETTINGS.mnemonic,
+        clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
+        customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
+        environment: result.environment || this.DEFAULT_SETTINGS.environment,
+        expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+        summarySettings: result.summarySettings || this.DEFAULT_SETTINGS.summarySettings
+      };
+
+      // Generate initial mnemonic if needed
+      if (!this.config.mnemonic || !this.config.clientId) {
+        const mnemonic = this.generateMnemonic();
+        if (mnemonic) {
+          const clientId = await this.generateClientId(mnemonic);
+          this.config = {
+            ...this.config,
+            mnemonic,
+            clientId
+          };
+          await this.handleSave();
+        }
+      }
       return;
     }
 
@@ -206,6 +236,15 @@ export class Settings {
   private async handleSave(event?: Event): Promise<void> {
     event?.preventDefault();
 
+    // In service worker context, just save the current config
+    if (typeof window === 'undefined') {
+      if (!this.config) return;
+      await new Promise<void>((resolve) => {
+        chrome.storage.sync.set(this.config!, () => resolve());
+      });
+      return;
+    }
+
     const mnemonicInput = document.getElementById('mnemonic') as HTMLTextAreaElement;
     const clientIdInput = document.getElementById('clientId') as HTMLInputElement;
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
@@ -300,7 +339,10 @@ export class Settings {
   }
 
   private async handleReset(): Promise<void> {
-    if (confirm('Are you sure you want to reset all settings to default values?')) {
+    // In service worker context, skip confirmation
+    const shouldReset = typeof window === 'undefined' ? true : confirm('Are you sure you want to reset all settings to default values?');
+    
+    if (shouldReset) {
       const mnemonic = this.generateMnemonic();
       if (mnemonic) {
         const clientId = await this.generateClientId(mnemonic);
@@ -310,19 +352,31 @@ export class Settings {
           clientId,
           summarySettings: DEFAULT_SUMMARY_SETTINGS
         };
-        this.render();
+        
+        if (typeof window !== 'undefined') {
+          this.render();
+        }
+        
         await this.handleSave();
 
-        // Notify background script about summary settings change
-        chrome.runtime.sendMessage({
-          type: 'updateSummarySettings',
-          settings: DEFAULT_SUMMARY_SETTINGS
-        });
+        // Notify background script about summary settings change if in browser context
+        if (typeof window !== 'undefined') {
+          chrome.runtime.sendMessage({
+            type: 'updateSummarySettings',
+            settings: DEFAULT_SUMMARY_SETTINGS
+          });
+        }
       }
     }
   }
 
   private showMessage(text: string, type: 'success' | 'error'): void {
+    // In service worker context, just log the message
+    if (typeof window === 'undefined') {
+      console.log(`[${type}] ${text}`);
+      return;
+    }
+
     const status = document.createElement('div');
     status.className = `status-message ${type}`;
     status.textContent = text;

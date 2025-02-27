@@ -45,7 +45,10 @@ export default defineConfig({
         format: 'es',
         entryFileNames: '[name].js',
         assetFileNames: 'assets/[name].[ext]',
-        inlineDynamicImports: false
+        inlineDynamicImports: false,
+        manualChunks: {
+          wordlist: ['./bip39-wordlist.js']
+        }
       }
     }
   },

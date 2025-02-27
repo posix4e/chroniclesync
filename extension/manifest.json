@@ -24,9 +24,7 @@
     "tabs",
     "history",
     "storage",
-    "unlimitedStorage",
-    "webRequest",
-    "webRequestBlocking"
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "http://localhost:*/*",

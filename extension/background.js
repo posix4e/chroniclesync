@@ -268,6 +268,16 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       // Generate summary
       const summary = await summaryService.summarizeContent(tab.url, result);
       
+      // Log the summary
+      console.log('[Summary] Generated summary:', {
+        url: tab.url,
+        title: tab.title,
+        content: summary.content,
+        status: summary.status,
+        version: summary.version,
+        timestamp: new Date(summary.lastModified).toISOString()
+      });
+      
       // Store summary in history entry
       const historyStore = new HistoryStore();
       await historyStore.init();

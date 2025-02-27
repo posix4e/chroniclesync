@@ -52,10 +52,24 @@ export class SummaryService {
   }
 
   private extractMainContent(content: { elements: string[] }): string {
-    return content.elements
+    console.log('[Summary] Extracted elements:', {
+      totalElements: content.elements.length,
+      nonEmptyElements: content.elements.filter(text => text.trim().length > 0).length,
+      settings: this.settings.contentPriority
+    });
+
+    const processedContent = content.elements
       .filter(text => text.trim().length > 0)
       .join(' ')
       .slice(0, this.settings.modelConfig.inputLength);
+
+    console.log('[Summary] Processed content:', {
+      originalLength: processedContent.length,
+      truncatedLength: Math.min(processedContent.length, this.settings.modelConfig.inputLength),
+      firstWords: processedContent.split(' ').slice(0, 10).join(' ') + '...'
+    });
+
+    return processedContent;
   }
 
   private createSummaryData(content: string, status: SummaryStatus): SummaryData {

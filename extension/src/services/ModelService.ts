@@ -32,12 +32,29 @@ export class ModelService {
     }
 
     try {
-      console.log('[Model] Generating summary');
+      console.log('[Model] Generating summary for text:', {
+        length: text.length,
+        words: text.split(/\s+/).length,
+        firstWords: text.split(/\s+/).slice(0, 5).join(' ') + '...'
+      });
+
       const input = this.preprocessText(text);
+      console.log('[Model] Preprocessed input:', {
+        inputLength: input.length,
+        nonZeroTokens: input.filter(x => x !== 0).length
+      });
+
       const tensor = tf.tensor2d([input]);
       
       const predictions = await this.model!.predict(tensor) as tf.Tensor;
+      console.log('[Model] Raw predictions shape:', predictions.shape);
+
       const summary = await this.postprocessPredictions(predictions);
+      console.log('[Model] Generated summary:', {
+        length: summary.length,
+        words: summary.split(/\s+/).length,
+        content: summary
+      });
       
       tensor.dispose();
       predictions.dispose();

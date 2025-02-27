@@ -11,10 +11,12 @@ export class ModelService {
   }
 
   async init(): Promise<void> {
+    console.log('[Model] Initializing Universal Sentence Encoder...');
     try {
       this.encoder = await tf.loadGraphModel(this.config.modelUrl);
+      console.log('[Model] Successfully loaded Universal Sentence Encoder');
     } catch (error) {
-      console.error('Failed to load Universal Sentence Encoder:', error);
+      console.error('[Model] Failed to load Universal Sentence Encoder:', error);
       throw error;
     }
   }
@@ -67,19 +69,32 @@ export class ModelService {
     minSentences: number;
     maxSentences: number;
   }): Promise<string> {
+    console.log('[Model] Starting summarization with options:', options);
+
     const sentences = this.splitIntoSentences(text);
+    console.log(`[Model] Split text into ${sentences.length} sentences`);
+
     if (sentences.length <= options.minSentences) {
+      console.log('[Model] Text is too short, returning original');
       return text;
     }
 
+    console.log('[Model] Calculating sentence rankings...');
     const scores = await this.rankSentences(text);
+    
+    console.log('[Model] Selecting top sentences...');
     const indices = scores.map((score, index) => ({ score, index }))
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.min(options.maxSentences, Math.ceil(sentences.length * options.maxLength / 100)))
       .sort((a, b) => a.index - b.index)
       .map(item => item.index);
 
-    return indices.map(i => sentences[i]).join(' ');
+    console.log(`[Model] Selected ${indices.length} sentences for summary`);
+    
+    const summary = indices.map(i => sentences[i]).join(' ');
+    console.log('[Model] Generated summary length:', summary.length);
+    
+    return summary;
   }
 
   dispose(): void {

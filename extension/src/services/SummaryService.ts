@@ -68,27 +68,42 @@ export class SummaryService {
 
   async processEntry(entry: HistoryEntry): Promise<HistoryEntry> {
     if (this.processingQueue.has(entry.url)) {
+      console.log(`[Summary] Skipping ${entry.url} - already in queue`);
       return entry;
     }
 
     const summarySettings = this.settings.config?.summary;
     if (!summarySettings?.enabled || !summarySettings.autoSummarize) {
+      console.log(`[Summary] Skipping ${entry.url} - summarization disabled`);
       return entry;
     }
 
+    console.log(`[Summary] Starting summarization for: ${entry.url}`);
+    console.log(`[Summary] Title: ${entry.title}`);
+
     try {
       this.processingQueue.add(entry.url);
+      console.log(`[Summary] Added to processing queue: ${entry.url}`);
 
       const mainContent = await this.extractMainContent(entry.content || '');
       if (!mainContent) {
         throw new Error('No content to summarize');
       }
+      console.log(`[Summary] Extracted content length: ${mainContent.length} characters`);
+
+      console.log(`[Summary] Processing with model settings:`, {
+        maxLength: summarySettings.summaryLength,
+        minSentences: summarySettings.minSentences,
+        maxSentences: summarySettings.maxSentences
+      });
 
       const summary = await this.modelService.summarize(mainContent, {
         maxLength: summarySettings.summaryLength,
         minSentences: summarySettings.minSentences,
         maxSentences: summarySettings.maxSentences
       });
+
+      console.log(`[Summary] Generated summary for ${entry.url}:`, summary);
 
       const summaryData: SummaryData = {
         content: summary,
@@ -97,6 +112,8 @@ export class SummaryService {
         lastModified: Date.now()
       };
 
+      console.log(`[Summary] Completed summarization for: ${entry.url}`);
+
       return {
         ...entry,
         summary: summaryData,
@@ -104,14 +121,19 @@ export class SummaryService {
       };
 
     } catch (error) {
-      console.error('Error processing summary for URL:', entry.url, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[Summary] Error processing summary for ${entry.url}:`, {
+        error: errorMessage,
+        details: error
+      });
       return {
         ...entry,
         summaryStatus: 'error',
-        summaryError: error instanceof Error ? error.message : 'Unknown error'
+        summaryError: errorMessage
       };
     } finally {
       this.processingQueue.delete(entry.url);
+      console.log(`[Summary] Removed from processing queue: ${entry.url}`);
     }
   }
 
@@ -120,9 +142,15 @@ export class SummaryService {
       !entry.summaryStatus || entry.summaryStatus === 'pending'
     );
 
+    console.log(`[Summary] Processing ${pendingEntries.length} pending entries`);
+
     for (const entry of pendingEntries) {
+      console.log(`[Summary] Processing pending entry: ${entry.url}`);
       await this.processEntry(entry);
     }
+
+    console.log(`[Summary] Completed processing all pending entries`);
+  }
   }
 
   dispose(): void {

@@ -1,9 +1,12 @@
+import { SummarySettings } from '../types/summary';
+
 interface SettingsConfig {
   mnemonic: string;
   clientId: string;
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  summary: SummarySettings;
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +22,19 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    summary: {
+      enabled: true,
+      summaryLength: 30,
+      minSentences: 3,
+      maxSentences: 10,
+      autoSummarize: true,
+      contentPriority: {
+        headlines: true,
+        lists: true,
+        quotes: false
+      }
+    }
   };
 
   async init(): Promise<void> {

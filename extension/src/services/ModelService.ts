@@ -1,13 +1,15 @@
 import * as tf from '@tensorflow/tfjs';
-import { SummaryModelConfig } from '../types/summary';
+import { SummaryModelConfig, SummarySettings } from '../types/summary';
 
 export class ModelService {
   private model: tf.LayersModel | null = null;
-  private config: SummaryModelConfig;
+  private modelConfig: SummaryModelConfig;
+  private settings: SummarySettings;
   private isLoading = false;
 
-  constructor(config: SummaryModelConfig) {
-    this.config = config;
+  constructor(settings: SummarySettings) {
+    this.modelConfig = settings.modelConfig;
+    this.settings = settings;
   }
 
   async loadModel(): Promise<void> {
@@ -15,8 +17,8 @@ export class ModelService {
 
     try {
       this.isLoading = true;
-      console.log('[Model] Loading model from:', this.config.modelUrl);
-      this.model = await tf.loadLayersModel(this.config.modelUrl);
+      console.log('[Model] Loading model from:', this.modelConfig.modelUrl);
+      this.model = await tf.loadLayersModel(this.modelConfig.modelUrl);
       console.log('[Model] Model loaded successfully');
     } catch (error) {
       console.error('[Model] Error loading model:', error);
@@ -48,12 +50,12 @@ export class ModelService {
 
   private async generateEmbeddings(sentences: string[]): Promise<tf.Tensor2D> {
     const tokenized = sentences.map(s => 
-      s.toLowerCase().split(' ').slice(0, this.config.inputLength)
+      s.toLowerCase().split(' ').slice(0, this.modelConfig.inputLength)
     );
 
     return tf.tidy(() => {
       const input = tf.tensor2d(tokenized.map(tokens => 
-        tokens.concat(Array(this.config.inputLength - tokens.length).fill(''))
+        tokens.concat(Array(this.modelConfig.inputLength - tokens.length).fill(''))
       ));
       return this.model!.predict(input) as tf.Tensor2D;
     });
@@ -72,8 +74,8 @@ export class ModelService {
     return sentences
       .map((sentence, i) => ({ sentence, score: scoresData[i] }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, this.config.maxSentences)
-      .filter(item => item.score > this.config.threshold)
+      .slice(0, this.settings.maxSentences)
+      .filter(item => item.score > this.modelConfig.threshold)
       .map(item => item.sentence);
   }
 

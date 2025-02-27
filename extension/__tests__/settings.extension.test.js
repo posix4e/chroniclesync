@@ -5,13 +5,16 @@ vi.mock('../../bip39-wordlist.js', () => ({
   wordList: ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art']
 }));
 
-// Mock chrome.storage.sync
+// Mock chrome.storage.sync and chrome.runtime
 global.chrome = {
   storage: {
     sync: {
       get: vi.fn(),
       set: vi.fn()
     }
+  },
+  runtime: {
+    sendMessage: vi.fn()
   }
 };
 
@@ -131,6 +134,53 @@ describe('Settings', () => {
     expirationDaysInput.min = '1';
     expirationDaysInput.value = '7';
     form.appendChild(expirationDaysInput);
+
+    // Add summary settings
+    const summaryEnabled = document.createElement('input');
+    summaryEnabled.id = 'summaryEnabled';
+    summaryEnabled.type = 'checkbox';
+    form.appendChild(summaryEnabled);
+
+    const summaryLength = document.createElement('input');
+    summaryLength.id = 'summaryLength';
+    summaryLength.type = 'number';
+    summaryLength.min = '10';
+    summaryLength.max = '100';
+    form.appendChild(summaryLength);
+
+    const minSentences = document.createElement('input');
+    minSentences.id = 'minSentences';
+    minSentences.type = 'number';
+    minSentences.min = '1';
+    minSentences.max = '10';
+    form.appendChild(minSentences);
+
+    const maxSentences = document.createElement('input');
+    maxSentences.id = 'maxSentences';
+    maxSentences.type = 'number';
+    maxSentences.min = '1';
+    maxSentences.max = '20';
+    form.appendChild(maxSentences);
+
+    const autoSummarize = document.createElement('input');
+    autoSummarize.id = 'autoSummarize';
+    autoSummarize.type = 'checkbox';
+    form.appendChild(autoSummarize);
+
+    const priorityHeadlines = document.createElement('input');
+    priorityHeadlines.id = 'priorityHeadlines';
+    priorityHeadlines.type = 'checkbox';
+    form.appendChild(priorityHeadlines);
+
+    const priorityLists = document.createElement('input');
+    priorityLists.id = 'priorityLists';
+    priorityLists.type = 'checkbox';
+    form.appendChild(priorityLists);
+
+    const priorityQuotes = document.createElement('input');
+    priorityQuotes.id = 'priorityQuotes';
+    priorityQuotes.type = 'checkbox';
+    form.appendChild(priorityQuotes);
     
     form.appendChild(customUrlContainer);
     mockContainer.appendChild(form);
@@ -162,7 +212,25 @@ describe('Settings', () => {
         clientId: 'test-client',
         environment: 'production',
         customApiUrl: null,
-        expirationDays: 7
+        expirationDays: 7,
+        summarySettings: {
+          enabled: true,
+          summaryLength: 30,
+          minSentences: 3,
+          maxSentences: 10,
+          autoSummarize: true,
+          contentPriority: {
+            headlines: true,
+            lists: true,
+            quotes: false
+          },
+          modelConfig: {
+            modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+            inputLength: 512,
+            outputLength: 512,
+            threshold: 0.3
+          }
+        }
       });
     });
 
@@ -186,7 +254,25 @@ describe('Settings', () => {
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      summarySettings: {
+        enabled: true,
+        summaryLength: 50,
+        minSentences: 5,
+        maxSentences: 15,
+        autoSummarize: false,
+        contentPriority: {
+          headlines: false,
+          lists: true,
+          quotes: true
+        },
+        modelConfig: {
+          modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+          inputLength: 512,
+          outputLength: 512,
+          threshold: 0.3
+        }
+      }
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -200,6 +286,16 @@ describe('Settings', () => {
     expect(document.getElementById('environment').value).toBe(mockConfig.environment);
     expect(document.getElementById('customApiUrl').value).toBe(mockConfig.customApiUrl);
     expect(document.getElementById('customUrlContainer').style.display).toBe('block');
+
+    // Check summary settings
+    expect(document.getElementById('summaryEnabled').checked).toBe(mockConfig.summarySettings.enabled);
+    expect(document.getElementById('summaryLength').value).toBe(mockConfig.summarySettings.summaryLength.toString());
+    expect(document.getElementById('minSentences').value).toBe(mockConfig.summarySettings.minSentences.toString());
+    expect(document.getElementById('maxSentences').value).toBe(mockConfig.summarySettings.maxSentences.toString());
+    expect(document.getElementById('autoSummarize').checked).toBe(mockConfig.summarySettings.autoSummarize);
+    expect(document.getElementById('priorityHeadlines').checked).toBe(mockConfig.summarySettings.contentPriority.headlines);
+    expect(document.getElementById('priorityLists').checked).toBe(mockConfig.summarySettings.contentPriority.lists);
+    expect(document.getElementById('priorityQuotes').checked).toBe(mockConfig.summarySettings.contentPriority.quotes);
   });
 
   it('handleSave updates config and shows success message', async () => {
@@ -208,7 +304,25 @@ describe('Settings', () => {
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      summarySettings: {
+        enabled: false,
+        summaryLength: 40,
+        minSentences: 4,
+        maxSentences: 12,
+        autoSummarize: true,
+        contentPriority: {
+          headlines: true,
+          lists: false,
+          quotes: true
+        },
+        modelConfig: {
+          modelUrl: 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder-lite/1/default/1',
+          inputLength: 512,
+          outputLength: 512,
+          threshold: 0.3
+        }
+      }
     };
 
     // Mock generateClientId to return the expected client ID
@@ -221,6 +335,16 @@ describe('Settings', () => {
     document.getElementById('environment').value = newConfig.environment;
     document.getElementById('customApiUrl').value = newConfig.customApiUrl;
 
+    // Set summary settings
+    document.getElementById('summaryEnabled').checked = newConfig.summarySettings.enabled;
+    document.getElementById('summaryLength').value = newConfig.summarySettings.summaryLength.toString();
+    document.getElementById('minSentences').value = newConfig.summarySettings.minSentences.toString();
+    document.getElementById('maxSentences').value = newConfig.summarySettings.maxSentences.toString();
+    document.getElementById('autoSummarize').checked = newConfig.summarySettings.autoSummarize;
+    document.getElementById('priorityHeadlines').checked = newConfig.summarySettings.contentPriority.headlines;
+    document.getElementById('priorityLists').checked = newConfig.summarySettings.contentPriority.lists;
+    document.getElementById('priorityQuotes').checked = newConfig.summarySettings.contentPriority.quotes;
+
     const mockEvent = {
       preventDefault: vi.fn()
     };
@@ -230,6 +354,10 @@ describe('Settings', () => {
     expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(chrome.storage.sync.set).toHaveBeenCalledWith(newConfig, expect.any(Function));
     expect(settings.config).toEqual(newConfig);
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      type: 'updateSummarySettings',
+      settings: newConfig.summarySettings
+    });
   });
 
   it('handleReset resets to default config when confirmed', async () => {
@@ -250,6 +378,10 @@ describe('Settings', () => {
     expect(settings.config.environment).toBe('production');
     expect(settings.config.customApiUrl).toBeNull();
     expect(document.getElementById('customUrlContainer').style.display).toBe('none');
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      type: 'updateSummarySettings',
+      settings: settings.config.summarySettings
+    });
   });
 
   it('shows/hides custom URL field based on environment', async () => {

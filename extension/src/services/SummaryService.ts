@@ -8,7 +8,7 @@ export class SummaryService {
 
   constructor(settings: SummarySettings) {
     this.settings = settings;
-    this.modelService = new ModelService(settings.modelConfig);
+    this.modelService = new ModelService(settings);
   }
 
   async summarize(url: string, content: string): Promise<SummaryData> {

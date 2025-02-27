@@ -24,13 +24,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'background.js'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx'),
-        content: resolve(__dirname, 'src/content.ts')
+        history: resolve(__dirname, 'src/history.tsx')
       },
       output: {
         format: 'es',

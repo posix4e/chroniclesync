@@ -235,22 +235,27 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     }
 
     try {
-      console.log('[Background] Extracting content from tab:', {
+      console.log('[Background] Waiting for page to load:', {
         url: tab.url,
         title: tab.title,
         id: tabId
       });
 
+      // Wait for a short time to ensure page is loaded
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Capture page content with priority settings
       const [{ result }] = await chrome.scripting.executeScript({
+        world: 'MAIN',
         target: { tabId },
+        injectImmediately: true,
         func: (settings) => {
           try {
             const elements = [];
             const selectors = {
-              headlines: 'h1, h2, h3',
+              headlines: 'h1, h2, h3, .title, .story',
               lists: 'ul, ol',
-              paragraphs: 'p, article, .article, .content, .main',
+              paragraphs: 'p, article, .article, .content, .main, .storylink, .comment, td.title > a, td.title > span.titleline > a',
               quotes: 'blockquote'
             };
             
@@ -258,38 +263,59 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             console.log('[Content] Document ready state:', document.readyState);
             console.log('[Content] Page title:', document.title);
             
+            // Function to safely extract text from elements
+            const extractText = (selector, label) => {
+              try {
+                const elements = Array.from(document.querySelectorAll(selector));
+                console.log(`[Content] Found ${label}:`, {
+                  count: elements.length,
+                  selectors: selector,
+                  firstElement: elements[0]?.outerHTML
+                });
+                return elements
+                  .map(el => el.textContent?.trim())
+                  .filter(text => text && text.length > 0);
+              } catch (error) {
+                console.error(`[Content] Error extracting ${label}:`, error);
+                return [];
+              }
+            };
+
             // Extract headlines
             if (settings.contentPriority.headlines) {
-              const headlines = Array.from(document.querySelectorAll(selectors.headlines))
-                .map(el => el.textContent?.trim())
-                .filter(text => text && text.length > 0);
-              console.log('[Content] Found headlines:', headlines.length);
+              const headlines = extractText(selectors.headlines, 'headlines');
               elements.push(...headlines);
             }
 
             // Extract lists
             if (settings.contentPriority.lists) {
-              const lists = Array.from(document.querySelectorAll(selectors.lists))
-                .map(el => el.textContent?.trim())
-                .filter(text => text && text.length > 0);
-              console.log('[Content] Found lists:', lists.length);
+              const lists = extractText(selectors.lists, 'lists');
               elements.push(...lists);
             }
 
             // Extract main content
-            const mainContent = Array.from(document.querySelectorAll(selectors.paragraphs))
-              .map(el => el.textContent?.trim())
-              .filter(text => text && text.length > 0);
-            console.log('[Content] Found content blocks:', mainContent.length);
+            const mainContent = extractText(selectors.paragraphs, 'paragraphs');
             elements.push(...mainContent);
 
             // Extract quotes
             if (settings.contentPriority.quotes) {
-              const quotes = Array.from(document.querySelectorAll(selectors.quotes))
+              const quotes = extractText(selectors.quotes, 'quotes');
+              elements.push(...quotes);
+            }
+
+            // If no content found, try to get all visible text
+            if (elements.length === 0) {
+              console.log('[Content] No content found with selectors, trying fallback');
+              const allText = Array.from(document.body.getElementsByTagName('*'))
+                .filter(el => {
+                  const style = window.getComputedStyle(el);
+                  return style.display !== 'none' && 
+                         style.visibility !== 'hidden' && 
+                         el.textContent?.trim().length > 0;
+                })
                 .map(el => el.textContent?.trim())
                 .filter(text => text && text.length > 0);
-              console.log('[Content] Found quotes:', quotes.length);
-              elements.push(...quotes);
+              elements.push(...allText);
             }
 
             // Log extraction results

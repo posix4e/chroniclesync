@@ -51,21 +51,43 @@ export class SummaryService {
     }
   }
 
-  private extractMainContent(content: { elements: string[] }): string {
+  private extractMainContent(content: { elements: string[], stats?: any }): string {
+    if (!content.elements || content.elements.length === 0) {
+      console.error('[Summary] No elements found in content');
+      throw new Error('No content elements found');
+    }
+
     console.log('[Summary] Extracted elements:', {
       totalElements: content.elements.length,
       nonEmptyElements: content.elements.filter(text => text.trim().length > 0).length,
-      settings: this.settings.contentPriority
+      settings: this.settings.contentPriority,
+      stats: content.stats
     });
 
-    const processedContent = content.elements
-      .filter(text => text.trim().length > 0)
+    // Remove duplicates and empty strings
+    const uniqueElements = Array.from(new Set(content.elements))
+      .filter(text => text && text.trim().length > 0);
+
+    if (uniqueElements.length === 0) {
+      console.error('[Summary] No valid content after filtering');
+      throw new Error('No valid content after filtering');
+    }
+
+    const processedContent = uniqueElements
       .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
       .slice(0, this.settings.modelConfig.inputLength);
+
+    if (processedContent.length < 10) {
+      console.error('[Summary] Processed content too short:', processedContent);
+      throw new Error('Processed content too short');
+    }
 
     console.log('[Summary] Processed content:', {
       originalLength: processedContent.length,
       truncatedLength: Math.min(processedContent.length, this.settings.modelConfig.inputLength),
+      uniqueElements: uniqueElements.length,
       firstWords: processedContent.split(' ').slice(0, 10).join(' ') + '...'
     });
 

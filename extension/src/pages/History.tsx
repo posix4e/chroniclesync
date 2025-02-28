@@ -147,6 +147,11 @@ const History: React.FC = () => {
                     ×
                   </button>
                 </div>
+                {entry.summary && (
+                  <div className="history-item-summary">
+                    {entry.summary}
+                  </div>
+                )}
                 <div className="history-item-meta">
                   <span className="device-info" title={`${entry.browserName} ${entry.browserVersion}`}>
                     {getDeviceName(entry.deviceId)}

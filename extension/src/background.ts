@@ -88,11 +88,19 @@ export class BackgroundService {
   }
 }
 
-console.log('Starting background service...');
+console.log('Starting background service with summarization support...');
+console.log('IMPORTANT: Check this console to see if the background service is loading properly');
+
+// Add a global error handler to catch any unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
 const service = new BackgroundService();
 service.init()
   .then(() => {
     console.log('Background service initialized successfully');
+    console.log('To test summarization, open chrome-extension://<extension-id>/test-summarization.html');
   })
   .catch(error => {
     console.error('Error initializing background service:', error);

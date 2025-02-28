@@ -12,11 +12,17 @@ export class SummarizationService {
   private initPromise: Promise<void> = Promise.resolve();
   private debugMode: boolean = false;
 
-  private constructor() {}
+  private constructor() {
+    console.log('SummarizationService constructor called');
+  }
 
   public static getInstance(): SummarizationService {
+    console.log('SummarizationService.getInstance called');
     if (!SummarizationService.instance) {
+      console.log('Creating new SummarizationService instance');
       SummarizationService.instance = new SummarizationService();
+    } else {
+      console.log('Returning existing SummarizationService instance');
     }
     return SummarizationService.instance;
   }

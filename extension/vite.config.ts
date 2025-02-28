@@ -24,7 +24,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
+      treeshake: {
+        moduleSideEffects: true,
+      },
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'background.js'),

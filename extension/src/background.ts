@@ -1,5 +1,7 @@
 import { Settings } from './settings/Settings';
 import { HistorySync } from './services/HistorySync';
+// Import SummarizationService to ensure it's included in the build
+import './services/SummarizationService';
 
 export class BackgroundService {
   private settings: Settings;

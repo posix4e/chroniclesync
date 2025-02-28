@@ -41,51 +41,79 @@ export class BackgroundService {
 
       // Handle test summarization request
       if (request.type === 'testSummarize') {
-        // Set a timeout to ensure we always respond, even if something goes wrong
-        const timeoutId = setTimeout(() => {
-          console.warn('Summarization timed out after 30 seconds');
-          try {
-            sendResponse({ 
-              error: 'Summarization timed out after 30 seconds. Check the background console for details.' 
-            });
-          } catch (e) {
-            console.error('Error sending timeout response:', e);
-          }
-        }, 30000); // 30 second timeout
+        console.log('Received testSummarize request for URL:', request.url);
         
-        const asyncOperation = async () => {
+        // Create a wrapper function to safely send a response
+        const safeResponse = (data: any) => {
           try {
-            console.log('Testing summarization for URL:', request.url);
-            
-            if (!request.url) {
-              clearTimeout(timeoutId);
-              sendResponse({ error: 'No URL provided' });
-              return;
-            }
-            
-            // Access the private method using any type casting
-            const summary = await (this.historySync as any).generateSummary(request.url);
-            console.log('Test summarization result:', summary);
-            
-            // Clear the timeout since we're responding now
-            clearTimeout(timeoutId);
-            
-            if (summary) {
-              sendResponse({ success: true, summary });
-            } else {
-              sendResponse({ 
-                success: false, 
-                message: 'No summary was generated. Check the background console for details.' 
-              });
-            }
-          } catch (error) {
-            // Clear the timeout since we're responding now
-            clearTimeout(timeoutId);
-            handleError(error);
+            console.log('Sending response:', data);
+            sendResponse(data);
+          } catch (e) {
+            console.error('Error sending response:', e);
           }
         };
         
-        asyncOperation();
+        // Set a timeout to ensure we always respond, even if something goes wrong
+        const timeoutId = setTimeout(() => {
+          console.warn('Summarization timed out after 25 seconds');
+          safeResponse({ 
+            error: 'Summarization timed out after 25 seconds. Check the background console for details.' 
+          });
+        }, 25000); // 25 second timeout
+        
+        // Execute the summarization in a try-catch block
+        try {
+          if (!request.url) {
+            clearTimeout(timeoutId);
+            safeResponse({ error: 'No URL provided' });
+            return true;
+          }
+          
+          // Use Promise.race to implement a timeout for the summarization
+          Promise.race([
+            // The actual summarization operation
+            (async () => {
+              try {
+                console.log('Starting summarization for URL:', request.url);
+                
+                // Access the private method using any type casting
+                const summary = await (this.historySync as any).generateSummary(request.url);
+                console.log('Test summarization result:', summary);
+                
+                // Clear the timeout since we're responding now
+                clearTimeout(timeoutId);
+                
+                if (summary) {
+                  safeResponse({ success: true, summary });
+                } else {
+                  safeResponse({ 
+                    success: false, 
+                    message: 'No summary was generated. Check the background console for details.' 
+                  });
+                }
+              } catch (error) {
+                console.error('Error in summarization:', error);
+                clearTimeout(timeoutId);
+                handleError(error);
+              }
+            })(),
+            
+            // A timeout promise that will resolve after 20 seconds
+            new Promise(resolve => setTimeout(() => {
+              console.warn('Internal summarization timeout reached (20s)');
+              resolve(null);
+            }, 20000))
+          ]).catch(error => {
+            console.error('Error in Promise.race:', error);
+            clearTimeout(timeoutId);
+            handleError(error);
+          });
+        } catch (error) {
+          console.error('Error setting up summarization:', error);
+          clearTimeout(timeoutId);
+          handleError(error);
+        }
+        
         return true; // Keep message channel open
       }
 

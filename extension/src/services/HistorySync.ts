@@ -2,6 +2,7 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { SummarizationService } from './SummarizationService';
 
 export class HistorySync {
   private settings: Settings;
@@ -10,14 +11,27 @@ export class HistorySync {
   private syncInterval: number | null = null;
   private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
+  private summarizationService: SummarizationService;
+
   constructor(settings: Settings) {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+    this.summarizationService = SummarizationService.getInstance();
   }
 
   async init(): Promise<void> {
     await this.store.init();
+    
+    // Initialize summarization service if enabled
+    const config = await this.settings.getConfig();
+    if (config.enableSummarization) {
+      await this.summarizationService.init(
+        config.summarizationModel || 'Xenova/distilbart-cnn-6-6',
+        config.debugSummarization || false
+      );
+    }
+    
     this.setupHistoryListener();
   }
 
@@ -49,6 +63,50 @@ export class HistorySync {
     return deviceId;
   }
 
+  private async generateSummary(url: string): Promise<string | null> {
+    try {
+      const config = await this.settings.getConfig();
+      if (!config.enableSummarization) {
+        return null;
+      }
+
+      // Skip summarization for certain URLs
+      if (url.startsWith('chrome://') || 
+          url.startsWith('chrome-extension://') || 
+          url.startsWith('about:') ||
+          url.startsWith('file:')) {
+        return null;
+      }
+
+      // Fetch the page content
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.warn(`Failed to fetch page content for summarization: ${url}`);
+        return null;
+      }
+
+      const html = await response.text();
+      
+      // Extract main content from HTML
+      const mainContent = await this.summarizationService.extractMainContent(html);
+      if (!mainContent || mainContent.length < 200) {
+        return null;
+      }
+
+      // Generate summary
+      const summary = await this.summarizationService.summarize(mainContent);
+      
+      if (config.debugSummarization && summary) {
+        console.log(`Summary for ${url}:`, summary);
+      }
+      
+      return summary;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return null;
+    }
+  }
+
   private setupHistoryListener(): void {
     console.log('Setting up history listener...');
     
@@ -66,6 +124,21 @@ export class HistorySync {
 
           if (latestVisit) {
             const systemInfo = await this.getSystemInfo();
+            
+            // Generate summary if enabled
+            let summary = null;
+            const config = await this.settings.getConfig();
+            if (config.enableSummarization) {
+              try {
+                summary = await this.generateSummary(result.url);
+                if (config.debugSummarization) {
+                  console.log(`Summary for ${result.url}:`, summary || 'No summary generated');
+                }
+              } catch (summaryError) {
+                console.error('Error generating summary:', summaryError);
+              }
+            }
+            
             await this.store.addEntry({
               visitId: `${latestVisit.visitId}`,
               url: result.url,
@@ -73,6 +146,7 @@ export class HistorySync {
               visitTime: result.lastVisitTime || Date.now(),
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
+              summary: summary || undefined,
               ...systemInfo
             });
             console.log('History entry stored successfully');
@@ -97,23 +171,45 @@ export class HistorySync {
       console.log('Found initial history items:', items.length);
 
       const systemInfo = await this.getSystemInfo();
+      const config = await this.settings.getConfig();
+      const enableSummarization = config.enableSummarization;
 
-      for (const item of items) {
-        if (item.url) {
-          const visits = await chrome.history.getVisits({ url: item.url });
-          for (const visit of visits) {
-            await this.store.addEntry({
-              visitId: `${visit.visitId}`,
-              url: item.url,
-              title: item.title || '',
-              visitTime: visit.visitTime || Date.now(),
-              referringVisitId: visit.referringVisitId?.toString() || '0',
-              transition: visit.transition,
-              ...systemInfo
-            });
+      // Process items in batches to avoid overwhelming the browser
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        const batch = items.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (item) => {
+          if (item.url) {
+            // Generate summary once per URL
+            let summary = null;
+            if (enableSummarization) {
+              try {
+                summary = await this.generateSummary(item.url);
+              } catch (summaryError) {
+                console.error('Error generating summary for initial history:', summaryError);
+              }
+            }
+
+            const visits = await chrome.history.getVisits({ url: item.url });
+            for (const visit of visits) {
+              await this.store.addEntry({
+                visitId: `${visit.visitId}`,
+                url: item.url,
+                title: item.title || '',
+                visitTime: visit.visitTime || Date.now(),
+                referringVisitId: visit.referringVisitId?.toString() || '0',
+                transition: visit.transition,
+                summary: summary || undefined,
+                ...systemInfo
+              });
+            }
           }
-        }
+        }));
+        
+        // Small delay between batches to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+      
       console.log('Initial history loaded successfully');
     } catch (error) {
       console.error('Error loading initial history:', error);

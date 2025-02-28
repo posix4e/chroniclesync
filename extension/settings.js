@@ -5,7 +5,10 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      enableSummarization: true,
+      summarizationModel: 'Xenova/distilbart-cnn-6-6',
+      debugSummarization: false
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -72,6 +75,9 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    const enableSummarizationInput = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
+    const debugSummarizationInput = document.getElementById('debugSummarization');
 
     if (mnemonicInput) {
       mnemonicInput.value = '';
@@ -83,6 +89,16 @@ class Settings {
     
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
+    }
+
+    if (enableSummarizationInput) {
+      enableSummarizationInput.checked = this.DEFAULT_SETTINGS.enableSummarization;
+    }
+    if (summarizationModelSelect) {
+      summarizationModelSelect.value = this.DEFAULT_SETTINGS.summarizationModel;
+    }
+    if (debugSummarizationInput) {
+      debugSummarizationInput.checked = this.DEFAULT_SETTINGS.debugSummarization;
     }
   }
 
@@ -150,6 +166,9 @@ class Settings {
     const clientIdInput = document.getElementById('clientId');
     const environmentSelect = document.getElementById('environment');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    const enableSummarizationInput = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
+    const debugSummarizationInput = document.getElementById('debugSummarization');
 
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
@@ -176,7 +195,10 @@ class Settings {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      enableSummarization: enableSummarizationInput ? enableSummarizationInput.checked : this.DEFAULT_SETTINGS.enableSummarization,
+      summarizationModel: summarizationModelSelect ? summarizationModelSelect.value : this.DEFAULT_SETTINGS.summarizationModel,
+      debugSummarization: debugSummarizationInput ? debugSummarizationInput.checked : this.DEFAULT_SETTINGS.debugSummarization
     };
 
     await new Promise(resolve => {

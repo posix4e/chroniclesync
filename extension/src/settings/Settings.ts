@@ -4,6 +4,9 @@ interface SettingsConfig {
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  enableSummarization: boolean;
+  summarizationModel: string;
+  debugSummarization: boolean;
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +22,10 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    enableSummarization: true,
+    summarizationModel: 'Xenova/distilbart-cnn-6-6',
+    debugSummarization: false
   };
 
   async init(): Promise<void> {
@@ -37,7 +43,10 @@ export class Settings {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment,
-      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+      enableSummarization: result.enableSummarization !== undefined ? result.enableSummarization : this.DEFAULT_SETTINGS.enableSummarization,
+      summarizationModel: result.summarizationModel || this.DEFAULT_SETTINGS.summarizationModel,
+      debugSummarization: result.debugSummarization !== undefined ? result.debugSummarization : this.DEFAULT_SETTINGS.debugSummarization
     };
 
     // Generate initial mnemonic if needed
@@ -87,9 +96,29 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
+      const keys: StorageKeys[] = [
+        'mnemonic', 
+        'clientId', 
+        'customApiUrl', 
+        'environment', 
+        'expirationDays',
+        'enableSummarization',
+        'summarizationModel',
+        'debugSummarization'
+      ];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
+  }
+  
+  async getConfig(): Promise<SettingsConfig> {
+    if (!this.config) {
+      const result = await this.getStorageData();
+      return {
+        ...this.DEFAULT_SETTINGS,
+        ...result
+      };
+    }
+    return this.config;
   }
 
   getApiUrl(): string {
@@ -116,12 +145,25 @@ export class Settings {
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
+    const enableSummarizationInput = document.getElementById('enableSummarization') as HTMLInputElement;
+    const summarizationModelSelect = document.getElementById('summarizationModel') as HTMLSelectElement;
+    const debugSummarizationInput = document.getElementById('debugSummarization') as HTMLInputElement;
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
     customApiUrlInput.value = this.config.customApiUrl || '';
     expirationDaysInput.value = this.config.expirationDays.toString();
+    
+    if (enableSummarizationInput) {
+      enableSummarizationInput.checked = this.config.enableSummarization;
+    }
+    if (summarizationModelSelect) {
+      summarizationModelSelect.value = this.config.summarizationModel;
+    }
+    if (debugSummarizationInput) {
+      debugSummarizationInput.checked = this.config.debugSummarization;
+    }
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
   }
@@ -202,12 +244,19 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    const enableSummarizationInput = document.getElementById('enableSummarization') as HTMLInputElement;
+    const summarizationModelSelect = document.getElementById('summarizationModel') as HTMLSelectElement;
+    const debugSummarizationInput = document.getElementById('debugSummarization') as HTMLInputElement;
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
-      expirationDays
+      expirationDays,
+      enableSummarization: enableSummarizationInput ? enableSummarizationInput.checked : this.DEFAULT_SETTINGS.enableSummarization,
+      summarizationModel: summarizationModelSelect ? summarizationModelSelect.value : this.DEFAULT_SETTINGS.summarizationModel,
+      debugSummarization: debugSummarizationInput ? debugSummarizationInput.checked : this.DEFAULT_SETTINGS.debugSummarization
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

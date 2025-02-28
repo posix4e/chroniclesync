@@ -39,6 +39,24 @@ export class BackgroundService {
         return false; // No need to keep port open
       }
 
+      // Handle test summarization request
+      if (request.type === 'testSummarize') {
+        const asyncOperation = async () => {
+          try {
+            console.log('Testing summarization for URL:', request.url);
+            // Access the private method using any type casting
+            const summary = await (this.historySync as any).generateSummary(request.url);
+            console.log('Test summarization result:', summary);
+            sendResponse({ success: true, summary });
+          } catch (error) {
+            handleError(error);
+          }
+        };
+        
+        asyncOperation();
+        return true; // Keep message channel open
+      }
+
       // Handle asynchronous operations
       if (request.type === 'getHistory' || request.type === 'startSync') {
         // Create a promise to handle the async operation

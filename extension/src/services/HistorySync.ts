@@ -21,18 +21,34 @@ export class HistorySync {
   }
 
   async init(): Promise<void> {
+    console.log('HistorySync.init called');
+    
     await this.store.init();
+    console.log('HistoryStore initialized');
     
     // Initialize summarization service if enabled
     const config = await this.settings.getConfig();
-    if (config.enableSummarization) {
+    console.log('Settings loaded:', JSON.stringify({
+      enableSummarization: config.enableSummarization,
+      summarizationModel: config.summarizationModel,
+      debugSummarization: config.debugSummarization
+    }));
+    
+    // Always initialize the summarization service, even if disabled in settings
+    // This ensures it's ready if the user enables it later
+    console.log('Initializing summarization service...');
+    try {
       await this.summarizationService.init(
         config.summarizationModel || 'Xenova/distilbart-cnn-6-6',
-        config.debugSummarization || false
+        true // Always enable debug mode for troubleshooting
       );
+      console.log('Summarization service initialized successfully');
+    } catch (error) {
+      console.error('Error initializing summarization service:', error);
     }
     
     this.setupHistoryListener();
+    console.log('History listener set up');
   }
 
   private async getSystemInfo() {
@@ -64,9 +80,14 @@ export class HistorySync {
   }
 
   private async generateSummary(url: string): Promise<string | null> {
+    console.log(`HistorySync.generateSummary called for URL: ${url}`);
+    
     try {
       const config = await this.settings.getConfig();
+      console.log(`Summarization enabled: ${config.enableSummarization}, Debug mode: ${config.debugSummarization}, Model: ${config.summarizationModel}`);
+      
       if (!config.enableSummarization) {
+        console.log('Summarization is disabled in settings, skipping');
         return null;
       }
 
@@ -75,34 +96,48 @@ export class HistorySync {
           url.startsWith('chrome-extension://') || 
           url.startsWith('about:') ||
           url.startsWith('file:')) {
+        console.log(`Skipping summarization for internal URL: ${url}`);
         return null;
       }
 
+      console.log(`Fetching content from URL: ${url}`);
+      
       // Fetch the page content
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.warn(`Failed to fetch page content for summarization: ${url}`);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.warn(`Failed to fetch page content for summarization: ${url}, status: ${response.status}`);
+          return null;
+        }
+
+        const html = await response.text();
+        console.log(`Successfully fetched HTML content, length: ${html.length} characters`);
+        
+        // Extract main content from HTML
+        const mainContent = await this.summarizationService.extractMainContent(html);
+        if (!mainContent || mainContent.length < 200) {
+          console.log(`Content too short or empty (${mainContent?.length || 0} chars), skipping summarization`);
+          return null;
+        }
+
+        console.log(`Extracted main content (${mainContent.length} chars), generating summary...`);
+        
+        // Generate summary
+        const summary = await this.summarizationService.summarize(mainContent);
+        
+        if (summary) {
+          console.log(`Summary generated for ${url}:`, summary);
+        } else {
+          console.log(`No summary generated for ${url}`);
+        }
+        
+        return summary;
+      } catch (fetchError) {
+        console.error(`Error fetching URL ${url}:`, fetchError);
         return null;
       }
-
-      const html = await response.text();
-      
-      // Extract main content from HTML
-      const mainContent = await this.summarizationService.extractMainContent(html);
-      if (!mainContent || mainContent.length < 200) {
-        return null;
-      }
-
-      // Generate summary
-      const summary = await this.summarizationService.summarize(mainContent);
-      
-      if (config.debugSummarization && summary) {
-        console.log(`Summary for ${url}:`, summary);
-      }
-      
-      return summary;
     } catch (error) {
-      console.error('Error generating summary:', error);
+      console.error('Error in generateSummary:', error);
       return null;
     }
   }

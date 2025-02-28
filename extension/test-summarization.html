@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Summarization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            min-height: 100px;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d32f2f;
+        }
+        .success {
+            color: #388e3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Summarization</h1>
+    <div class="input-group">
+        <label for="url">URL to Summarize:</label>
+        <input type="text" id="url" placeholder="https://example.com" value="https://en.wikipedia.org/wiki/Artificial_intelligence">
+    </div>
+    <button id="summarize">Generate Summary</button>
+    <div id="result">
+        <p>Summary will appear here...</p>
+    </div>
+
+    <script>
+        document.getElementById('summarize').addEventListener('click', async () => {
+            const url = document.getElementById('url').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<p class="error">Please enter a URL</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="loading">Generating summary... (check the console for detailed logs)</p>';
+            
+            try {
+                console.log('Sending test summarization request for URL:', url);
+                chrome.runtime.sendMessage(
+                    { type: 'testSummarize', url },
+                    (response) => {
+                        console.log('Received response:', response);
+                        
+                        if (response.error) {
+                            resultDiv.innerHTML = `<p class="error">Error: ${response.error}</p>`;
+                        } else if (response.summary) {
+                            resultDiv.innerHTML = `
+                                <p class="success">Summary generated successfully!</p>
+                                <h3>Summary:</h3>
+                                <p>${response.summary}</p>
+                            `;
+                        } else {
+                            resultDiv.innerHTML = `
+                                <p class="error">No summary was generated. This could be because:</p>
+                                <ul>
+                                    <li>The URL couldn't be accessed</li>
+                                    <li>The content was too short</li>
+                                    <li>The model failed to generate a summary</li>
+                                </ul>
+                                <p>Check the console for detailed logs.</p>
+                            `;
+                        }
+                    }
+                );
+            } catch (error) {
+                console.error('Error sending message:', error);
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -82,6 +82,11 @@ export class HistorySync {
   private async generateSummary(url: string): Promise<string | null> {
     console.log(`HistorySync.generateSummary called for URL: ${url}`);
     
+    if (!url) {
+      console.error('No URL provided to generateSummary');
+      throw new Error('No URL provided');
+    }
+    
     try {
       const config = await this.settings.getConfig();
       console.log(`Summarization enabled: ${config.enableSummarization}, Debug mode: ${config.debugSummarization}, Model: ${config.summarizationModel}`);
@@ -102,9 +107,22 @@ export class HistorySync {
 
       console.log(`Fetching content from URL: ${url}`);
       
-      // Fetch the page content
+      // Fetch the page content with a timeout
       try {
-        const response = await fetch(url);
+        // Create an AbortController to handle timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(url, { 
+          signal: controller.signal,
+          // Add headers to avoid CORS issues
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+        
         if (!response.ok) {
           console.warn(`Failed to fetch page content for summarization: ${url}, status: ${response.status}`);
           return null;
@@ -112,6 +130,11 @@ export class HistorySync {
 
         const html = await response.text();
         console.log(`Successfully fetched HTML content, length: ${html.length} characters`);
+        
+        if (!html || html.length < 100) {
+          console.log('HTML content too short, skipping summarization');
+          return null;
+        }
         
         // Extract main content from HTML
         const mainContent = await this.summarizationService.extractMainContent(html);
@@ -133,12 +156,16 @@ export class HistorySync {
         
         return summary;
       } catch (fetchError) {
+        if (fetchError.name === 'AbortError') {
+          console.error(`Fetch timeout for URL ${url}`);
+          throw new Error(`Fetch timeout for URL ${url}`);
+        }
         console.error(`Error fetching URL ${url}:`, fetchError);
-        return null;
+        throw fetchError;
       }
     } catch (error) {
       console.error('Error in generateSummary:', error);
-      return null;
+      throw error; // Re-throw to allow proper error handling upstream
     }
   }
 

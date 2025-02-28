@@ -19,6 +19,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 (response) => {
                     console.log('Received response:', response);
                     
+                    // Check if response is undefined (message port closed)
+                    if (!response) {
+                        resultDiv.innerHTML = `
+                            <p class="error">No response received from the background script.</p>
+                            <p>This could be due to:</p>
+                            <ul>
+                                <li>The background script crashed or was restarted</li>
+                                <li>The message port closed before a response was received</li>
+                                <li>A timeout occurred during processing</li>
+                            </ul>
+                            <p>Please check the background page console for errors.</p>
+                        `;
+                        return;
+                    }
+                    
                     if (response.error) {
                         resultDiv.innerHTML = `<p class="error">Error: ${response.error}</p>`;
                     } else if (response.summary) {

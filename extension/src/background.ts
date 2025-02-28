@@ -41,14 +41,46 @@ export class BackgroundService {
 
       // Handle test summarization request
       if (request.type === 'testSummarize') {
+        // Set a timeout to ensure we always respond, even if something goes wrong
+        const timeoutId = setTimeout(() => {
+          console.warn('Summarization timed out after 30 seconds');
+          try {
+            sendResponse({ 
+              error: 'Summarization timed out after 30 seconds. Check the background console for details.' 
+            });
+          } catch (e) {
+            console.error('Error sending timeout response:', e);
+          }
+        }, 30000); // 30 second timeout
+        
         const asyncOperation = async () => {
           try {
             console.log('Testing summarization for URL:', request.url);
+            
+            if (!request.url) {
+              clearTimeout(timeoutId);
+              sendResponse({ error: 'No URL provided' });
+              return;
+            }
+            
             // Access the private method using any type casting
             const summary = await (this.historySync as any).generateSummary(request.url);
             console.log('Test summarization result:', summary);
-            sendResponse({ success: true, summary });
+            
+            // Clear the timeout since we're responding now
+            clearTimeout(timeoutId);
+            
+            if (summary) {
+              sendResponse({ success: true, summary });
+            } else {
+              sendResponse({ 
+                success: false, 
+                message: 'No summary was generated. Check the background console for details.' 
+              });
+            }
           } catch (error) {
+            // Clear the timeout since we're responding now
+            clearTimeout(timeoutId);
             handleError(error);
           }
         };

@@ -126,6 +126,11 @@ const HistoryView: React.FC = () => {
             onClick={() => handleItemClick(item.url)}
           >
             <div>{item.title}</div>
+            {item.summary && (
+              <div className="history-item-summary">
+                {item.summary}
+              </div>
+            )}
             <div style={{ fontSize: '0.8em', color: '#666' }}>
               {item.url}
               <br />

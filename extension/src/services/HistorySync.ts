@@ -2,6 +2,7 @@ import { Settings } from '../settings/Settings';
 import { HistoryStore } from '../db/HistoryStore';
 import { HistoryEntry } from '../types';
 import { SyncService } from './SyncService';
+import { SummarizationService } from './SummarizationService';
 
 export class HistorySync {
   private settings: Settings;
@@ -14,6 +15,18 @@ export class HistorySync {
     this.settings = settings;
     this.store = new HistoryStore();
     this.syncService = new SyncService(settings);
+    
+    // Initialize summarization service if enabled
+    this.initSummarizationService();
+  }
+  
+  private async initSummarizationService(): Promise<void> {
+    const config = this.settings.config;
+    if (config?.enableSummarization) {
+      const summarizer = SummarizationService.getInstance();
+      summarizer.setModel(config.summarizationModel || 'Xenova/distilbart-cnn-6-6');
+      summarizer.setDebugMode(config.debugSummarization || false);
+    }
   }
 
   async init(): Promise<void> {
@@ -49,6 +62,64 @@ export class HistorySync {
     return deviceId;
   }
 
+  private async generateSummary(tabId: number, url: string): Promise<string> {
+    try {
+      const config = this.settings.config;
+      if (!config?.enableSummarization) {
+        return '';
+      }
+      
+      // Skip summarization for certain URLs
+      if (url.startsWith('chrome://') || 
+          url.startsWith('chrome-extension://') || 
+          url.startsWith('about:') ||
+          url.startsWith('file:')) {
+        return '';
+      }
+      
+      // Extract content from the page
+      let content = '';
+      try {
+        const response = await chrome.tabs.sendMessage(tabId, { type: 'extractContent' });
+        content = response?.content || '';
+      } catch (error) {
+        console.error('Error extracting content from page:', error);
+        // If content script fails, try using scripting API as fallback
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => document.body.innerText
+          });
+          content = results[0]?.result || '';
+        } catch (scriptError) {
+          console.error('Error executing script:', scriptError);
+          return '';
+        }
+      }
+      
+      if (!content || content.length < 200) {
+        return '';
+      }
+      
+      // Generate summary
+      const summarizer = SummarizationService.getInstance();
+      const summary = await summarizer.summarizeText(
+        content, 
+        config.summaryLength || 150
+      );
+      
+      if (config.debugSummarization) {
+        console.log('Generated summary for:', url);
+        console.log('Summary:', summary);
+      }
+      
+      return summary;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return '';
+    }
+  }
+
   private setupHistoryListener(): void {
     console.log('Setting up history listener...');
     
@@ -66,6 +137,18 @@ export class HistorySync {
 
           if (latestVisit) {
             const systemInfo = await this.getSystemInfo();
+            
+            // Get the active tab to generate summary
+            let summary = '';
+            try {
+              const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+              if (tabs.length > 0 && tabs[0].id && tabs[0].url === result.url) {
+                summary = await this.generateSummary(tabs[0].id, result.url);
+              }
+            } catch (error) {
+              console.error('Error getting active tab:', error);
+            }
+            
             await this.store.addEntry({
               visitId: `${latestVisit.visitId}`,
               url: result.url,
@@ -73,6 +156,7 @@ export class HistorySync {
               visitTime: result.lastVisitTime || Date.now(),
               referringVisitId: latestVisit.referringVisitId?.toString() || '0',
               transition: latestVisit.transition,
+              summary,
               ...systemInfo
             });
             console.log('History entry stored successfully');

@@ -5,7 +5,11 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      enableSummarization: false,
+      summarizationModel: 'Xenova/distilbart-cnn-6-6',
+      summaryLength: 150,
+      debugSummarization: false
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -72,6 +76,12 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    
+    // Summarization settings
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
+    const summaryLengthInput = document.getElementById('summaryLength');
+    const debugSummarizationCheckbox = document.getElementById('debugSummarization');
 
     if (mnemonicInput) {
       mnemonicInput.value = '';
@@ -84,6 +94,12 @@ class Settings {
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
     }
+    
+    // Set summarization settings to defaults
+    if (enableSummarizationCheckbox) enableSummarizationCheckbox.checked = this.DEFAULT_SETTINGS.enableSummarization;
+    if (summarizationModelSelect) summarizationModelSelect.value = this.DEFAULT_SETTINGS.summarizationModel;
+    if (summaryLengthInput) summaryLengthInput.value = this.DEFAULT_SETTINGS.summaryLength;
+    if (debugSummarizationCheckbox) debugSummarizationCheckbox.checked = this.DEFAULT_SETTINGS.debugSummarization;
   }
 
   setupEventListeners() {
@@ -150,6 +166,12 @@ class Settings {
     const clientIdInput = document.getElementById('clientId');
     const environmentSelect = document.getElementById('environment');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    
+    // Summarization settings
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
+    const summaryLengthInput = document.getElementById('summaryLength');
+    const debugSummarizationCheckbox = document.getElementById('debugSummarization');
 
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
@@ -176,7 +198,12 @@ class Settings {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      // Summarization settings
+      enableSummarization: enableSummarizationCheckbox ? enableSummarizationCheckbox.checked : false,
+      summarizationModel: summarizationModelSelect ? summarizationModelSelect.value : this.DEFAULT_SETTINGS.summarizationModel,
+      summaryLength: summaryLengthInput ? parseInt(summaryLengthInput.value, 10) : this.DEFAULT_SETTINGS.summaryLength,
+      debugSummarization: debugSummarizationCheckbox ? debugSummarizationCheckbox.checked : false
     };
 
     await new Promise(resolve => {

@@ -42,6 +42,35 @@
                 <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
             </div>
         </section>
+        
+        <section class="settings-section">
+            <h2>Summarization</h2>
+            <div class="setting-item">
+                <label for="enableSummarization">Enable Local Summarization:</label>
+                <input type="checkbox" id="enableSummarization">
+                <small class="help-text">Automatically generate summaries of visited web pages using a local model</small>
+            </div>
+            <div class="setting-item">
+                <label for="summarizationModel">Summarization Model:</label>
+                <select id="summarizationModel">
+                    <option value="Xenova/distilbart-cnn-6-6">DistilBART CNN (Default)</option>
+                    <option value="Xenova/distilbart-xsum-6-6">DistilBART XSum</option>
+                    <option value="Xenova/distilbart-cnn-12-6">DistilBART CNN (Larger)</option>
+                    <option value="Xenova/bart-large-cnn">BART Large CNN (Slower but better)</option>
+                </select>
+                <small class="help-text">Choose the model to use for summarization. Larger models provide better summaries but use more resources.</small>
+            </div>
+            <div class="setting-item">
+                <label for="summaryLength">Maximum Summary Length:</label>
+                <input type="number" id="summaryLength" min="50" max="500" value="150">
+                <small class="help-text">Maximum length of generated summaries (in characters)</small>
+            </div>
+            <div class="setting-item">
+                <label for="debugSummarization">Debug Mode:</label>
+                <input type="checkbox" id="debugSummarization">
+                <small class="help-text">Print summarization details to console for debugging</small>
+            </div>
+        </section>
 
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>

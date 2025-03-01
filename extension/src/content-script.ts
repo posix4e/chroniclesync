@@ -48,4 +48,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Notify that the content script has loaded
-console.log('ChronicleSync content script loaded');
+console.log('%c[ChronicleSync] Content script loaded', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');

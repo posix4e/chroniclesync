@@ -28,13 +28,13 @@ export class BackgroundService {
       const config = await chrome.storage.sync.get(['enableSummarization', 'summarizationModel']);
       
       if (config.enableSummarization === false) {
-        console.log('Summarization is disabled in settings');
+        console.log('%c[ChronicleSync] Summarization is disabled in settings', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
         this.summarizationService = null;
         return;
       }
 
       const modelName = config.summarizationModel || DEFAULT_MODEL;
-      console.log(`Initializing summarization service with model: ${modelName}`);
+      console.log('%c[ChronicleSync] Initializing summarization service with model: ' + modelName, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       
       this.summarizationService = new SummarizationService({
         model: modelName
@@ -42,8 +42,9 @@ export class BackgroundService {
       
       // Pre-initialize the model
       await this.summarizationService.init();
+      console.log('%c[ChronicleSync] Summarization service initialized successfully', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
     } catch (error) {
-      console.error('Error initializing summarization service:', error);
+      console.error('%c[ChronicleSync] Error initializing summarization service:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
       this.summarizationService = null;
     }
   }
@@ -75,47 +76,54 @@ export class BackgroundService {
       // Check if summarization is enabled
       const config = await chrome.storage.sync.get(['enableSummarization']);
       if (config.enableSummarization === false) {
-        console.log('Summarization is disabled, skipping');
+        console.log('%c[ChronicleSync] Summarization is disabled, skipping', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
         return;
       }
 
       // Initialize summarization service if needed
       if (!this.summarizationService) {
+        console.log('%c[ChronicleSync] Summarization service not initialized, initializing now...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
         await this.initSummarizationService();
       }
       
       if (!this.summarizationService) {
-        console.error('Summarization service not available');
+        console.error('%c[ChronicleSync] Summarization service not available after initialization attempt', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;');
         return;
       }
 
-      console.log(`Starting summarization for tab ${tabId}, URL: ${url}`);
+      console.log('%c[ChronicleSync] Starting summarization for tab ' + tabId + ', URL: ' + url, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       
       // Extract content from the page
+      console.log('%c[ChronicleSync] Extracting content from page...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       const content = await this.extractPageContent(tabId);
       
       if (!content || content.trim().length < 100) {
-        console.log('Not enough content to summarize');
+        console.log('%c[ChronicleSync] Not enough content to summarize (less than 100 characters)', 'background: #fbbc05; color: black; padding: 2px 4px; border-radius: 2px;');
         return;
       }
       
-      console.log(`Extracted ${content.length} characters of content`);
+      console.log('%c[ChronicleSync] Extracted ' + content.length + ' characters of content', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       
       // Generate summary
+      console.log('%c[ChronicleSync] Sending content to summarization service...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       const summary = await this.summarizationService.summarize(content);
       
       if (summary) {
-        console.log('Generated summary:', summary);
+        console.log('%c[ChronicleSync] Generated summary:', 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;', summary);
         
         // Store the summary
+        console.log('%c[ChronicleSync] Storing summary in history...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
         const historyStore = new HistoryStore();
         await historyStore.init();
         await historyStore.updateSummary(visitId, summary);
         
-        console.log('Summary stored successfully');
+        console.log('%c[ChronicleSync] Summary stored successfully', 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;');
+        
+        // Show notification to user
+        this.showSummarizationNotification(url, summary);
       }
     } catch (error) {
-      console.error('Error during summarization:', error);
+      console.error('%c[ChronicleSync] Error during summarization:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
       
       // Store the error
       try {
@@ -123,26 +131,69 @@ export class BackgroundService {
         await historyStore.init();
         const errorMessage = error instanceof Error ? error.message : 'Unknown error during summarization';
         await historyStore.setSummarizationError(visitId, errorMessage);
+        console.error('%c[ChronicleSync] Stored summarization error in history', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;');
       } catch (storeError) {
-        console.error('Error storing summarization error:', storeError);
+        console.error('%c[ChronicleSync] Error storing summarization error:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', storeError);
       }
     }
   }
 
+  private showSummarizationNotification(url: string, summary: string): void {
+    try {
+      // Get the domain from the URL
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      
+      // Create a notification
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icon128.png'),
+        title: `Summary for ${domain}`,
+        message: summary.length > 100 ? summary.substring(0, 97) + '...' : summary,
+        contextMessage: 'ChronicleSync Summarization',
+        priority: 1
+      });
+      
+      console.log('%c[ChronicleSync] Notification shown for summary', 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;');
+    } catch (error) {
+      console.error('%c[ChronicleSync] Error showing notification:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
+    }
+  }
+  
   private setupTabListeners(): void {
     // Listen for navigation events
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       if (changeInfo.url && tab.url && tab.id) {
-        console.debug(`Navigation to: ${changeInfo.url}`);
+        console.log('%c[ChronicleSync] Navigation detected to: ' + changeInfo.url, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
         
-        // Get the visit ID for this navigation
-        const visits = await chrome.history.getVisits({ url: tab.url });
-        if (visits && visits.length > 0) {
-          const latestVisit = visits[visits.length - 1];
-          
-          // Trigger summarization for this tab
-          this.summarizeTab(tab.id, tab.url, latestVisit.visitId);
-        }
+        // Wait for the page to load completely
+        console.log('%c[ChronicleSync] Waiting for page to load completely...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
+        
+        // Wait a bit to ensure the page is loaded and history is updated
+        setTimeout(async () => {
+          try {
+            if (tab.url) {
+              // Get the visit ID for this navigation
+              console.log('%c[ChronicleSync] Getting visit ID for URL: ' + tab.url, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
+              const visits = await chrome.history.getVisits({ url: tab.url });
+              
+              if (visits && visits.length > 0) {
+                const latestVisit = visits[visits.length - 1];
+                console.log('%c[ChronicleSync] Found visit ID: ' + latestVisit.visitId, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
+                
+                // Trigger summarization for this tab
+                if (tab.id) {
+                  console.log('%c[ChronicleSync] Triggering summarization for tab ' + tab.id, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
+                  this.summarizeTab(tab.id, tab.url, latestVisit.visitId);
+                }
+              } else {
+                console.log('%c[ChronicleSync] No visit history found for URL: ' + tab.url, 'background: #fbbc05; color: black; padding: 2px 4px; border-radius: 2px;');
+              }
+            }
+          } catch (error) {
+            console.error('%c[ChronicleSync] Error in tab update listener:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
+          }
+        }, 2000); // Wait 2 seconds to ensure page is loaded
       }
     });
   }

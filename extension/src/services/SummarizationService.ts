@@ -32,16 +32,16 @@ export class SummarizationService {
     }
 
     this.isInitializing = true;
-    console.log(`Initializing summarization model: ${this.modelName}`);
+    console.log('%c[ChronicleSync Summarization] Initializing model: ' + this.modelName, 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;');
     
     this.initPromise = new Promise<void>(async (resolve, reject) => {
       try {
         this.summarizer = await pipeline('summarization', this.modelName);
-        console.log('Summarization model loaded successfully');
+        console.log('%c[ChronicleSync Summarization] Model loaded successfully', 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;');
         this.isInitializing = false;
         resolve();
       } catch (error) {
-        console.error('Error loading summarization model:', error);
+        console.error('%c[ChronicleSync Summarization] Error loading model:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
         this.isInitializing = false;
         reject(error);
       }
@@ -59,17 +59,17 @@ export class SummarizationService {
       return '';
     }
 
-    console.log('Starting summarization...');
+    console.log('%c[ChronicleSync Summarization] Starting summarization...', 'background: #fbbc05; color: black; padding: 2px 4px; border-radius: 2px;');
     try {
       const result = await this.summarizer(text, {
         max_length: this.maxLength,
         min_length: this.minLength,
       });
       
-      console.log('Summarization completed:', result[0].summary_text);
+      console.log('%c[ChronicleSync Summarization] Completed:', 'background: #34a853; color: white; padding: 2px 4px; border-radius: 2px;', result[0].summary_text);
       return result[0].summary_text;
     } catch (error) {
-      console.error('Error during summarization:', error);
+      console.error('%c[ChronicleSync Summarization] Error during summarization:', 'background: #ea4335; color: white; padding: 2px 4px; border-radius: 2px;', error);
       throw error;
     }
   }

@@ -16,6 +16,7 @@ const copyFiles = () => ({
     copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
     copyFileSync('history.html', 'dist/history.html');
     copyFileSync('history.css', 'dist/history.css');
+    copyFileSync('icon128.png', 'dist/icon128.png');
   }
 });
 

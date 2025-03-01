@@ -3,6 +3,9 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
+  "icons": {
+    "128": "icon128.png"
+  },
   "action": {
     "default_popup": "popup.html"
   },
@@ -24,7 +27,15 @@
     "tabs",
     "history",
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "notifications"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
   ],
   "host_permissions": [
     "http://localhost:*/*",

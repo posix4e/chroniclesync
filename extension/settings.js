@@ -5,7 +5,9 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      enableSummarization: true,
+      summarizationModel: 'Xenova/distilbart-cnn-6-6'
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -72,6 +74,8 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
 
     if (mnemonicInput) {
       mnemonicInput.value = '';
@@ -80,6 +84,8 @@ class Settings {
     if (clientIdInput) clientIdInput.value = '';
     if (environmentSelect) environmentSelect.value = this.DEFAULT_SETTINGS.environment;
     if (customApiUrlInput) customApiUrlInput.value = '';
+    if (enableSummarizationCheckbox) enableSummarizationCheckbox.checked = this.DEFAULT_SETTINGS.enableSummarization;
+    if (summarizationModelSelect) summarizationModelSelect.value = this.DEFAULT_SETTINGS.summarizationModel;
     
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
@@ -93,6 +99,16 @@ class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+    document.getElementById('enableSummarization')?.addEventListener('change', () => this.handleSummarizationChange());
+  }
+  
+  handleSummarizationChange() {
+    const enableSummarization = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
+    
+    if (enableSummarization && summarizationModelSelect) {
+      summarizationModelSelect.disabled = !enableSummarization.checked;
+    }
   }
 
   async handleMnemonicInput() {
@@ -150,6 +166,8 @@ class Settings {
     const clientIdInput = document.getElementById('clientId');
     const environmentSelect = document.getElementById('environment');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summarizationModelSelect = document.getElementById('summarizationModel');
 
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
@@ -176,7 +194,9 @@ class Settings {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      enableSummarization: enableSummarizationCheckbox ? enableSummarizationCheckbox.checked : this.DEFAULT_SETTINGS.enableSummarization,
+      summarizationModel: summarizationModelSelect ? summarizationModelSelect.value : this.DEFAULT_SETTINGS.summarizationModel
     };
 
     await new Promise(resolve => {

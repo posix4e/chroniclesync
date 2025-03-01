@@ -43,6 +43,25 @@
             </div>
         </section>
 
+        <section class="settings-section">
+            <h2>Summarization</h2>
+            <div class="setting-item">
+                <label for="enableSummarization">Enable Local Summarization:</label>
+                <input type="checkbox" id="enableSummarization" checked>
+                <small class="help-text">Automatically generate summaries of visited web pages using a local model</small>
+            </div>
+            <div class="setting-item">
+                <label for="summarizationModel">Summarization Model:</label>
+                <select id="summarizationModel">
+                    <option value="Xenova/distilbart-cnn-6-6">DistilBART CNN (Default)</option>
+                    <option value="Xenova/bart-large-cnn">BART Large CNN</option>
+                    <option value="Xenova/distilbart-xsum-12-6">DistilBART XSum</option>
+                    <option value="Xenova/t5-small">T5 Small</option>
+                </select>
+                <small class="help-text">Select the model to use for generating summaries</small>
+            </div>
+        </section>
+
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>
             <button id="resetSettings" class="reset-settings">Reset to Default</button>

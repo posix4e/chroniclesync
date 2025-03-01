@@ -26,6 +26,13 @@
     "storage",
     "unlimitedStorage"
   ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "host_permissions": [
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",

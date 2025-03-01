@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3; // Increased version for schema update
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -26,6 +26,7 @@ export class HistoryStore {
       request.onupgradeneeded = (event) => {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
         // Create or update history store
         if (!db.objectStoreNames.contains(this.HISTORY_STORE)) {
@@ -36,6 +37,17 @@ export class HistoryStore {
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
           console.log('Created history store with indexes');
+        } else if (oldVersion < 3) {
+          // Add summary field to existing records
+          const target = event.target as IDBOpenDBRequest;
+          if (target.transaction) {
+            const store = target.transaction.objectStore(this.HISTORY_STORE);
+            // Check if we need to add the summary index
+            if (!store.indexNames.contains('hasSummary')) {
+              store.createIndex('hasSummary', 'hasSummary');
+              console.log('Added hasSummary index to history store');
+            }
+          }
         }
 
         // Create or update devices store
@@ -264,6 +276,78 @@ export class HistoryStore {
         } else {
           resolve();
         }
+      };
+    });
+  }
+
+  async updateSummary(visitId: string, summary: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      
+      const request = store.get(visitId);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.summary = summary;
+          entry.hasSummary = true;
+          entry.lastModified = Date.now();
+          entry.syncStatus = 'pending';
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async setSummarizationError(visitId: string, error: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      
+      const request = store.get(visitId);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.summarizationError = error;
+          entry.hasSummary = false;
+          entry.lastModified = Date.now();
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async getEntriesWithoutSummary(): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result || [];
+        // Filter entries that don't have a summary and aren't deleted
+        const filteredEntries = entries.filter((entry: HistoryEntry) => 
+          !entry.deleted && !entry.hasSummary && !entry.summarizationError);
+        resolve(filteredEntries);
       };
     });
   }

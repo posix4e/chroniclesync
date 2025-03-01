@@ -6,6 +6,7 @@ export function App() {
   const [initialized, setInitialized] = useState(false);
   const [clientId, setClientId] = useState('');
   const [lastSync, setLastSync] = useState<string>('Never');
+  const [debugMode, setDebugMode] = useState(false);
   const openHistory = () => {
     chrome.windows.create({
       url: chrome.runtime.getURL('history.html'),
@@ -99,6 +100,53 @@ export function App() {
   const openSettings = () => {
     chrome.runtime.openOptionsPage();
   };
+  
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+  };
+  
+  const triggerSummarization = async () => {
+    try {
+      // Get the current active tab
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs.length === 0 || !tabs[0].id || !tabs[0].url) {
+        alert('No active tab found');
+        return;
+      }
+      
+      const activeTab = tabs[0];
+      
+      // Get the visit ID for this tab
+      if (activeTab.url) {
+        const visits = await chrome.history.getVisits({ url: activeTab.url });
+        if (!visits || visits.length === 0) {
+          alert('No visit history found for this tab');
+          return;
+        }
+        
+        const latestVisit = visits[visits.length - 1];
+        
+        // Send message to background script to trigger summarization
+        chrome.runtime.sendMessage({ 
+          type: 'summarizeEntry',
+          tabId: activeTab.id,
+          visitId: latestVisit.visitId
+      }, (response) => {
+          if (chrome.runtime.lastError) {
+            alert('Summarization failed: ' + chrome.runtime.lastError.message);
+          } else if (response && response.error) {
+            alert('Summarization failed: ' + response.error);
+          } else {
+            alert('Summarization triggered for current tab. Check the background page console for logs.');
+          }
+        });
+      } else {
+        alert('No URL found for current tab');
+      }
+    } catch (error) {
+      alert('Error triggering summarization: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
 
   return (
     <div className="app">
@@ -126,7 +174,26 @@ export function App() {
       <div className="action-buttons">
         <button type="button" onClick={openHistory}>View History</button>
         <button type="button" onClick={openSettings}>Settings</button>
+        <button type="button" onClick={toggleDebugMode}>
+          {debugMode ? "Hide Debug" : "Show Debug"}
+        </button>
       </div>
+      
+      {debugMode && (
+        <div className="debug-section">
+          <h3>Debug Tools</h3>
+          <button 
+            type="button" 
+            onClick={triggerSummarization}
+            className="debug-button"
+          >
+            Summarize Current Tab
+          </button>
+          <p className="debug-info">
+            To see summarization logs, open the background page console from the extension management page.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

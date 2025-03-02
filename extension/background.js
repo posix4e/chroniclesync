@@ -1,7 +1,11 @@
 import { getConfig } from './config.js';
 import { HistoryStore } from './src/db/HistoryStore';
+import Summarizer from './src/summarizer.js';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Initialize summarizer
+const summarizer = new Summarizer();
 
 // Initialize extension
 async function initializeExtension() {
@@ -10,7 +14,12 @@ async function initializeExtension() {
     await chrome.storage.local.get(['initialized']);
 
     // Load initial config
-    await getConfig();
+    const config = await getConfig();
+    
+    // Initialize summarizer if enabled
+    if (config.enableSummarization) {
+      await summarizer.init(config);
+    }
 
     // Mark as initialized
     await chrome.storage.local.set({ initialized: true });
@@ -246,6 +255,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true; // Will respond asynchronously
+  } else if (request.type === 'summarizeContent') {
+    // Handle content summarization request from content script
+    (async () => {
+      try {
+        const config = await getConfig();
+        
+        // Skip if summarization is disabled
+        if (!config.enableSummarization) {
+          console.log('Summarization is disabled in settings');
+          sendResponse({ success: false, message: 'Summarization is disabled' });
+          return;
+        }
+        
+        // Initialize summarizer with current config if needed
+        if (!summarizer.config || summarizer.config !== config) {
+          await summarizer.init(config);
+        }
+        
+        // Generate summary
+        const summary = await summarizer.summarize(request.content);
+        
+        if (summary) {
+          console.log('Page summarized:', request.url);
+          console.log('Summary:', summary);
+          
+          // Store the summary in local storage for potential future use
+          const summaryData = {
+            url: request.url,
+            title: request.title,
+            summary: summary,
+            timestamp: Date.now()
+          };
+          
+          // Get existing summaries
+          const result = await chrome.storage.local.get(['pageSummaries']);
+          const summaries = result.pageSummaries || {};
+          
+          // Add new summary
+          summaries[request.url] = summaryData;
+          
+          // Store updated summaries
+          await chrome.storage.local.set({ pageSummaries: summaries });
+          
+          sendResponse({ success: true, summary });
+        } else {
+          sendResponse({ success: false, message: 'Failed to generate summary' });
+        }
+      } catch (error) {
+        console.error('Error in summarization:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Will respond asynchronously
   } else if (request.type === 'triggerSync') {
     // Trigger manual sync with full history
     syncHistory(true)
@@ -314,6 +376,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // eslint-disable-next-line no-console
       console.error('Error initializing IndexedDB:', error);
       sendResponse({ error: error.message });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getSummary') {
+    // Get summary for a specific URL
+    chrome.storage.local.get(['pageSummaries']).then(result => {
+      const summaries = result.pageSummaries || {};
+      const summary = summaries[request.url];
+      sendResponse({ success: true, summary });
+    }).catch(error => {
+      console.error('Error getting summary:', error);
+      sendResponse({ success: false, error: error.message });
     });
     return true; // Will respond asynchronously
   }

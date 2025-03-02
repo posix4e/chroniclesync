@@ -42,6 +42,34 @@
                 <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
             </div>
         </section>
+        
+        <section class="settings-section">
+            <h2>Summarization Settings</h2>
+            <div class="setting-item">
+                <label for="enableSummarization">Enable Webpage Summarization:</label>
+                <input type="checkbox" id="enableSummarization">
+                <small class="help-text">Automatically summarize webpages as you browse</small>
+            </div>
+            <div class="setting-item">
+                <label for="summaryModel">Summarization Model:</label>
+                <select id="summaryModel" required>
+                    <option value="Xenova/distilbart-cnn-6-6">DistilBART CNN (Default)</option>
+                    <option value="Xenova/t5-small">T5 Small</option>
+                    <option value="Xenova/bart-large-cnn">BART Large CNN</option>
+                </select>
+                <small class="help-text">Select the model to use for summarization</small>
+            </div>
+            <div class="setting-item">
+                <label for="maxLength">Maximum Summary Length:</label>
+                <input type="number" id="maxLength" min="50" max="500" value="150">
+                <small class="help-text">Maximum length of the generated summary (50-500)</small>
+            </div>
+            <div class="setting-item">
+                <label for="minLength">Minimum Summary Length:</label>
+                <input type="number" id="minLength" min="10" max="100" value="30">
+                <small class="help-text">Minimum length of the generated summary (10-100)</small>
+            </div>
+        </section>
 
         <div class="settings-actions">
             <button id="saveSettings" class="primary-button">Save Settings</button>

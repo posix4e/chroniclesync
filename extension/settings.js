@@ -5,7 +5,11 @@ class Settings {
       mnemonic: '',
       clientId: '',
       customApiUrl: null,
-      environment: 'production'
+      environment: 'production',
+      enableSummarization: false,
+      summaryModel: 'Xenova/distilbart-cnn-6-6',
+      maxLength: 150,
+      minLength: 30
     };
     this.bip39WordList = null;
     this.wordListPromise = this.loadBip39WordList();
@@ -72,6 +76,12 @@ class Settings {
     const environmentSelect = document.getElementById('environment');
     const customUrlContainer = document.getElementById('customUrlContainer');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    
+    // Summarization settings
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summaryModelSelect = document.getElementById('summaryModel');
+    const maxLengthInput = document.getElementById('maxLength');
+    const minLengthInput = document.getElementById('minLength');
 
     if (mnemonicInput) {
       mnemonicInput.value = '';
@@ -84,6 +94,12 @@ class Settings {
     if (customUrlContainer) {
       customUrlContainer.style.display = 'none';
     }
+    
+    // Set default values for summarization settings
+    if (enableSummarizationCheckbox) enableSummarizationCheckbox.checked = this.DEFAULT_SETTINGS.enableSummarization;
+    if (summaryModelSelect) summaryModelSelect.value = this.DEFAULT_SETTINGS.summaryModel;
+    if (maxLengthInput) maxLengthInput.value = this.DEFAULT_SETTINGS.maxLength;
+    if (minLengthInput) minLengthInput.value = this.DEFAULT_SETTINGS.minLength;
   }
 
   setupEventListeners() {
@@ -150,6 +166,12 @@ class Settings {
     const clientIdInput = document.getElementById('clientId');
     const environmentSelect = document.getElementById('environment');
     const customApiUrlInput = document.getElementById('customApiUrl');
+    
+    // Summarization settings
+    const enableSummarizationCheckbox = document.getElementById('enableSummarization');
+    const summaryModelSelect = document.getElementById('summaryModel');
+    const maxLengthInput = document.getElementById('maxLength');
+    const minLengthInput = document.getElementById('minLength');
 
     if (!mnemonicInput || !clientIdInput || !environmentSelect) return;
 
@@ -172,11 +194,34 @@ class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Validate summarization settings
+    const maxLength = parseInt(maxLengthInput?.value || this.DEFAULT_SETTINGS.maxLength);
+    const minLength = parseInt(minLengthInput?.value || this.DEFAULT_SETTINGS.minLength);
+    
+    if (maxLength < 50 || maxLength > 500) {
+      this.showMessage('Maximum summary length must be between 50 and 500', 'error');
+      return;
+    }
+    
+    if (minLength < 10 || minLength > 100) {
+      this.showMessage('Minimum summary length must be between 10 and 100', 'error');
+      return;
+    }
+    
+    if (minLength >= maxLength) {
+      this.showMessage('Minimum length must be less than maximum length', 'error');
+      return;
+    }
+
     const newConfig = {
       mnemonic: mnemonic,
       clientId: clientId,
       environment: environmentSelect.value,
-      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null
+      customApiUrl: environmentSelect.value === 'custom' && customApiUrlInput ? customApiUrlInput.value.trim() : null,
+      enableSummarization: enableSummarizationCheckbox?.checked || false,
+      summaryModel: summaryModelSelect?.value || this.DEFAULT_SETTINGS.summaryModel,
+      maxLength: maxLength,
+      minLength: minLength
     };
 
     await new Promise(resolve => {

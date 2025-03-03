@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronicleSync Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        article {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>ChronicleSync Test Page</h1>
+    <p>This page is used to test the summarization feature of ChronicleSync.</p>
+    
+    <button id="testSummarization">Test Summarization</button>
+    
+    <div class="status" id="status">Status: Ready</div>
+    
+    <article>
+        <h2>Sample Article for Summarization</h2>
+        <p>The field of artificial intelligence has seen remarkable progress in recent years. Machine learning models, particularly those based on deep neural networks, have revolutionized how computers process and understand natural language, images, and other complex data types.</p>
+        
+        <p>One of the most significant developments has been in the area of natural language processing (NLP). Models like BERT, GPT, and T5 have demonstrated an unprecedented ability to understand and generate human language. These models are trained on vast amounts of text data and can perform a wide range of tasks, from translation and summarization to question answering and text generation.</p>
+        
+        <p>Computer vision has also seen tremendous advances. Convolutional neural networks (CNNs) have become the standard approach for image recognition tasks, achieving human-level performance on many benchmarks. More recently, transformer-based models like Vision Transformer (ViT) have shown that the same architecture that works well for language can also be effective for vision tasks.</p>
+        
+        <p>Reinforcement learning, where agents learn to make decisions by interacting with an environment, has enabled computers to master complex games like Go, chess, and various video games. The combination of reinforcement learning with deep neural networks, known as deep reinforcement learning, has been particularly powerful.</p>
+        
+        <p>Despite these advances, AI still faces many challenges. Current AI systems lack true understanding and common sense reasoning. They can be brittle, failing in unexpected ways when faced with situations that differ from their training data. They also require large amounts of data and computational resources to train, limiting their accessibility.</p>
+        
+        <p>Ethical concerns around AI are also growing. Issues include bias in AI systems, privacy concerns related to data collection, the potential for job displacement, and questions about accountability when AI systems make decisions that affect people's lives.</p>
+        
+        <p>Looking forward, researchers are working on making AI more efficient, robust, and interpretable. There's also growing interest in developing AI systems that can learn more like humans do, with less data and more ability to transfer knowledge between tasks.</p>
+        
+        <p>The field continues to evolve rapidly, with new breakthroughs regularly pushing the boundaries of what's possible. As AI becomes more integrated into our daily lives, addressing both the technical and ethical challenges will be crucial for ensuring that these technologies benefit humanity.</p>
+    </article>
+    
+    <script>
+        document.getElementById('testSummarization').addEventListener('click', function() {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = 'Status: Testing summarization...';
+            
+            // This is just a test button - the actual summarization happens 
+            // automatically via the content script if the extension is loaded
+            setTimeout(() => {
+                statusElement.textContent = 'Status: Summarization test initiated. Check extension logs for results.';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

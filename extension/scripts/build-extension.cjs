@@ -22,6 +22,7 @@ const filesToCopy = [
   [join('dist', 'background.js'), 'background.js'],
   [join('dist', 'settings.js'), 'settings.js'],
   [join('dist', 'history.js'), 'history.js'],
+  [join('dist', 'content.js'), 'content.js'],
   [join('dist', 'assets'), 'assets']
 ];
 
@@ -49,14 +50,36 @@ async function main() {
       });
     }
     
-    // Create zip file
-    console.log('Creating zip file...');
-    await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../chrome-extension.zip ./*`);
+    // List the files in the package directory
+    console.log('Files in package directory:');
+    await execAsync(`ls -la "${PACKAGE_DIR}"`).then(({stdout}) => console.log(stdout));
+    
+    // Check if content.js is in the dist directory
+    console.log('Checking for content.js:');
+    await execAsync(`ls -la "${ROOT_DIR}/dist/content.js"`).then(
+      ({stdout}) => console.log('Found content.js:', stdout),
+      (err) => console.log('content.js not found:', err.message)
+    );
+    
+    // Copy content.js to package directory if it exists
+    try {
+      await cp(
+        join(ROOT_DIR, 'dist', 'content.js'),
+        join(PACKAGE_DIR, 'content.js')
+      );
+      console.log('Copied content.js to package directory');
+    } catch (err) {
+      console.warn(`Warning: Could not copy content.js: ${err.message}`);
+    }
+    
+    // Create a tar.gz file instead of zip
+    console.log('Creating tar.gz file...');
+    await execAsync(`tar -czf "${ROOT_DIR}/chrome-extension.tar.gz" -C "${PACKAGE_DIR}" .`);
     
     // Clean up
     await rm(PACKAGE_DIR, { recursive: true });
     
-    console.log('Extension package created: chrome-extension.zip');
+    console.log('Extension package created: chrome-extension.tar.gz');
   } catch (error) {
     console.error('Error building extension:', error);
     process.exit(1);

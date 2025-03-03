@@ -10,8 +10,11 @@ type StorageKeys = keyof SettingsConfig;
 
 export class Settings {
   config: SettingsConfig | null = null;
-  private readonly PROD_API_URL = 'https://api.chroniclesync.xyz';
-  private readonly STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
+  private readonly PROD_API_URL = 'http://localhost:54113';  // Use mock server for development
+  private readonly STAGING_API_URL = 'http://localhost:54113';  // Use mock server for development
+  // Original URLs for reference:
+  // private readonly PROD_API_URL = 'https://api.chroniclesync.xyz';
+  // private readonly STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
   private bip39WordList: string[] | null = null;
 
   private readonly DEFAULT_SETTINGS: SettingsConfig = {

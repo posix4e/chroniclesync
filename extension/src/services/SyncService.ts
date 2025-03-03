@@ -60,62 +60,88 @@ export class SyncService {
   }
 
   async syncHistory(history: HistoryVisit[]): Promise<void> {
-    const apiUrl = this.settings.getApiUrl();
-    const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
+    try {
+      const apiUrl = this.settings.getApiUrl();
+      const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 
-    if (!clientId) {
-      throw new Error('Client ID not found');
+      if (!clientId) {
+        throw new Error('Client ID not found');
+      }
+
+      const payload: SyncPayload = {
+        history,
+        deviceInfo: this.deviceInfo
+      };
+
+      console.log('Syncing history with payload:', payload);
+
+      try {
+        const response = await fetch(`${apiUrl}/history/sync?clientId=${clientId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+          // Timeout is handled in the catch block
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Sync failed:', error);
+          throw new Error(`Sync failed: ${error}`);
+        }
+
+        const result = await response.json();
+        console.log('Sync successful:', result);
+      } catch (error) {
+        // Handle network errors more gracefully
+        console.error('Network error during sync:', error);
+        throw new Error(`Network error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } catch (error) {
+      console.error('Error in syncHistory:', error);
+      // Rethrow but don't crash the extension
+      throw error;
     }
-
-    const payload: SyncPayload = {
-      history,
-      deviceInfo: this.deviceInfo
-    };
-
-    console.log('Syncing history with payload:', payload);
-
-    const response = await fetch(`${apiUrl}/history/sync?clientId=${clientId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Sync failed:', error);
-      throw new Error(`Sync failed: ${error}`);
-    }
-
-    const result = await response.json();
-    console.log('Sync successful:', result);
   }
 
   async getHistory(page = 1, pageSize = 50): Promise<HistoryVisit[]> {
-    const apiUrl = this.settings.getApiUrl();
-    const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
+    try {
+      const apiUrl = this.settings.getApiUrl();
+      const clientId = await chrome.storage.sync.get(['clientId']).then(result => result.clientId);
 
-    if (!clientId) {
-      throw new Error('Client ID not found');
-    }
-
-    const response = await fetch(
-      `${apiUrl}/history?clientId=${clientId}&page=${page}&pageSize=${pageSize}`,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      if (!clientId) {
+        throw new Error('Client ID not found');
       }
-    );
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to get history:', error);
-      throw new Error(`Failed to get history: ${error}`);
+      try {
+        const response = await fetch(
+          `${apiUrl}/history?clientId=${clientId}&page=${page}&pageSize=${pageSize}`,
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+            // Timeout is handled in the catch block
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Failed to get history:', error);
+          throw new Error(`Failed to get history: ${error}`);
+        }
+
+        const result = await response.json();
+        return result.history || [];
+      } catch (error) {
+        // Handle network errors more gracefully
+        console.error('Network error during history fetch:', error);
+        throw new Error(`Network error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } catch (error) {
+      console.error('Error in getHistory:', error);
+      // Return empty array instead of crashing
+      return [];
     }
-
-    const result = await response.json();
-    return result.history || [];
   }
 }

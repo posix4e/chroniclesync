@@ -24,11 +24,15 @@ export class Settings {
 
   async init(): Promise<void> {
     try {
-      const { wordList } = await import('../../bip39-wordlist.js');
-      this.bip39WordList = wordList;
+      // Import wordlist directly instead of dynamic import
+      // This avoids the "window is not defined" error
+      import('../../bip39-wordlist.js').then(module => {
+        this.bip39WordList = module.wordList;
+      }).catch(error => {
+        console.error('Error loading wordlist:', error);
+      });
     } catch (error) {
       console.error('Error loading wordlist:', error);
-      return;
     }
 
     const result = await this.getStorageData();

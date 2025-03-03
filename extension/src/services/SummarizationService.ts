@@ -22,10 +22,12 @@ export class SummarizationService {
    */
   private constructor() {
     // Configure the library to use the Hugging Face Hub
-    env.allowLocalModels = true; // Allow local models
+    env.allowLocalModels = false; // Force remote models
     env.useBrowserCache = true;
     env.cacheDir = ''; // Use default cache directory
-    env.localModelPath = './models'; // Set local model path
+    
+    // Force remote loading
+    env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
   }
   
   /**
@@ -61,89 +63,97 @@ export class SummarizationService {
           setTimeout(() => reject(new Error('Model loading timed out')), this.TIMEOUT_MS);
         });
         
-        // Try to load the tiny model first (fastest to download)
-        try {
-          console.log('Attempting to load tiny model...');
-          this.summarizer = await Promise.race([
-            pipeline('summarization', this.TINY_MODEL, { 
-              quantized: true, // Use quantized model for smaller size
+        // Create a simple extractive summarizer as an immediate fallback
+        this.summarizer = {
+          extractiveSummarize: (text: string) => {
+            try {
+              // Split into sentences
+              const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+              
+              // For short texts, just return the first few sentences
+              if (sentences.length <= 3) {
+                return { summary_text: sentences.join(' ') };
+              }
+              
+              // For longer texts, select important sentences
+              // Simple heuristic: first sentence + sentences with important keywords
+              const importantKeywords = ['important', 'significant', 'crucial', 'essential', 'key', 'main', 'primary', 'critical'];
+              const keywordSentences = sentences.filter(s => 
+                importantKeywords.some(keyword => s.toLowerCase().includes(keyword))
+              );
+              
+              // Combine first sentence with keyword sentences, or just take first few if none found
+              const selectedSentences = [sentences[0]];
+              if (keywordSentences.length > 0) {
+                selectedSentences.push(...keywordSentences.slice(0, 2));
+              } else {
+                selectedSentences.push(...sentences.slice(1, 3));
+              }
+              
+              return { summary_text: selectedSentences.join(' ') };
+            } catch (error) {
+              console.error('Extractive summarization failed:', error);
+              return { summary_text: text.substring(0, 200) + '...' };
+            }
+          }
+        };
+        
+        // Try to load the real model in the background
+        Promise.race([
+          pipeline('summarization', this.TINY_MODEL, { 
+            quantized: false,
+            progress_callback: (progress: number) => {
+              console.log(`Model loading progress: ${(progress * 100).toFixed(0)}%`);
+            }
+          }),
+          timeoutPromise
+        ]).then(model => {
+          console.log('Tiny summarization model loaded successfully');
+          this.summarizer = model;
+        }).catch(error => {
+          console.warn(`Failed to load tiny model: ${error}. Trying small model...`);
+          
+          // Try small model
+          Promise.race([
+            pipeline('summarization', this.SMALL_MODEL, { 
+              quantized: false,
               progress_callback: (progress: number) => {
-                console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
+                console.log(`Small model loading progress: ${(progress * 100).toFixed(0)}%`);
               }
             }),
             timeoutPromise
-          ]);
-          console.log('Tiny summarization model loaded successfully');
-        } catch (error) {
-          console.warn(`Failed to load tiny model: ${error}. Trying small model...`);
-          
-          // Try to load the small model
-          try {
-            console.log('Attempting to load small model...');
-            this.summarizer = await Promise.race([
-              pipeline('summarization', this.SMALL_MODEL, { 
-                quantized: true,
+          ]).then(model => {
+            console.log('Small summarization model loaded successfully');
+            this.summarizer = model;
+          }).catch(smallError => {
+            console.warn(`Failed to load small model: ${smallError}. Trying fallback model...`);
+            
+            // Try fallback model
+            Promise.race([
+              pipeline('summarization', this.FALLBACK_MODEL, { 
+                quantized: false,
                 progress_callback: (progress: number) => {
-                  console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
+                  console.log(`Fallback model loading progress: ${(progress * 100).toFixed(0)}%`);
                 }
               }),
               timeoutPromise
-            ]);
-            console.log('Small summarization model loaded successfully');
-          } catch (smallError) {
-            console.warn(`Failed to load small model: ${smallError}. Trying fallback model...`);
-            
-            // Try to load the fallback model
-            try {
-              console.log('Attempting to load fallback model...');
-              this.summarizer = await Promise.race([
-                pipeline('summarization', this.FALLBACK_MODEL, { 
-                  quantized: true,
-                  progress_callback: (progress: number) => {
-                    console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
-                  }
-                }),
-                timeoutPromise
-              ]);
+            ]).then(model => {
               console.log('Fallback summarization model loaded successfully');
-            } catch (fallbackError) {
-              console.error('All model loading attempts failed');
-              
-              // Create a simple fallback summarizer that doesn't use ML
-              this.summarizer = {
-                async __call__(text: string) {
-                  console.log('Using fallback text-based summarizer');
-                  // Simple extractive summarization
-                  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-                  const summary = sentences.slice(0, 3).join(' ');
-                  return [{ summary_text: summary }];
-                }
-              };
-              console.log('Created text-based fallback summarizer');
-              resolve(); // Resolve with the fallback summarizer
-              return;
-            }
-          }
-        }
+              this.summarizer = model;
+            }).catch(fallbackError => {
+              console.warn(`Failed to load fallback model: ${fallbackError}. Using extractive summarization.`);
+              // Keep using the extractive summarizer
+            });
+          });
+        });
         
+        // Resolve immediately with the extractive summarizer
         this.isInitializing = false;
         resolve();
       } catch (error) {
         this.isInitializing = false;
-        console.error('Failed to initialize summarization model:', error);
-        
-        // Create a simple fallback summarizer that doesn't use ML
-        this.summarizer = {
-          async __call__(text: string) {
-            console.log('Using emergency fallback text-based summarizer');
-            // Simple extractive summarization
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-            const summary = sentences.slice(0, 3).join(' ');
-            return [{ summary_text: summary }];
-          }
-        };
-        console.log('Created emergency text-based fallback summarizer');
-        resolve(); // Resolve with the fallback summarizer
+        console.error('Failed to initialize summarization:', error);
+        reject(error);
       }
     });
     
@@ -238,36 +248,52 @@ export class SummarizationService {
       : trimmedContent;
     
     try {
-      const result = await this.summarizer(truncatedContent, {
-        max_length: 150,
-        min_length: 30,
-        do_sample: false,
-        truncation: true
-      });
+      let result;
       
-      if (!result || !result[0] || !result[0].summary_text) {
+      // Check if we're using the extractive summarizer
+      if (this.summarizer.extractiveSummarize) {
+        result = this.summarizer.extractiveSummarize(truncatedContent);
+      } else {
+        // Using the ML model
+        result = await this.summarizer(truncatedContent, {
+          max_length: 150,
+          min_length: 30,
+          do_sample: false,
+          truncation: true
+        });
+        
+        // Handle array result from ML model
+        if (Array.isArray(result) && result.length > 0) {
+          result = result[0];
+        }
+      }
+      
+      if (!result || !result.summary_text) {
         throw new Error('Model returned invalid summary');
       }
       
-      return result[0].summary_text;
+      return result.summary_text;
     } catch (error) {
       console.error('Error during summarization:', error);
       
-      // Fallback to extractive summarization
+      // Fallback to simple extractive summarization
       try {
         const sentences = truncatedContent.match(/[^.!?]+[.!?]+/g) || [];
-        const importantSentences = sentences
-          .filter(s => s.length > 40)
-          .slice(0, 3);
         
-        if (importantSentences.length > 0) {
-          return importantSentences.join(' ');
-        } else {
-          return sentences.slice(0, 3).join(' ');
+        if (sentences.length === 0) {
+          return truncatedContent.substring(0, 200) + '...';
         }
+        
+        const firstSentence = sentences[0];
+        if (sentences.length <= 2) {
+          return sentences.join(' ');
+        }
+        
+        // Take first sentence and one or two more
+        return [firstSentence, sentences[1], sentences.length > 2 ? sentences[2] : ''].filter(Boolean).join(' ');
       } catch (fallbackError) {
         console.error('Fallback summarization failed:', fallbackError);
-        throw new Error(`Summarization failed: ${error}`);
+        return truncatedContent.substring(0, 200) + '...';
       }
     }
   }

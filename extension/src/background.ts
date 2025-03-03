@@ -59,19 +59,8 @@ export class BackgroundService {
   }
   
   private setupContentScriptInjection(): void {
-    // Inject content script when a new page is loaded
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      if (changeInfo.status === 'complete' && tab.url && 
-          !tab.url.startsWith('chrome://') && 
-          !tab.url.startsWith('chrome-extension://')) {
-        chrome.scripting.executeScript({
-          target: { tabId },
-          files: ['content.js']
-        }).catch(error => {
-          console.error('Error injecting content script:', error);
-        });
-      }
-    });
+    // Content script is now injected via manifest.json
+    console.log('Content script will be injected via manifest.json');
   }
 
   private setupMessageListeners(): void {

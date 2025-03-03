@@ -33,17 +33,18 @@ export class SummarizationService {
     }
 
     this.isLoading = true;
-    console.log('Initializing summarization model...');
+    console.log('%c ChronicleSync: Initializing summarization model...', 'color: #4285f4; font-weight: bold;');
     
     this.loadingPromise = new Promise<void>(async (resolve, reject) => {
       try {
         // Load the summarization pipeline
+        console.log('ChronicleSync: Loading model Xenova/distilbart-cnn-6-6...');
         this.summarizer = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
-        console.log('Summarization model loaded successfully');
+        console.log('%c ChronicleSync: Summarization model loaded successfully', 'color: green; font-weight: bold;');
         this.isLoading = false;
         resolve();
       } catch (error) {
-        console.error('Error loading summarization model:', error);
+        console.error('%c ChronicleSync: Error loading summarization model:', 'color: red; font-weight: bold;', error);
         this.isLoading = false;
         reject(error);
       }
@@ -58,18 +59,20 @@ export class SummarizationService {
       await this.init();
     }
 
-    console.log('Starting summarization...');
+    console.log('%c ChronicleSync: Starting summarization process...', 'color: #4285f4; font-weight: bold;');
     try {
       // Clean the text - remove extra whitespace and limit length
       const cleanedText = this.cleanText(text);
+      console.log('ChronicleSync: Text cleaned, length:', cleanedText.length);
       
       // Generate summary
+      console.log('ChronicleSync: Generating summary...');
       const result = await this.summarizer(cleanedText, {
         max_length: 150,
         min_length: 30,
       });
       
-      console.log('Summarization completed successfully');
+      console.log('%c ChronicleSync: Summarization completed successfully', 'color: green; font-weight: bold;');
       return result[0].summary_text;
     } catch (error) {
       console.error('Error during summarization:', error);

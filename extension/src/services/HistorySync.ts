@@ -139,34 +139,40 @@ export class HistorySync {
   }
 
   private async syncPendingEntries(): Promise<void> {
-    const expirationDays = this.settings.config?.expirationDays || 7;
-    const expirationTime = Date.now() - (expirationDays * 24 * 60 * 60 * 1000);
-    
-    const entries = await this.store.getUnsyncedEntries();
-    const validEntries = entries.filter(entry => entry.visitTime >= expirationTime);
-    if (validEntries.length === 0) return;
-
     try {
-      // Convert entries to the format expected by the sync service
-      const historyVisits = validEntries.map(entry => ({
-        visitId: entry.visitId,
-        url: entry.url,
-        title: entry.title,
-        visitTime: entry.visitTime,
-        platform: entry.platform,
-        browserName: entry.browserName
-      }));
+      const expirationDays = this.settings.config?.expirationDays || 7;
+      const expirationTime = Date.now() - (expirationDays * 24 * 60 * 60 * 1000);
+      
+      const entries = await this.store.getUnsyncedEntries();
+      const validEntries = entries.filter(entry => entry.visitTime >= expirationTime);
+      if (validEntries.length === 0) return;
 
-      // Sync with server
-      await this.syncService.syncHistory(historyVisits);
+      try {
+        // Convert entries to the format expected by the sync service
+        const historyVisits = validEntries.map(entry => ({
+          visitId: entry.visitId,
+          url: entry.url,
+          title: entry.title,
+          visitTime: entry.visitTime,
+          platform: entry.platform,
+          browserName: entry.browserName
+        }));
 
-      // Mark entries as synced
-      await Promise.all(validEntries.map(entry => this.store.markAsSynced(entry.url)));
+        // Sync with server
+        await this.syncService.syncHistory(historyVisits);
 
-      console.log('Successfully synced entries:', validEntries.length);
+        // Mark entries as synced
+        await Promise.all(validEntries.map(entry => this.store.markAsSynced(entry.url)));
+
+        console.log('Successfully synced entries:', validEntries.length);
+      } catch (error) {
+        console.error('Error syncing history:', error);
+        // Don't rethrow to prevent breaking the sync cycle
+        // Just log the error and continue
+      }
     } catch (error) {
-      console.error('Error syncing history:', error);
-      throw error;
+      console.error('Error in syncPendingEntries:', error);
+      // Don't throw to prevent breaking the extension
     }
   }
 

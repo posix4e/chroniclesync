@@ -22,7 +22,10 @@ function extractMainContent(document) {
     '[role="main"]',
     '[itemprop="articleBody"]',
     '.story-body',
-    '.story-content'
+    '.story-content',
+    '.post-content',
+    '.entry-content',
+    '#main-content'
   ];
 
   let content = '';
@@ -120,7 +123,8 @@ function runSummarization() {
       window.location.href.startsWith('chrome://') ||
       window.location.href.startsWith('chrome-extension://') ||
       window.location.href.startsWith('about:') ||
-      window.location.href.startsWith('file:')
+      window.location.href.startsWith('file:') ||
+      window.location.href.startsWith('data:')
     ) {
       console.log('%c ChronicleSync: Skipping summarization for browser internal page', 'color: orange;');
       return;

@@ -189,6 +189,13 @@ export class SummarizationService {
       '.post',
       '.article',
       '.entry',
+      '[role="main"]',
+      '[itemprop="articleBody"]',
+      '.story-body',
+      '.story-content',
+      '.post-content',
+      '.entry-content',
+      '#main-content'
     ];
 
     let content = '';
@@ -197,6 +204,8 @@ export class SummarizationService {
     for (const selector of contentSelectors) {
       const elements = document.querySelectorAll(selector);
       if (elements.length > 0) {
+        console.log(`ChronicleSync: Found ${elements.length} elements matching selector "${selector}"`);
+        
         // Use the element with the most text
         let bestElement = elements[0];
         let maxLength = bestElement.textContent?.length || 0;
@@ -210,25 +219,42 @@ export class SummarizationService {
         }
         
         content = bestElement.textContent || '';
+        console.log(`ChronicleSync: Selected best element with ${content.length} characters`);
         break;
       }
     }
 
-    // If no content found with selectors, use the body
-    if (!content) {
+    // If no content found with selectors, use paragraphs
+    if (!content || content.trim().length < 100) {
+      console.log('ChronicleSync: No content found with selectors, trying paragraphs...');
+      
       // Get all paragraphs
       const paragraphs = document.querySelectorAll('p');
-      content = Array.from(paragraphs)
+      console.log(`ChronicleSync: Found ${paragraphs.length} paragraphs`);
+      
+      // Filter out very short paragraphs (likely navigation or UI elements)
+      const significantParagraphs = Array.from(paragraphs).filter(p => {
+        const text = p.textContent || '';
+        return text.length > 20; // Only paragraphs with more than 20 chars
+      });
+      
+      console.log(`ChronicleSync: Found ${significantParagraphs.length} significant paragraphs`);
+      
+      content = significantParagraphs
         .map(p => p.textContent)
         .filter(Boolean)
         .join(' ');
       
       // If still no content, use the body text
-      if (!content) {
+      if (!content || content.trim().length < 100) {
+        console.log('ChronicleSync: No significant paragraphs found, using body text...');
         content = document.body.textContent || '';
       }
     }
-
+    
+    // Clean up the content
+    content = content.replace(/\s+/g, ' ').trim();
+    
     return content;
   }
 }

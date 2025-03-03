@@ -15,7 +15,8 @@ async function runSummarization() {
       window.location.href.startsWith('chrome://') ||
       window.location.href.startsWith('chrome-extension://') ||
       window.location.href.startsWith('about:') ||
-      window.location.href.startsWith('file:')
+      window.location.href.startsWith('file:') ||
+      window.location.href.startsWith('data:')
     ) {
       console.log('%c ChronicleSync: Skipping summarization for browser internal page', 'color: orange;');
       return;
@@ -36,31 +37,46 @@ async function runSummarization() {
     console.log('%c ChronicleSync: Starting summarization...', 'color: #4285f4; font-weight: bold;');
     console.log('Content sample:', content.substring(0, 150) + '...');
     
-    // Initialize the summarizer
-    await summarizationService.init();
-    
-    // Generate the summary
-    const summary = await summarizationService.summarize(content);
-    
-    console.log('%c ChronicleSync: Summarization completed', 'color: green; font-weight: bold;');
-    console.log('%c ChronicleSync Summary:', 'color: green; font-weight: bold;', summary);
-    
-    // Store the summary in local storage for this URL
-    chrome.runtime.sendMessage({
-      type: 'storeSummary',
-      data: {
-        url: window.location.href,
-        title: document.title,
-        summary: summary,
-        timestamp: Date.now()
-      }
-    }, response => {
-      if (response && response.success) {
-        console.log('ChronicleSync: Summary stored successfully');
-      } else if (response && response.error) {
-        console.error('ChronicleSync: Error storing summary:', response.error);
-      }
-    });
+    // Send the content to the background script for summarization
+    // This is more efficient than loading the model in the content script
+    try {
+      console.log('ChronicleSync: Sending content to background script for summarization...');
+      
+      // Set a timeout to handle the case when the background script doesn't respond
+      const timeoutId = setTimeout(() => {
+        console.error('%c ChronicleSync: Background script did not respond in time (30s timeout)', 'color: red; font-weight: bold;');
+        console.log('ChronicleSync: This may happen if the model is still loading or if there was an error in the background script.');
+      }, 30000);
+      
+      chrome.runtime.sendMessage({
+        type: 'summarizeContent',
+        data: {
+          url: window.location.href,
+          title: document.title,
+          content: content,
+          timestamp: Date.now()
+        }
+      }, response => {
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId);
+        
+        if (chrome.runtime.lastError) {
+          console.error('%c ChronicleSync: Error from runtime:', 'color: red; font-weight: bold;', chrome.runtime.lastError.message);
+          return;
+        }
+        
+        if (response && response.success) {
+          console.log('%c ChronicleSync: Summarization completed', 'color: green; font-weight: bold;');
+          console.log('%c ChronicleSync Summary:', 'color: green; font-weight: bold;', response.summary);
+        } else if (response && response.error) {
+          console.error('%c ChronicleSync: Error during summarization:', 'color: red; font-weight: bold;', response.error);
+        } else {
+          console.warn('%c ChronicleSync: Received unexpected response format', 'color: orange;', response);
+        }
+      });
+    } catch (error) {
+      console.error('%c ChronicleSync: Error sending message to background script:', 'color: red; font-weight: bold;', error);
+    }
     
   } catch (error) {
     console.error('%c ChronicleSync: Error during summarization:', 'color: red; font-weight: bold;', error);

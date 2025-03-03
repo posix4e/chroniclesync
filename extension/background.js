@@ -270,6 +270,12 @@ async function loadSummaries() {
  */
 async function processContentForSummarization(request) {
   try {
+    // Validate request
+    if (!request || !request.url) {
+      console.error('Invalid summarization request');
+      return;
+    }
+    
     // Skip if we already have a summary for this URL
     if (pageSummaries.has(request.url)) {
       console.debug('Summary already exists for:', request.url);
@@ -277,7 +283,7 @@ async function processContentForSummarization(request) {
     }
     
     // Skip if content is too short
-    if (!request.content || request.content.length < 200) {
+    if (!request.content || request.content.length < 100) {
       console.debug('Content too short to summarize:', request.url);
       return;
     }
@@ -287,7 +293,7 @@ async function processContentForSummarization(request) {
     // Create page content object
     const pageContent = {
       url: request.url,
-      title: request.title,
+      title: request.title || 'Untitled Page',
       content: request.content,
       timestamp: Date.now()
     };
@@ -295,8 +301,30 @@ async function processContentForSummarization(request) {
     // Get the summarization service
     const summarizationService = SummarizationService.getInstance();
     
-    // Process the page
-    const summary = await summarizationService.processPage(pageContent);
+    // Process the page with timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Summarization timed out')), 30000);
+    });
+    
+    let summary;
+    try {
+      summary = await Promise.race([
+        summarizationService.processPage(pageContent),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      console.warn('Error in processPage, using fallback summary:', error);
+      
+      // Create a simple fallback summary
+      const firstParagraph = request.content.split('\n\n')[0] || request.content.substring(0, 200);
+      summary = {
+        url: request.url,
+        title: request.title || 'Untitled Page',
+        summary: firstParagraph.length > 150 ? firstParagraph.substring(0, 150) + '...' : firstParagraph,
+        timestamp: Date.now(),
+        contentLength: request.content.length
+      };
+    }
     
     // Save the summary
     await saveSummary(summary);
@@ -311,6 +339,8 @@ async function processContentForSummarization(request) {
           url: request.url,
           summary: summary.summary,
           success: true
+        }).catch(err => {
+          console.debug('Error sending message to content script (tab may be closed):', err);
         });
       }
     } catch (error) {
@@ -329,6 +359,8 @@ async function processContentForSummarization(request) {
           summary: '',
           success: false,
           error: error.message
+        }).catch(() => {
+          // Ignore error if tab is closed
         });
       }
     } catch {

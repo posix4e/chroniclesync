@@ -16,6 +16,7 @@ build/
 .cloudflare/
 extension/assets/
 extension/dist/
+extension/background.js
 
 # Environment files
 .env

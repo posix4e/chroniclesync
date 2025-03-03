@@ -25,14 +25,8 @@ export class BackgroundService {
 
   private async initSummarizationService(): Promise<void> {
     try {
-      const config = await chrome.storage.sync.get(['enableSummarization', 'summarizationModel']);
+      const config = await chrome.storage.sync.get(['summarizationModel']);
       
-      if (config.enableSummarization === false) {
-        console.log('%c[ChronicleSync] Summarization is disabled in settings', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
-        this.summarizationService = null;
-        return;
-      }
-
       const modelName = config.summarizationModel || DEFAULT_MODEL;
       console.log('%c[ChronicleSync] Initializing summarization service with model: ' + modelName, 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
       
@@ -73,13 +67,6 @@ export class BackgroundService {
 
   private async summarizeTab(tabId: number, url: string, visitId: string): Promise<void> {
     try {
-      // Check if summarization is enabled
-      const config = await chrome.storage.sync.get(['enableSummarization']);
-      if (config.enableSummarization === false) {
-        console.log('%c[ChronicleSync] Summarization is disabled, skipping', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');
-        return;
-      }
-
       // Initialize summarization service if needed
       if (!this.summarizationService) {
         console.log('%c[ChronicleSync] Summarization service not initialized, initializing now...', 'background: #4285f4; color: white; padding: 2px 4px; border-radius: 2px;');

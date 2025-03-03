@@ -86,59 +86,93 @@ export class BackgroundService {
       
       // Handle content summarization request from content script
       if (request.type === 'summarizeContent') {
+        // Return true to indicate we'll respond asynchronously
+        // This MUST be done before any async operations
+        
         try {
           const { url, title, content, timestamp } = request.data;
           console.log('Received content for summarization from:', url);
           console.log('Content length:', content.length);
           
-          // Import the summarization service dynamically
-          import('./services/SummarizationService').then(async ({ SummarizationService }) => {
-            try {
-              console.log('Summarization service imported, starting summarization...');
-              
-              // Get the summarization service
-              const summarizationService = SummarizationService.getInstance();
-              
-              // Initialize the summarizer
-              await summarizationService.init();
-              
-              // Generate the summary
-              const summary = await summarizationService.summarize(content);
-              
-              console.log('Summarization completed for:', url);
-              console.log('Summary:', summary);
-              
-              // Store the summary
-              this.pageSummaries.set(url, {
-                url,
-                title,
-                summary,
-                timestamp
-              });
-              
-              // Save summaries to storage
-              await this.saveSummaries();
-              
-              // Send response back to content script
-              sendResponse({ 
-                success: true,
-                summary: summary
-              });
-            } catch (error) {
-              console.error('Error during summarization:', error);
-              handleError(error);
-            }
-          }).catch(error => {
-            console.error('Error importing summarization service:', error);
-            handleError(error);
-          });
+          // Create a timeout to ensure we always send a response
+          const timeoutId = setTimeout(() => {
+            console.error('Summarization timed out after 25 seconds');
+            sendResponse({ 
+              error: 'Summarization timed out after 25 seconds. The model may still be loading.',
+              success: false
+            });
+          }, 25000); // 25 seconds timeout
           
-          // Return true to indicate we'll respond asynchronously
-          return true;
+          // Import the summarization service dynamically
+          import('./services/SummarizationService')
+            .then(async ({ SummarizationService }) => {
+              try {
+                console.log('Summarization service imported, starting summarization...');
+                
+                // Get the summarization service
+                const summarizationService = SummarizationService.getInstance();
+                
+                // Initialize the summarizer
+                await summarizationService.init();
+                
+                // Generate the summary
+                const summary = await summarizationService.summarize(content);
+                
+                console.log('Summarization completed for:', url);
+                console.log('Summary:', summary);
+                
+                // Store the summary
+                this.pageSummaries.set(url, {
+                  url,
+                  title,
+                  summary,
+                  timestamp
+                });
+                
+                // Save summaries to storage
+                await this.saveSummaries();
+                
+                // Clear the timeout since we're about to respond
+                clearTimeout(timeoutId);
+                
+                // Send response back to content script
+                sendResponse({ 
+                  success: true,
+                  summary: summary
+                });
+              } catch (error) {
+                // Clear the timeout since we're about to respond
+                clearTimeout(timeoutId);
+                
+                console.error('Error during summarization:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error during summarization';
+                sendResponse({ 
+                  error: errorMessage,
+                  success: false
+                });
+              }
+            })
+            .catch(error => {
+              // Clear the timeout since we're about to respond
+              clearTimeout(timeoutId);
+              
+              console.error('Error importing summarization service:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Failed to load summarization service';
+              sendResponse({ 
+                error: errorMessage,
+                success: false
+              });
+            });
         } catch (error) {
-          handleError(error);
-          return false;
+          console.error('Error processing summarization request:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error processing request';
+          sendResponse({ 
+            error: errorMessage,
+            success: false
+          });
         }
+        
+        return true; // Keep the message channel open for the async response
       }
       
       // Handle summary storage

@@ -7,8 +7,9 @@ env.cacheDir = 'chroniclesync-models'; // Custom cache directory for our models
 
 // Model options
 const MODELS = {
-  DEFAULT: 'Xenova/distilbart-cnn-6-6',
-  FAST: 'Xenova/distilbart-cnn-12-3' // Smaller, faster model
+  DEFAULT: 'Xenova/distilbart-cnn-12-3', // Smaller, faster model
+  LARGE: 'Xenova/distilbart-cnn-6-6',    // Larger, more accurate model
+  FALLBACK: 'Xenova/distilbart-cnn-12-3' // Fallback model
 };
 
 // Define the summarization service class
@@ -140,10 +141,37 @@ export class SummarizationService {
     // Remove extra whitespace
     let cleaned = text.replace(/\s+/g, ' ').trim();
     
-    // Limit text length to 1024 tokens (approximately 4096 characters)
+    // Remove common boilerplate content
+    cleaned = this.removeBoilerplate(cleaned);
+    
+    // Limit text length to 512 tokens (approximately 2048 characters)
     // This is a rough estimate as the actual token count depends on the tokenizer
-    if (cleaned.length > 4096) {
-      cleaned = cleaned.substring(0, 4096);
+    // Using a smaller limit for faster processing
+    const maxLength = 2048;
+    if (cleaned.length > maxLength) {
+      console.log(`ChronicleSync: Text too long (${cleaned.length} chars), truncating to ${maxLength} chars`);
+      cleaned = cleaned.substring(0, maxLength);
+    }
+    
+    return cleaned;
+  }
+  
+  // Remove common boilerplate content
+  private removeBoilerplate(text: string): string {
+    // List of common phrases to remove
+    const boilerplatePatterns = [
+      /cookie policy|privacy policy|terms of service|terms of use|all rights reserved/gi,
+      /subscribe to our newsletter|sign up for our newsletter/gi,
+      /copyright \d{4}|©\s*\d{4}/gi,
+      /follow us on|share this|share on/gi,
+      /related articles|you might also like|recommended for you/gi
+    ];
+    
+    let cleaned = text;
+    
+    // Apply each pattern
+    for (const pattern of boilerplatePatterns) {
+      cleaned = cleaned.replace(pattern, '');
     }
     
     return cleaned;

@@ -16,6 +16,7 @@ build/
 .cloudflare/
 assets/
 **/assets/
+extension/assets/
 
 # Environment files
 .env

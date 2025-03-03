@@ -84,6 +84,63 @@ export class BackgroundService {
         return false; // No need to keep port open
       }
       
+      // Handle content summarization request from content script
+      if (request.type === 'summarizeContent') {
+        try {
+          const { url, title, content, timestamp } = request.data;
+          console.log('Received content for summarization from:', url);
+          console.log('Content length:', content.length);
+          
+          // Import the summarization service dynamically
+          import('./services/SummarizationService').then(async ({ SummarizationService }) => {
+            try {
+              console.log('Summarization service imported, starting summarization...');
+              
+              // Get the summarization service
+              const summarizationService = SummarizationService.getInstance();
+              
+              // Initialize the summarizer
+              await summarizationService.init();
+              
+              // Generate the summary
+              const summary = await summarizationService.summarize(content);
+              
+              console.log('Summarization completed for:', url);
+              console.log('Summary:', summary);
+              
+              // Store the summary
+              this.pageSummaries.set(url, {
+                url,
+                title,
+                summary,
+                timestamp
+              });
+              
+              // Save summaries to storage
+              await this.saveSummaries();
+              
+              // Send response back to content script
+              sendResponse({ 
+                success: true,
+                summary: summary
+              });
+            } catch (error) {
+              console.error('Error during summarization:', error);
+              handleError(error);
+            }
+          }).catch(error => {
+            console.error('Error importing summarization service:', error);
+            handleError(error);
+          });
+          
+          // Return true to indicate we'll respond asynchronously
+          return true;
+        } catch (error) {
+          handleError(error);
+          return false;
+        }
+      }
+      
       // Handle summary storage
       if (request.type === 'storeSummary') {
         try {

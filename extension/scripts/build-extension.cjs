@@ -18,11 +18,11 @@ const filesToCopy = [
   ['history.html', 'history.html'],
   ['history.css', 'history.css'],
   ['bip39-wordlist.js', 'bip39-wordlist.js'],
+  ['content.js', 'content.js'],
   [join('dist', 'popup.js'), 'popup.js'],
   [join('dist', 'background.js'), 'background.js'],
   [join('dist', 'settings.js'), 'settings.js'],
   [join('dist', 'history.js'), 'history.js'],
-  [join('dist', 'content.js'), 'content.js'],
   [join('dist', 'assets'), 'assets']
 ];
 

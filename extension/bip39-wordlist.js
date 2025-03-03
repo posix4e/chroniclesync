@@ -1,5 +1,6 @@
 // Make sure this works in both browser and Node.js environments
-export const wordList = (typeof window !== 'undefined' ? window.BIP39_WORDLIST : null) || `abandon
+// Define the wordlist directly without relying on window.BIP39_WORDLIST
+export const wordList = `abandon
 ability
 able
 about

@@ -60,10 +60,10 @@ export class SummarizationService {
           .catch(error => {
             console.error('%c ChronicleSync: Error loading summarization model:', 'color: red; font-weight: bold;', error);
             
-            // If the default model fails, try the fast model as fallback
+            // If the default model fails, try the fallback model
             if (this.modelName === MODELS.DEFAULT) {
               console.log('ChronicleSync: Trying fallback model...');
-              this.modelName = MODELS.FAST;
+              this.modelName = MODELS.FALLBACK;
               
               pipeline('summarization', this.modelName)
                 .then(model => {

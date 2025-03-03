@@ -15,6 +15,7 @@ build/
 .wrangler/
 .cloudflare/
 extension/assets/
+extension/dist/
 
 # Environment files
 .env

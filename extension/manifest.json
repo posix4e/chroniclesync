@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChronicleSync Extension",
   "version": "1.0",
-  "description": "ChronicleSync Chrome Extension",
+  "description": "ChronicleSync Chrome Extension with Local Summarization",
   "action": {
     "default_popup": "popup.html"
   },
@@ -11,13 +11,20 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html"],
+    "resources": ["history.html", "assets/*"],
     "matches": ["<all_urls>"]
   }],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "permissions": [
     "activeTab",
     "scripting",

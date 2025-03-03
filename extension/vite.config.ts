@@ -16,6 +16,7 @@ const copyFiles = () => ({
     copyFileSync('bip39-wordlist.js', 'dist/bip39-wordlist.js');
     copyFileSync('history.html', 'dist/history.html');
     copyFileSync('history.css', 'dist/history.css');
+    copyFileSync('content.js', 'dist/content.js');
   }
 });
 
@@ -27,9 +28,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'background.js'),
+        background: resolve(__dirname, 'src/background.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx')
+        history: resolve(__dirname, 'src/history.tsx'),
+        content: resolve(__dirname, 'src/content.ts')
       },
       output: {
         format: 'es',
@@ -40,7 +42,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 54512,
+    port: 50167,
     host: '0.0.0.0',
     cors: true
   }

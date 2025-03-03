@@ -27,7 +27,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'background.js'),
+        background: resolve(__dirname, 'src/background.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
         history: resolve(__dirname, 'src/history.tsx')
       },
@@ -40,7 +40,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 54512,
+    port: 54725,
     host: '0.0.0.0',
     cors: true
   }

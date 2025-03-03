@@ -16,9 +16,14 @@ async function initializeExtension() {
     // Load initial config
     const config = await getConfig();
     
+    console.log('Initializing extension with config:', config);
+    
     // Initialize summarizer if enabled
-    if (config.enableSummarization) {
+    if (config.enableSummarization === true) {
+      console.log('Initializing summarizer because enableSummarization is true');
       await summarizer.init(config);
+    } else {
+      console.log('Skipping summarizer initialization because enableSummarization is not true');
     }
 
     // Mark as initialized
@@ -262,11 +267,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const config = await getConfig();
         
         // Skip if summarization is disabled
-        if (!config.enableSummarization) {
-          console.log('Summarization is disabled in settings');
+        if (config.enableSummarization !== true) {
+          console.log('Summarization is disabled in settings:', config);
           sendResponse({ success: false, message: 'Summarization is disabled' });
           return;
         }
+        
+        console.log('Summarization is enabled with config:', config);
         
         // Initialize summarizer with current config if needed
         if (!summarizer.config || summarizer.config !== config) {

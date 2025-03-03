@@ -11,16 +11,18 @@ class Summarizer {
   async init(config) {
     this.config = config;
     
-    if (!this.config.enableSummarization) {
-      console.log('Summarization is disabled in settings');
+    if (this.config.enableSummarization !== true) {
+      console.log('Summarization is disabled in settings:', this.config);
       return false;
     }
     
     if (this.summarizer) {
+      console.log('Summarizer already initialized');
       return true;
     }
     
     if (this.isLoading) {
+      console.log('Summarizer is already loading');
       return this.loadingPromise;
     }
     
@@ -41,8 +43,8 @@ class Summarizer {
   }
 
   async summarize(text) {
-    if (!this.config || !this.config.enableSummarization) {
-      console.log('Summarization is disabled');
+    if (!this.config || this.config.enableSummarization !== true) {
+      console.log('Summarization is disabled in summarize method:', this.config);
       return null;
     }
     
@@ -50,6 +52,8 @@ class Summarizer {
       console.error('Failed to initialize summarizer');
       return null;
     }
+    
+    console.log('Starting summarization of text:', text.substring(0, 100) + '...');
     
     try {
       // Truncate text if it's too long (most models have input limits)

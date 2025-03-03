@@ -58,12 +58,31 @@ class Settings {
   async init() {
     await this.wordListPromise;
 
-    // Clear any existing storage
-    await new Promise(resolve => {
-      chrome.storage.sync.clear(resolve);
-    });
+    // Load existing settings instead of clearing them
+    try {
+      const result = await new Promise(resolve => {
+        chrome.storage.sync.get([
+          'mnemonic',
+          'clientId',
+          'environment',
+          'customApiUrl',
+          'enableSummarization',
+          'summaryModel',
+          'maxLength',
+          'minLength'
+        ], resolve);
+      });
 
-    this.config = { ...this.DEFAULT_SETTINGS };
+      // Initialize config with defaults and override with saved values
+      this.config = { 
+        ...this.DEFAULT_SETTINGS,
+        ...result
+      };
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      this.config = { ...this.DEFAULT_SETTINGS };
+    }
+
     this.render();
     this.setupEventListeners();
   }
@@ -84,22 +103,24 @@ class Settings {
     const minLengthInput = document.getElementById('minLength');
 
     if (mnemonicInput) {
-      mnemonicInput.value = '';
+      mnemonicInput.value = this.config.mnemonic || '';
       mnemonicInput.classList.add('hidden');
     }
-    if (clientIdInput) clientIdInput.value = '';
-    if (environmentSelect) environmentSelect.value = this.DEFAULT_SETTINGS.environment;
-    if (customApiUrlInput) customApiUrlInput.value = '';
+    if (clientIdInput) clientIdInput.value = this.config.clientId || '';
+    if (environmentSelect) environmentSelect.value = this.config.environment || this.DEFAULT_SETTINGS.environment;
+    if (customApiUrlInput) customApiUrlInput.value = this.config.customApiUrl || '';
     
     if (customUrlContainer) {
-      customUrlContainer.style.display = 'none';
+      customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
     }
     
-    // Set default values for summarization settings
-    if (enableSummarizationCheckbox) enableSummarizationCheckbox.checked = this.DEFAULT_SETTINGS.enableSummarization;
-    if (summaryModelSelect) summaryModelSelect.value = this.DEFAULT_SETTINGS.summaryModel;
-    if (maxLengthInput) maxLengthInput.value = this.DEFAULT_SETTINGS.maxLength;
-    if (minLengthInput) minLengthInput.value = this.DEFAULT_SETTINGS.minLength;
+    // Set values for summarization settings from config
+    if (enableSummarizationCheckbox) enableSummarizationCheckbox.checked = !!this.config.enableSummarization;
+    if (summaryModelSelect) summaryModelSelect.value = this.config.summaryModel || this.DEFAULT_SETTINGS.summaryModel;
+    if (maxLengthInput) maxLengthInput.value = this.config.maxLength || this.DEFAULT_SETTINGS.maxLength;
+    if (minLengthInput) minLengthInput.value = this.config.minLength || this.DEFAULT_SETTINGS.minLength;
+    
+    console.log('Loaded settings:', this.config);
   }
 
   setupEventListeners() {

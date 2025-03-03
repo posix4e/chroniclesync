@@ -21,10 +21,41 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  summary?: string;
 }
 
 export interface SyncResponse {
   history: HistoryEntry[];
   lastSyncTime: number;
   devices: DeviceInfo[];
+}
+
+export interface PageContent {
+  url: string;
+  title: string;
+  content: string;
+  timestamp: number;
+}
+
+export interface PageSummary {
+  url: string;
+  title: string;
+  summary: string;
+  timestamp: number;
+  contentLength: number;
+}
+
+export interface SummarizationRequest {
+  type: 'summarizeContent';
+  url: string;
+  title: string;
+  content: string;
+}
+
+export interface SummarizationResponse {
+  type: 'summarizationComplete';
+  url: string;
+  summary: string;
+  success: boolean;
+  error?: string;
 }

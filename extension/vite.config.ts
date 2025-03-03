@@ -29,7 +29,8 @@ export default defineConfig({
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'background.js'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx')
+        history: resolve(__dirname, 'src/history.tsx'),
+        content: resolve(__dirname, 'src/content.ts')
       },
       output: {
         format: 'es',

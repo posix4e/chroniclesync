@@ -1,7 +1,11 @@
 import { getConfig } from './config.js';
 import { HistoryStore } from './src/db/HistoryStore';
+import { SummarizationService } from './src/services/SummarizationService';
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Store for page summaries
+const pageSummaries = new Map();
 
 // Initialize extension
 async function initializeExtension() {
@@ -103,15 +107,21 @@ async function syncHistory(forceFullSync = false) {
       // Filter visits within our time range and map them
       const visitData = visits
         .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
-        .map(visit => ({
-          url: item.url,
-          title: item.title,
-          visitTime: visit.visitTime,
-          visitId: visit.visitId,
-          referringVisitId: visit.referringVisitId,
-          transition: visit.transition,
-          ...systemInfo
-        }));
+        .map(visit => {
+          // Check if we have a summary for this URL
+          const summary = item.url ? pageSummaries.get(item.url)?.summary : undefined;
+          
+          return {
+            url: item.url,
+            title: item.title,
+            visitTime: visit.visitTime,
+            visitId: visit.visitId,
+            referringVisitId: visit.referringVisitId,
+            transition: visit.transition,
+            summary: summary, // Add summary if available
+            ...systemInfo
+          };
+        });
 
       return visitData;
     }));
@@ -207,8 +217,134 @@ async function syncHistory(forceFullSync = false) {
   }
 }
 
-// Initial sync with full history
-syncHistory(true);
+/**
+ * Save a page summary to storage
+ */
+async function saveSummary(summary) {
+  try {
+    // Add to in-memory map
+    pageSummaries.set(summary.url, summary);
+    
+    // Save to storage
+    const summaries = await chrome.storage.local.get(['pageSummaries']);
+    const storedSummaries = summaries.pageSummaries || {};
+    
+    // Update with new summary
+    storedSummaries[summary.url] = summary;
+    
+    // Save back to storage
+    await chrome.storage.local.set({ pageSummaries: storedSummaries });
+    
+    console.debug('Summary saved for:', summary.url);
+  } catch (error) {
+    console.error('Error saving summary:', error);
+  }
+}
+
+/**
+ * Load all summaries from storage
+ */
+async function loadSummaries() {
+  try {
+    const summaries = await chrome.storage.local.get(['pageSummaries']);
+    const storedSummaries = summaries.pageSummaries || {};
+    
+    // Clear existing map
+    pageSummaries.clear();
+    
+    // Add all stored summaries to map
+    Object.values(storedSummaries).forEach((summary) => {
+      if (summary && typeof summary === 'object' && summary.url) {
+        pageSummaries.set(summary.url, summary);
+      }
+    });
+    
+    console.debug(`Loaded ${pageSummaries.size} page summaries from storage`);
+  } catch (error) {
+    console.error('Error loading summaries:', error);
+  }
+}
+
+/**
+ * Process content for summarization
+ */
+async function processContentForSummarization(request) {
+  try {
+    // Skip if we already have a summary for this URL
+    if (pageSummaries.has(request.url)) {
+      console.debug('Summary already exists for:', request.url);
+      return;
+    }
+    
+    // Skip if content is too short
+    if (!request.content || request.content.length < 200) {
+      console.debug('Content too short to summarize:', request.url);
+      return;
+    }
+    
+    console.debug('Processing content for summarization:', request.url);
+    
+    // Create page content object
+    const pageContent = {
+      url: request.url,
+      title: request.title,
+      content: request.content,
+      timestamp: Date.now()
+    };
+    
+    // Get the summarization service
+    const summarizationService = SummarizationService.getInstance();
+    
+    // Process the page
+    const summary = await summarizationService.processPage(pageContent);
+    
+    // Save the summary
+    await saveSummary(summary);
+    
+    // Notify the content script
+    try {
+      // Find the tab with this URL
+      const tabs = await chrome.tabs.query({ url: request.url });
+      if (tabs.length > 0 && tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'summarizationComplete',
+          url: request.url,
+          summary: summary.summary,
+          success: true
+        });
+      }
+    } catch (error) {
+      console.error('Error sending summarization result to content script:', error);
+    }
+  } catch (error) {
+    console.error('Error processing content for summarization:', error);
+    
+    // Notify content script of error
+    try {
+      const tabs = await chrome.tabs.query({ url: request.url });
+      if (tabs.length > 0 && tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'summarizationComplete',
+          url: request.url,
+          summary: '',
+          success: false,
+          error: error.message
+        });
+      }
+    } catch {
+      // Ignore error
+    }
+  }
+}
+
+// Initial setup
+(async () => {
+  // Load existing summaries
+  await loadSummaries();
+  
+  // Initial sync with full history
+  syncHistory(true);
+})();
 
 // Set up periodic sync
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
@@ -316,5 +452,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ error: error.message });
     });
     return true; // Will respond asynchronously
+  } else if (request.type === 'summarizeContent') {
+    // Process content for summarization
+    processContentForSummarization(request)
+      .then(() => {
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        console.error('Error processing content:', error);
+        sendResponse({ error: error.message });
+      });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getSummary') {
+    // Get summary for a URL
+    const { url } = request;
+    const summary = pageSummaries.get(url);
+    sendResponse({ summary: summary || null });
+    return false; // Synchronous response
+  } else if (request.type === 'getAllSummaries') {
+    // Get all summaries
+    sendResponse({ summaries: Array.from(pageSummaries.values()) });
+    return false; // Synchronous response
   }
 });

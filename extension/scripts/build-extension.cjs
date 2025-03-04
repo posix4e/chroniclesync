@@ -28,7 +28,8 @@ const filesToCopy = [
   [join('dist', 'devtools-page.js'), 'devtools-page.js'],
   [join('dist', 'content.js'), 'content.js'],
   [join('dist', 'assets'), 'assets'],
-  ['onnx', 'onnx']
+  ['onnx', 'onnx'],
+  ['models', 'models']
 ];
 
 async function main() {

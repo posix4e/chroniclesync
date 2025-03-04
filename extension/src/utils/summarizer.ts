@@ -6,7 +6,7 @@ env.allowLocalModels = false;
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('onnx/');
 
 // Use a smaller model and set timeouts
-const MODEL_NAME = 'Xenova/bart-large-cnn';
+const MODEL_NAME = 'Xenova/distilbart-xsum-6-6';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const LOAD_TIMEOUT = 30000; // 30 seconds timeout

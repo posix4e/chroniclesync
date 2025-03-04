@@ -1,9 +1,12 @@
 import { pipeline, env } from '@xenova/transformers';
 
-// Configure transformers.js to use CDN for models
-env.useBrowserCache = true; // Enable caching to avoid re-downloading
-env.allowLocalModels = false; // Use remote models
-env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+// Configure transformers.js settings
+env.useBrowserCache = true;
+env.allowLocalModels = false;
+env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('onnx/');
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 export class Summarizer {
     private static instance: Summarizer | null = null;
@@ -19,10 +22,35 @@ export class Summarizer {
         return Summarizer.instance;
     }
 
-    private async initialize() {
-        console.log('Initializing summarization pipeline...');
-        this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
-        console.log('Summarization pipeline initialized');
+    private async initialize(retryCount = 0) {
+        try {
+            console.log('Initializing summarization pipeline...');
+            
+            // Check if WASM backend is available
+            if (!env.backends.onnx.wasm.wasmPaths) {
+                throw new Error('WASM backend not configured');
+            }
+
+            // Initialize the pipeline with a smaller model for better performance
+            this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-12-6', {
+                quantized: true,
+                progress_callback: (progress: any) => {
+                    console.log('Loading model:', Math.round(progress.progress * 100), '%');
+                }
+            });
+            
+            console.log('Summarization pipeline initialized successfully');
+        } catch (error) {
+            console.error('Error initializing pipeline:', error);
+            
+            if (retryCount < MAX_RETRIES) {
+                console.log(`Retrying initialization (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                return this.initialize(retryCount + 1);
+            }
+            
+            throw new Error(`Failed to initialize summarization pipeline after ${MAX_RETRIES} attempts: ${error.message}`);
+        }
     }
 
     public async summarize(text: string): Promise<string> {

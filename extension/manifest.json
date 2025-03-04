@@ -17,7 +17,9 @@
   "web_accessible_resources": [{
     "resources": [
       "history.html",
-      "assets/*"
+      "assets/*",
+      "onnx/*",
+      "models/*"
     ],
     "matches": ["<all_urls>"]
   }],

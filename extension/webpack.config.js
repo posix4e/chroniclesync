@@ -7,7 +7,9 @@ export default {
   entry: {
     background: './src/background.ts',
     popup: './src/popup.tsx',
-    history: './src/history.tsx'
+    history: './src/history.tsx',
+    devtools: './src/devtools.tsx',
+    'devtools-page': './src/devtools-page.ts'
   },
   output: {
     path: resolve(__dirname, 'dist'),

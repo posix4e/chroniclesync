@@ -2,23 +2,19 @@ import { pipeline, env, SummarizationPipeline } from '@xenova/transformers';
 
 // Configure transformers.js settings
 env.useBrowserCache = true;
-env.allowLocalModels = true;
+env.allowLocalModels = false;
+env.remoteModels = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/';
 
-// Set up paths
+// Set up WASM paths
 const wasmDir = chrome.runtime.getURL('onnx/');
-const modelDir = chrome.runtime.getURL('models/bart-small-cnn/');
-
-// Configure paths
 env.backends.onnx.wasm.wasmPaths = wasmDir;
-env.localModelPath = modelDir;
 
 // Log configuration for debugging
-console.log('Paths configured:', {
+console.log('Configuration:', {
     wasmDir,
-    modelDir,
     useBrowserCache: env.useBrowserCache,
     allowLocalModels: env.allowLocalModels,
-    localModelPath: env.localModelPath
+    remoteModels: env.remoteModels
 });
 
 // Use a smaller model and set timeouts

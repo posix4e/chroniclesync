@@ -3,6 +3,7 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
+  "devtools_page": "devtools-page.js",
   "action": {
     "default_popup": "popup.html"
   },

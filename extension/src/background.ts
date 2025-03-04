@@ -2,6 +2,7 @@ import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
+import { Summarizer } from './utils/summarizer';
 
 interface SyncResponse {
   history?: HistoryEntry[];
@@ -175,9 +176,36 @@ syncHistory(true);
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
-  if (changeInfo.url) {
-    console.debug(`Navigation to: ${changeInfo.url}`);
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
+    console.debug(`Navigation complete for: ${tab.url}`);
+    
+    // Execute content script to get page content
+    try {
+      const [{ result }] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          const article = document.querySelector('article');
+          if (article) {
+            return article.textContent;
+          }
+          const mainContent = document.querySelector('main');
+          if (mainContent) {
+            return mainContent.textContent;
+          }
+          return document.body.textContent;
+        }
+      });
+
+      if (result) {
+        const summarizer = await Summarizer.getInstance();
+        const summary = await summarizer.summarize(result.slice(0, 1000)); // Limit to first 1000 chars for now
+        console.log('Page summary:', summary);
+      }
+    } catch (error) {
+      console.error('Error generating summary:', error);
+    }
+
     setTimeout(() => syncHistory(false), 1000);
   }
 });

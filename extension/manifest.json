@@ -11,9 +11,10 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html"],
+    "resources": ["history.html", "panel.html", "panel.js", "devtools.js"],
     "matches": ["<all_urls>"]
   }],
+  "devtools_page": "devtools.html",
   "background": {
     "service_worker": "background.js",
     "type": "module"

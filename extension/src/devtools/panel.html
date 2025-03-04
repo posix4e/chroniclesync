@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChronicleSync DevTools</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        #log-container {
+            overflow-y: auto;
+            height: calc(100vh - 20px);
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .log-info { color: #569cd6; }
+        .log-success { color: #6a9955; }
+        .log-error { color: #f14c4c; }
+        .timestamp { color: #808080; }
+        .prefix { color: #ce9178; }
+    </style>
+</head>
+<body>
+    <div id="log-container"></div>
+    <script src="panel.js"></script>
+</body>
+</html>

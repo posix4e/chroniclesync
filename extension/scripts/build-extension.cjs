@@ -22,7 +22,8 @@ const filesToCopy = [
   [join('dist', 'background.js'), 'background.js'],
   [join('dist', 'settings.js'), 'settings.js'],
   [join('dist', 'history.js'), 'history.js'],
-  [join('dist', 'assets'), 'assets']
+  [join('dist', 'assets'), 'assets'],
+  [join('dist', 'content.js'), 'content.js']
 ];
 
 async function main() {

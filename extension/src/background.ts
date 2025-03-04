@@ -2,6 +2,7 @@ import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
+import { Summarizer } from './utils/summarizer';
 
 interface SyncResponse {
   history?: HistoryEntry[];
@@ -44,7 +45,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
     if (!config.clientId || config.clientId === 'extension-default') {
       console.debug('Sync paused: No client ID configured');
-      throw new Error('Please configure your Client ID in the extension popup');
+      throw new Error('No Client ID configured. Please set up your Client ID in the extension settings to start syncing.');
     }
 
     console.debug('Starting sync with client ID:', config.clientId);
@@ -175,9 +176,29 @@ syncHistory(true);
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
-  if (changeInfo.url) {
-    console.debug(`Navigation to: ${changeInfo.url}`);
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
+    console.debug(`Navigation complete for: ${tab.url}`);
+    
+    // Get page content through content script
+    try {
+      console.log('Background: Requesting page content...');
+      const response = await chrome.tabs.sendMessage(tabId, { action: 'getPageContent' });
+      
+      if (response && response.content) {
+        console.log('Background: Received page content, initializing summarizer...');
+        const summarizer = await Summarizer.getInstance();
+        const content = response.content.slice(0, 1000); // Limit to first 1000 chars for now
+        console.log('Background: Generating summary...');
+        const summary = await summarizer.summarize(content);
+        console.log('Background: Summary generated:', summary);
+      } else {
+        console.log('Background: No content received from page');
+      }
+    } catch (error) {
+      console.error('Error generating summary:', error);
+    }
+
     setTimeout(() => syncHistory(false), 1000);
   }
 });

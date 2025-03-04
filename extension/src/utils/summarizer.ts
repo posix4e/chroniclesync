@@ -1,0 +1,107 @@
+import { pipeline, env, SummarizationPipeline } from '@xenova/transformers';
+
+// Configure transformers.js settings
+env.useBrowserCache = true;
+env.allowLocalModels = false;
+env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('onnx/');
+
+// Use a smaller model and set timeouts
+const MODEL_NAME = 'Xenova/distilbart-xsum-6-6';
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000;
+const LOAD_TIMEOUT = 30000; // 30 seconds timeout
+
+// Helper function to add timeout to a promise
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+            setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+        )
+    ]);
+}
+
+export class Summarizer {
+    private static instance: Summarizer | null = null;
+    private summarizationPipeline: SummarizationPipeline | null = null;
+
+    private constructor() {}
+
+    public static async getInstance(): Promise<Summarizer> {
+        if (!Summarizer.instance) {
+            Summarizer.instance = new Summarizer();
+            await Summarizer.instance.initialize();
+        }
+        return Summarizer.instance;
+    }
+
+    private async initialize(retryCount = 0): Promise<void> {
+        try {
+            // Check if WASM backend is available
+            if (!env.backends.onnx.wasm.wasmPaths) {
+                throw new Error('WASM backend not configured');
+            }
+
+            const initPromise = pipeline('summarization', MODEL_NAME, {
+                quantized: true
+            });
+
+            // Add timeout to pipeline initialization
+            this.summarizationPipeline = await withTimeout(
+                initPromise,
+                LOAD_TIMEOUT,
+                'Model loading timed out after 30 seconds'
+            );
+            
+
+        } catch (error: unknown) {
+            console.error('Error initializing pipeline:', error);
+            
+            if (retryCount < MAX_RETRIES) {
+                console.log(`Retrying initialization (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                return this.initialize(retryCount + 1);
+            }
+            
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to initialize summarization pipeline after ${MAX_RETRIES} attempts: ${errorMessage}`);
+        }
+    }
+
+    public async summarize(text: string): Promise<string> {
+        if (!text.trim()) {
+            return '';
+        }
+
+        if (!this.summarizationPipeline) {
+            await this.initialize();
+        }
+
+        try {
+            if (!this.summarizationPipeline) {
+                throw new Error('Summarization pipeline not initialized');
+            }
+
+            const result = await withTimeout(
+                this.summarizationPipeline(text, {
+                    max_length: 130,
+                    min_length: 30,
+                    max_time: 10, // Limit processing time to 10 seconds
+                }),
+                15000, // 15 seconds timeout for summarization
+                'Summarization timed out after 15 seconds'
+            );
+            
+            const summary = Array.isArray(result) ? result[0] : result;
+            if (!summary || typeof summary !== 'object' || !('summary_text' in summary)) {
+                throw new Error('Invalid summarization result');
+            }
+
+            return summary.summary_text;
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('Error during summarization:', errorMessage);
+            throw new Error(`Failed to summarize text: ${errorMessage}`);
+        }
+    }
+}

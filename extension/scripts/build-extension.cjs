@@ -26,6 +26,7 @@ const filesToCopy = [
   [join('dist', 'history.js'), 'history.js'],
   [join('dist', 'devtools.js'), 'devtools.js'],
   [join('dist', 'devtools-page.js'), 'devtools-page.js'],
+  [join('dist', 'content.js'), 'content.js'],
   [join('dist', 'assets'), 'assets']
 ];
 

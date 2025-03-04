@@ -51,7 +51,7 @@ export class Summarizer {
                     // progress.progress is between 0 and 1
                     const currentProgress = Math.round(progress.progress * 100);
                     // Only log if progress has changed significantly (>= 5%)
-                    if (currentProgress >= lastProgress + 5 && currentProgress <= 100) {
+                    if (currentProgress >= lastProgress + 5) {
                         console.log('Loading model:', currentProgress, '%');
                         lastProgress = currentProgress;
                     }

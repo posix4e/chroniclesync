@@ -4,8 +4,7 @@
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
-    "sandbox": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "devtools_page": "devtools-page.js",
   "action": {

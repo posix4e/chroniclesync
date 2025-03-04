@@ -16,7 +16,7 @@ export class SummarizationService {
   private readonly SMALL_MODEL = 'Xenova/distilbart-cnn-6-6';
   private readonly FALLBACK_MODEL = 'Xenova/distilbart-xsum-12-3';
   private readonly TIMEOUT_MS = 120000; // Increase timeout to 2 minutes
-  private readonly USE_ML_MODELS = false; // Set to false to use only text-based summarization
+  private readonly USE_ML_MODELS = false; // Always use text-based summarization to avoid WebAssembly CSP issues
   
   /**
    * Private constructor to enforce singleton pattern
@@ -31,10 +31,11 @@ export class SummarizationService {
     // Check if we're in a service worker context (background script)
     const isServiceWorker = typeof self !== 'undefined' && !('document' in self);
     
-    // Disable ML models in service worker context due to CSP restrictions
-    if (isServiceWorker) {
-      console.log('Running in service worker context, using text-based summarization only');
-    }
+    // Always use text-based summarization to avoid WebAssembly CSP issues
+    console.log('Using text-based summarization for better compatibility');
+    
+    // Initialize the text-based summarizer immediately
+    this.summarizer = this.createTextBasedSummarizer();
   }
   
   /**
@@ -53,7 +54,7 @@ export class SummarizationService {
   private createTextBasedSummarizer(): any {
     return {
       async __call__(text: string) {
-        console.log('Using text-based summarizer');
+        console.log('Using enhanced text-based summarizer');
         
         // Split text into sentences
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
@@ -62,31 +63,58 @@ export class SummarizationService {
           return [{ summary_text: text.substring(0, 150) }];
         }
         
-        // Score sentences based on position and length
+        // Score sentences based on position, length, and content
         const scoredSentences = sentences.map((sentence, index) => {
-          // Prefer sentences from the beginning of the text
-          const positionScore = Math.max(0, 1 - (index / Math.min(10, sentences.length)));
+          // Clean the sentence
+          const cleanSentence = sentence.trim().replace(/\s+/g, ' ');
+          
+          // Skip very short sentences
+          if (cleanSentence.length < 30) {
+            return { sentence: cleanSentence, score: 0, index };
+          }
+          
+          // Prefer sentences from the beginning of the text (first 5 sentences get higher scores)
+          const positionScore = index < 5 ? Math.max(0, 1 - (index / 5)) : 0.1;
           
           // Prefer medium-length sentences (not too short, not too long)
-          const lengthScore = Math.min(1, sentence.length / 100) * Math.max(0, 1 - (sentence.length - 100) / 200);
+          const lengthScore = Math.min(1, cleanSentence.length / 100) * 
+                             Math.max(0, 1 - (cleanSentence.length - 100) / 200);
           
           // Check for important keywords
-          const keywordScore = ['important', 'significant', 'key', 'main', 'primary', 'essential', 'critical']
-            .some(keyword => sentence.toLowerCase().includes(keyword)) ? 0.3 : 0;
+          const importantKeywords = [
+            'important', 'significant', 'key', 'main', 'primary', 'essential', 'critical',
+            'result', 'conclusion', 'summary', 'therefore', 'thus', 'finally', 'ultimately',
+            'research', 'study', 'analysis', 'data', 'evidence', 'findings'
+          ];
+          
+          // Count how many important keywords are in the sentence
+          const keywordMatches = importantKeywords.filter(keyword => 
+            cleanSentence.toLowerCase().includes(keyword)
+          ).length;
+          
+          // Calculate keyword score (more matches = higher score)
+          const keywordScore = Math.min(0.5, keywordMatches * 0.1);
+          
+          // Check for numerical data which often indicates important information
+          const hasNumbers = /\d+/.test(cleanSentence) ? 0.2 : 0;
+          
+          // Check for quotation marks which might indicate important statements
+          const hasQuotes = /["'].*["']/.test(cleanSentence) ? 0.2 : 0;
           
           return {
-            sentence,
-            score: positionScore * 0.6 + lengthScore * 0.3 + keywordScore,
+            sentence: cleanSentence,
+            score: positionScore * 0.4 + lengthScore * 0.2 + keywordScore * 0.2 + hasNumbers * 0.1 + hasQuotes * 0.1,
             index
           };
         });
         
-        // Sort by score and take top 3 sentences
+        // Sort by score and take top sentences (more for longer texts)
+        const sentenceCount = Math.min(4, Math.max(2, Math.floor(sentences.length / 10)));
         const topSentences = scoredSentences
           .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
+          .slice(0, sentenceCount);
         
-        // Sort back by original position
+        // Sort back by original position for coherent reading
         const orderedSentences = topSentences
           .sort((a, b) => a.index - b.index)
           .map(item => item.sentence);
@@ -94,7 +122,10 @@ export class SummarizationService {
         // Join sentences into a summary
         const summary = orderedSentences.join(' ');
         
-        return [{ summary_text: summary }];
+        // Truncate if too long
+        const finalSummary = summary.length > 300 ? summary.substring(0, 297) + '...' : summary;
+        
+        return [{ summary_text: finalSummary }];
       }
     };
   }
@@ -103,101 +134,36 @@ export class SummarizationService {
    * Initialize the summarization model
    */
   public async initialize(): Promise<void> {
+    // If summarizer is already initialized in the constructor, just return
     if (this.summarizer) {
       return Promise.resolve();
     }
     
+    // If initialization is in progress, return the existing promise
     if (this.isInitializing && this.initPromise) {
       return this.initPromise;
     }
     
     this.isInitializing = true;
     
-    this.initPromise = new Promise<void>(async (resolve, reject) => {
+    this.initPromise = new Promise<void>(async (resolve) => {
       try {
-        console.log('Initializing summarization model...');
+        console.log('Initializing text-based summarizer...');
         
-        // Check if we should skip ML models and use text-based summarization only
-        if (!this.USE_ML_MODELS) {
-          console.log('ML models disabled, using text-based summarization');
-          this.summarizer = this.createTextBasedSummarizer();
-          this.isInitializing = false;
-          resolve();
-          return;
-        }
-        
-        // Set a timeout for model loading
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Model loading timed out')), this.TIMEOUT_MS);
-        });
-        
-        // Try to load the tiny model first (fastest to download)
-        try {
-          console.log('Attempting to load tiny model...');
-          this.summarizer = await Promise.race([
-            pipeline('summarization', this.TINY_MODEL, { 
-              quantized: true, // Use quantized model for smaller size
-              progress_callback: (progress: number) => {
-                console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
-              }
-            }),
-            timeoutPromise
-          ]);
-          console.log('Tiny summarization model loaded successfully');
-        } catch (error) {
-          console.warn(`Failed to load tiny model: ${error}. Trying small model...`);
-          
-          // Try to load the small model
-          try {
-            console.log('Attempting to load small model...');
-            this.summarizer = await Promise.race([
-              pipeline('summarization', this.SMALL_MODEL, { 
-                quantized: true,
-                progress_callback: (progress: number) => {
-                  console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
-                }
-              }),
-              timeoutPromise
-            ]);
-            console.log('Small summarization model loaded successfully');
-          } catch (smallError) {
-            console.warn(`Failed to load small model: ${smallError}. Trying fallback model...`);
-            
-            // Try to load the fallback model
-            try {
-              console.log('Attempting to load fallback model...');
-              this.summarizer = await Promise.race([
-                pipeline('summarization', this.FALLBACK_MODEL, { 
-                  quantized: true,
-                  progress_callback: (progress: number) => {
-                    console.log(`Model loading progress: ${Math.round(progress * 100)}%`);
-                  }
-                }),
-                timeoutPromise
-              ]);
-              console.log('Fallback summarization model loaded successfully');
-            } catch (fallbackError) {
-              console.error('All model loading attempts failed');
-              
-              // Create a simple fallback summarizer that doesn't use ML
-              this.summarizer = this.createTextBasedSummarizer();
-              console.log('Created text-based fallback summarizer');
-              resolve(); // Resolve with the fallback summarizer
-              return;
-            }
-          }
-        }
+        // Always use text-based summarization to avoid WebAssembly CSP issues
+        this.summarizer = this.createTextBasedSummarizer();
+        console.log('Text-based summarizer initialized successfully');
         
         this.isInitializing = false;
         resolve();
       } catch (error) {
         this.isInitializing = false;
-        console.error('Failed to initialize summarization model:', error);
+        console.error('Failed to initialize summarizer:', error);
         
-        // Create a simple fallback summarizer that doesn't use ML
+        // Create a simple fallback summarizer as a last resort
         this.summarizer = this.createTextBasedSummarizer();
         console.log('Created emergency text-based fallback summarizer');
-        resolve(); // Resolve with the fallback summarizer
+        resolve();
       }
     });
     

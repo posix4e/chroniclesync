@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync } from 'fs';
 
 // Custom plugin to copy files after build
 const copyFiles = () => ({
@@ -21,11 +21,35 @@ const copyFiles = () => ({
       'devtools.css'
     ];
 
+    // Copy regular files
     for (const file of files) {
       try {
         copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', file));
       } catch (error) {
         console.warn(`Warning: Could not copy ${file}: ${error}`);
+      }
+    }
+
+    // Copy ONNX files
+    const onnxDir = resolve(__dirname, 'dist', 'onnx');
+    if (!existsSync(onnxDir)) {
+      mkdirSync(onnxDir, { recursive: true });
+    }
+
+    const onnxFiles = [
+      'ort-wasm-simd-threaded.wasm',
+      'ort-wasm-simd-threaded.jsep.wasm'
+    ];
+
+    for (const file of onnxFiles) {
+      try {
+        copyFileSync(
+          resolve(__dirname, 'onnx', file),
+          resolve(onnxDir, file)
+        );
+        console.log(`Copied ONNX file: ${file}`);
+      } catch (error) {
+        console.warn(`Warning: Could not copy ONNX file ${file}: ${error}`);
       }
     }
   }

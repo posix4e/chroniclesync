@@ -1,16 +1,29 @@
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env, SummarizationPipeline } from '@xenova/transformers';
 
 // Configure transformers.js settings
 env.useBrowserCache = true;
 env.allowLocalModels = false;
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('onnx/');
 
-const MAX_RETRIES = 3;
+// Use a smaller model and set timeouts
+const MODEL_NAME = 'Xenova/bart-large-cnn';
+const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
+const LOAD_TIMEOUT = 30000; // 30 seconds timeout
+
+// Helper function to add timeout to a promise
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+            setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+        )
+    ]);
+}
 
 export class Summarizer {
     private static instance: Summarizer | null = null;
-    private summarizationPipeline: any = null;
+    private summarizationPipeline: SummarizationPipeline | null = null;
 
     private constructor() {}
 
@@ -31,13 +44,25 @@ export class Summarizer {
                 throw new Error('WASM backend not configured');
             }
 
-            // Initialize the pipeline with a smaller model for better performance
-            this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-12-6', {
+            let lastProgress = 0;
+            const initPromise = pipeline('summarization', MODEL_NAME, {
                 quantized: true,
                 progress_callback: (progress: { progress: number }) => {
-                    console.log('Loading model:', Math.round(progress.progress * 100), '%');
+                    const currentProgress = Math.round(progress.progress * 100);
+                    // Only log if progress has changed significantly (>= 5%)
+                    if (currentProgress >= lastProgress + 5 && currentProgress <= 100) {
+                        console.log('Loading model:', currentProgress, '%');
+                        lastProgress = currentProgress;
+                    }
                 }
             });
+
+            // Add timeout to pipeline initialization
+            this.summarizationPipeline = await withTimeout(
+                initPromise,
+                LOAD_TIMEOUT,
+                'Model loading timed out after 30 seconds'
+            );
             
             console.log('Summarization pipeline initialized successfully');
         } catch (error: unknown) {
@@ -56,24 +81,41 @@ export class Summarizer {
 
     public async summarize(text: string): Promise<string> {
         console.log('Starting summarization...');
-        console.log('Input text:', text);
         
+        if (!text.trim()) {
+            return '';
+        }
+
         if (!this.summarizationPipeline) {
-            throw new Error('Summarization pipeline not initialized');
+            await this.initialize();
         }
 
         try {
-            const result = await this.summarizationPipeline(text, {
-                max_length: 130,
-                min_length: 30,
-            });
+            if (!this.summarizationPipeline) {
+                throw new Error('Summarization pipeline not initialized');
+            }
+
+            const result = await withTimeout(
+                this.summarizationPipeline(text, {
+                    max_length: 130,
+                    min_length: 30,
+                    max_time: 10, // Limit processing time to 10 seconds
+                }),
+                15000, // 15 seconds timeout for summarization
+                'Summarization timed out after 15 seconds'
+            );
             
-            console.log('Summarization output:', result[0].summary_text);
+            const summary = Array.isArray(result) ? result[0] : result;
+            if (!summary || typeof summary !== 'object' || !('summary_text' in summary)) {
+                throw new Error('Invalid summarization result');
+            }
+
             console.log('Summarization complete');
-            return result[0].summary_text;
-        } catch (error) {
-            console.error('Error during summarization:', error);
-            throw error;
+            return summary.summary_text;
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('Error during summarization:', errorMessage);
+            throw new Error(`Failed to summarize text: ${errorMessage}`);
         }
     }
 }

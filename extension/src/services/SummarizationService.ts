@@ -52,82 +52,83 @@ export class SummarizationService {
    * Create a text-based summarizer that doesn't use ML
    */
   private createTextBasedSummarizer(): any {
-    return {
-      async __call__(text: string) {
-        console.log('Using enhanced text-based summarizer');
+    // Create a function that can be called directly
+    const summarizeFunction = async (text: string, options?: any) => {
+      console.log('Using enhanced text-based summarizer');
+      
+      // Split text into sentences
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+      
+      if (sentences.length === 0) {
+        return [{ summary_text: text.substring(0, 150) }];
+      }
+      
+      // Score sentences based on position, length, and content
+      const scoredSentences = sentences.map((sentence, index) => {
+        // Clean the sentence
+        const cleanSentence = sentence.trim().replace(/\s+/g, ' ');
         
-        // Split text into sentences
-        const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-        
-        if (sentences.length === 0) {
-          return [{ summary_text: text.substring(0, 150) }];
+        // Skip very short sentences
+        if (cleanSentence.length < 30) {
+          return { sentence: cleanSentence, score: 0, index };
         }
         
-        // Score sentences based on position, length, and content
-        const scoredSentences = sentences.map((sentence, index) => {
-          // Clean the sentence
-          const cleanSentence = sentence.trim().replace(/\s+/g, ' ');
-          
-          // Skip very short sentences
-          if (cleanSentence.length < 30) {
-            return { sentence: cleanSentence, score: 0, index };
-          }
-          
-          // Prefer sentences from the beginning of the text (first 5 sentences get higher scores)
-          const positionScore = index < 5 ? Math.max(0, 1 - (index / 5)) : 0.1;
-          
-          // Prefer medium-length sentences (not too short, not too long)
-          const lengthScore = Math.min(1, cleanSentence.length / 100) * 
-                             Math.max(0, 1 - (cleanSentence.length - 100) / 200);
-          
-          // Check for important keywords
-          const importantKeywords = [
-            'important', 'significant', 'key', 'main', 'primary', 'essential', 'critical',
-            'result', 'conclusion', 'summary', 'therefore', 'thus', 'finally', 'ultimately',
-            'research', 'study', 'analysis', 'data', 'evidence', 'findings'
-          ];
-          
-          // Count how many important keywords are in the sentence
-          const keywordMatches = importantKeywords.filter(keyword => 
-            cleanSentence.toLowerCase().includes(keyword)
-          ).length;
-          
-          // Calculate keyword score (more matches = higher score)
-          const keywordScore = Math.min(0.5, keywordMatches * 0.1);
-          
-          // Check for numerical data which often indicates important information
-          const hasNumbers = /\d+/.test(cleanSentence) ? 0.2 : 0;
-          
-          // Check for quotation marks which might indicate important statements
-          const hasQuotes = /["'].*["']/.test(cleanSentence) ? 0.2 : 0;
-          
-          return {
-            sentence: cleanSentence,
-            score: positionScore * 0.4 + lengthScore * 0.2 + keywordScore * 0.2 + hasNumbers * 0.1 + hasQuotes * 0.1,
-            index
-          };
-        });
+        // Prefer sentences from the beginning of the text (first 5 sentences get higher scores)
+        const positionScore = index < 5 ? Math.max(0, 1 - (index / 5)) : 0.1;
         
-        // Sort by score and take top sentences (more for longer texts)
-        const sentenceCount = Math.min(4, Math.max(2, Math.floor(sentences.length / 10)));
-        const topSentences = scoredSentences
-          .sort((a, b) => b.score - a.score)
-          .slice(0, sentenceCount);
+        // Prefer medium-length sentences (not too short, not too long)
+        const lengthScore = Math.min(1, cleanSentence.length / 100) * 
+                           Math.max(0, 1 - (cleanSentence.length - 100) / 200);
         
-        // Sort back by original position for coherent reading
-        const orderedSentences = topSentences
-          .sort((a, b) => a.index - b.index)
-          .map(item => item.sentence);
+        // Check for important keywords
+        const importantKeywords = [
+          'important', 'significant', 'key', 'main', 'primary', 'essential', 'critical',
+          'result', 'conclusion', 'summary', 'therefore', 'thus', 'finally', 'ultimately',
+          'research', 'study', 'analysis', 'data', 'evidence', 'findings'
+        ];
         
-        // Join sentences into a summary
-        const summary = orderedSentences.join(' ');
+        // Count how many important keywords are in the sentence
+        const keywordMatches = importantKeywords.filter(keyword => 
+          cleanSentence.toLowerCase().includes(keyword)
+        ).length;
         
-        // Truncate if too long
-        const finalSummary = summary.length > 300 ? summary.substring(0, 297) + '...' : summary;
+        // Calculate keyword score (more matches = higher score)
+        const keywordScore = Math.min(0.5, keywordMatches * 0.1);
         
-        return [{ summary_text: finalSummary }];
-      }
+        // Check for numerical data which often indicates important information
+        const hasNumbers = /\d+/.test(cleanSentence) ? 0.2 : 0;
+        
+        // Check for quotation marks which might indicate important statements
+        const hasQuotes = /["'].*["']/.test(cleanSentence) ? 0.2 : 0;
+        
+        return {
+          sentence: cleanSentence,
+          score: positionScore * 0.4 + lengthScore * 0.2 + keywordScore * 0.2 + hasNumbers * 0.1 + hasQuotes * 0.1,
+          index
+        };
+      });
+      
+      // Sort by score and take top sentences (more for longer texts)
+      const sentenceCount = Math.min(4, Math.max(2, Math.floor(sentences.length / 10)));
+      const topSentences = scoredSentences
+        .sort((a, b) => b.score - a.score)
+        .slice(0, sentenceCount);
+      
+      // Sort back by original position for coherent reading
+      const orderedSentences = topSentences
+        .sort((a, b) => a.index - b.index)
+        .map(item => item.sentence);
+      
+      // Join sentences into a summary
+      const summary = orderedSentences.join(' ');
+      
+      // Truncate if too long
+      const finalSummary = summary.length > 300 ? summary.substring(0, 297) + '...' : summary;
+      
+      return [{ summary_text: finalSummary }];
     };
+    
+    return summarizeFunction;
   }
   
   /**

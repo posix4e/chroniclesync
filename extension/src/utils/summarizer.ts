@@ -6,10 +6,10 @@ env.allowLocalModels = false;
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('onnx/');
 
 // Use a smaller model and set timeouts
-const MODEL_NAME = 'Xenova/distilbart-xsum-6-6';
+const MODEL_NAME = 'Xenova/bart-small-cnn';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
-const LOAD_TIMEOUT = 30000; // 30 seconds timeout
+const LOAD_TIMEOUT = 60000; // 60 seconds timeout for first load
 
 // Helper function to add timeout to a promise
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
@@ -37,21 +37,29 @@ export class Summarizer {
 
     private async initialize(retryCount = 0): Promise<void> {
         try {
+            console.log('Initializing summarization pipeline...');
+            
             // Check if WASM backend is available
             if (!env.backends.onnx.wasm.wasmPaths) {
                 throw new Error('WASM backend not configured');
             }
 
+            console.log('Loading summarization model (this may take a while on first run)...');
             const initPromise = pipeline('summarization', MODEL_NAME, {
-                quantized: true
+                quantized: true,
+                progress_callback: (progress: { progress: number }) => {
+                    console.log(`Model loading progress: ${Math.round(progress.progress * 100)}%`);
+                }
             });
 
             // Add timeout to pipeline initialization
             this.summarizationPipeline = await withTimeout(
                 initPromise,
                 LOAD_TIMEOUT,
-                'Model loading timed out after 30 seconds'
+                'Model loading timed out after 60 seconds'
             );
+            
+            console.log('Summarization pipeline initialized successfully!');
             
 
         } catch (error: unknown) {

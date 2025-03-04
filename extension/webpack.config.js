@@ -9,6 +9,7 @@ export default {
   },
   entry: {
     background: './src/background.ts',
+    content: './src/content.ts',
     popup: './src/popup.tsx',
     history: './src/history.tsx',
     devtools: './src/devtools.tsx',

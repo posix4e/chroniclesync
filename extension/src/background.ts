@@ -180,27 +180,20 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
     console.debug(`Navigation complete for: ${tab.url}`);
     
-    // Execute content script to get page content
+    // Get page content through content script
     try {
-      const [{ result }] = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: () => {
-          const article = document.querySelector('article');
-          if (article) {
-            return article.textContent;
-          }
-          const mainContent = document.querySelector('main');
-          if (mainContent) {
-            return mainContent.textContent;
-          }
-          return document.body.textContent;
-        }
-      });
-
-      if (result) {
+      console.log('Background: Requesting page content...');
+      const response = await chrome.tabs.sendMessage(tabId, { action: 'getPageContent' });
+      
+      if (response && response.content) {
+        console.log('Background: Received page content, initializing summarizer...');
         const summarizer = await Summarizer.getInstance();
-        const summary = await summarizer.summarize(result.slice(0, 1000)); // Limit to first 1000 chars for now
-        console.log('Page summary:', summary);
+        const content = response.content.slice(0, 1000); // Limit to first 1000 chars for now
+        console.log('Background: Generating summary...');
+        const summary = await summarizer.summarize(content);
+        console.log('Background: Summary generated:', summary);
+      } else {
+        console.log('Background: No content received from page');
       }
     } catch (error) {
       console.error('Error generating summary:', error);

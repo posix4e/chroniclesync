@@ -8,18 +8,17 @@ env.allowLocalModels = false;
 const wasmDir = chrome.runtime.getURL('onnx/');
 env.backends.onnx.wasm.wasmPaths = wasmDir;
 
-// Configure remote models path and caching
-(env as any).remoteModels = 'https://huggingface.co/';
-(env as any).cacheDir = './models';
-env.localModelPath = './models';
+// Configure model loading settings
+env.localModelPath = chrome.runtime.getURL('models');
 env.allowRemoteModels = true;
+env.useBrowserCache = true;
 
 // Log configuration for debugging
 console.log('Configuration:', {
     wasmDir,
+    localModelPath: env.localModelPath,
     useBrowserCache: env.useBrowserCache,
-    allowLocalModels: env.allowLocalModels,
-    remoteModels: (env as any).remoteModels
+    allowRemoteModels: env.allowRemoteModels
 });
 
 // Use a smaller, optimized model and set timeouts
@@ -64,9 +63,8 @@ export class Summarizer {
             console.log('Loading summarization model (this may take a while on first run)...', {
                 modelName: MODEL_NAME,
                 config: {
-                    remoteModels: (env as any).remoteModels,
-                    cacheDir: (env as any).cacheDir,
                     localModelPath: env.localModelPath,
+                    useBrowserCache: env.useBrowserCache,
                     allowRemoteModels: env.allowRemoteModels
                 }
             });

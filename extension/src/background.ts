@@ -2,6 +2,7 @@ import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
+import { Summarizer } from './utils/summarizer';
 
 interface SyncResponse {
   history?: HistoryEntry[];
@@ -175,10 +176,45 @@ syncHistory(true);
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url) {
     console.debug(`Navigation to: ${changeInfo.url}`);
     setTimeout(() => syncHistory(false), 1000);
+
+    // Wait for the page to load completely
+    if (changeInfo.status === 'complete' && tab.url) {
+      try {
+        // Get the page content
+        const [{ result }] = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => {
+            const article = document.querySelector('article');
+            if (article) return article.textContent;
+            
+            const mainContent = document.querySelector('main');
+            if (mainContent) return mainContent.textContent;
+            
+            return document.body.textContent;
+          }
+        });
+
+        if (result) {
+          // Clean and prepare the text
+          const cleanText = result
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 1000); // Take first 1000 characters for summary
+
+          // Initialize summarizer and generate summary
+          const summarizer = await Summarizer.getInstance();
+          const summary = await summarizer.summarize(cleanText);
+          
+          console.log('Page summary:', summary);
+        }
+      } catch (error) {
+        console.error('Error generating summary:', error);
+      }
+    }
   }
 });
 

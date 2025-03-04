@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default {
+  experiments: {
+    asyncWebAssembly: true,
+  },
   entry: {
     background: './src/background.ts',
     popup: './src/popup.tsx',

@@ -1,14 +1,27 @@
 export class Logger {
     private static instance: Logger | null = null;
-    private devToolsConnected: boolean = false;
+    private ports: Map<string, chrome.runtime.Port> = new Map();
 
     private constructor() {
         // Listen for devtools connection
         chrome.runtime.onConnect.addListener((port) => {
             if (port.name === 'cs-dev-tools') {
-                this.devToolsConnected = true;
+                port.onMessage.addListener((message) => {
+                    if (message.name === 'init') {
+                        this.ports.set(message.tabId.toString(), port);
+                        console.log('DevTools connected for tab:', message.tabId);
+                    }
+                });
+
                 port.onDisconnect.addListener(() => {
-                    this.devToolsConnected = false;
+                    // Find and remove the disconnected port
+                    for (const [tabId, p] of this.ports.entries()) {
+                        if (p === port) {
+                            this.ports.delete(tabId);
+                            console.log('DevTools disconnected for tab:', tabId);
+                            break;
+                        }
+                    }
                 });
             }
         });
@@ -22,14 +35,21 @@ export class Logger {
     }
 
     private sendToDevTools(content: string, error: boolean = false, success: boolean = false) {
-        chrome.runtime.sendMessage({
+        const message = {
             source: 'chroniclesync',
             content,
             error,
             success
-        }).catch(() => {
-            // Ignore errors when devtools is not open
-        });
+        };
+
+        // Send to all connected DevTools instances
+        for (const port of this.ports.values()) {
+            try {
+                port.postMessage(message);
+            } catch (e) {
+                console.warn('Failed to send message to DevTools:', e);
+            }
+        }
     }
 
     public info(message: string) {

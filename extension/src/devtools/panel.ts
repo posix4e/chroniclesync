@@ -30,8 +30,13 @@ function createLogEntry(message: any, type: string = 'info'): void {
     logContainer.scrollTop = logContainer.scrollHeight;
 }
 
+// Create a connection to the background page
+const panelPageConnection = chrome.runtime.connect({
+    name: "cs-dev-tools"
+});
+
 // Listen for log messages from the background script
-chrome.runtime.onMessage.addListener((message) => {
+panelPageConnection.onMessage.addListener((message) => {
     if (message.source === 'chroniclesync') {
         const type = message.error ? 'error' : message.success ? 'success' : 'info';
         createLogEntry(message.content, type);

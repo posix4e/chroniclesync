@@ -22,8 +22,8 @@ console.log('Configuration:', {
     remoteModels: (env as any).remoteModels
 });
 
-// Use a smaller model and set timeouts
-const MODEL_NAME = 'Xenova/bart-small-cnn';
+// Use a smaller, optimized model and set timeouts
+const MODEL_NAME = 'Xenova/distilbart-cnn-6-6';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const LOAD_TIMEOUT = 60000; // 60 seconds timeout for first load

@@ -1,7 +1,19 @@
-import { getConfig } from './config';
+import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
+
+interface SyncResponse {
+  history?: HistoryEntry[];
+  devices?: DeviceInfo[];
+  lastSyncTime?: number;
+}
+
+interface SyncStats {
+  sent: number;
+  received: number;
+  devices: number;
+}
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -58,17 +70,21 @@ async function syncHistory(forceFullSync = false): Promise<void> {
     });
 
     const historyData = await Promise.all(historyItems.map(async item => {
+      if (!item.url) return [];
       const visits = await chrome.history.getVisits({ url: item.url });
       
       return visits
-        .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
-        .map(visit => ({
-          url: item.url,
+        .filter((visit: chrome.history.VisitItem) => {
+          const visitTime = visit.visitTime || 0;
+          return visitTime >= startTime && visitTime <= now;
+        })
+        .map((visit: chrome.history.VisitItem) => ({
+          url: item.url!,
           title: item.title || '',
-          visitTime: visit.visitTime,
+          visitTime: visit.visitTime || Date.now(),
           visitId: visit.visitId.toString(),
           referringVisitId: visit.referringVisitId?.toString() || '0',
-          transition: visit.transition,
+          transition: visit.transition || 'link',
           ...systemInfo
         }));
     }));
@@ -139,9 +155,10 @@ async function syncHistory(forceFullSync = false): Promise<void> {
   } catch (error) {
     console.error('Error syncing history:', error);
     try {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       chrome.runtime.sendMessage({ 
         type: 'syncError',
-        error: error.message
+        error: errorMessage
       }).catch(() => {
         // Ignore error when no receivers are present
       });
@@ -181,7 +198,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const config = await getConfig();
         sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
       } catch (error) {
-        console.error('Error getting client ID:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error getting client ID:', errorMessage);
         sendResponse({ error: 'Failed to get client ID' });
       }
     });
@@ -192,8 +210,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, message: 'Sync successful' });
       })
       .catch(error => {
-        console.error('Manual sync failed:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Manual sync failed:', errorMessage);
+        sendResponse({ error: errorMessage });
       });
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
@@ -205,12 +224,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const limitedEntries = limit ? entries.slice(0, limit) : entries;
         sendResponse(limitedEntries);
       } catch (error) {
-        console.error('Error fetching history from IndexedDB:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching history from IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'getDevices') {
@@ -220,12 +241,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const devices = await historyStore.getDevices();
         sendResponse(devices);
       } catch (error) {
-        console.error('Error fetching devices from IndexedDB:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching devices from IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'deleteHistory') {
@@ -237,12 +260,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await syncHistory(false);
         sendResponse({ success: true });
       } catch (error) {
-        console.error('Error deleting history entry:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error deleting history entry:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   }

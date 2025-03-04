@@ -1,0 +1,20 @@
+{
+  "name": "chroniclesync",
+  "version": "1.0.0",
+  "description": "ChronicleSync Chrome Extension with Local Summarization",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.3"
+  }
+}

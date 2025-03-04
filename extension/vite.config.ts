@@ -16,12 +16,15 @@ const copyFiles = () => ({
       'settings.css',
       'bip39-wordlist.js',
       'history.html',
-      'history.css'
+      'history.css',
+      'src/devtools/devtools.html',
+      'src/devtools/panel.html'
     ];
 
     for (const file of files) {
       try {
-        copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', file));
+        const destFile = file.startsWith('src/') ? file.replace('src/', '') : file;
+        copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', destFile));
       } catch (error) {
         console.warn(`Warning: Could not copy ${file}: ${error}`);
       }
@@ -39,7 +42,9 @@ export default defineConfig({
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'src/background.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx')
+        history: resolve(__dirname, 'src/history.tsx'),
+        devtools: resolve(__dirname, 'src/devtools/devtools.ts'),
+        panel: resolve(__dirname, 'src/devtools/panel.ts')
       },
       output: {
         format: 'es',

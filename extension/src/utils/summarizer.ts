@@ -22,7 +22,7 @@ export class Summarizer {
         return Summarizer.instance;
     }
 
-    private async initialize(retryCount = 0) {
+    private async initialize(retryCount = 0): Promise<void> {
         try {
             console.log('Initializing summarization pipeline...');
             
@@ -34,13 +34,13 @@ export class Summarizer {
             // Initialize the pipeline with a smaller model for better performance
             this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-12-6', {
                 quantized: true,
-                progress_callback: (progress: any) => {
+                progress_callback: (progress: { progress: number }) => {
                     console.log('Loading model:', Math.round(progress.progress * 100), '%');
                 }
             });
             
             console.log('Summarization pipeline initialized successfully');
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error initializing pipeline:', error);
             
             if (retryCount < MAX_RETRIES) {
@@ -49,7 +49,8 @@ export class Summarizer {
                 return this.initialize(retryCount + 1);
             }
             
-            throw new Error(`Failed to initialize summarization pipeline after ${MAX_RETRIES} attempts: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to initialize summarization pipeline after ${MAX_RETRIES} attempts: ${errorMessage}`);
         }
     }
 

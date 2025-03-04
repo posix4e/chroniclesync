@@ -19,7 +19,9 @@
       "history.html",
       "assets/*",
       "onnx/*",
-      "models/*"
+      "models/*",
+      "onnx/ort-wasm-simd-threaded.wasm",
+      "onnx/ort-wasm-simd-threaded.jsep.wasm"
     ],
     "matches": ["<all_urls>"]
   }],

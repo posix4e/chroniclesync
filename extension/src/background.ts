@@ -1,53 +1,35 @@
-import { getConfig } from './config.js';
-import { HistoryStore } from './src/db/HistoryStore';
+import { getConfig } from '../config';
+import { HistoryStore } from './db/HistoryStore';
+import { getSystemInfo } from './utils/system';
+import { HistoryEntry, DeviceInfo } from './types';
+
+interface SyncResponse {
+  history?: HistoryEntry[];
+  devices?: DeviceInfo[];
+  lastSyncTime?: number;
+}
+
+interface SyncStats {
+  sent: number;
+  received: number;
+  devices: number;
+}
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-// Initialize extension
-async function initializeExtension() {
+async function initializeExtension(): Promise<boolean> {
   try {
-    // Ensure storage is accessible
     await chrome.storage.local.get(['initialized']);
-
-    // Load initial config
     await getConfig();
-
-    // Mark as initialized
     await chrome.storage.local.set({ initialized: true });
-
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Failed to initialize extension:', error);
     return false;
   }
 }
 
-async function getSystemInfo() {
-  const platform = navigator.platform;
-  const userAgent = navigator.userAgent;
-  const deviceId = await getDeviceId();
-
-  return {
-    deviceId,
-    platform,
-    userAgent,
-    browserName: 'Chrome',
-    browserVersion: /Chrome\/([0-9.]+)/.exec(userAgent)?.[1] || 'unknown'
-  };
-}
-
-async function getDeviceId() {
-  const result = await chrome.storage.local.get(['deviceId']);
-  if (result.deviceId) {
-    return result.deviceId;
-  }
-  const deviceId = 'device_' + Math.random().toString(36).substring(2);
-  await chrome.storage.local.set({ deviceId });
-  return deviceId;
-}
-
-async function syncHistory(forceFullSync = false) {
+async function syncHistory(forceFullSync = false): Promise<void> {
   try {
     const initialized = await chrome.storage.local.get(['initialized']);
     if (!initialized.initialized) {
@@ -60,75 +42,62 @@ async function syncHistory(forceFullSync = false) {
 
     const config = await getConfig();
 
-    // Skip sync if using default client ID
     if (!config.clientId || config.clientId === 'extension-default') {
-      // eslint-disable-next-line no-console
       console.debug('Sync paused: No client ID configured');
       throw new Error('Please configure your Client ID in the extension popup');
     }
 
-    // eslint-disable-next-line no-console
     console.debug('Starting sync with client ID:', config.clientId);
 
     const systemInfo = await getSystemInfo();
     const now = Date.now();
 
-    // Get stored lastSync time
     const stored = await chrome.storage.local.get(['lastSync']);
     const storedLastSync = stored.lastSync || 0;
 
-    // Use stored lastSync time unless forcing full sync
     const startTime = forceFullSync ? 0 : storedLastSync;
 
-    // Initialize history store
     const historyStore = new HistoryStore();
     await historyStore.init();
 
-    // Update device info
     await historyStore.updateDevice(systemInfo);
 
-    // Get history since last sync
     const historyItems = await chrome.history.search({
       text: '',
       startTime: startTime,
       endTime: now,
-      maxResults: 10000 // Increased limit for full sync
+      maxResults: 10000
     });
 
-    // Get detailed visit information for each history item
     const historyData = await Promise.all(historyItems.map(async item => {
-      // Get all visits for this URL
+      if (!item.url) return [];
       const visits = await chrome.history.getVisits({ url: item.url });
       
-      // Filter visits within our time range and map them
-      const visitData = visits
-        .filter(visit => visit.visitTime >= startTime && visit.visitTime <= now)
-        .map(visit => ({
-          url: item.url,
-          title: item.title,
-          visitTime: visit.visitTime,
-          visitId: visit.visitId,
-          referringVisitId: visit.referringVisitId,
-          transition: visit.transition,
+      return visits
+        .filter((visit: chrome.history.VisitItem) => {
+          const visitTime = visit.visitTime || 0;
+          return visitTime >= startTime && visitTime <= now;
+        })
+        .map((visit: chrome.history.VisitItem) => ({
+          url: item.url!,
+          title: item.title || '',
+          visitTime: visit.visitTime || Date.now(),
+          visitId: visit.visitId.toString(),
+          referringVisitId: visit.referringVisitId?.toString() || '0',
+          transition: visit.transition || 'link',
           ...systemInfo
         }));
-
-      return visitData;
     }));
 
-    // Flatten the array of visit arrays
     const flattenedHistoryData = historyData.flat();
     
-    // Store each history entry
     for (const entry of flattenedHistoryData) {
       await historyStore.addEntry(entry);
     }
 
-    // Get all unsynced entries (including deleted ones)
     const unsyncedEntries = await historyStore.getUnsyncedEntries();
 
     if (unsyncedEntries.length > 0) {
-      // Send unsynced entries to server
       const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
         method: 'POST',
         headers: {
@@ -145,41 +114,35 @@ async function syncHistory(forceFullSync = false) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Parse response which contains remote entries
-      const syncResponse = await response.json();
+      const syncResponse: SyncResponse = await response.json();
 
-      // Merge remote entries into local store
       if (syncResponse.history && syncResponse.history.length > 0) {
         await historyStore.mergeRemoteEntries(syncResponse.history);
       }
 
-      // Update device list
       if (syncResponse.devices) {
         for (const device of syncResponse.devices) {
           await historyStore.updateDevice(device);
         }
       }
 
-      // Mark our entries as synced
       for (const entry of unsyncedEntries) {
         await historyStore.markAsSynced(entry.visitId);
       }
 
-      // Update lastSync time
       const newLastSync = syncResponse.lastSyncTime || now;
       const lastSyncDate = new Date(newLastSync).toLocaleString();
       await chrome.storage.local.set({ lastSync: newLastSync });
       await chrome.storage.sync.set({ lastSync: lastSyncDate });
 
       try {
-        // Notify UI about sync completion
         chrome.runtime.sendMessage({ 
           type: 'syncComplete',
           stats: {
             sent: unsyncedEntries.length,
             received: syncResponse.history?.length || 0,
             devices: syncResponse.devices?.length || 0
-          }
+          } as SyncStats
         }).catch(() => {
           // Ignore error when no receivers are present
         });
@@ -188,22 +151,20 @@ async function syncHistory(forceFullSync = false) {
       }
     }
 
-    // eslint-disable-next-line no-console
     console.debug('Successfully completed sync');
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error syncing history:', error);
     try {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       chrome.runtime.sendMessage({ 
         type: 'syncError',
-        error: error.message
+        error: errorMessage
       }).catch(() => {
         // Ignore error when no receivers are present
       });
     } catch {
       // Catch any other messaging errors
     }
-    return;
   }
 }
 
@@ -216,9 +177,7 @@ setInterval(() => syncHistory(false), SYNC_INTERVAL);
 // Listen for navigation events
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   if (changeInfo.url) {
-    // eslint-disable-next-line no-console
     console.debug(`Navigation to: ${changeInfo.url}`);
-    // Trigger sync after a short delay to allow history to be updated
     setTimeout(() => syncHistory(false), 1000);
   }
 });
@@ -226,7 +185,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 // Listen for messages from the page
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getClientId') {
-    // Check initialization first
     chrome.storage.local.get(['initialized']).then(async result => {
       if (!result.initialized) {
         const success = await initializeExtension();
@@ -240,23 +198,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const config = await getConfig();
         sendResponse({ clientId: config.clientId === 'extension-default' ? null : config.clientId });
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error getting client ID:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error getting client ID:', errorMessage);
         sendResponse({ error: 'Failed to get client ID' });
       }
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'triggerSync') {
-    // Trigger manual sync with full history
     syncHistory(true)
       .then(() => {
-        // Send success response and notify popup about sync completion
         sendResponse({ success: true, message: 'Sync successful' });
       })
       .catch(error => {
-        // eslint-disable-next-line no-console
-        console.error('Manual sync failed:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Manual sync failed:', errorMessage);
+        sendResponse({ error: errorMessage });
       });
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
@@ -265,18 +221,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     historyStore.init().then(async () => {
       try {
         const entries = await historyStore.getEntries(deviceId, since);
-        // Apply limit if specified
         const limitedEntries = limit ? entries.slice(0, limit) : entries;
         sendResponse(limitedEntries);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching history from IndexedDB:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching history from IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      // eslint-disable-next-line no-console
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'getDevices') {
@@ -286,14 +241,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const devices = await historyStore.getDevices();
         sendResponse(devices);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching devices from IndexedDB:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching devices from IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      // eslint-disable-next-line no-console
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'deleteHistory') {
@@ -302,18 +257,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     historyStore.init().then(async () => {
       try {
         await historyStore.deleteEntry(visitId);
-        // Trigger sync to propagate deletion
         await syncHistory(false);
         sendResponse({ success: true });
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error deleting history entry:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error deleting history entry:', errorMessage);
+        sendResponse({ error: errorMessage });
       }
     }).catch(error => {
-      // eslint-disable-next-line no-console
-      console.error('Error initializing IndexedDB:', error);
-      sendResponse({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   }

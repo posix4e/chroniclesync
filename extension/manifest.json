@@ -11,7 +11,7 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html", "assets/*"],
+    "resources": ["history.html", "assets/*", "models/*"],
     "matches": ["<all_urls>"]
   }],
   "background": {
@@ -38,5 +38,8 @@
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*",
     "<all_urls>"
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

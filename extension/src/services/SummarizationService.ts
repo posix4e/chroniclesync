@@ -16,6 +16,7 @@ export class SummarizationService {
   private readonly SMALL_MODEL = 'Xenova/distilbart-cnn-6-6';
   private readonly FALLBACK_MODEL = 'Xenova/distilbart-xsum-12-3';
   private readonly TIMEOUT_MS = 120000; // Increase timeout to 2 minutes
+  private readonly USE_ML_MODELS = false; // Set to false to use only text-based summarization
   
   /**
    * Private constructor to enforce singleton pattern
@@ -26,6 +27,14 @@ export class SummarizationService {
     env.useBrowserCache = true;
     env.cacheDir = ''; // Use default cache directory
     env.localModelPath = './models'; // Set local model path
+    
+    // Check if we're in a service worker context (background script)
+    const isServiceWorker = typeof self !== 'undefined' && !('document' in self);
+    
+    // Disable ML models in service worker context due to CSP restrictions
+    if (isServiceWorker) {
+      console.log('Running in service worker context, using text-based summarization only');
+    }
   }
   
   /**
@@ -36,6 +45,58 @@ export class SummarizationService {
       SummarizationService.instance = new SummarizationService();
     }
     return SummarizationService.instance;
+  }
+  
+  /**
+   * Create a text-based summarizer that doesn't use ML
+   */
+  private createTextBasedSummarizer(): any {
+    return {
+      async __call__(text: string) {
+        console.log('Using text-based summarizer');
+        
+        // Split text into sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+        
+        if (sentences.length === 0) {
+          return [{ summary_text: text.substring(0, 150) }];
+        }
+        
+        // Score sentences based on position and length
+        const scoredSentences = sentences.map((sentence, index) => {
+          // Prefer sentences from the beginning of the text
+          const positionScore = Math.max(0, 1 - (index / Math.min(10, sentences.length)));
+          
+          // Prefer medium-length sentences (not too short, not too long)
+          const lengthScore = Math.min(1, sentence.length / 100) * Math.max(0, 1 - (sentence.length - 100) / 200);
+          
+          // Check for important keywords
+          const keywordScore = ['important', 'significant', 'key', 'main', 'primary', 'essential', 'critical']
+            .some(keyword => sentence.toLowerCase().includes(keyword)) ? 0.3 : 0;
+          
+          return {
+            sentence,
+            score: positionScore * 0.6 + lengthScore * 0.3 + keywordScore,
+            index
+          };
+        });
+        
+        // Sort by score and take top 3 sentences
+        const topSentences = scoredSentences
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+        
+        // Sort back by original position
+        const orderedSentences = topSentences
+          .sort((a, b) => a.index - b.index)
+          .map(item => item.sentence);
+        
+        // Join sentences into a summary
+        const summary = orderedSentences.join(' ');
+        
+        return [{ summary_text: summary }];
+      }
+    };
   }
   
   /**
@@ -55,6 +116,15 @@ export class SummarizationService {
     this.initPromise = new Promise<void>(async (resolve, reject) => {
       try {
         console.log('Initializing summarization model...');
+        
+        // Check if we should skip ML models and use text-based summarization only
+        if (!this.USE_ML_MODELS) {
+          console.log('ML models disabled, using text-based summarization');
+          this.summarizer = this.createTextBasedSummarizer();
+          this.isInitializing = false;
+          resolve();
+          return;
+        }
         
         // Set a timeout for model loading
         const timeoutPromise = new Promise<never>((_, reject) => {
@@ -110,15 +180,7 @@ export class SummarizationService {
               console.error('All model loading attempts failed');
               
               // Create a simple fallback summarizer that doesn't use ML
-              this.summarizer = {
-                async __call__(text: string) {
-                  console.log('Using fallback text-based summarizer');
-                  // Simple extractive summarization
-                  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-                  const summary = sentences.slice(0, 3).join(' ');
-                  return [{ summary_text: summary }];
-                }
-              };
+              this.summarizer = this.createTextBasedSummarizer();
               console.log('Created text-based fallback summarizer');
               resolve(); // Resolve with the fallback summarizer
               return;
@@ -133,15 +195,7 @@ export class SummarizationService {
         console.error('Failed to initialize summarization model:', error);
         
         // Create a simple fallback summarizer that doesn't use ML
-        this.summarizer = {
-          async __call__(text: string) {
-            console.log('Using emergency fallback text-based summarizer');
-            // Simple extractive summarization
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-            const summary = sentences.slice(0, 3).join(' ');
-            return [{ summary_text: summary }];
-          }
-        };
+        this.summarizer = this.createTextBasedSummarizer();
         console.log('Created emergency text-based fallback summarizer');
         resolve(); // Resolve with the fallback summarizer
       }

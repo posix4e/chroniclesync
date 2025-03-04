@@ -1,4 +1,8 @@
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
+
+// Configure transformers.js to use the extension's WASM files
+env.useBrowserCache = false;
+env.allowLocalModels = false;
 
 export class Summarizer {
     private static instance: Summarizer | null = null;

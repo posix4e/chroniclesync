@@ -3,6 +3,10 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Chrome Extension",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    "sandbox": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "devtools_page": "devtools-page.js",
   "action": {
     "default_popup": "popup.html"
@@ -12,7 +16,7 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html"],
+    "resources": ["history.html", "*.wasm", "tokenizer.json", "model.onnx", "config.json"],
     "matches": ["<all_urls>"]
   }],
   "content_scripts": [{

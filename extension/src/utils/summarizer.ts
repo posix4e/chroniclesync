@@ -8,8 +8,11 @@ env.allowLocalModels = false;
 const wasmDir = chrome.runtime.getURL('onnx/');
 env.backends.onnx.wasm.wasmPaths = wasmDir;
 
-// Set remote models path (using type assertion since the property is not in types)
-(env as any).remoteModels = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/';
+// Configure remote models path and caching
+(env as any).remoteModels = 'https://huggingface.co/';
+(env as any).cacheDir = './models';
+env.localModelPath = './models';
+env.allowRemoteModels = true;
 
 // Log configuration for debugging
 console.log('Configuration:', {
@@ -58,11 +61,24 @@ export class Summarizer {
                 throw new Error('WASM backend not configured');
             }
 
-            console.log('Loading summarization model (this may take a while on first run)...');
+            console.log('Loading summarization model (this may take a while on first run)...', {
+                modelName: MODEL_NAME,
+                config: {
+                    remoteModels: (env as any).remoteModels,
+                    cacheDir: (env as any).cacheDir,
+                    localModelPath: env.localModelPath,
+                    allowRemoteModels: env.allowRemoteModels
+                }
+            });
+
             const initPromise = pipeline('summarization', MODEL_NAME, {
                 quantized: true,
-                progress_callback: (progress: { progress: number }) => {
-                    console.log(`Model loading progress: ${Math.round(progress.progress * 100)}%`);
+                progress_callback: (progress: { status?: string; progress: number; message?: string }) => {
+                    console.log('Model loading progress:', {
+                        status: progress.status,
+                        progress: Math.round(progress.progress * 100) + '%',
+                        message: progress.message
+                    });
                 }
             });
 

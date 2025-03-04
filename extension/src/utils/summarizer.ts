@@ -49,10 +49,10 @@ export class Summarizer {
                 quantized: true,
                 progress_callback: (progress: { progress: number }) => {
                     // progress.progress is between 0 and 1
-                    const currentProgress = Math.round(progress.progress * 10000) / 100;
-                    // Only log if progress has changed significantly (>= 0.5%)
-                    if (currentProgress >= lastProgress + 0.5 && currentProgress <= 100) {
-                        console.log('Loading model:', currentProgress.toFixed(1), '%');
+                    const currentProgress = Math.round(progress.progress * 100);
+                    // Only log if progress has changed significantly (>= 5%)
+                    if (currentProgress >= lastProgress + 5 && currentProgress <= 100) {
+                        console.log('Loading model:', currentProgress, '%');
                         lastProgress = currentProgress;
                     }
                 }

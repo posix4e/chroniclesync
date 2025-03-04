@@ -11,7 +11,7 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html", "dist/*"],
+    "resources": ["history.html", "dist/*", "dist/chunks/*"],
     "matches": ["<all_urls>"]
   }],
   "background": {

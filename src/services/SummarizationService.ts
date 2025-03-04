@@ -1,6 +1,8 @@
-import { pipeline } from '@xenova/transformers';
-
 export class SummarizationService {
+  private static importTransformers = async () => {
+    const { pipeline } = await import('@xenova/transformers');
+    return pipeline;
+  };
   private static instance: SummarizationService;
   private summarizer: any;
   private isInitialized = false;
@@ -18,6 +20,7 @@ export class SummarizationService {
     if (this.isInitialized) return;
 
     try {
+      const pipeline = await SummarizationService.importTransformers();
       this.summarizer = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
       this.isInitialized = true;
     } catch (error) {

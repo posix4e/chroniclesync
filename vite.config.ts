@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: {
         background: 'src/background.ts',
@@ -9,7 +10,11 @@ export default defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
-        dir: 'extension/dist'
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        dir: 'extension/dist',
+        manualChunks: {
+          transformers: ['@xenova/transformers']
+        }
       }
     }
   }

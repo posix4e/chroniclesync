@@ -15,30 +15,39 @@ export class Summarizer {
     }
 
     private async initialize() {
-        console.log('Initializing summarization pipeline...');
-        this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
-        console.log('Summarization pipeline initialized');
+        console.log('[ChronicleSync] Initializing summarization pipeline...');
+        try {
+            this.summarizationPipeline = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6');
+            console.log('[ChronicleSync] ✓ Summarization pipeline initialized successfully');
+        } catch (error) {
+            console.error('[ChronicleSync] ✗ Failed to initialize summarization pipeline:', error);
+            throw error;
+        }
     }
 
     public async summarize(text: string): Promise<string> {
-        console.log('Starting summarization...');
-        console.log('Input text:', text);
+        console.log('[ChronicleSync] Starting text summarization...');
         
         if (!this.summarizationPipeline) {
+            console.error('[ChronicleSync] ✗ Pipeline not initialized');
             throw new Error('Summarization pipeline not initialized');
         }
 
         try {
+            console.log('[ChronicleSync] Input text length:', text.length, 'characters');
+            console.log('[ChronicleSync] Processing text sample:', text.slice(0, 100) + '...');
+            
             const result = await this.summarizationPipeline(text, {
                 max_length: 130,
                 min_length: 30,
             });
             
-            console.log('Summary generated:', result[0].summary_text);
-            console.log('Summarization complete');
-            return result[0].summary_text;
+            const summary = result[0].summary_text;
+            console.log('[ChronicleSync] ✓ Summary generated successfully');
+            console.log('[ChronicleSync] Summary:', summary);
+            return summary;
         } catch (error) {
-            console.error('Error during summarization:', error);
+            console.error('[ChronicleSync] ✗ Error during summarization:', error);
             throw error;
         }
     }

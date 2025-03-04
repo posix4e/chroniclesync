@@ -178,22 +178,31 @@ setInterval(() => syncHistory(false), SYNC_INTERVAL);
 // Listen for navigation events
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    console.debug(`Navigation to: ${changeInfo.url}`);
+    console.log('[ChronicleSync] Navigation detected:', changeInfo.url);
     setTimeout(() => syncHistory(false), 1000);
 
     // Wait for the page to load completely
     if (changeInfo.status === 'complete' && tab.url) {
+      console.log('[ChronicleSync] Page loaded completely, starting summarization process...');
       try {
         // Get the page content
+        console.log('[ChronicleSync] Extracting page content...');
         const [{ result }] = await chrome.scripting.executeScript({
           target: { tabId },
           func: () => {
             const article = document.querySelector('article');
-            if (article) return article.textContent;
+            if (article) {
+              console.log('[ChronicleSync] Found article content');
+              return article.textContent;
+            }
             
             const mainContent = document.querySelector('main');
-            if (mainContent) return mainContent.textContent;
+            if (mainContent) {
+              console.log('[ChronicleSync] Found main content');
+              return mainContent.textContent;
+            }
             
+            console.log('[ChronicleSync] Using body content');
             return document.body.textContent;
           }
         });
@@ -205,14 +214,20 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             .trim()
             .slice(0, 1000); // Take first 1000 characters for summary
 
+          console.log('[ChronicleSync] Extracted text (first 100 chars):', cleanText.slice(0, 100) + '...');
+
           // Initialize summarizer and generate summary
+          console.log('[ChronicleSync] Initializing summarizer...');
           const summarizer = await Summarizer.getInstance();
+          console.log('[ChronicleSync] Generating summary...');
           const summary = await summarizer.summarize(cleanText);
           
-          console.log('Page summary:', summary);
+          console.log('[ChronicleSync] Summary generated successfully:', summary);
+        } else {
+          console.log('[ChronicleSync] No content extracted from page');
         }
       } catch (error) {
-        console.error('Error generating summary:', error);
+        console.error('[ChronicleSync] Error in summarization process:', error);
       }
     }
   }

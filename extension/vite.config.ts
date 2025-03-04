@@ -52,6 +52,30 @@ const copyFiles = () => ({
         console.warn(`Warning: Could not copy ONNX file ${file}: ${error}`);
       }
     }
+
+    // Copy model files
+    const modelDir = resolve(__dirname, 'dist', 'models', 'bart-small-cnn');
+    if (!existsSync(modelDir)) {
+      mkdirSync(modelDir, { recursive: true });
+    }
+
+    const modelFiles = [
+      'tokenizer.json',
+      'config.json',
+      'model.onnx'
+    ];
+
+    for (const file of modelFiles) {
+      try {
+        copyFileSync(
+          resolve(__dirname, 'models', 'bart-small-cnn', file),
+          resolve(modelDir, file)
+        );
+        console.log(`Copied model file: ${file}`);
+      } catch (error) {
+        console.warn(`Warning: Could not copy model file ${file}: ${error}`);
+      }
+    }
   }
 });
 

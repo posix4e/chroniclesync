@@ -37,25 +37,13 @@ export class Summarizer {
 
     private async initialize(retryCount = 0): Promise<void> {
         try {
-            console.log('Initializing summarization pipeline...');
-            
             // Check if WASM backend is available
             if (!env.backends.onnx.wasm.wasmPaths) {
                 throw new Error('WASM backend not configured');
             }
 
-            let lastProgress = 0;
             const initPromise = pipeline('summarization', MODEL_NAME, {
-                quantized: true,
-                progress_callback: (progress: { progress: number }) => {
-                    // progress.progress is between 0 and 1
-                    const currentProgress = Math.round(progress.progress * 100);
-                    // Only log if progress has changed significantly (>= 5%)
-                    if (currentProgress >= lastProgress + 5) {
-                        console.log('Loading model:', currentProgress, '%');
-                        lastProgress = currentProgress;
-                    }
-                }
+                quantized: true
             });
 
             // Add timeout to pipeline initialization
@@ -65,7 +53,7 @@ export class Summarizer {
                 'Model loading timed out after 30 seconds'
             );
             
-            console.log('Summarization pipeline initialized successfully');
+
         } catch (error: unknown) {
             console.error('Error initializing pipeline:', error);
             
@@ -81,8 +69,6 @@ export class Summarizer {
     }
 
     public async summarize(text: string): Promise<string> {
-        console.log('Starting summarization...');
-        
         if (!text.trim()) {
             return '';
         }
@@ -111,7 +97,6 @@ export class Summarizer {
                 throw new Error('Invalid summarization result');
             }
 
-            console.log('Summarization complete');
             return summary.summary_text;
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);

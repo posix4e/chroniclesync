@@ -114,7 +114,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const syncResponse = await response.json();
+      const syncResponse: SyncResponse = await response.json();
 
       if (syncResponse.history && syncResponse.history.length > 0) {
         await historyStore.mergeRemoteEntries(syncResponse.history);
@@ -142,7 +142,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
             sent: unsyncedEntries.length,
             received: syncResponse.history?.length || 0,
             devices: syncResponse.devices?.length || 0
-          }
+          } as SyncStats
         }).catch(() => {
           // Ignore error when no receivers are present
         });

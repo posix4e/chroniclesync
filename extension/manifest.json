@@ -15,7 +15,10 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html", "*.wasm", "tokenizer.json", "model.onnx", "config.json"],
+    "resources": [
+      "history.html",
+      "assets/*"
+    ],
     "matches": ["<all_urls>"]
   }],
   "content_scripts": [{

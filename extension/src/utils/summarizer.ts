@@ -1,8 +1,9 @@
 import { pipeline, env } from '@xenova/transformers';
 
-// Configure transformers.js to use the extension's WASM files
-env.useBrowserCache = false;
-env.allowLocalModels = false;
+// Configure transformers.js to use CDN for models
+env.useBrowserCache = true; // Enable caching to avoid re-downloading
+env.allowLocalModels = false; // Use remote models
+env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
 
 export class Summarizer {
     private static instance: Summarizer | null = null;

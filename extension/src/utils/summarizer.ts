@@ -3,18 +3,20 @@ import { pipeline, env, SummarizationPipeline } from '@xenova/transformers';
 // Configure transformers.js settings
 env.useBrowserCache = true;
 env.allowLocalModels = false;
-env.remoteModels = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/';
 
-// Set up WASM paths
+// Set up paths
 const wasmDir = chrome.runtime.getURL('onnx/');
 env.backends.onnx.wasm.wasmPaths = wasmDir;
+
+// Set remote models path (using type assertion since the property is not in types)
+(env as any).remoteModels = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/';
 
 // Log configuration for debugging
 console.log('Configuration:', {
     wasmDir,
     useBrowserCache: env.useBrowserCache,
     allowLocalModels: env.allowLocalModels,
-    remoteModels: env.remoteModels
+    remoteModels: (env as any).remoteModels
 });
 
 // Use a smaller model and set timeouts

@@ -21,7 +21,7 @@ const copyFiles = () => ({
 
     for (const file of files) {
       try {
-        copyFileSync(file, `dist/${file}`);
+        copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', file));
       } catch (error) {
         console.warn(`Warning: Could not copy ${file}: ${error}`);
       }

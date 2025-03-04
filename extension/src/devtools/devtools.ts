@@ -1,8 +1,8 @@
 chrome.devtools.panels.create(
-    'ChronicleSync',
+    'cs-dev-tools',
     'icon.png',
     'panel.html',
     (panel) => {
-        console.log('ChronicleSync DevTools panel created');
+        console.log('cs-dev-tools panel created');
     }
 );

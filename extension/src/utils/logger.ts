@@ -5,7 +5,7 @@ export class Logger {
     private constructor() {
         // Listen for devtools connection
         chrome.runtime.onConnect.addListener((port) => {
-            if (port.name === 'chroniclesync-devtools') {
+            if (port.name === 'cs-dev-tools') {
                 this.devToolsConnected = true;
                 port.onDisconnect.addListener(() => {
                     this.devToolsConnected = false;

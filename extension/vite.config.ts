@@ -33,6 +33,9 @@ const copyFiles = () => ({
 
 export default defineConfig({
   plugins: [react(), copyFiles()],
+  optimizeDeps: {
+    exclude: ['@xenova/transformers']
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -40,6 +43,7 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'src/background.ts'),
+        content: resolve(__dirname, 'src/content.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
         history: resolve(__dirname, 'src/history.tsx'),
         devtools: resolve(__dirname, 'src/devtools.tsx'),

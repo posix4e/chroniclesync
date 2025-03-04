@@ -45,7 +45,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
     if (!config.clientId || config.clientId === 'extension-default') {
       console.debug('Sync paused: No client ID configured');
-      throw new Error('Please configure your Client ID in the extension popup');
+      throw new Error('No Client ID configured. Please set up your Client ID in the extension settings to start syncing.');
     }
 
     console.debug('Starting sync with client ID:', config.clientId);

@@ -18,13 +18,16 @@ const DevTools: React.FC = () => {
     useEffect(() => {
         const updateState = async () => {
             const store = new HistoryStore();
-            const entries = await store.getAllEntries();
-            const lastSync = await store.getLastSyncTime();
+            await store.init();
+            const entries = await store.getEntries();
+            const unsyncedEntries = await store.getUnsyncedEntries();
 
             setSyncState({
-                lastSync: lastSync ? new Date(lastSync).toLocaleString() : 'Never',
+                lastSync: entries.length > 0 
+                    ? new Date(Math.max(...entries.map(e => e.lastModified))).toLocaleString() 
+                    : 'Never',
                 totalEntries: entries.length,
-                syncStatus: 'Active'
+                syncStatus: unsyncedEntries.length > 0 ? 'Syncing' : 'Synced'
             });
         };
 

@@ -16,7 +16,9 @@ const copyFiles = () => ({
       'settings.css',
       'bip39-wordlist.js',
       'history.html',
-      'history.css'
+      'history.css',
+      'devtools.html',
+      'devtools.css'
     ];
 
     for (const file of files) {
@@ -39,7 +41,9 @@ export default defineConfig({
         popup: resolve(__dirname, 'src/popup.tsx'),
         background: resolve(__dirname, 'src/background.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx')
+        history: resolve(__dirname, 'src/history.tsx'),
+        devtools: resolve(__dirname, 'src/devtools.tsx'),
+        'devtools-page': resolve(__dirname, 'src/devtools-page.ts')
       },
       output: {
         format: 'es',

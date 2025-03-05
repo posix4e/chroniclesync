@@ -37,6 +37,11 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: st
     ]);
 }
 
+// Summarizer class implements the singleton pattern to ensure:
+// 1. Only one instance of the model is loaded in memory
+// 2. Thread-safe initialization using Promise
+// 3. Proper cleanup and error handling
+// 4. Lazy loading of the model only when first needed
 export class Summarizer {
     private static instance: Summarizer | null = null;
     private static initializationPromise: Promise<void> | null = null;

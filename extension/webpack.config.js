@@ -4,8 +4,12 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default {
+  experiments: {
+    topLevelAwait: true,
+  },
   entry: {
     background: './src/background.ts',
+    content: './src/content.ts',
     popup: './src/popup.tsx',
     history: './src/history.tsx',
     devtools: './src/devtools.tsx',
@@ -25,6 +29,10 @@ export default {
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.wasm$/,
+        type: 'asset/resource'
       }
     ]
   },

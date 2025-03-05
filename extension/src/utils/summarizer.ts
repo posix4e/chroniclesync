@@ -39,6 +39,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: st
 
 export class Summarizer {
     private static instance: Summarizer | null = null;
+    private static initializationPromise: Promise<void> | null = null;
     private summarizationPipeline: SummarizationPipeline | null = null;
 
     private constructor() {}
@@ -46,7 +47,11 @@ export class Summarizer {
     public static async getInstance(): Promise<Summarizer> {
         if (!Summarizer.instance) {
             Summarizer.instance = new Summarizer();
-            await Summarizer.instance.initialize();
+            // Store the initialization promise to prevent multiple concurrent initializations
+            if (!Summarizer.initializationPromise) {
+                Summarizer.initializationPromise = Summarizer.instance.initialize();
+            }
+            await Summarizer.initializationPromise;
         }
         return Summarizer.instance;
     }
@@ -72,11 +77,15 @@ export class Summarizer {
             const initPromise = pipeline('summarization', MODEL_NAME, {
                 quantized: true,
                 progress_callback: (progress: { status?: string; progress: number; message?: string }) => {
-                    console.log('Model loading progress:', {
-                        status: progress.status,
-                        progress: Math.round(progress.progress * 100) + '%',
-                        message: progress.message
-                    });
+                    // Only log progress at 0% and every 100% increment
+                    const roundedProgress = Math.floor(progress.progress * 100);
+                    if (roundedProgress === 0 || roundedProgress % 100 === 0) {
+                        console.log('Model loading progress:', {
+                            status: progress.status,
+                            progress: `${roundedProgress}%`,
+                            message: progress.message
+                        });
+                    }
                 }
             });
 
@@ -88,10 +97,11 @@ export class Summarizer {
             );
             
             console.log('Summarization pipeline initialized successfully!');
-            
+            Summarizer.initializationPromise = null; // Clear the promise after successful initialization
 
         } catch (error: unknown) {
             console.error('Error initializing pipeline:', error);
+            Summarizer.initializationPromise = null; // Clear the promise on error
             
             if (retryCount < MAX_RETRIES) {
                 console.log(`Retrying initialization (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
@@ -109,8 +119,12 @@ export class Summarizer {
             return '';
         }
 
+        // Ensure initialization is complete
         if (!this.summarizationPipeline) {
-            await this.initialize();
+            if (!Summarizer.initializationPromise) {
+                Summarizer.initializationPromise = this.initialize();
+            }
+            await Summarizer.initializationPromise;
         }
 
         try {

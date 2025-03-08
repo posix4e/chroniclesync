@@ -21,6 +21,9 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  pageContent?: string;
+  pageSummary?: string;
+  contentEmbedding?: number[];
 }
 
 export interface SyncResponse {

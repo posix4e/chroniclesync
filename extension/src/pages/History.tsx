@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { HistoryEntry, DeviceInfo } from '../types';
+import SearchHistory from './SearchHistory';
 
 const History: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -8,6 +9,7 @@ const History: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<string>('all'); // all, day, week, month
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     // Load devices first
@@ -94,71 +96,92 @@ const History: React.FC = () => {
 
   return (
     <div className="history-view">
-      <div className="filters">
-        <div className="filter-group">
-          <label htmlFor="device-filter">Device:</label>
-          <select
-            id="device-filter"
-            value={selectedDevice}
-            onChange={handleDeviceChange}
-          >
-            <option value="">All Devices</option>
-            {devices.map(device => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.browserName} on {device.platform}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="time-filter">Time:</label>
-          <select
-            id="time-filter"
-            value={timeFilter}
-            onChange={handleTimeFilterChange}
-          >
-            <option value="all">All Time</option>
-            <option value="day">Last 24 Hours</option>
-            <option value="week">Last Week</option>
-            <option value="month">Last Month</option>
-          </select>
-        </div>
+      <div className="header-actions">
+        <h1>Browsing History</h1>
+        <button 
+          className="search-toggle-button"
+          onClick={() => setShowSearch(!showSearch)}
+        >
+          {showSearch ? 'Hide Search' : 'Semantic Search'}
+        </button>
       </div>
-
-      {loading ? (
-        <div className="loading">Loading...</div>
+      
+      {showSearch ? (
+        <SearchHistory onClose={() => setShowSearch(false)} />
       ) : (
-        <div className="history-list">
-          {history.length === 0 ? (
-            <div className="no-history">No history entries found</div>
+        <>
+          <div className="filters">
+            <div className="filter-group">
+              <label htmlFor="device-filter">Device:</label>
+              <select
+                id="device-filter"
+                value={selectedDevice}
+                onChange={handleDeviceChange}
+              >
+                <option value="">All Devices</option>
+                {devices.map(device => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.browserName} on {device.platform}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="time-filter">Time:</label>
+              <select
+                id="time-filter"
+                value={timeFilter}
+                onChange={handleTimeFilterChange}
+              >
+                <option value="all">All Time</option>
+                <option value="day">Last 24 Hours</option>
+                <option value="week">Last Week</option>
+                <option value="month">Last Month</option>
+              </select>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="loading">Loading...</div>
           ) : (
-            history.map(entry => (
-              <div key={entry.visitId} className="history-item">
-                <div className="history-item-header">
-                  <a href={entry.url} target="_blank" rel="noopener noreferrer">
-                    {entry.title || entry.url}
-                  </a>
-                  <button
-                    onClick={() => handleDelete(entry.visitId)}
-                    className="delete-button"
-                    title="Delete"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="history-item-meta">
-                  <span className="device-info" title={`${entry.browserName} ${entry.browserVersion}`}>
-                    {getDeviceName(entry.deviceId)}
-                  </span>
-                  <span className="visit-time">
-                    {formatDate(entry.visitTime)}
-                  </span>
-                </div>
-              </div>
-            ))
+            <div className="history-list">
+              {history.length === 0 ? (
+                <div className="no-history">No history entries found</div>
+              ) : (
+                history.map(entry => (
+                  <div key={entry.visitId} className="history-item">
+                    <div className="history-item-header">
+                      <a href={entry.url} target="_blank" rel="noopener noreferrer">
+                        {entry.title || entry.url}
+                      </a>
+                      <button
+                        onClick={() => handleDelete(entry.visitId)}
+                        className="delete-button"
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {entry.pageSummary && (
+                      <div className="history-item-summary">
+                        {entry.pageSummary}
+                      </div>
+                    )}
+                    <div className="history-item-meta">
+                      <span className="device-info" title={`${entry.browserName} ${entry.browserVersion}`}>
+                        {getDeviceName(entry.deviceId)}
+                      </span>
+                      <span className="visit-time">
+                        {formatDate(entry.visitTime)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

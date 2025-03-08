@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -26,6 +26,7 @@ export class HistoryStore {
       request.onupgradeneeded = (event) => {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
         // Create or update history store
         if (!db.objectStoreNames.contains(this.HISTORY_STORE)) {
@@ -36,6 +37,23 @@ export class HistoryStore {
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
           console.log('Created history store with indexes');
+        } else if (oldVersion < 3) {
+          // Add new indexes for version 3
+          const transaction = event.target?.transaction;
+          if (transaction) {
+            const store = transaction.objectStore(this.HISTORY_STORE);
+            
+            // Check if indexes already exist before creating them
+            if (!store.indexNames.contains('pageSummary')) {
+              store.createIndex('pageSummary', 'pageSummary');
+            }
+            
+            if (!store.indexNames.contains('hasContent')) {
+              store.createIndex('hasContent', 'pageContent', { multiEntry: false });
+            }
+            
+            console.log('Added content-related indexes to history store');
+          }
         }
 
         // Create or update devices store
@@ -264,6 +282,73 @@ export class HistoryStore {
         } else {
           resolve();
         }
+      };
+    });
+  }
+
+  async updateEntryContent(visitId: string, pageContent: string, pageSummary: string, contentEmbedding?: number[]): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      
+      const request = store.get(visitId);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.pageContent = pageContent;
+          entry.pageSummary = pageSummary;
+          if (contentEmbedding) {
+            entry.contentEmbedding = contentEmbedding;
+          }
+          entry.lastModified = Date.now();
+          entry.syncStatus = 'pending';
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          reject(new Error(`Entry with visitId ${visitId} not found`));
+        }
+      };
+    });
+  }
+
+  async searchByContent(query: string, limit: number = 10): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.getAll();
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result || [];
+        
+        // Filter entries that have content and are not deleted
+        const entriesWithContent = entries.filter(
+          (entry: HistoryEntry) => entry.pageContent && !entry.deleted
+        );
+        
+        // Simple text-based search (will be enhanced with embeddings later)
+        const results = entriesWithContent
+          .filter((entry: HistoryEntry) => {
+            const content = entry.pageContent?.toLowerCase() || '';
+            const summary = entry.pageSummary?.toLowerCase() || '';
+            const title = entry.title.toLowerCase();
+            const searchQuery = query.toLowerCase();
+            
+            return content.includes(searchQuery) || 
+                   summary.includes(searchQuery) || 
+                   title.includes(searchQuery);
+          })
+          .sort((a, b) => b.visitTime - a.visitTime) // Sort by most recent first
+          .slice(0, limit);
+        
+        resolve(results);
       };
     });
   }

@@ -9,7 +9,8 @@ export default {
     popup: './src/popup.tsx',
     history: './src/history.tsx',
     devtools: './src/devtools.tsx',
-    'devtools-page': './src/devtools-page.ts'
+    'devtools-page': './src/devtools-page.ts',
+    'content-script': './src/content-script.ts'
   },
   output: {
     path: resolve(__dirname, 'dist'),

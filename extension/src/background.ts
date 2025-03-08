@@ -182,6 +182,52 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   }
 });
 
+// Function to find the most recent history entry for a URL
+async function findMostRecentHistoryEntry(url: string): Promise<string | null> {
+  try {
+    const historyItems = await chrome.history.search({
+      text: url,
+      startTime: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
+      maxResults: 10
+    });
+    
+    // Find the exact URL match
+    const matchingItem = historyItems.find(item => item.url === url);
+    if (!matchingItem) return null;
+    
+    // Get visits for this URL
+    const visits = await chrome.history.getVisits({ url });
+    if (visits.length === 0) return null;
+    
+    // Sort by visitTime descending and get the most recent visitId
+    visits.sort((a, b) => (b.visitTime || 0) - (a.visitTime || 0));
+    return visits[0].visitId.toString();
+  } catch (error) {
+    console.error('Error finding history entry:', error);
+    return null;
+  }
+}
+
+// Function to inject the content script into the active tab
+async function injectContentScript(tabId: number): Promise<void> {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content-script.js']
+    });
+    console.debug('Content script injected successfully');
+  } catch (error) {
+    console.error('Error injecting content script:', error);
+  }
+}
+
+// Listen for tab updates to inject content script
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
+    injectContentScript(tabId);
+  }
+});
+
 // Listen for messages from the page
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getClientId') {
@@ -262,6 +308,62 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('Error deleting history entry:', errorMessage);
+        sendResponse({ error: errorMessage });
+      }
+    }).catch(error => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'pageContentExtracted') {
+    // Handle the extracted page content
+    const { url, content, summary } = request.data;
+    
+    // Find the corresponding history entry
+    findMostRecentHistoryEntry(url).then(visitId => {
+      if (!visitId) {
+        console.debug('No matching history entry found for URL:', url);
+        return;
+      }
+      
+      // Update the history entry with content and summary
+      const historyStore = new HistoryStore();
+      historyStore.init().then(async () => {
+        try {
+          await historyStore.updateEntryContent(visitId, content, summary);
+          console.debug('Updated history entry with page content and summary');
+          
+          // Trigger a sync to update the backend
+          setTimeout(() => syncHistory(false), 1000);
+          
+          sendResponse({ success: true });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Error updating history entry with content:', errorMessage);
+          sendResponse({ error: errorMessage });
+        }
+      }).catch(error => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error initializing IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
+      });
+    }).catch(error => {
+      console.error('Error processing page content:', error);
+      sendResponse({ error: 'Failed to process page content' });
+    });
+    
+    return true; // Will respond asynchronously
+  } else if (request.type === 'searchHistory') {
+    const { query, limit } = request;
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const results = await historyStore.searchByContent(query, limit);
+        sendResponse(results);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error searching history:', errorMessage);
         sendResponse({ error: errorMessage });
       }
     }).catch(error => {

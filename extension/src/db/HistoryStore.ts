@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -26,6 +26,7 @@ export class HistoryStore {
       request.onupgradeneeded = (event) => {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
         // Create or update history store
         if (!db.objectStoreNames.contains(this.HISTORY_STORE)) {
@@ -36,6 +37,21 @@ export class HistoryStore {
           store.createIndex('deviceId', 'deviceId');
           store.createIndex('lastModified', 'lastModified');
           console.log('Created history store with indexes');
+        } else if (oldVersion < 3) {
+          // Add new indexes for version 3
+          const transaction = (event.target as IDBOpenDBRequest).transaction;
+          if (transaction) {
+            const store = transaction.objectStore(this.HISTORY_STORE);
+            
+            // Check if indexes already exist before creating them
+            if (!store.indexNames.contains('pageContent')) {
+              store.createIndex('pageContent', 'pageContent');
+            }
+            if (!store.indexNames.contains('pageSummary')) {
+              store.createIndex('pageSummary', 'pageSummary');
+            }
+            console.log('Added content and summary indexes to history store');
+          }
         }
 
         // Create or update devices store
@@ -264,6 +280,57 @@ export class HistoryStore {
         } else {
           resolve();
         }
+      };
+    });
+  }
+
+  async updatePageContent(visitId: string, pageContent: string, pageSummary: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      
+      const request = store.get(visitId);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entry = request.result;
+        if (entry) {
+          entry.pageContent = pageContent;
+          entry.pageSummary = pageSummary;
+          entry.lastModified = Date.now();
+          entry.syncStatus = 'pending';
+          const updateRequest = store.put(entry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          resolve();
+        }
+      };
+    });
+  }
+
+  async searchPageContent(query: string): Promise<HistoryEntry[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.getAll();
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result || [];
+        // Filter entries that contain the query in their content or summary
+        // Case-insensitive search
+        const queryLower = query.toLowerCase();
+        const results = entries.filter(entry => 
+          (entry.pageContent && entry.pageContent.toLowerCase().includes(queryLower)) || 
+          (entry.pageSummary && entry.pageSummary.toLowerCase().includes(queryLower)) ||
+          (entry.title && entry.title.toLowerCase().includes(queryLower))
+        );
+        resolve(results);
       };
     });
   }

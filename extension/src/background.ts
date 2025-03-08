@@ -15,6 +15,14 @@ interface SyncStats {
   devices: number;
 }
 
+interface PageContentInfo {
+  content: string;
+  summary: string;
+}
+
+// Map to store the most recent visit ID for each tab
+const tabVisitMap = new Map<number, string>();
+
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 async function initializeExtension(): Promise<boolean> {
@@ -171,14 +179,127 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 // Initial sync with full history
 syncHistory(true);
 
+// Function to extract content from a webpage
+async function extractPageContent(tabId: number): Promise<PageContentInfo | null> {
+  try {
+    // Execute script in the tab to extract content
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Get the main content of the page
+        const getMainContent = (): string => {
+          // Try to find the main content element
+          const mainSelectors = [
+            'main',
+            'article',
+            '#content',
+            '.content',
+            '.main-content',
+            '.article-content'
+          ];
+          
+          for (const selector of mainSelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.textContent && element.textContent.trim().length > 100) {
+              return element.textContent.trim();
+            }
+          }
+          
+          // If no main content element found, use the body
+          return document.body.textContent || '';
+        };
+        
+        // Create a simple summary (first 200 characters of content)
+        const createSummary = (content: string): string => {
+          const cleanContent = content
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          // Get first 200 characters or less
+          return cleanContent.length > 200 
+            ? cleanContent.substring(0, 200) + '...'
+            : cleanContent;
+        };
+        
+        const content = getMainContent();
+        const summary = createSummary(content);
+        
+        return { content, summary };
+      }
+    });
+    
+    if (results && results[0] && results[0].result) {
+      return results[0].result as PageContentInfo;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting page content:', error);
+    return null;
+  }
+}
+
+// Function to update history entry with page content
+async function updateHistoryWithPageContent(visitId: string, tabId: number): Promise<void> {
+  try {
+    const contentInfo = await extractPageContent(tabId);
+    if (contentInfo && visitId) {
+      const historyStore = new HistoryStore();
+      await historyStore.init();
+      await historyStore.updatePageContent(visitId, contentInfo.content, contentInfo.summary);
+      console.debug(`Updated history entry ${visitId} with page content`);
+    }
+  } catch (error) {
+    console.error('Error updating history with page content:', error);
+  }
+}
+
 // Set up periodic sync
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url) {
     console.debug(`Navigation to: ${changeInfo.url}`);
-    setTimeout(() => syncHistory(false), 1000);
+    
+    // Trigger a sync to get the new history entry
+    setTimeout(async () => {
+      await syncHistory(false);
+      
+      // Get the most recent history entry for this URL
+      try {
+        const url = changeInfo.url || '';
+        const historyItems = await chrome.history.search({
+          text: url,
+          startTime: Date.now() - 10000, // Last 10 seconds
+          maxResults: 1
+        });
+        
+        if (historyItems && historyItems.length > 0 && historyItems[0].url === url) {
+          const visits = await chrome.history.getVisits({ url: historyItems[0].url || '' });
+          if (visits && visits.length > 0) {
+            const mostRecentVisit = visits[visits.length - 1];
+            const visitId = mostRecentVisit.visitId.toString();
+            
+            // Store the visit ID for this tab
+            tabVisitMap.set(tabId, visitId);
+            
+            // Wait for the page to load completely before extracting content
+            if (tab.status === 'complete') {
+              await updateHistoryWithPageContent(visitId, tabId);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error getting history for URL:', error);
+      }
+    }, 1000);
+  } else if (changeInfo.status === 'complete' && tab.url) {
+    // Page has finished loading, extract content if we have a visit ID
+    const visitId = tabVisitMap.get(tabId);
+    if (visitId) {
+      await updateHistoryWithPageContent(visitId, tabId);
+    }
   }
 });
 
@@ -269,6 +390,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.error('Error initializing IndexedDB:', errorMessage);
       sendResponse({ error: errorMessage });
     });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'searchPageContent') {
+    const { query } = request;
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const results = await historyStore.searchPageContent(query);
+        sendResponse(results);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error searching page content:', errorMessage);
+        sendResponse({ error: errorMessage });
+      }
+    }).catch(error => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
+    });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'getCurrentPageContent') {
+    const { tabId } = request;
+    extractPageContent(tabId)
+      .then(contentInfo => {
+        sendResponse(contentInfo);
+      })
+      .catch(error => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error getting current page content:', errorMessage);
+        sendResponse({ error: errorMessage });
+      });
     return true; // Will respond asynchronously
   }
 });

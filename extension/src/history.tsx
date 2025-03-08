@@ -5,6 +5,7 @@ import { HistoryStore } from './db/HistoryStore';
 const ITEMS_PER_PAGE = 10;
 
 import { HistoryEntry } from './types';
+import SearchHistory from './pages/SearchHistory';
 
 interface FilterOptions {
   platform: string;
@@ -20,6 +21,7 @@ const HistoryView: React.FC = () => {
   const [filters, setFilters] = useState<FilterOptions>({ platform: '', browserName: '' });
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
   const [availableBrowsers, setAvailableBrowsers] = useState<string[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -84,77 +86,95 @@ const HistoryView: React.FC = () => {
 
   return (
     <div className="history-container">
-      <div className="history-header">
+      <div className="header-actions">
         <h2>Browsing History</h2>
+        <button 
+          className="search-toggle-button"
+          onClick={() => setShowSearch(!showSearch)}
+        >
+          {showSearch ? 'Hide Search' : 'Semantic Search'}
+        </button>
       </div>
-      <div className="history-filters">
-        <input
-          type="text"
-          className="history-search"
-          placeholder="Search history..."
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-        <div className="filter-controls">
-          <select
-            value={filters.platform}
-            onChange={(e) => handleFilterChange('platform', e.target.value)}
-            className="platform-filter"
-          >
-            <option value="">All Platforms</option>
-            {availablePlatforms.map(platform => (
-              <option key={platform} value={platform}>{platform}</option>
-            ))}
-          </select>
-          <select
-            value={filters.browserName}
-            onChange={(e) => handleFilterChange('browserName', e.target.value)}
-            className="browser-filter"
-          >
-            <option value="">All Browsers</option>
-            {availableBrowsers.map(browser => (
-              <option key={browser} value={browser}>{browser}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="history-list">
-        {getCurrentPageItems().map(item => (
-          <div
-            key={item.visitId}
-            className="history-item"
-            onClick={() => handleItemClick(item.url)}
-          >
-            <div>{item.title}</div>
-            <div style={{ fontSize: '0.8em', color: '#666' }}>
-              {item.url}
-              <br />
-              {new Date(item.visitTime).toLocaleString()}
-              <br />
-              <span style={{ color: '#888' }}>
-                {item.platform} • {item.browserName}
-              </span>
+      
+      {showSearch ? (
+        <SearchHistory onClose={() => setShowSearch(false)} />
+      ) : (
+        <>
+          <div className="history-filters">
+            <input
+              type="text"
+              className="history-search"
+              placeholder="Search history..."
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+            <div className="filter-controls">
+              <select
+                value={filters.platform}
+                onChange={(e) => handleFilterChange('platform', e.target.value)}
+                className="platform-filter"
+              >
+                <option value="">All Platforms</option>
+                {availablePlatforms.map(platform => (
+                  <option key={platform} value={platform}>{platform}</option>
+                ))}
+              </select>
+              <select
+                value={filters.browserName}
+                onChange={(e) => handleFilterChange('browserName', e.target.value)}
+                className="browser-filter"
+              >
+                <option value="">All Browsers</option>
+                {availableBrowsers.map(browser => (
+                  <option key={browser} value={browser}>{browser}</option>
+                ))}
+              </select>
             </div>
           </div>
-        ))}
-      </div>
-      <div className="pagination">
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </div>
+          <div className="history-list">
+            {getCurrentPageItems().map(item => (
+              <div
+                key={item.visitId}
+                className="history-item"
+                onClick={() => handleItemClick(item.url)}
+              >
+                <div>{item.title}</div>
+                {item.pageSummary && (
+                  <div className="history-item-summary">
+                    {item.pageSummary}
+                  </div>
+                )}
+                <div style={{ fontSize: '0.8em', color: '#666' }}>
+                  {item.url}
+                  <br />
+                  {new Date(item.visitTime).toLocaleString()}
+                  <br />
+                  <span style={{ color: '#888' }}>
+                    {item.platform} • {item.browserName}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="pagination">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -48,11 +48,14 @@ export class HistoryStore {
         
         // Add content index for version 3
         if (oldVersion < 3) {
-          const historyStore = db.transaction([this.HISTORY_STORE], 'readwrite')
-            .objectStore(this.HISTORY_STORE);
+          // During onupgradeneeded, we already have an active transaction
+          // We can get the object store directly from the database
+          const historyStore = db.objectStoreNames.contains(this.HISTORY_STORE) 
+            ? event.target.transaction.objectStore(this.HISTORY_STORE)
+            : null;
             
-          // Create index for page content if it doesn't exist
-          if (!historyStore.indexNames.contains('hasContent')) {
+          // Create index for page content if the store exists and index doesn't exist
+          if (historyStore && !historyStore.indexNames.contains('hasContent')) {
             historyStore.createIndex('hasContent', 'pageContent', { unique: false });
             console.log('Added page content index');
           }

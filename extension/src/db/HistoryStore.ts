@@ -50,14 +50,16 @@ export class HistoryStore {
         if (oldVersion < 3) {
           // During onupgradeneeded, we already have an active transaction
           // We can get the object store directly from the database
-          const historyStore = db.objectStoreNames.contains(this.HISTORY_STORE) 
-            ? event.target.transaction.objectStore(this.HISTORY_STORE)
-            : null;
+          if (db.objectStoreNames.contains(this.HISTORY_STORE)) {
+            // The transaction is available directly from the event
+            const transaction = event.target as IDBOpenDBRequest;
+            const historyStore = transaction.transaction?.objectStore(this.HISTORY_STORE);
             
-          // Create index for page content if the store exists and index doesn't exist
-          if (historyStore && !historyStore.indexNames.contains('hasContent')) {
-            historyStore.createIndex('hasContent', 'pageContent', { unique: false });
-            console.log('Added page content index');
+            // Create index for page content if the store exists and index doesn't exist
+            if (historyStore && !historyStore.indexNames.contains('hasContent')) {
+              historyStore.createIndex('hasContent', 'pageContent', { unique: false });
+              console.log('Added page content index');
+            }
           }
         }
       };

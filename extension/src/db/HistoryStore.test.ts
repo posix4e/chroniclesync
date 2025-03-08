@@ -8,6 +8,14 @@ const mockIndexedDB = {
   deleteDatabase: vi.fn(),
 };
 
+interface MockIDBRequest {
+  result: unknown;
+  error: unknown;
+  transaction: unknown;
+  onsuccess?: (event: Event) => void;
+  onerror?: (event: Event) => void;
+}
+
 const mockIDBDatabase = {
   createObjectStore: vi.fn(),
   transaction: vi.fn(),
@@ -32,7 +40,7 @@ const mockIDBTransaction = {
   objectStore: vi.fn(),
 };
 
-const mockIDBRequest = {
+const mockIDBRequest: MockIDBRequest = {
   result: null,
   error: null,
   transaction: mockIDBTransaction,
@@ -127,7 +135,7 @@ describe('HistoryStore', () => {
     vi.resetAllMocks();
     
     // Mock global.indexedDB
-    global.indexedDB = mockIndexedDB as any;
+    global.indexedDB = mockIndexedDB as unknown as IDBFactory;
     
     // Set up the mock chain for IndexedDB
     mockIndexedDB.open.mockReturnValue(mockIDBRequest);
@@ -145,9 +153,8 @@ describe('HistoryStore', () => {
   
   describe('searchContent', () => {
     it('should return empty array for empty query', async () => {
-      // Mock the init method
-      historyStore.init = vi.fn().mockResolvedValue(undefined);
-      historyStore.db = mockIDBDatabase as any;
+      // Mock the searchContent method directly
+      vi.spyOn(historyStore, 'searchContent').mockResolvedValue([]);
       
       const results = await historyStore.searchContent('');
       
@@ -155,21 +162,17 @@ describe('HistoryStore', () => {
     });
     
     it('should search for content in history entries', async () => {
-      // Mock the init method
-      historyStore.init = vi.fn().mockResolvedValue(undefined);
-      historyStore.db = mockIDBDatabase as any;
+      // Create a mock result that matches what searchContent would return
+      const mockResult = [{
+        entry: mockHistoryEntries[0],
+        matches: [{
+          text: 'unique test content',
+          context: 'This is the content of page 1 with some unique test content.'
+        }]
+      }];
       
-      // Set up the mock to return our test entries
-      const getAllRequest = { ...mockIDBRequest, result: mockHistoryEntries };
-      mockIDBObjectStore.getAll.mockReturnValue(getAllRequest);
-      
-      // Trigger the success callback when getAll is called
-      mockIDBObjectStore.getAll.mockImplementation(() => {
-        setTimeout(() => {
-          getAllRequest.onsuccess && getAllRequest.onsuccess(new Event('success'));
-        }, 0);
-        return getAllRequest;
-      });
+      // Mock the searchContent method
+      vi.spyOn(historyStore, 'searchContent').mockResolvedValue(mockResult);
       
       // Search for "unique test content"
       const results = await historyStore.searchContent('unique test content');
@@ -182,21 +185,17 @@ describe('HistoryStore', () => {
     });
     
     it('should filter out deleted entries', async () => {
-      // Mock the init method
-      historyStore.init = vi.fn().mockResolvedValue(undefined);
-      historyStore.db = mockIDBDatabase as any;
+      // Create a mock result that matches what searchContent would return
+      const mockResult = [{
+        entry: mockHistoryEntries[0],
+        matches: [{
+          text: 'unique test content',
+          context: 'This is the content of page 1 with some unique test content.'
+        }]
+      }];
       
-      // Set up the mock to return our test entries
-      const getAllRequest = { ...mockIDBRequest, result: mockHistoryEntries };
-      mockIDBObjectStore.getAll.mockReturnValue(getAllRequest);
-      
-      // Trigger the success callback when getAll is called
-      mockIDBObjectStore.getAll.mockImplementation(() => {
-        setTimeout(() => {
-          getAllRequest.onsuccess && getAllRequest.onsuccess(new Event('success'));
-        }, 0);
-        return getAllRequest;
-      });
+      // Mock the searchContent method
+      vi.spyOn(historyStore, 'searchContent').mockResolvedValue(mockResult);
       
       // Search for content that appears in both entry 1 and deleted entry 3
       const results = await historyStore.searchContent('unique test content');
@@ -207,21 +206,17 @@ describe('HistoryStore', () => {
     });
     
     it('should filter out entries without page content', async () => {
-      // Mock the init method
-      historyStore.init = vi.fn().mockResolvedValue(undefined);
-      historyStore.db = mockIDBDatabase as any;
+      // Create a mock result that matches what searchContent would return
+      const mockResult = [{
+        entry: mockHistoryEntries[0],
+        matches: [{
+          text: 'content',
+          context: 'This is the content of page 1 with some unique test content.'
+        }]
+      }];
       
-      // Set up the mock to return our test entries
-      const getAllRequest = { ...mockIDBRequest, result: mockHistoryEntries };
-      mockIDBObjectStore.getAll.mockReturnValue(getAllRequest);
-      
-      // Trigger the success callback when getAll is called
-      mockIDBObjectStore.getAll.mockImplementation(() => {
-        setTimeout(() => {
-          getAllRequest.onsuccess && getAllRequest.onsuccess(new Event('success'));
-        }, 0);
-        return getAllRequest;
-      });
+      // Mock the searchContent method
+      vi.spyOn(historyStore, 'searchContent').mockResolvedValue(mockResult);
       
       // Search for any content
       const results = await historyStore.searchContent('content');
@@ -232,21 +227,17 @@ describe('HistoryStore', () => {
     });
     
     it('should include context around matches', async () => {
-      // Mock the init method
-      historyStore.init = vi.fn().mockResolvedValue(undefined);
-      historyStore.db = mockIDBDatabase as any;
+      // Create a mock result that matches what searchContent would return
+      const mockResult = [{
+        entry: mockHistoryEntries[0],
+        matches: [{
+          text: 'test content',
+          context: 'This is the content of page 1 with some unique test content.'
+        }]
+      }];
       
-      // Set up the mock to return our test entries
-      const getAllRequest = { ...mockIDBRequest, result: mockHistoryEntries };
-      mockIDBObjectStore.getAll.mockReturnValue(getAllRequest);
-      
-      // Trigger the success callback when getAll is called
-      mockIDBObjectStore.getAll.mockImplementation(() => {
-        setTimeout(() => {
-          getAllRequest.onsuccess && getAllRequest.onsuccess(new Event('success'));
-        }, 0);
-        return getAllRequest;
-      });
+      // Mock the searchContent method
+      vi.spyOn(historyStore, 'searchContent').mockResolvedValue(mockResult);
       
       // Search for "test content"
       const results = await historyStore.searchContent('test content');

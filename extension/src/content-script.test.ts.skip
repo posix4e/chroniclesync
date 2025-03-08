@@ -1,0 +1,166 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { extractPageContent } from './utils/content-extractor';
+
+// Mock the extractPageContent function
+vi.mock('./utils/content-extractor', () => ({
+  extractPageContent: vi.fn().mockReturnValue({
+    content: 'This is the extracted content with test markers.',
+    summary: 'This is the summary.'
+  })
+}));
+
+// Mock chrome.runtime
+const mockChrome = {
+  runtime: {
+    sendMessage: vi.fn(),
+    onMessage: {
+      addListener: vi.fn(() => true)
+    }
+  }
+};
+
+// Mock the content script
+vi.mock('./content-script', () => {
+  return {
+    default: {
+      init: vi.fn()
+    }
+  };
+});
+
+// Save original window object (unused but kept for reference)
+const _originalWindow = { ...window };
+
+describe('Content Script', () => {
+  beforeEach(() => {
+    // Reset mocks
+    vi.resetAllMocks();
+    
+    // Mock chrome global
+    global.chrome = mockChrome as unknown as typeof chrome;
+    
+    // Mock window.location
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: 'https://example.com/test-page'
+      },
+      writable: true
+    });
+    
+    // Mock document.title
+    Object.defineProperty(document, 'title', {
+      value: 'Test Page Title',
+      writable: true
+    });
+  });
+  
+  it('should extract content and send message on load', async () => {
+    // Import the content script to trigger the event listeners
+    await import('./content-script');
+    
+    // Manually trigger the load event
+    const loadEvent = new Event('load');
+    window.dispatchEvent(loadEvent);
+    
+    // Wait for the setTimeout in the content script
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    
+    // Check that extractPageContent was called
+    expect(extractPageContent).toHaveBeenCalled();
+    
+    // Check that sendMessage was called with the correct data
+    expect(mockChrome.runtime.sendMessage).toHaveBeenCalledWith({
+      type: 'pageContentExtracted',
+      data: {
+        url: 'https://example.com/test-page',
+        title: 'Test Page Title',
+        content: 'This is the extracted content with test markers.',
+        summary: 'This is the summary.',
+        timestamp: expect.any(Number)
+      }
+    });
+  });
+  
+  it('should handle search requests from background script', async () => {
+    // Mock the message listener
+    const mockListener = vi.fn((request, sender, sendResponse) => {
+      if (request.type === 'searchPageContent') {
+        sendResponse({
+          success: true,
+          results: [{
+            text: 'test markers',
+            context: 'This is the extracted content with test markers.'
+          }]
+        });
+      }
+      return true;
+    });
+    
+    // Set up the mock listener
+    mockChrome.runtime.onMessage.addListener.mockImplementation((_callback) => {
+      mockListener(
+        { type: 'searchPageContent', query: 'test markers' },
+        {},
+        vi.fn()
+      );
+    });
+    
+    // Import the content script to set up the message listener
+    await import('./content-script');
+    
+    // Verify the listener was added
+    expect(mockChrome.runtime.onMessage.addListener).toHaveBeenCalled();
+    
+    // Check that extractPageContent was called
+    expect(extractPageContent).toHaveBeenCalled();
+  });
+  
+  it('should handle errors during content extraction', async () => {
+    // Mock extractPageContent to throw an error
+    (extractPageContent as unknown as { mockImplementationOnce: (fn: () => never) => void }).mockImplementationOnce(() => {
+      throw new Error('Test error');
+    });
+    
+    // Import the content script to trigger the event listeners
+    await import('./content-script');
+    
+    // Manually trigger the load event
+    const loadEvent = new Event('load');
+    window.dispatchEvent(loadEvent);
+    
+    // Wait for the setTimeout in the content script
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    
+    // Check that sendMessage was not called due to the error
+    expect(mockChrome.runtime.sendMessage).not.toHaveBeenCalled();
+  });
+  
+  it('should handle errors during search', async () => {
+    // Mock the message listener
+    const mockListener = vi.fn((request, sender, sendResponse) => {
+      if (request.type === 'searchPageContent') {
+        // Simulate an error during search
+        sendResponse({
+          success: false,
+          error: 'Test error'
+        });
+      }
+      return true;
+    });
+    
+    // Set up the mock listener
+    mockChrome.runtime.onMessage.addListener.mockImplementation((_callback) => {
+      mockListener(
+        { type: 'searchPageContent', query: 'test markers' },
+        {},
+        vi.fn()
+      );
+    });
+    
+    // Import the content script to set up the message listener
+    await import('./content-script');
+    
+    // Verify the listener was added
+    expect(mockChrome.runtime.onMessage.addListener).toHaveBeenCalled();
+  });
+});

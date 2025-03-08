@@ -1,9 +1,10 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
-import { server } from './test-config';
+// Import server but prefix with _ to indicate it's not used
+import { server as _server } from './test-config';
 
 test.describe('Content Extraction and Search', () => {
   // Test for content extraction when visiting a page
-  test('should extract content from a webpage', async ({ context, extensionId, page }) => {
+  test('should extract content from a webpage', async ({ context, extensionId }) => {
     // First, set up a client ID through the settings page
     const settingsPage = await context.newPage();
     await settingsPage.goto(getExtensionUrl(extensionId, 'settings.html'));

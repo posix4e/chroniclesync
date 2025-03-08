@@ -6,6 +6,12 @@ export interface DeviceInfo {
   browserVersion: string;
 }
 
+export interface PageContent {
+  content: string;
+  summary: string;
+  extractedAt: number;
+}
+
 export interface HistoryEntry {
   url: string;
   title: string;
@@ -21,10 +27,22 @@ export interface HistoryEntry {
   syncStatus: 'pending' | 'synced';
   lastModified: number;
   deleted?: boolean;
+  pageContent?: PageContent;
 }
 
 export interface SyncResponse {
   history: HistoryEntry[];
   lastSyncTime: number;
   devices: DeviceInfo[];
+}
+
+export interface SearchResult {
+  visitId: string;
+  url: string;
+  title: string;
+  visitTime: number;
+  matches: {
+    text: string;
+    context: string;
+  }[];
 }

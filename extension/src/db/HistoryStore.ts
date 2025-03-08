@@ -4,7 +4,7 @@ export class HistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';
-  private readonly DB_VERSION = 2;
+  private readonly DB_VERSION = 3;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -26,6 +26,7 @@ export class HistoryStore {
       request.onupgradeneeded = (event) => {
         console.log('Upgrading IndexedDB schema...');
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
         
         // Create or update history store
         if (!db.objectStoreNames.contains(this.HISTORY_STORE)) {
@@ -43,6 +44,18 @@ export class HistoryStore {
           const deviceStore = db.createObjectStore(this.DEVICE_STORE, { keyPath: 'deviceId' });
           deviceStore.createIndex('lastSeen', 'lastSeen');
           console.log('Created devices store');
+        }
+        
+        // Add content index for version 3
+        if (oldVersion < 3) {
+          const historyStore = db.transaction([this.HISTORY_STORE], 'readwrite')
+            .objectStore(this.HISTORY_STORE);
+            
+          // Create index for page content if it doesn't exist
+          if (!historyStore.indexNames.contains('hasContent')) {
+            historyStore.createIndex('hasContent', 'pageContent', { unique: false });
+            console.log('Added page content index');
+          }
         }
       };
     });
@@ -264,6 +277,104 @@ export class HistoryStore {
         } else {
           resolve();
         }
+      };
+    });
+  }
+
+  async updatePageContent(url: string, pageContent: { content: string, summary: string }): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readwrite');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const urlIndex = store.index('url');
+      const request = urlIndex.getAll(url);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result;
+        if (entries && entries.length > 0) {
+          // Find the most recent entry for this URL
+          const mostRecentEntry = entries.reduce((latest, current) => {
+            return current.visitTime > latest.visitTime ? current : latest;
+          }, entries[0]);
+          
+          // Update the entry with page content
+          mostRecentEntry.pageContent = {
+            content: pageContent.content,
+            summary: pageContent.summary,
+            extractedAt: Date.now()
+          };
+          mostRecentEntry.syncStatus = 'pending';
+          mostRecentEntry.lastModified = Date.now();
+          
+          const updateRequest = store.put(mostRecentEntry);
+          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onsuccess = () => resolve();
+        } else {
+          // No entries found for this URL
+          resolve();
+        }
+      };
+    });
+  }
+
+  async searchContent(query: string): Promise<{ entry: HistoryEntry, matches: { text: string, context: string }[] }[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!query || query.trim().length === 0) return [];
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.HISTORY_STORE], 'readonly');
+      const store = transaction.objectStore(this.HISTORY_STORE);
+      const request = store.getAll();
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const entries = request.result || [];
+        const results: { entry: HistoryEntry, matches: { text: string, context: string }[] }[] = [];
+        
+        // Filter entries with page content and not deleted
+        const entriesWithContent = entries.filter(entry => 
+          !entry.deleted && 
+          entry.pageContent && 
+          entry.pageContent.content
+        );
+        
+        // Search for query in content
+        const lowerQuery = query.toLowerCase();
+        
+        for (const entry of entriesWithContent) {
+          const content = entry.pageContent!.content.toLowerCase();
+          const matches: { text: string, context: string }[] = [];
+          
+          let startIndex = 0;
+          while (startIndex < content.length) {
+            const foundIndex = content.indexOf(lowerQuery, startIndex);
+            if (foundIndex === -1) break;
+            
+            // Get context around the match (100 chars before and after)
+            const contextStart = Math.max(0, foundIndex - 100);
+            const contextEnd = Math.min(content.length, foundIndex + query.length + 100);
+            const matchText = entry.pageContent!.content.substring(foundIndex, foundIndex + query.length);
+            const context = entry.pageContent!.content.substring(contextStart, contextEnd);
+            
+            matches.push({
+              text: matchText,
+              context: context
+            });
+            
+            startIndex = foundIndex + query.length;
+          }
+          
+          if (matches.length > 0) {
+            results.push({
+              entry,
+              matches
+            });
+          }
+        }
+        
+        resolve(results);
       };
     });
   }

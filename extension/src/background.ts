@@ -270,5 +270,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
+  } else if (request.type === 'pageContentExtracted') {
+    // Handle page content extraction from content script
+    const { url, content, summary } = request.data;
+    if (url && (content || summary)) {
+      const historyStore = new HistoryStore();
+      historyStore.init().then(async () => {
+        try {
+          await historyStore.updatePageContent(url, { content, summary });
+          console.debug('Updated page content for:', url);
+          sendResponse({ success: true });
+          
+          // Trigger a sync to send the updated content to the server
+          setTimeout(() => syncHistory(false), 1000);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Error updating page content:', errorMessage);
+          sendResponse({ error: errorMessage });
+        }
+      }).catch(error => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error initializing IndexedDB:', errorMessage);
+        sendResponse({ error: errorMessage });
+      });
+      return true; // Will respond asynchronously
+    }
+  } else if (request.type === 'searchHistory') {
+    const { query } = request;
+    const historyStore = new HistoryStore();
+    historyStore.init().then(async () => {
+      try {
+        const results = await historyStore.searchContent(query);
+        
+        // Format the results for display
+        const formattedResults = results.map(result => ({
+          visitId: result.entry.visitId,
+          url: result.entry.url,
+          title: result.entry.title,
+          visitTime: result.entry.visitTime,
+          matches: result.matches
+        }));
+        
+        sendResponse({ success: true, results: formattedResults });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error searching history:', errorMessage);
+        sendResponse({ error: errorMessage });
+      }
+    }).catch(error => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing IndexedDB:', errorMessage);
+      sendResponse({ error: errorMessage });
+    });
+    return true; // Will respond asynchronously
   }
 });

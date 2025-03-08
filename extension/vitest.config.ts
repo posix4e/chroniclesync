@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    include: ['**/__tests__/**/*.test.[jt]s?(x)'],
+    include: ['**/__tests__/**/*.test.[jt]s?(x)', '**/src/**/*.test.[jt]s?(x)'],
     globals: true,
     setupFiles: ['./jest.setup.js', './jest.setup.extension.js'],
     css: true,

@@ -39,7 +39,7 @@ export class HistoryStore {
           console.log('Created history store with indexes');
         } else if (oldVersion < 3) {
           // Add new indexes for version 3
-          const transaction = event.target?.transaction;
+          const transaction = (event.target as IDBOpenDBRequest).transaction;
           if (transaction) {
             const store = transaction.objectStore(this.HISTORY_STORE);
             

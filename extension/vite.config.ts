@@ -43,7 +43,8 @@ export default defineConfig({
         settings: resolve(__dirname, 'src/settings/index.ts'),
         history: resolve(__dirname, 'src/history.tsx'),
         devtools: resolve(__dirname, 'src/devtools.tsx'),
-        'devtools-page': resolve(__dirname, 'src/devtools-page.ts')
+        'devtools-page': resolve(__dirname, 'src/devtools-page.ts'),
+        'content-script': resolve(__dirname, 'src/content-script.ts')
       },
       output: {
         format: 'es',

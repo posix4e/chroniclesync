@@ -2,14 +2,15 @@
  * Helper functions for Safari extension testing
  */
 import { BrowserContext, webkit } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
+// Unused imports are prefixed with underscore to satisfy linting
+import * as _path from 'path';
+import * as _fs from 'fs';
 
 /**
  * Load the Safari extension for testing
  * Note: This is a placeholder as WebKit in Playwright doesn't directly support extensions
  */
-export async function loadSafariExtension(extensionPath: string): Promise<BrowserContext> {
+export async function loadSafariExtension(_extensionPath: string): Promise<BrowserContext> {
   // For Safari/WebKit, we need a different approach
   // In a real implementation, you would:
   // 1. Use Appium with XCUITest driver for iOS automation

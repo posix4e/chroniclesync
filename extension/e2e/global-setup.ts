@@ -15,20 +15,20 @@ async function globalSetup() {
     console.log(`Setting up for browser: ${browserType}`);
 
     switch (browserType.toLowerCase()) {
-      case 'chromium':
-      case 'chrome':
-        await setupChromium();
-        break;
-      case 'firefox':
-        await setupFirefox();
-        break;
-      case 'webkit':
-      case 'safari':
-        await setupWebKit();
-        break;
-      default:
-        console.log(`Unknown browser type: ${browserType}, defaulting to Chromium`);
-        await setupChromium();
+    case 'chromium':
+    case 'chrome':
+      await setupChromium();
+      break;
+    case 'firefox':
+      await setupFirefox();
+      break;
+    case 'webkit':
+    case 'safari':
+      await setupWebKit();
+      break;
+    default:
+      console.log(`Unknown browser type: ${browserType}, defaulting to Chromium`);
+      await setupChromium();
     }
   } catch (error) {
     console.error('Error in global setup:', error);

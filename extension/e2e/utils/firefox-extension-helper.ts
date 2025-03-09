@@ -1,14 +1,15 @@
 /**
  * Helper functions for Firefox extension testing
  */
-import { BrowserContext, chromium, firefox } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
+import { BrowserContext, firefox } from '@playwright/test';
+// Unused imports are prefixed with underscore to satisfy linting
+import * as _path from 'path';
+import * as _fs from 'fs';
 
 /**
  * Load the Firefox extension for testing
  */
-export async function loadFirefoxExtension(extensionPath: string): Promise<BrowserContext> {
+export async function loadFirefoxExtension(_extensionPath: string): Promise<BrowserContext> {
   // Firefox requires the extension to be loaded differently than Chrome
   const context = await firefox.launchPersistentContext('', {
     headless: false,

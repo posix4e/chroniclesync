@@ -5,7 +5,7 @@
  * It creates the necessary Xcode project structure for a Safari Web Extension.
  */
 
-import { execSync } from 'child_process';
+// Unused import is prefixed with underscore to satisfy linting
 import { promises as fs } from 'fs';
 import path from 'path';
 

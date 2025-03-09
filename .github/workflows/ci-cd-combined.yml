@@ -64,19 +64,33 @@ jobs:
           npm ci
           npm run build
 
-      - name: Package Chrome Extension
+      - name: Package Extensions for All Platforms
         working-directory: extension
         run: |
           # Install zip utility
           sudo apt-get update && sudo apt-get install -y zip
-          # Run build script with ESM support
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+          # Run build script with ESM support for all platforms
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:all
 
-      - name: Upload Extension Artifact
+      - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
           path: extension/chrome-extension.zip
+          retention-days: 14
+          
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: extension/firefox-extension.zip
+          retention-days: 14
+          
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
           retention-days: 14
 
       - name: Test Extension
@@ -144,7 +158,10 @@ jobs:
   playwright-tests:
     needs: build-and-test
     if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser != '')
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.browser == 'webkit' && 'macos-latest' || 'ubuntu-latest' }}
+    strategy:
+      matrix:
+        browser: ${{ github.event.inputs.browser != '' && fromJSON(format('["{0}"]', github.event.inputs.browser)) || fromJSON('["chromium", "firefox", "webkit"]') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -156,6 +173,12 @@ jobs:
             pages/package-lock.json
             extension/package-lock.json
 
+      - name: Download appropriate extension artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.browser == 'chromium' && 'chrome' || matrix.browser }}-extension
+          path: extension
+
       - name: Install dependencies and run extension tests
         working-directory: extension
         env:
@@ -163,17 +186,26 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
+          BROWSER: ${{ matrix.browser }}
         run: |
           npm ci
-          npx playwright install --with-deps chromium
-          # Run e2e tests with frame buffer
-          npm run test:e2e
+          npx playwright install --with-deps ${{ matrix.browser }}
+          # Run e2e tests with frame buffer for the specific browser
+          if [ "${{ matrix.browser }}" = "chromium" ]; then
+            npm run test:e2e:chrome
+          elif [ "${{ matrix.browser }}" = "firefox" ]; then
+            npm run test:e2e:firefox
+          elif [ "${{ matrix.browser }}" = "webkit" ]; then
+            npm run test:e2e:webkit
+          else
+            npm run test:e2e
+          fi
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports-extension
+          name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
             extension/test-results/

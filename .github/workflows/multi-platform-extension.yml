@@ -1,0 +1,170 @@
+name: Multi-Platform Extension CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'extension/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'extension/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Extension Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+      
+      - name: Install dependencies
+        run: cd extension && npm ci
+      
+      - name: Build all platform packages
+        run: cd extension && npm run build:all
+      
+      - name: Upload Chrome extension
+        uses: actions/upload-artifact@v3
+        with:
+          name: chrome-extension
+          path: extension/chrome-extension.zip
+      
+      - name: Upload Firefox extension
+        uses: actions/upload-artifact@v3
+        with:
+          name: firefox-extension
+          path: extension/firefox-extension.zip
+      
+      - name: Upload Safari extension
+        uses: actions/upload-artifact@v3
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
+      
+      - name: Upload Safari iOS project
+        uses: actions/upload-artifact@v3
+        with:
+          name: safari-ios-project
+          path: extension/safari-ios
+
+  test-chrome:
+    name: Test Chrome Extension
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+      
+      - name: Install dependencies
+        run: cd extension && npm ci
+      
+      - name: Download Chrome extension
+        uses: actions/download-artifact@v3
+        with:
+          name: chrome-extension
+          path: extension
+      
+      - name: Extract Chrome extension
+        run: |
+          cd extension
+          mkdir -p package/chrome
+          unzip chrome-extension.zip -d package/chrome
+      
+      - name: Install Playwright browsers
+        run: cd extension && npx playwright install chromium
+      
+      - name: Run Chrome extension tests
+        run: |
+          cd extension
+          export BUILD_PACKAGES=true
+          npm run test:e2e:chrome
+
+  test-firefox:
+    name: Test Firefox Extension
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+      
+      - name: Install dependencies
+        run: cd extension && npm ci
+      
+      - name: Download Firefox extension
+        uses: actions/download-artifact@v3
+        with:
+          name: firefox-extension
+          path: extension
+      
+      - name: Extract Firefox extension
+        run: |
+          cd extension
+          mkdir -p package/firefox
+          unzip firefox-extension.zip -d package/firefox
+      
+      - name: Install Playwright browsers
+        run: cd extension && npx playwright install firefox
+      
+      - name: Run Firefox extension tests
+        run: |
+          cd extension
+          export BUILD_PACKAGES=true
+          npm run test:e2e:firefox
+
+  test-safari:
+    name: Test Safari Extension
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+      
+      - name: Install dependencies
+        run: cd extension && npm ci
+      
+      - name: Download Safari extension
+        uses: actions/download-artifact@v3
+        with:
+          name: safari-extension
+          path: extension
+      
+      - name: Extract Safari extension
+        run: |
+          cd extension
+          mkdir -p package/safari
+          unzip safari-extension.zip -d package/safari
+      
+      - name: Install Playwright browsers
+        run: cd extension && npx playwright install webkit
+      
+      - name: Run Safari extension tests
+        run: |
+          cd extension
+          export BUILD_PACKAGES=true
+          npm run test:e2e:safari

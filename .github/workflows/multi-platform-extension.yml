@@ -16,12 +16,12 @@ jobs:
     name: Build Extension Packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: extension/package-lock.json
       
@@ -32,25 +32,25 @@ jobs:
         run: cd extension && npm run build:all
       
       - name: Upload Chrome extension
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
           path: extension/chrome-extension.zip
       
       - name: Upload Firefox extension
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firefox-extension
           path: extension/firefox-extension.zip
       
       - name: Upload Safari extension
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: safari-extension
           path: extension/safari-extension.zip
       
       - name: Upload Safari iOS project
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: safari-ios-project
           path: extension/safari-ios
@@ -60,12 +60,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: extension/package-lock.json
       
@@ -73,7 +73,7 @@ jobs:
         run: cd extension && npm ci
       
       - name: Download Chrome extension
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: chrome-extension
           path: extension
@@ -98,12 +98,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: extension/package-lock.json
       
@@ -111,7 +111,7 @@ jobs:
         run: cd extension && npm ci
       
       - name: Download Firefox extension
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: firefox-extension
           path: extension
@@ -136,12 +136,12 @@ jobs:
     needs: build
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: extension/package-lock.json
       
@@ -149,7 +149,7 @@ jobs:
         run: cd extension && npm ci
       
       - name: Download Safari extension
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: safari-extension
           path: extension

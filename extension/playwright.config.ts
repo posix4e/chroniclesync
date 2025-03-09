@@ -1,7 +1,10 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Determine which extension package to use based on browser
 function getExtensionPath(browserName: string): string {

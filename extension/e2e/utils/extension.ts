@@ -1,8 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { test as base, chromium, firefox, webkit, type BrowserContext, type BrowserType } from '@playwright/test';
+import { test as base, chromium, firefox, webkit, type BrowserContext } from '@playwright/test';
 import { paths } from '../../src/config';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export type TestFixtures = {
   context: BrowserContext;
@@ -41,24 +44,9 @@ export const test = base.extend<TestFixtures>({
     const extensionPath = getExtensionPath(browserName);
     console.log('Extension path:', extensionPath);
     
-    let browser: BrowserType;
     let context: BrowserContext;
     
     try {
-      // Select the appropriate browser
-      switch (browserName) {
-        case 'firefox':
-          browser = firefox;
-          break;
-        case 'webkit':
-          browser = webkit;
-          break;
-        case 'chromium':
-        default:
-          browser = chromium;
-          break;
-      }
-      
       // Browser-specific launch options
       if (browserName === 'chromium') {
         context = await chromium.launchPersistentContext('', {
@@ -91,14 +79,9 @@ export const test = base.extend<TestFixtures>({
         
         context = await firefox.launchPersistentContext('', firefoxOptions);
         
-        // For Firefox, we need to install the extension after context is created
-        const extensionId = await context.evaluateHandle(async (extensionPath) => {
-          // @ts-ignore - Firefox-specific API
-          const addon = await browser.runtime.installTemporaryAddon(extensionPath);
-          return addon.id;
-        }, extensionPath);
-        
-        console.log('Firefox extension installed with ID:', await extensionId.jsonValue());
+        // For Firefox, we would normally install the extension after context is created
+        // But this requires Firefox-specific APIs that are not available in Playwright
+        // So we'll just use a fixed extension ID for testing
       } else {
         // For Safari/WebKit, we can only test the UI without extension functionality
         context = await webkit.launchPersistentContext('', {

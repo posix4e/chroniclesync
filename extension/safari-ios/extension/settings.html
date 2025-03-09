@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChronicleSync Settings</title>
+    <link rel="stylesheet" type="text/css" href="settings.css">
+</head>
+<body>
+    <div class="settings-container">
+        <h1>ChronicleSync Settings</h1>
+        
+        <section class="settings-section">
+            <h2>Configuration</h2>
+            <div id="mnemonicContainer" class="setting-item">
+                <label for="mnemonic">Mnemonic Phrase:</label>
+                <textarea id="mnemonic" placeholder="Enter your 24-word mnemonic phrase" rows="3" required></textarea>
+                <div class="mnemonic-actions">
+                    <button id="generateMnemonic" class="secondary-button">Generate New</button>
+                    <button id="showMnemonic" class="secondary-button">Show/Hide</button>
+                </div>
+                <small class="help-text">Your mnemonic phrase is used to generate your unique client ID. Keep it safe!</small>
+            </div>
+            <div class="setting-item">
+                <label for="clientId">Client ID:</label>
+                <input type="text" id="clientId" placeholder="Generated from mnemonic" readonly>
+            </div>
+            <div class="setting-item">
+                <label for="environment">Environment:</label>
+                <select id="environment" required>
+                    <option value="production">Production</option>
+                    <option value="staging">Staging</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="customUrlContainer" class="setting-item" style="display: none;">
+                <label for="customApiUrl">Custom API URL:</label>
+                <input type="url" id="customApiUrl" placeholder="https://your-custom-api.com">
+                <small class="help-text">Only used when Environment is set to Custom</small>
+            </div>
+            <div class="setting-item">
+                <label for="expirationDays">History Expiration (Days):</label>
+                <input type="number" id="expirationDays" min="1" placeholder="7" required>
+                <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            <button id="saveSettings" class="primary-button">Save Settings</button>
+            <button id="resetSettings" class="reset-settings">Reset to Default</button>
+        </div>
+    </div>
+    <script type="module" src="settings.js"></script>
+</body>
+</html>

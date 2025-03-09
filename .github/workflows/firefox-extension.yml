@@ -1,0 +1,105 @@
+name: Firefox Extension CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - 'shared/**'
+      - 'platforms/firefox/**'
+      - '.github/workflows/firefox-extension.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - 'shared/**'
+      - 'platforms/firefox/**'
+      - '.github/workflows/firefox-extension.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Build Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package Firefox Extension
+        working-directory: extension
+        run: |
+          # Install zip utility
+          sudo apt-get update && sudo apt-get install -y zip
+          # Create Firefox build directory
+          mkdir -p dist/firefox
+          # Copy built files to Firefox directory
+          cp -r dist/* dist/firefox/
+          # Copy Firefox manifest
+          cp platforms/firefox/manifest.json dist/firefox/
+          # Create Firefox zip
+          cd dist/firefox && zip -r ../../firefox-extension.zip *
+
+      - name: Upload Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: firefox-extension.zip
+          retention-days: 14
+
+      - name: Test Extension
+        working-directory: extension
+        run: |
+          npm run lint
+          npm run test
+
+  playwright-tests:
+    needs: build-and-test
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Install dependencies and run extension tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+        run: |
+          npm ci
+          npx playwright install --with-deps firefox
+          # Run e2e tests with frame buffer
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+            npx playwright test --project=firefox
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-firefox
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 30

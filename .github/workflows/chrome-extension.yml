@@ -1,0 +1,99 @@
+name: Chrome Extension CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - 'shared/**'
+      - 'platforms/chrome/**'
+      - '.github/workflows/chrome-extension.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - 'shared/**'
+      - 'platforms/chrome/**'
+      - '.github/workflows/chrome-extension.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Build Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package Chrome Extension
+        working-directory: extension
+        run: |
+          # Install zip utility
+          sudo apt-get update && sudo apt-get install -y zip
+          # Run build script with ESM support
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+
+      - name: Upload Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/chrome-extension.zip
+          retention-days: 14
+
+      - name: Test Extension
+        working-directory: extension
+        run: |
+          npm run lint
+          npm run test
+
+  playwright-tests:
+    needs: build-and-test
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Install dependencies and run extension tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          # Run e2e tests with frame buffer
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+            npx playwright test --project=chromium
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-chrome
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 30

@@ -1,0 +1,198 @@
+name: Extension CI/CD - All Platforms
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/extension-all-platforms.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/extension-all-platforms.yml'
+  workflow_dispatch:
+    inputs:
+      api_endpoint:
+        description: 'API endpoint to test against'
+        required: false
+        type: string
+        default: 'https://api-staging.chroniclesync.xyz'
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Build All Extensions
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build:all
+
+      - name: Upload Chrome Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/chrome-extension.zip
+          retention-days: 14
+
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: extension/firefox-extension.zip
+          retention-days: 14
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
+          retention-days: 14
+
+      - name: Run Unit Tests
+        working-directory: extension
+        run: |
+          npm run lint
+          npm run test
+
+  test-chrome:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Download Chrome Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension
+
+      - name: Install dependencies and run e2e tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          BROWSER: 'chromium'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e:chrome
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-chrome
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 30
+
+  test-firefox:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Download Firefox Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: firefox-extension
+          path: extension
+
+      - name: Install dependencies and run e2e tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          BROWSER: 'firefox'
+        run: |
+          npm ci
+          npx playwright install --with-deps firefox
+          npm run test:e2e:firefox
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-firefox
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 30
+
+  test-safari:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Download Safari Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension
+          path: extension
+
+      - name: Install dependencies and run e2e tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          BROWSER: 'webkit'
+        run: |
+          npm ci
+          npx playwright install --with-deps webkit
+          npm run test:e2e:webkit
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-safari
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 30

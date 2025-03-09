@@ -7,6 +7,8 @@ on:
       - 'extension/**'
       - 'shared/**'
       - 'platforms/chrome/**'
+      - 'e2e/**'
+      - 'scripts/**'
       - '.github/workflows/chrome-extension.yml'
   pull_request:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - 'extension/**'
       - 'shared/**'
       - 'platforms/chrome/**'
+      - 'e2e/**'
+      - 'scripts/**'
       - '.github/workflows/chrome-extension.yml'
   workflow_dispatch:
 
@@ -34,32 +38,33 @@ jobs:
           cache-dependency-path: |
             extension/package-lock.json
 
-      - name: Build Extension
+      - name: Install dependencies
         working-directory: extension
-        run: |
-          npm ci
-          npm run build
+        run: npm ci
 
-      - name: Package Chrome Extension
+      - name: Run unit tests
         working-directory: extension
+        run: npm run test
+
+      - name: Run linting
+        working-directory: extension
+        run: npm run lint
+
+      - name: Build and package extensions
         run: |
           # Install zip utility
           sudo apt-get update && sudo apt-get install -y zip
-          # Run build script with ESM support
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+          # Make build script executable
+          chmod +x scripts/build-extensions.js
+          # Run build script
+          node scripts/build-extensions.js
 
-      - name: Upload Extension Artifact
+      - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
-          path: extension/chrome-extension.zip
+          path: dist/chroniclesync-chrome.zip
           retention-days: 14
-
-      - name: Test Extension
-        working-directory: extension
-        run: |
-          npm run lint
-          npm run test
 
   playwright-tests:
     needs: build-and-test
@@ -75,18 +80,35 @@ jobs:
           cache-dependency-path: |
             extension/package-lock.json
 
-      - name: Install dependencies and run extension tests
-        working-directory: extension
+      - name: Download Chrome Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-extension
+          path: dist/
+
+      - name: Extract Chrome Extension
+        run: |
+          mkdir -p dist/chrome
+          unzip -o dist/chroniclesync-chrome.zip -d dist/chrome
+
+      - name: Install Playwright
+        run: |
+          cd extension
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Chrome E2E tests
         env:
           API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          CHROME_EXTENSION_PATH: ${{ github.workspace }}/dist/chrome
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          # Create firefox-profile directory (needed by global-setup)
+          mkdir -p e2e/firefox-profile
           # Run e2e tests with frame buffer
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-            npx playwright test --project=chromium
+            npx playwright test --config=e2e/playwright.config.ts --project=chromium
 
       - name: Upload test results
         if: always()
@@ -94,6 +116,5 @@ jobs:
         with:
           name: playwright-reports-chrome
           path: |
-            extension/playwright-report/
-            extension/test-results/
+            test-results/
           retention-days: 30

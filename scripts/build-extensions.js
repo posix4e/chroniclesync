@@ -3,54 +3,92 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const archiver = require('archiver');
 
 // Configuration
 const PLATFORMS = ['chrome', 'firefox'];
-const BUILD_DIR = path.resolve(__dirname, '../build');
+const EXTENSION_DIR = path.resolve(__dirname, '../extension');
 const DIST_DIR = path.resolve(__dirname, '../dist');
 const SHARED_DIR = path.resolve(__dirname, '../shared');
 const PLATFORMS_DIR = path.resolve(__dirname, '../platforms');
 
-// Ensure build and dist directories exist
-if (!fs.existsSync(BUILD_DIR)) {
-  fs.mkdirSync(BUILD_DIR, { recursive: true });
-}
-
+// Ensure dist directory exists
 if (!fs.existsSync(DIST_DIR)) {
   fs.mkdirSync(DIST_DIR, { recursive: true });
 }
 
-// Clean build directory
-console.log('Cleaning build directory...');
-fs.readdirSync(BUILD_DIR).forEach(file => {
-  fs.rmSync(path.join(BUILD_DIR, file), { recursive: true, force: true });
-});
+// Clean dist directory
+console.log('Cleaning dist directory...');
+if (fs.existsSync(DIST_DIR)) {
+  PLATFORMS.forEach(platform => {
+    const platformDir = path.join(DIST_DIR, platform);
+    if (fs.existsSync(platformDir)) {
+      fs.rmSync(platformDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(platformDir, { recursive: true });
+  });
+}
 
-// Build shared code
-console.log('Building shared code...');
-execSync('npm run build', { 
-  cwd: path.resolve(__dirname, '..'),
-  stdio: 'inherit'
-});
+// Build extension
+console.log('Building extension...');
+try {
+  execSync('npm run build', { 
+    cwd: EXTENSION_DIR,
+    stdio: 'inherit'
+  });
+  console.log('Extension built successfully!');
+} catch (error) {
+  console.error('Error building extension:', error);
+  process.exit(1);
+}
 
 // Build each platform
 PLATFORMS.forEach(platform => {
   console.log(`Building ${platform} extension...`);
   
-  // Create platform build directory
-  const platformBuildDir = path.join(BUILD_DIR, platform);
-  fs.mkdirSync(platformBuildDir, { recursive: true });
+  // Create platform dist directory
+  const platformDistDir = path.join(DIST_DIR, platform);
   
-  // Copy shared code to platform build directory
-  copyDirectory(path.join(__dirname, '../dist/shared'), platformBuildDir);
+  // Copy built extension files to platform directory
+  console.log(`Copying extension files to ${platform} directory...`);
+  copyDirectory(path.join(EXTENSION_DIR, 'dist'), platformDistDir);
+  
+  // Copy shared code to platform directory
+  if (fs.existsSync(SHARED_DIR)) {
+    console.log(`Copying shared code to ${platform} directory...`);
+    copyDirectory(SHARED_DIR, path.join(platformDistDir, 'shared'));
+  }
   
   // Copy platform-specific files
-  copyDirectory(path.join(PLATFORMS_DIR, platform), platformBuildDir);
+  const platformSpecificDir = path.join(PLATFORMS_DIR, platform);
+  if (fs.existsSync(platformSpecificDir)) {
+    console.log(`Copying ${platform}-specific files...`);
+    
+    // Special handling for manifest.json
+    const manifestPath = path.join(platformSpecificDir, 'manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      console.log(`Using ${platform}-specific manifest.json`);
+      fs.copyFileSync(manifestPath, path.join(platformDistDir, 'manifest.json'));
+    }
+    
+    // Copy other platform-specific files
+    const files = fs.readdirSync(platformSpecificDir);
+    files.forEach(file => {
+      if (file !== 'manifest.json') {
+        const sourcePath = path.join(platformSpecificDir, file);
+        const destPath = path.join(platformDistDir, file);
+        
+        if (fs.statSync(sourcePath).isDirectory()) {
+          copyDirectory(sourcePath, destPath);
+        } else {
+          fs.copyFileSync(sourcePath, destPath);
+        }
+      }
+    });
+  }
   
   // Create zip file
   console.log(`Creating ${platform} extension zip...`);
-  createZip(platformBuildDir, path.join(DIST_DIR, `chroniclesync-${platform}.zip`));
+  createZip(platformDistDir, path.join(DIST_DIR, `chroniclesync-${platform}.zip`));
   
   console.log(`${platform} extension built successfully!`);
 });
@@ -83,12 +121,12 @@ function copyDirectory(source, destination) {
 }
 
 function createZip(sourceDir, outputPath) {
-  const output = fs.createWriteStream(outputPath);
-  const archive = archiver('zip', {
-    zlib: { level: 9 }
-  });
-  
-  archive.pipe(output);
-  archive.directory(sourceDir, false);
-  archive.finalize();
+  try {
+    execSync(`cd "${sourceDir}" && zip -r "${outputPath}" *`, {
+      stdio: 'inherit'
+    });
+    console.log(`Created zip file: ${outputPath}`);
+  } catch (error) {
+    console.error('Error creating zip file:', error);
+  }
 }

@@ -4,16 +4,22 @@ on:
   push:
     branches: [main]
     paths:
+      - 'extension/**'
       - 'shared/**'
       - 'platforms/safari-ios/**'
       - '.github/workflows/safari-ios-extension.yml'
   pull_request:
     branches: [main]
     paths:
+      - 'extension/**'
       - 'shared/**'
       - 'platforms/safari-ios/**'
       - '.github/workflows/safari-ios-extension.yml'
   workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '14.x'
 
 jobs:
   build-and-test:
@@ -25,46 +31,79 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
             extension/package-lock.json
 
-      - name: Build shared code
+      - name: Install extension dependencies
         working-directory: extension
-        run: |
-          npm ci
-          npm run build
+        run: npm ci
+
+      - name: Run extension unit tests
+        working-directory: extension
+        run: npm run test
+
+      - name: Build extension
+        working-directory: extension
+        run: npm run build
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '14.x'
+          xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Install iOS dependencies
+      - name: Create Safari iOS extension structure
         run: |
-          cd platforms/safari-ios
-          # If using CocoaPods
-          # pod install
+          # Create directory for Safari iOS extension
+          mkdir -p dist/safari-ios/extension
+          
+          # Copy built extension files to Safari iOS extension directory
+          cp -r extension/dist/* dist/safari-ios/extension/
+          
+          # Copy shared code
+          mkdir -p dist/safari-ios/shared
+          cp -r shared/* dist/safari-ios/shared/
+          
+          # Copy Safari iOS specific files
+          cp -r platforms/safari-ios/* dist/safari-ios/
+          
+          # Create a zip file for the extension
+          cd dist/safari-ios
+          zip -r ../chroniclesync-safari-ios.zip *
 
-      - name: Build iOS app
-        run: |
-          # This is a placeholder for the actual build command
-          # In a real project, you would have an Xcode project in the safari-ios directory
-          echo "Building iOS app..."
-          # xcodebuild -workspace platforms/safari-ios/ChronicleSync.xcworkspace -scheme ChronicleSync -destination 'platform=iOS Simulator,name=iPhone 14,OS=16.0' build
-
-      - name: Run iOS tests
-        run: |
-          # This is a placeholder for the actual test command
-          echo "Running iOS tests..."
-          # xcodebuild -workspace platforms/safari-ios/ChronicleSync.xcworkspace -scheme ChronicleSync -destination 'platform=iOS Simulator,name=iPhone 14,OS=16.0' test
-
-      - name: Upload app artifact
+      - name: Upload Safari iOS Extension Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safari-ios-app
-          path: platforms/safari-ios/build/ChronicleSync.ipa
+          name: safari-ios-extension
+          path: dist/chroniclesync-safari-ios.zip
           retention-days: 14
-        # This step would be uncommented once we have an actual Xcode project
-        if: false
+
+      # The following steps are placeholders for when we have an actual Xcode project
+      # They are commented out for now
+      
+      # - name: Install iOS dependencies
+      #   run: |
+      #     cd platforms/safari-ios
+      #     pod install
+      
+      # - name: Build iOS app
+      #   run: |
+      #     xcodebuild -workspace platforms/safari-ios/ChronicleSync.xcworkspace \
+      #       -scheme ChronicleSync \
+      #       -destination 'platform=iOS Simulator,name=iPhone 14,OS=16.0' \
+      #       build
+      
+      # - name: Run iOS tests
+      #   run: |
+      #     xcodebuild -workspace platforms/safari-ios/ChronicleSync.xcworkspace \
+      #       -scheme ChronicleSync \
+      #       -destination 'platform=iOS Simulator,name=iPhone 14,OS=16.0' \
+      #       test
+      
+      # - name: Upload app artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: safari-ios-app
+      #     path: platforms/safari-ios/build/ChronicleSync.ipa
+      #     retention-days: 14

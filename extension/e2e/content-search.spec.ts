@@ -43,8 +43,8 @@ test.describe('Content Search', () => {
 
     // Create a server to serve our test HTML files
     // Use the available port from the runtime information
-    const port = 52237; // Using the first available port
-    const server = createServer((req: any, res: any) => {
+    const port = 50854; // Using the first available port
+    const server = createServer((req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
       if (!req.url) {
         res.writeHead(404);
         res.end('Not found');
@@ -65,10 +65,11 @@ test.describe('Content Search', () => {
           res.writeHead(404);
           res.end('Not found (not a file)');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Error serving ${filePath}:`, error);
         res.writeHead(404);
-        res.end(`Not found: ${error.message || 'Unknown error'}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.end(`Not found: ${errorMessage}`);
       }
     });
     

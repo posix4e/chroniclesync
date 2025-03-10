@@ -75,7 +75,13 @@ export default defineConfig({
         browserName: 'webkit',
         // For Safari/WebKit, we'll use a different approach
         // as WebKit in Playwright doesn't directly support extensions
-        // We'll use a proxy approach or Safari Web Extension
+        // We'll use a mock approach for basic testing
+        headless: false,
+        viewport: { width: 1280, height: 720 },
+        // Set user agent to Safari on macOS
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+        // Enable permissions that would be granted to the extension
+        permissions: ['geolocation', 'notifications'],
       },
     },
   ],

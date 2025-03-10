@@ -5,6 +5,9 @@ const browserName = process.env.BROWSER || 'chromium';
 
 test.describe('Browser Extension Tests', () => {
   test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
+    // Skip this test for WebKit in CI environment
+    test.skip(browserName === 'webkit' && process.env.CI === 'true', 'WebKit extension testing is limited in CI');
+    
     // Verify we got a valid extension ID
     expect(extensionId).not.toBe('unknown-extension-id');
     

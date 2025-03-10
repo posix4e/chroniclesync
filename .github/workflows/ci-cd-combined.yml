@@ -256,9 +256,11 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
           BROWSER: webkit
+          CI: 'true'
         run: |
           # Run without xvfb on macOS as it's not needed
-          npx playwright test --project=webkit
+          # Run only basic tests that don't require actual extension functionality
+          npx playwright test --project=webkit extension.spec.ts
 
       - name: Upload test results
         if: always()

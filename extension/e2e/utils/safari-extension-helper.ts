@@ -3,6 +3,8 @@
  */
 import { BrowserContext, webkit } from '@playwright/test';
 import * as fs from 'fs';
+import * as path from 'path';
+import { execSync } from 'child_process';
 
 // Define Safari extension types for TypeScript
 interface SafariExtension {
@@ -38,6 +40,23 @@ export async function loadSafariExtension(extensionPath: string): Promise<Browse
     // Create a temporary directory if it doesn't exist
     fs.mkdirSync(extensionPath, { recursive: true });
     console.log(`Created extension directory: ${extensionPath}`);
+  }
+  
+  // Extract the Safari extension zip to the extension path
+  const extensionZipPath = path.join(extensionPath, '..', 'safari-extension.zip');
+  if (fs.existsSync(extensionZipPath)) {
+    console.log(`Extracting Safari extension from ${extensionZipPath} to ${extensionPath}`);
+    try {
+      // Clean the directory first
+      execSync(`rm -rf ${extensionPath}/*`);
+      // Extract the zip file
+      execSync(`unzip -o ${extensionZipPath} -d ${extensionPath}`);
+      console.log('Safari extension extracted successfully');
+    } catch (error) {
+      console.error('Error extracting Safari extension:', error);
+    }
+  } else {
+    console.error(`Safari extension zip not found at ${extensionZipPath}`);
   }
   
   // For Safari/WebKit, we need a different approach since Playwright doesn't directly support extensions

@@ -196,16 +196,20 @@ jobs:
           BROWSER: ${{ matrix.browser }}
         run: |
           npm ci
+          # Ensure browsers are properly installed with all dependencies
           npx playwright install --with-deps ${{ matrix.browser }}
+          
+          # Verify browser installation
+          echo "Verifying browser installation..."
+          npx playwright install-deps ${{ matrix.browser }}
+          
           # Run e2e tests with frame buffer for the specific browser
           if [ "${{ matrix.browser }}" = "chromium" ]; then
-            npm run test:e2e:chrome
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=chromium
           elif [ "${{ matrix.browser }}" = "firefox" ]; then
-            npm run test:e2e:firefox
-          elif [ "${{ matrix.browser }}" = "webkit" ]; then
-            npm run test:e2e:webkit
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=firefox
           else
-            npm run test:e2e
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test
           fi
 
       - name: Upload test results
@@ -253,7 +257,8 @@ jobs:
           PORT: 3000
           BROWSER: webkit
         run: |
-          npm run test:e2e:webkit
+          # Run without xvfb on macOS as it's not needed
+          npx playwright test --project=webkit
 
       - name: Upload test results
         if: always()

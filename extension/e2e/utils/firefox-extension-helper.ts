@@ -70,23 +70,16 @@ export async function loadFirefoxExtension(extensionPath: string): Promise<Brows
     },
   });
   
-  // Install the extension programmatically
-  const page = await context.newPage();
-  await page.goto('about:debugging#/runtime/this-firefox');
+  // In CI environments, we can't interact with Firefox's about:debugging page
+  // due to permission restrictions. Instead, we'll use Firefox's preferences
+  // to load the extension.
   
-  // Click on "Load Temporary Add-on" and select the manifest file
-  await page.locator('text=Load Temporary Add-on').click();
-  // This is a mock since we can't actually interact with the file picker in headless mode
-  // In a real environment, we would use a different approach
+  // Log that we're using the alternative approach
+  console.log('Using Firefox preferences to load the extension instead of about:debugging');
+  console.log(`Extension will be loaded from: ${tempExtDir}`);
   
-  // For CI, we'll use a workaround by directly loading the extension
-  // This simulates loading the extension for testing purposes
-  await page.evaluate((extPath) => {
-    console.log(`Loading extension from: ${extPath}`);
-    // This is just for logging, the actual loading happens through the Firefox preferences
-  }, tempExtDir);
-  
-  await page.close();
+  // The extension should be loaded automatically through the Firefox preferences
+  // that we set in the launchPersistentContext options
 
   console.log('Firefox context created successfully');
   

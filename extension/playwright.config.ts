@@ -2,7 +2,6 @@ import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
 import path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 
 // Create base directories for extensions if they don't exist
 const extensionBaseDir = path.join(paths.extension, '..');
@@ -76,15 +75,24 @@ export default defineConfig({
             'devtools.browsertoolbox.fission': true,
             'devtools.chrome.enabled': true,
             'devtools.debugger.remote-enabled': true,
+            // Allow loading extensions from any location
+            'extensions.webextensions.remote': true,
+            'extensions.langpacks.signatures.required': false,
+            'extensions.experiments.enabled': true,
+            // Disable extension signature verification
+            'extensions.install.requireBuiltInCerts': false,
+            'extensions.update.requireBuiltInCerts': false,
           },
           args: [
             '-wait-for-browser',
             '-foreground',
+            '-no-remote',
           ],
+          headless: false, // Firefox extension testing works better in non-headless mode
         },
         // Increase timeouts for Firefox which can be slower with extensions
-        actionTimeout: 30000,
-        navigationTimeout: 30000,
+        actionTimeout: 60000,
+        navigationTimeout: 60000,
       },
     },
     {

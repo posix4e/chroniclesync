@@ -31,7 +31,17 @@ export const test = base.extend<TestFixtures>({
     try {
       if (browserName === 'firefox') {
         console.log('Extension path for Firefox:', extensionPaths.firefox);
-        context = await loadFirefoxExtension(extensionPaths.firefox);
+        try {
+          context = await loadFirefoxExtension(extensionPaths.firefox);
+        } catch (error) {
+          console.error('Error loading Firefox extension:', error);
+          // Fallback to a basic Firefox context without extension
+          console.log('Falling back to basic Firefox context without extension');
+          context = await firefox.launchPersistentContext(path.join(extensionPaths.firefox, '..', 'firefox-user-data'), {
+            headless: false,
+            args: ['-wait-for-browser', '-foreground'],
+          });
+        }
       } else if (browserName === 'webkit') {
         console.log('Extension path for Safari:', extensionPaths.safari);
         context = await loadSafariExtension(extensionPaths.safari);

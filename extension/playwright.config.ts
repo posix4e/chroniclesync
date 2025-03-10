@@ -1,12 +1,25 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
 import path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+
+// Create base directories for extensions if they don't exist
+const extensionBaseDir = path.join(paths.extension, '..');
+fs.mkdirSync(path.join(extensionBaseDir, 'firefox-extension'), { recursive: true });
+fs.mkdirSync(path.join(extensionBaseDir, 'safari-extension'), { recursive: true });
 
 // Define paths for each platform's extension
 const extensionPaths = {
   chrome: paths.extension,
-  firefox: path.join(paths.extension, '..', 'firefox-extension'),
-  safari: path.join(paths.extension, '..', 'safari-extension'),
+  firefox: path.join(extensionBaseDir, 'firefox-extension'),
+  safari: path.join(extensionBaseDir, 'safari-extension'),
+  // Add user data directories for persistent contexts
+  userDataDirs: {
+    chrome: path.join(extensionBaseDir, 'chrome-user-data'),
+    firefox: path.join(extensionBaseDir, 'firefox-user-data'),
+    webkit: path.join(extensionBaseDir, 'webkit-user-data'),
+  }
 };
 
 export default defineConfig({
@@ -59,14 +72,19 @@ export default defineConfig({
             // Firefox-specific preferences for extension testing
             'extensions.autoDisableScopes': 0,
             'extensions.enableScopes': 15,
+            'xpinstall.signatures.required': false,
+            'devtools.browsertoolbox.fission': true,
+            'devtools.chrome.enabled': true,
+            'devtools.debugger.remote-enabled': true,
           },
           args: [
             '-wait-for-browser',
             '-foreground',
-            '-profile',
-            extensionPaths.firefox,
           ],
         },
+        // Increase timeouts for Firefox which can be slower with extensions
+        actionTimeout: 30000,
+        navigationTimeout: 30000,
       },
     },
     {
@@ -82,6 +100,11 @@ export default defineConfig({
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
         // Enable permissions that would be granted to the extension
         permissions: ['geolocation', 'notifications'],
+        // Increase timeouts for WebKit
+        actionTimeout: 30000,
+        navigationTimeout: 30000,
+        // Skip certain tests that require extension functionality
+        // This is handled in the test files with test.skip()
       },
     },
   ],

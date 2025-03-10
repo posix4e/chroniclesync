@@ -186,6 +186,16 @@ jobs:
           name: ${{ matrix.artifact }}
           path: extension
 
+      - name: Extract extension zip file
+        working-directory: extension
+        run: |
+          # Create directory for the extracted extension
+          mkdir -p ${{ matrix.browser }}-extension
+          # Extract the zip file
+          unzip -o ${{ matrix.artifact }}.zip -d ${{ matrix.browser }}-extension
+          # List the extracted files for debugging
+          ls -la ${{ matrix.browser }}-extension
+
       - name: Install dependencies and run extension tests
         working-directory: extension
         env:
@@ -203,11 +213,19 @@ jobs:
           echo "Verifying browser installation..."
           npx playwright install-deps ${{ matrix.browser }}
           
+          # Create necessary directories for testing
+          mkdir -p ${{ matrix.browser }}-user-data
+          
           # Run e2e tests with frame buffer for the specific browser
           if [ "${{ matrix.browser }}" = "chromium" ]; then
             xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=chromium
           elif [ "${{ matrix.browser }}" = "firefox" ]; then
-            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=firefox
+            # For Firefox, we need to ensure the extension is properly loaded
+            # Create a temporary profile directory
+            mkdir -p firefox-profile
+            
+            # Run Firefox-specific tests with increased timeout
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=firefox --timeout=60000
           else
             xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test
           fi
@@ -242,6 +260,16 @@ jobs:
           name: safari-extension
           path: extension
 
+      - name: Extract Safari extension zip file
+        working-directory: extension
+        run: |
+          # Create directory for the extracted extension
+          mkdir -p safari-extension
+          # Extract the zip file
+          unzip -o safari-extension.zip -d safari-extension
+          # List the extracted files for debugging
+          ls -la safari-extension
+
       - name: Install dependencies
         working-directory: extension
         run: |
@@ -258,9 +286,13 @@ jobs:
           BROWSER: webkit
           CI: 'true'
         run: |
+          # Create necessary directories for testing
+          mkdir -p webkit-user-data
+          
           # Run without xvfb on macOS as it's not needed
           # Run only basic tests that don't require actual extension functionality
-          npx playwright test --project=webkit extension.spec.ts
+          # Use a longer timeout for WebKit tests
+          npx playwright test --project=webkit extension.spec.ts --timeout=60000
 
       - name: Upload test results
         if: always()

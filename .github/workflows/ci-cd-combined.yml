@@ -270,8 +270,9 @@ jobs:
     if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-22.04
     needs:
-    - build
-    - build-safari
+    - build-and-test
+    - playwright-tests
+    - playwright-tests-webkit
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -307,11 +308,7 @@ jobs:
     if: always()
     runs-on: ubuntu-22.04
     needs:
-    - setup
-    - locales-test
-    - build-source
-    - build
-    - build-safari
+    - build-and-test
     - playwright-tests
     - playwright-tests-webkit
     - crowdin-push

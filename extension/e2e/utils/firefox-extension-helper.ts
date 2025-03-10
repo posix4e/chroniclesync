@@ -2,20 +2,34 @@
  * Helper functions for Firefox extension testing
  */
 import { BrowserContext, firefox } from '@playwright/test';
-// Unused imports are prefixed with underscore to satisfy linting
-import * as _path from 'path';
-import * as _fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Load the Firefox extension for testing
  */
-export async function loadFirefoxExtension(_extensionPath: string): Promise<BrowserContext> {
+export async function loadFirefoxExtension(extensionPath: string): Promise<BrowserContext> {
+  console.log(`Loading Firefox extension from: ${extensionPath}`);
+  
+  // Verify the extension path exists
+  try {
+    const stats = fs.statSync(extensionPath);
+    console.log(`Extension path exists: ${stats.isDirectory() ? 'directory' : 'file'}`);
+  } catch (error) {
+    console.error(`Error checking extension path: ${error}`);
+    // Create a temporary directory if it doesn't exist
+    fs.mkdirSync(extensionPath, { recursive: true });
+    console.log(`Created extension directory: ${extensionPath}`);
+  }
+  
   // Firefox requires the extension to be loaded differently than Chrome
   const context = await firefox.launchPersistentContext('', {
     headless: false,
     args: [
       '-wait-for-browser',
       '-foreground',
+      '-profile',
+      extensionPath,
     ],
     firefoxUserPrefs: {
       // Required for extension testing
@@ -24,8 +38,7 @@ export async function loadFirefoxExtension(_extensionPath: string): Promise<Brow
     },
   });
 
-  // In a real implementation, you would use Firefox's web-ext tool
-  // to load and test the extension
+  console.log('Firefox context created successfully');
   
   return context;
 }

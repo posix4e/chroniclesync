@@ -1,5 +1,13 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
+import path from 'path';
+
+// Define paths for each platform's extension
+const extensionPaths = {
+  chrome: paths.extension,
+  firefox: path.join(paths.extension, '..', 'firefox-extension'),
+  safari: path.join(paths.extension, '..', 'safari-extension'),
+};
 
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
@@ -36,10 +44,38 @@ export default defineConfig({
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            `--disable-extensions-except=${paths.extension}`,
-            `--load-extension=${paths.extension}`,
+            `--disable-extensions-except=${extensionPaths.chrome}`,
+            `--load-extension=${extensionPaths.chrome}`,
           ],
         },
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        browserName: 'firefox',
+        launchOptions: {
+          firefoxUserPrefs: {
+            // Firefox-specific preferences for extension testing
+            'extensions.autoDisableScopes': 0,
+            'extensions.enableScopes': 15,
+          },
+          args: [
+            '-wait-for-browser',
+            '-foreground',
+            '-profile',
+            extensionPaths.firefox,
+          ],
+        },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // For Safari/WebKit, we'll use a different approach
+        // as WebKit in Playwright doesn't directly support extensions
+        // We'll use a proxy approach or Safari Web Extension
       },
     },
   ],

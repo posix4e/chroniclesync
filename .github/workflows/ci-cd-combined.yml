@@ -158,10 +158,17 @@ jobs:
   playwright-tests:
     needs: build-and-test
     if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser != '')
-    runs-on: ${{ github.event.inputs.browser == 'webkit' && 'macos-latest' || 'ubuntu-latest' }}
     strategy:
+      fail-fast: false
       matrix:
-        browser: ${{ github.event.inputs.browser != '' && fromJSON(format('["{0}"]', github.event.inputs.browser)) || fromJSON('["chromium", "firefox", "webkit"]') }}
+        include:
+          - browser: chromium
+            os: ubuntu-latest
+            artifact: chrome-extension
+          - browser: firefox
+            os: ubuntu-latest
+            artifact: firefox-extension
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -176,7 +183,7 @@ jobs:
       - name: Download appropriate extension artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.browser == 'chromium' && 'chrome' || matrix.browser }}-extension
+          name: ${{ matrix.artifact }}
           path: extension
 
       - name: Install dependencies and run extension tests
@@ -209,4 +216,131 @@ jobs:
           path: |
             extension/playwright-report/
             extension/test-results/
+            
+  playwright-tests-webkit:
+    needs: build-and-test
+    if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser == 'webkit' || inputs.browser == '')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
+
+      - name: Download Safari extension artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension
+          path: extension
+
+      - name: Install dependencies
+        working-directory: extension
+        run: |
+          npm ci
+          npx playwright install --with-deps webkit
+
+      - name: Run Safari extension tests
+        working-directory: extension
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          PORT: 3000
+          BROWSER: webkit
+        run: |
+          npm run test:e2e:webkit
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-extension-webkit
+          path: |
+            extension/playwright-report/
+            extension/test-results/
           retention-days: 30
+          
+  crowdin-push:
+    name: Crowdin Push
+    if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+    needs:
+    - build
+    - build-safari
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Login to Azure
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: "bitwarden-ci"
+          secrets: "crowdin-api-token"
+
+      - name: Upload Sources
+        uses: crowdin/github-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_API_TOKEN: ${{ steps.retrieve-secrets.outputs.crowdin-api-token }}
+          CROWDIN_PROJECT_ID: "268134"
+        with:
+          config: apps/browser/crowdin.yml
+          crowdin_branch_name: main
+          upload_sources: true
+          upload_translations: false
+          
+  check-failures:
+    name: Check for failures
+    if: always()
+    runs-on: ubuntu-22.04
+    needs:
+    - setup
+    - locales-test
+    - build-source
+    - build
+    - build-safari
+    - playwright-tests
+    - playwright-tests-webkit
+    - crowdin-push
+    steps:
+      - name: Check if any job failed
+        if: |
+          github.event_name != 'pull_request_target' && 
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc-browser') && 
+          contains(needs.*.result, 'failure')
+        run: exit 1
+        
+      - name: Login to Azure - Prod Subscription
+        uses: Azure/login@v1
+        if: failure()
+        with:
+          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        if: failure()
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: "bitwarden-ci"
+          secrets: "devops-alerts-slack-webhook-url"
+          
+      - name: Notify Slack on failure
+        uses: act10ns/slack@v2
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
+        with:
+          status: ${{ job.status }}

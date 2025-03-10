@@ -1,5 +1,4 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
-import { server } from './test-config';
 
 // Determine which browser to use based on environment variable or default to chromium
 const browserName = process.env.BROWSER || 'chromium';

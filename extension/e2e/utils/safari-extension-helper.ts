@@ -2,13 +2,12 @@
  * Helper functions for Safari extension testing
  */
 import { BrowserContext, webkit } from '@playwright/test';
-import * as path from 'path';
 import * as fs from 'fs';
 
 // Define Safari extension types for TypeScript
 interface SafariExtension {
   baseURI: string;
-  dispatchMessage: (name: string, data: any) => void;
+  dispatchMessage: (name: string, data: unknown) => void;
 }
 
 interface SafariGlobal {
@@ -70,7 +69,7 @@ export async function loadSafariExtension(extensionPath: string): Promise<Browse
     window.safari = {
       extension: {
         baseURI: 'safari-extension://xyz.chroniclesync.extension/',
-        dispatchMessage: (name: string, data: any) => {
+        dispatchMessage: (name: string, data: unknown) => {
           console.log(`Extension message dispatched: ${name}`, data);
         }
       }

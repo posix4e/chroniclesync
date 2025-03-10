@@ -2,7 +2,6 @@
  * Helper functions for Firefox extension testing
  */
 import { BrowserContext, firefox } from '@playwright/test';
-import * as path from 'path';
 import * as fs from 'fs';
 
 /**

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { test as base, chromium, type BrowserContext } from '@playwright/test';
+import { test as base, chromium, firefox, type BrowserContext } from '@playwright/test';
 import { paths } from '../../src/config';
 import path from 'path';
 import { loadFirefoxExtension, getFirefoxExtensionId } from './firefox-extension-helper';

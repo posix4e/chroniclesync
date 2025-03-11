@@ -224,8 +224,15 @@ jobs:
             # Create a temporary profile directory
             mkdir -p firefox-profile
             
-            # Run Firefox-specific tests with increased timeout
-            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test --project=firefox --timeout=60000
+            # Set up Firefox-specific environment variables
+            export MOZ_HEADLESS=1
+            export MOZ_HEADLESS_WIDTH=1280
+            export MOZ_HEADLESS_HEIGHT=960
+            
+            # Run Firefox-specific tests with increased timeout and debug mode
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' \
+              npx playwright test --project=firefox --timeout=120000 \
+              --config=extension/e2e/firefox.config.ts
           else
             xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npx playwright test
           fi

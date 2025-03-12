@@ -66,5 +66,13 @@ worker-configuration.json
 *.tgz
 
 # Yarn Integrity file
-.yarn-integritychrome-extension.zip
+.yarn-integrity
+
+# Extension builds and temporary files
 extension/chrome-extension.zip
+extension/firefox-extension.zip
+extension/safari-extension.zip
+extension/extension.zip
+extension/firefox-extension/
+extension/firefox-temp-ext/
+extension/firefox-user-data/

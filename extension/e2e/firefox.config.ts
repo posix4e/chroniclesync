@@ -10,10 +10,11 @@ fs.mkdirSync(path.join(extensionBaseDir, 'firefox-user-data'), { recursive: true
 fs.mkdirSync(path.join(extensionBaseDir, 'firefox-temp-ext'), { recursive: true });
 
 // Define paths for Firefox extension
-// These paths are used in the configuration below
-const firefoxExtensionPath = path.join(extensionBaseDir, 'firefox-extension');
-const firefoxUserDataDir = path.join(extensionBaseDir, 'firefox-user-data');
-const firefoxTempExtDir = path.join(extensionBaseDir, 'firefox-temp-ext');
+// These paths are created above but not directly used in the config
+// We're keeping them for documentation purposes
+const _firefoxExtensionPath = path.join(extensionBaseDir, 'firefox-extension');
+const _firefoxUserDataDir = path.join(extensionBaseDir, 'firefox-user-data');
+const _firefoxTempExtDir = path.join(extensionBaseDir, 'firefox-temp-ext');
 
 export default defineConfig({
   globalSetup: './global-setup.ts',

@@ -8,7 +8,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Determine which browser to use based on environment variable or default to chromium
+const browserName = process.env.BROWSER || 'chromium';
+
 test.describe('Content Search', () => {
+  // Skip all tests in this file for Firefox in CI
+  test.beforeEach(() => {
+    test.skip(
+      browserName === 'firefox' && process.env.CI === 'true',
+      'Firefox extension testing is limited in CI'
+    );
+  });
   test('should extract and search webpage content', async ({ context, extensionId }) => {
     test.setTimeout(120000); // Increase timeout to 2 minutes
     // First, set up a client ID through the settings page

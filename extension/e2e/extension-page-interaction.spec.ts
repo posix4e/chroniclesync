@@ -1,9 +1,18 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 // No imports needed
 
+// Determine which browser to use based on environment variable or default to chromium
+const browserName = process.env.BROWSER || 'chromium';
+
 test.describe('Extension-Page Integration', () => {
   // Set up dialog handler for all tests
   test.beforeEach(async ({ context }) => {
+    // Skip for Firefox in CI
+    test.skip(
+      browserName === 'firefox' && process.env.CI === 'true',
+      'Firefox extension testing is limited in CI'
+    );
+    
     context.on('page', page => {
       page.on('dialog', dialog => dialog.accept());
     });

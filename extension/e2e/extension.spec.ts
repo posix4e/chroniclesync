@@ -7,9 +7,8 @@ test.describe('Browser Extension Tests', () => {
   test('extension should be loaded with correct ID', async ({ context, extensionId }) => {
     // Skip this test for WebKit in CI environment or Firefox in CI environment
     test.skip(
-      (browserName === 'webkit' && process.env.CI === 'true') || 
-      (browserName === 'firefox' && process.env.CI === 'true'), 
-      'WebKit/Firefox extension testing is limited in CI'
+      (browserName === 'webkit' && process.env.CI === 'true'), 
+      'WebKit extension testing is limited in CI'
     );
     
     // Verify we got a valid extension ID

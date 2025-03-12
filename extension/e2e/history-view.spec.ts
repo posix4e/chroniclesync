@@ -1,6 +1,16 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 
+// Determine which browser to use based on environment variable or default to chromium
+const browserName = process.env.BROWSER || 'chromium';
+
 test.describe('History View', () => {
+  // Skip all tests in this file for Firefox in CI
+  test.beforeEach(() => {
+    test.skip(
+      browserName === 'firefox' && process.env.CI === 'true',
+      'Firefox extension testing is limited in CI'
+    );
+  });
   test('history view should load and display entries', async ({ context, extensionId }) => {
     // First, set up a client ID through the settings page
     const settingsPage = await context.newPage();

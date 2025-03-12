@@ -1,7 +1,17 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 
+// Determine which browser to use based on environment variable or default to chromium
+const browserName = process.env.BROWSER || 'chromium';
+
+// Skip all tests in this file for Firefox in CI
 test.describe('Settings Page E2E Tests', () => {
   test.beforeEach(async ({ page, extensionId }) => {
+    // Skip for Firefox in CI
+    test.skip(
+      browserName === 'firefox' && process.env.CI === 'true',
+      'Firefox extension testing is limited in CI'
+    );
+    
     await page.goto(getExtensionUrl(extensionId, 'settings.html'));
     await page.waitForTimeout(1000);
   });

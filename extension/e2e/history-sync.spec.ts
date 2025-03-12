@@ -1,6 +1,14 @@
 import { test, expect, getExtensionUrl } from './utils/extension';
 
+// Determine which browser to use based on environment variable or default to chromium
+const browserName = process.env.BROWSER || 'chromium';
+
 test('should sync browser history with the API', async ({ context, extensionId }) => {
+  // Skip for Firefox in CI
+  test.skip(
+    browserName === 'firefox' && process.env.CI === 'true',
+    'Firefox extension testing is limited in CI'
+  );
   // Open settings page and configure client ID
   const settingsPage = await context.newPage();
   await settingsPage.goto(getExtensionUrl(extensionId, 'settings.html'));

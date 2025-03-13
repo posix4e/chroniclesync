@@ -87,5 +87,5 @@ export default defineConfig({
     },
   ],
   outputDir: browser === 'firefox' ? 'test-results/firefox/' : 
-             browser === 'webkit' ? 'test-results/ios-safari/' : 'test-results/chrome/',
+    browser === 'webkit' ? 'test-results/ios-safari/' : 'test-results/chrome/',
 });

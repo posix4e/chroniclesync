@@ -150,23 +150,33 @@ jobs:
 
   playwright-extension-tests:
     needs: build-and-test
+    if: success()
     strategy:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
         # Future platforms can be added here (e.g., ios, android)
     runs-on: ubuntu-latest
-    # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
-    if: >-
-      success() && 
-      (github.event_name != 'workflow_dispatch' || 
-       github.event.inputs.browser == '' || 
-       (matrix.browser == 'chrome' && github.event.inputs.browser == 'chromium') || 
-       (matrix.browser == 'firefox' && github.event.inputs.browser == 'firefox'))
     steps:
+      # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
+      - name: Check if this browser should be tested
+        id: should_test
+        run: |
+          SHOULD_TEST="true"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.browser }}" != "" ]]; then
+            if [[ "${{ matrix.browser }}" == "chrome" && "${{ github.event.inputs.browser }}" != "chromium" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+          fi
+          echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
+        if: steps.should_test.outputs.should_test == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.should_test.outputs.should_test == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -175,12 +185,14 @@ jobs:
             extension/package-lock.json
 
       - name: Download extension artifacts
+        if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
           path: extension/dist
 
       - name: Install dependencies and run extension tests
+        if: steps.should_test.outputs.should_test == 'true'
         working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
@@ -196,7 +208,7 @@ jobs:
           npm run test:e2e:${{ matrix.browser }}
 
       - name: Upload test results
-        if: always()
+        if: steps.should_test.outputs.should_test == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-reports-extension-${{ matrix.browser }}

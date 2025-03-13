@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
+import path from 'path';
 
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
@@ -39,6 +40,26 @@ export default defineConfig({
             `--disable-extensions-except=${paths.extension}`,
             `--load-extension=${paths.extension}`,
           ],
+        },
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        browserName: 'firefox',
+        // Firefox uses a different mechanism for loading extensions
+        // We'll use the firefox-extension.xpi file that we build
+        launchOptions: {
+          args: [
+            '-wait-for-browser',
+            '-foreground',
+            '-no-remote',
+          ],
+          firefoxUserPrefs: {
+            'xpinstall.signatures.required': false,
+            'extensions.autoDisableScopes': 0,
+            'extensions.enableScopes': 15,
+          },
         },
       },
     },

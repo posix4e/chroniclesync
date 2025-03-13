@@ -1,12 +1,13 @@
 /* eslint-disable no-console */
-const { mkdir, rm, cp } = require('fs/promises');
+const { mkdir, rm, cp, readFile, writeFile } = require('fs/promises');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const { join } = require('path');
 
 const execAsync = promisify(exec);
 const ROOT_DIR = join(__dirname, '..');  // Extension root directory
-const PACKAGE_DIR = join(ROOT_DIR, 'package');
+const CHROME_PACKAGE_DIR = join(ROOT_DIR, 'package-chrome');
+const FIREFOX_PACKAGE_DIR = join(ROOT_DIR, 'package-firefox');
 
 /** @type {[string, string][]} File copy specifications [source, destination] */
 const filesToCopy = [
@@ -30,24 +31,52 @@ const filesToCopy = [
   [join('dist', 'assets'), 'assets']
 ];
 
-async function main() {
+async function createFirefoxManifest(sourcePath, destPath) {
+  const manifest = JSON.parse(await readFile(sourcePath, 'utf8'));
+  
+  // Firefox-specific adjustments
+  if (manifest.background && manifest.background.service_worker) {
+    // Firefox uses a different background script format
+    manifest.background = {
+      scripts: [manifest.background.service_worker],
+      type: "module"
+    };
+  }
+  
+  // Firefox requires applications key for add-on ID
+  manifest.browser_specific_settings = {
+    gecko: {
+      id: "chroniclesync@chroniclesync.xyz"
+    }
+  };
+  
+  await writeFile(destPath, JSON.stringify(manifest, null, 2), 'utf8');
+  console.log('Created Firefox-compatible manifest.json');
+}
+
+async function buildExtension(browser) {
+  const packageDir = browser === 'chrome' ? CHROME_PACKAGE_DIR : FIREFOX_PACKAGE_DIR;
+  const zipName = browser === 'chrome' ? 'chrome-extension.zip' : 'firefox-extension.xpi';
+  
   try {
     // Clean up any existing package directory
-    await rm(PACKAGE_DIR, { recursive: true, force: true });
+    await rm(packageDir, { recursive: true, force: true });
     
     // Create package directory
-    await mkdir(PACKAGE_DIR, { recursive: true });
-    
-    // Run the build
-    console.log('Building extension...');
-    await execAsync('npm run build', { cwd: ROOT_DIR });
+    await mkdir(packageDir, { recursive: true });
     
     // Copy necessary files
-    console.log('Copying files...');
+    console.log(`Copying files for ${browser}...`);
     for (const [src, dest] of filesToCopy) {
+      if (src === 'manifest.json' && browser === 'firefox') {
+        // Special handling for Firefox manifest
+        await createFirefoxManifest(join(ROOT_DIR, src), join(packageDir, dest));
+        continue;
+      }
+      
       await cp(
         join(ROOT_DIR, src),
-        join(PACKAGE_DIR, dest),
+        join(packageDir, dest),
         { recursive: true }
       ).catch(err => {
         console.warn(`Warning: Could not copy ${src}: ${err.message}`);
@@ -55,15 +84,34 @@ async function main() {
     }
     
     // Create zip file
-    console.log('Creating zip file...');
-    await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../chrome-extension.zip ./*`);
+    console.log(`Creating ${browser} package...`);
+    await execAsync(`cd "${packageDir}" && zip -r ../${zipName} ./*`);
     
     // Clean up
-    await rm(PACKAGE_DIR, { recursive: true });
+    await rm(packageDir, { recursive: true });
     
-    console.log('Extension package created: chrome-extension.zip');
+    console.log(`${browser.charAt(0).toUpperCase() + browser.slice(1)} extension package created: ${zipName}`);
   } catch (error) {
-    console.error('Error building extension:', error);
+    console.error(`Error building ${browser} extension:`, error);
+    throw error;
+  }
+}
+
+async function main() {
+  try {
+    // Run the build
+    console.log('Building extension...');
+    await execAsync('npm run build', { cwd: ROOT_DIR });
+    
+    // Build for Chrome
+    await buildExtension('chrome');
+    
+    // Build for Firefox
+    await buildExtension('firefox');
+    
+    console.log('All extension packages created successfully');
+  } catch (error) {
+    console.error('Error building extensions:', error);
     process.exit(1);
   }
 }

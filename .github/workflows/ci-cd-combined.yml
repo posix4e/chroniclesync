@@ -64,7 +64,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Package Chrome Extension
+      - name: Package Extensions
         working-directory: extension
         run: |
           # Install zip utility
@@ -72,11 +72,18 @@ jobs:
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 
-      - name: Upload Extension Artifact
+      - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
           path: extension/chrome-extension.zip
+          retention-days: 14
+          
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: extension/firefox-extension.xpi
           retention-days: 14
 
       - name: Test Extension
@@ -163,11 +170,24 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
+          BROWSER: ${{ github.event.inputs.browser || 'chromium' }}
         run: |
           npm ci
-          npx playwright install --with-deps chromium
-          # Run e2e tests with frame buffer
-          npm run test:e2e
+          # Install browsers based on input or both if not specified
+          if [ "${{ github.event.inputs.browser }}" = "firefox" ]; then
+            npx playwright install --with-deps firefox
+            # Run Firefox e2e tests with frame buffer
+            npm run test:e2e:firefox
+          elif [ "${{ github.event.inputs.browser }}" = "chromium" ]; then
+            npx playwright install --with-deps chromium
+            # Run Chrome e2e tests with frame buffer
+            npm run test:e2e:chrome
+          else
+            # Install both browsers and run all tests
+            npx playwright install --with-deps chromium firefox
+            # Run all e2e tests with frame buffer
+            npm run test:e2e:all
+          fi
 
       - name: Upload test results
         if: always()

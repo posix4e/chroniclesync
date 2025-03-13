@@ -1,6 +1,9 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
 
+// Get the browser from environment variable or default to chromium
+const browser = process.env.BROWSER || 'chromium';
+
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   retries: process.env.CI ? 2 : 0,  // Retry failed tests in CI
@@ -42,6 +45,26 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'firefox',
+      use: {
+        browserName: 'firefox',
+        // Firefox uses a different mechanism for loading extensions
+        // We'll use the firefox-extension.xpi file that we build
+        launchOptions: {
+          args: [
+            '-wait-for-browser',
+            '-foreground',
+            '-no-remote',
+          ],
+          firefoxUserPrefs: {
+            'xpinstall.signatures.required': false,
+            'extensions.autoDisableScopes': 0,
+            'extensions.enableScopes': 15,
+          },
+        },
+      },
+    },
   ],
-  outputDir: 'test-results/',
+  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
 });

@@ -75,6 +75,8 @@ export default defineConfig({
           args: [
             '--enable-extension-support',
           ],
+          // On macOS, we can use the actual Safari executable
+          executablePath: process.platform === 'darwin' ? '/Applications/Safari.app/Contents/MacOS/Safari' : undefined,
         },
         // iOS Safari specific settings
         contextOptions: {
@@ -82,6 +84,8 @@ export default defineConfig({
           userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
           isMobile: true,
           hasTouch: true,
+          // Additional iOS Safari specific settings for macOS
+          deviceScaleFactor: 2,
         },
       },
     },

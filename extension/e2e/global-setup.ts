@@ -100,26 +100,40 @@ async function testFirefoxLaunch() {
 async function testWebKitLaunch() {
   // Verify WebKit installation
   console.log('Checking WebKit installation...');
-  const executablePath = process.env.PLAYWRIGHT_WEBKIT_PATH || 
-    (await webkit.executablePath());
+  
+  // On macOS, we can use Safari directly
+  const isMacOS = process.platform === 'darwin';
+  const executablePath = isMacOS 
+    ? '/Applications/Safari.app/Contents/MacOS/Safari'
+    : (process.env.PLAYWRIGHT_WEBKIT_PATH || (await webkit.executablePath()));
+  
   console.log('WebKit executable path:', executablePath);
+  console.log('Running on macOS:', isMacOS ? 'Yes' : 'No');
 
-  // Test browser launch
+  // Test browser launch with appropriate settings for the platform
   console.log('Testing WebKit launch...');
-  const browser = await webkit.launch({
-    args: [
-      '--enable-extension-support',
-    ],
-  });
+  const launchOptions = {
+    args: ['--enable-extension-support'],
+    executablePath: isMacOS ? executablePath : undefined,
+  };
+  
+  const browser = await webkit.launch(launchOptions);
   console.log('Browser launched successfully');
 
   // Create context with iOS Safari settings
-  const context = await browser.newContext({
+  const contextOptions = {
     viewport: { width: 375, height: 667 }, // iPhone 8 dimensions
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
     isMobile: true,
     hasTouch: true,
-  });
+  };
+  
+  // Add macOS specific settings
+  if (isMacOS) {
+    contextOptions['deviceScaleFactor'] = 2;
+  }
+  
+  const context = await browser.newContext(contextOptions);
   console.log('Context created successfully');
 
   const page = await context.newPage();

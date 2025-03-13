@@ -16,7 +16,7 @@ on:
           - ''
           - chromium
           - firefox
-          - webkit
+          - webkit-ios-safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -162,8 +162,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox, ios-safari]
-    runs-on: ubuntu-latest
+        include:
+          - browser: chrome
+            os: ubuntu-latest
+          - browser: firefox
+            os: ubuntu-latest
+          - browser: ios-safari
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -177,7 +183,7 @@ jobs:
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
               SHOULD_TEST="false"
             fi
-            if [[ "${{ matrix.browser }}" == "ios-safari" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
+            if [[ "${{ matrix.browser }}" == "ios-safari" && "${{ github.event.inputs.browser }}" != "webkit-ios-safari" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -216,8 +222,15 @@ jobs:
           npx playwright install --with-deps
           # Ensure the specific browser is installed properly
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || (matrix.browser == 'firefox' && 'firefox' || 'webkit') }}
-          # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          
+          # Run browser-specific e2e tests with appropriate setup for each OS
+          if [[ "${{ matrix.browser }}" == "ios-safari" && "${{ matrix.os }}" == "macos-latest" ]]; then
+            # On macOS, we don't need xvfb for the frame buffer
+            npm run test:e2e:ios-safari:macos
+          else
+            # On Linux, use xvfb for the frame buffer
+            npm run test:e2e:${{ matrix.browser }}
+          fi
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()

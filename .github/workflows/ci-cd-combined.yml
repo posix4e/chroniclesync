@@ -241,3 +241,44 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || (matrix.browser == 'firefox' && 'firefox' || 'ios-safari') }}/
           retention-days: 30
+          
+  ios-safari-extension-tests:
+    needs: build-and-test
+    if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.browser == '' || github.event.inputs.browser == 'webkit-ios-safari')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+            
+      - name: Download iOS Safari Extension Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-safari-extension
+          path: extension/
+          
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+        
+      - name: Convert WebExtension to Safari App Extension
+        run: ./scripts/convert-to-safari-extension.sh
+        
+      - name: List available iOS Simulators
+        run: xcrun simctl list devices available
+        
+      - name: Build and Test Safari Extension on iOS Simulator
+        run: ./scripts/test-safari-extension.sh
+        
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-safari-extension-test-results
+          path: ios-extension/ChronicleSync/build/reports
+          retention-days: 30

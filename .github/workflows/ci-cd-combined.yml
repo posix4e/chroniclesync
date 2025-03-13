@@ -148,19 +148,22 @@ jobs:
             npm run deploy -- --env staging
           fi
 
-  playwright-tests:
+  playwright-extension-tests:
     needs: build-and-test
-    if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser != '')
+    if: success()
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox]
+        browser: [chrome, firefox]
+        # Future platforms can be added here (e.g., ios, android)
         # Skip specific browser if manually specified in workflow dispatch
         include:
-          - browser: chromium
-            skip: ${{ github.event.inputs.browser == 'firefox' }}
+          - browser: chrome
+            playwright_browser: chromium
+            skip: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.browser == 'firefox' }}
           - browser: firefox
-            skip: ${{ github.event.inputs.browser == 'chromium' }}
+            playwright_browser: firefox
+            skip: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.browser == 'chromium' }}
     runs-on: ubuntu-latest
     # Skip this job if the browser is not the one specified in workflow dispatch
     if: ${{ !matrix.skip }}
@@ -175,6 +178,12 @@ jobs:
             pages/package-lock.json
             extension/package-lock.json
 
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
+          path: extension/dist
+
       - name: Install dependencies and run extension tests
         working-directory: extension
         env:
@@ -182,13 +191,13 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
-          BROWSER: ${{ matrix.browser }}
+          BROWSER: ${{ matrix.playwright_browser }}
         run: |
           npm ci
           # Install browser
-          npx playwright install --with-deps ${{ matrix.browser }}
+          npx playwright install --with-deps ${{ matrix.playwright_browser }}
           # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          npm run test:e2e:${{ matrix.browser == 'chrome' ? 'chrome' : 'firefox' }}
 
       - name: Upload test results
         if: always()

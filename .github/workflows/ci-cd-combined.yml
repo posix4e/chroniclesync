@@ -151,7 +151,19 @@ jobs:
   playwright-tests:
     needs: build-and-test
     if: success() && (github.event_name != 'workflow_dispatch' || inputs.browser != '')
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+        # Skip specific browser if manually specified in workflow dispatch
+        include:
+          - browser: chromium
+            skip: ${{ github.event.inputs.browser == 'firefox' }}
+          - browser: firefox
+            skip: ${{ github.event.inputs.browser == 'chromium' }}
     runs-on: ubuntu-latest
+    # Skip this job if the browser is not the one specified in workflow dispatch
+    if: ${{ !matrix.skip }}
     steps:
       - uses: actions/checkout@v4
 
@@ -170,31 +182,20 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
-          BROWSER: ${{ github.event.inputs.browser || 'chromium' }}
+          BROWSER: ${{ matrix.browser }}
         run: |
           npm ci
-          # Install browsers based on input or both if not specified
-          if [ "${{ github.event.inputs.browser }}" = "firefox" ]; then
-            npx playwright install --with-deps firefox
-            # Run Firefox e2e tests with frame buffer
-            npm run test:e2e:firefox
-          elif [ "${{ github.event.inputs.browser }}" = "chromium" ]; then
-            npx playwright install --with-deps chromium
-            # Run Chrome e2e tests with frame buffer
-            npm run test:e2e:chrome
-          else
-            # Install both browsers and run all tests
-            npx playwright install --with-deps chromium firefox
-            # Run all e2e tests with frame buffer
-            npm run test:e2e:all
-          fi
+          # Install browser
+          npx playwright install --with-deps ${{ matrix.browser }}
+          # Run browser-specific e2e tests with frame buffer
+          npm run test:e2e:${{ matrix.browser }}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports-extension
+          name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
-            extension/test-results/
+            extension/test-results/${{ matrix.browser }}/
           retention-days: 30

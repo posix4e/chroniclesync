@@ -11,7 +11,20 @@ async function globalSetup() {
     console.log('Extensions built successfully');
 
     // Test browser setup based on the selected browser
-    const selectedBrowser = process.env.BROWSER || 'chromium';
+    // This can be set by the config file or environment variable
+    const configFile = process.env.PLAYWRIGHT_CONFIG_FILE || '';
+    let selectedBrowser = process.env.BROWSER || 'chromium';
+    
+    // Determine browser from config file if not explicitly set
+    if (!process.env.BROWSER && configFile) {
+      if (configFile.includes('chrome')) {
+        selectedBrowser = 'chromium';
+      } else if (configFile.includes('firefox')) {
+        selectedBrowser = 'firefox';
+      }
+    }
+    
+    console.log(`Setting up for browser: ${selectedBrowser}`);
     
     if (selectedBrowser === 'firefox' || process.env.TEST_ALL_BROWSERS) {
       await testFirefoxSetup();

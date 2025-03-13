@@ -202,7 +202,9 @@ jobs:
           BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
         run: |
           npm ci
-          # Install browser
+          # Install all browsers to ensure dependencies are available
+          npx playwright install --with-deps
+          # Ensure the specific browser is installed properly
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
           # Run browser-specific e2e tests with frame buffer
           npm run test:e2e:${{ matrix.browser }}

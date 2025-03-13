@@ -54,14 +54,36 @@ async function main() {
       });
     }
     
-    // Create zip file
-    console.log('Creating zip file...');
+    // Create Chrome zip file
+    console.log('Creating Chrome extension zip file...');
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../chrome-extension.zip ./*`);
+    
+    // Create Firefox XPI file with Firefox-specific modifications
+    console.log('Creating Firefox extension XPI file...');
+    
+    // Read the manifest
+    const fs = require('fs');
+    const manifestPath = join(PACKAGE_DIR, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    
+    // Add Firefox-specific settings
+    manifest.browser_specific_settings = {
+      "gecko": {
+        "id": "chroniclesync@example.com",
+        "strict_min_version": "109.0"
+      }
+    };
+    
+    // Write the updated manifest
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    
+    // Create the XPI file
+    await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../firefox-extension.xpi ./*`);
     
     // Clean up
     await rm(PACKAGE_DIR, { recursive: true });
     
-    console.log('Extension package created: chrome-extension.zip');
+    console.log('Extension packages created: chrome-extension.zip and firefox-extension.xpi');
   } catch (error) {
     console.error('Error building extension:', error);
     process.exit(1);

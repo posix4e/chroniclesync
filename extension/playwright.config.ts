@@ -65,6 +65,27 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // WebKit is used for iOS Safari testing
+        // We'll use the ios-safari-extension.zip file that we build
+        launchOptions: {
+          args: [
+            '--enable-extension-support',
+          ],
+        },
+        // iOS Safari specific settings
+        contextOptions: {
+          viewport: { width: 375, height: 667 }, // iPhone 8 dimensions
+          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+          isMobile: true,
+          hasTouch: true,
+        },
+      },
+    },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 
+             browser === 'webkit' ? 'test-results/ios-safari/' : 'test-results/chrome/',
 });

@@ -12,6 +12,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
+    "test:e2e:chrome": "BROWSER=chromium xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --config=playwright.config.chrome.ts",
+    "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --config=playwright.config.firefox.ts",
+    "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

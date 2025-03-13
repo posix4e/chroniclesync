@@ -1,6 +1,5 @@
 import { defineConfig } from '@playwright/test';
 import { paths } from './src/config';
-import path from 'path';
 
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',

@@ -103,8 +103,9 @@ async function testFirefoxSetup() {
 
       await page.close();
       await context.close();
-    } catch (err: any) {
-      console.log('Expected error when testing Firefox extension loading:', err?.message || 'Unknown error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.log('Expected error when testing Firefox extension loading:', errorMessage);
       console.log('This is normal during setup - the actual extension will be loaded during tests');
     }
 

@@ -17,7 +17,8 @@
     "test:e2e:all": "TEST_ALL_BROWSERS=true xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "all": "./scripts/run-all.sh"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

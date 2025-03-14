@@ -51,7 +51,7 @@ export class XcodeSimulator {
       const cssSupports = (property: string, value: string): boolean => {
         try {
           return CSS.supports(property, value);
-        } catch (e) {
+        } catch {
           return false;
         }
       };

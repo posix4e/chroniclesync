@@ -370,15 +370,37 @@ jobs:
           cp $GITHUB_WORKSPACE/.github/workflow-resources/xcode-schemes/ChronicleSync_Extension_Tests.xcscheme \
              ChronicleSync.xcodeproj/xcshareddata/xcschemes/
 
-          # Run tests using the new schemes
-          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" || echo "App tests failed but continuing"
+          # List available simulators
+          xcrun simctl list devices available
           
-          # Run extension tests
-          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" || echo "Extension tests failed but continuing"
+          # Run tests using the new schemes with any available iOS simulator
+          # First try iPhone 15 which is likely available
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" || \
+          # If that fails, try iPhone 16
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" || \
+          # If that fails, try iPhone SE
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest" || \
+          # If all specific devices fail, try any iOS simulator
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" || \
+          echo "App tests failed but continuing"
+          
+          # Run extension tests with any available iOS simulator
+          # First try iPhone 15 which is likely available
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" || \
+          # If that fails, try iPhone 16
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" || \
+          # If that fails, try iPhone SE
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest" || \
+          # If all specific devices fail, try any iOS simulator
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" || \
+          echo "Extension tests failed but continuing"
       
       - name: Run UI Tests with Screenshots
         working-directory: extension/safari-ios
         run: |
+          # Install ImageMagick for creating placeholder screenshots if needed
+          brew install imagemagick || echo "ImageMagick installation failed, will use alternative method for placeholders"
+          
           # Copy UI Tests scheme from workflow resources
           cp $GITHUB_WORKSPACE/.github/workflow-resources/xcode-schemes/ChronicleSync_UITests.xcscheme \
              ChronicleSync.xcodeproj/xcshareddata/xcschemes/
@@ -386,13 +408,57 @@ jobs:
           # Create a directory for screenshots
           mkdir -p Screenshots
           
-          # Run UI tests with screenshot capture
-          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" -resultBundlePath TestResults.xcresult || echo "UI tests failed but continuing"
+          # List available simulators
+          xcrun simctl list devices available
           
-          # Extract screenshots from the test results
-          xcrun xcresulttool get --path TestResults.xcresult --format json | grep -o '"filename" : "[^"]*\.png"' | awk -F'"' '{print $4}' | while read -r file; do
-            cp "$file" Screenshots/ || echo "Failed to copy $file"
-          done
+          # Run UI tests with screenshot capture using any available iOS simulator
+          # First try iPhone 15 which is likely available
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" -resultBundlePath TestResults.xcresult || \
+          # If that fails, try iPhone 16
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" -resultBundlePath TestResults.xcresult || \
+          # If that fails, try iPhone SE
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest" -resultBundlePath TestResults.xcresult || \
+          # If all specific devices fail, try any iOS simulator
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult || \
+          echo "UI tests failed but continuing"
+          
+          # Create placeholder screenshots if tests failed
+          if [ ! -f "TestResults.xcresult" ]; then
+            echo "Creating placeholder screenshots since UI tests failed"
+            mkdir -p Screenshots
+            
+            # Try to create placeholder screenshots with ImageMagick
+            if command -v convert &> /dev/null; then
+              # Create placeholder screenshots with explanatory text using ImageMagick
+              convert -size 1242x2688 -background white -fill black -gravity center -pointsize 40 \
+                label:"App Launch Screen\n(Placeholder - UI Tests Failed)" \
+                Screenshots/app_launch.png || echo "Failed to create placeholder screenshot"
+                
+              convert -size 1242x2688 -background white -fill black -gravity center -pointsize 40 \
+                label:"Settings Screen\n(Placeholder - UI Tests Failed)" \
+                Screenshots/settings_screen.png || echo "Failed to create placeholder screenshot"
+                
+              convert -size 1242x2688 -background white -fill black -gravity center -pointsize 40 \
+                label:"Extension Enabled\n(Placeholder - UI Tests Failed)" \
+                Screenshots/extension_enabled.png || echo "Failed to create placeholder screenshot"
+            else
+              # Fallback: Create simple text files as placeholders
+              echo "App Launch Screen (Placeholder - UI Tests Failed)" > Screenshots/app_launch.txt
+              echo "Settings Screen (Placeholder - UI Tests Failed)" > Screenshots/settings_screen.txt
+              echo "Extension Enabled (Placeholder - UI Tests Failed)" > Screenshots/extension_enabled.txt
+              
+              # Also create a README explaining the missing screenshots
+              echo "# Placeholder Screenshots" > Screenshots/PLACEHOLDERS.md
+              echo "" >> Screenshots/PLACEHOLDERS.md
+              echo "UI Tests failed to run and ImageMagick was not available to create placeholder images." >> Screenshots/PLACEHOLDERS.md
+              echo "Please see the text files in this directory for the intended screenshots." >> Screenshots/PLACEHOLDERS.md
+            fi
+          else
+            # Extract screenshots from the test results using the new xcresulttool syntax
+            xcrun xcresulttool get --path TestResults.xcresult --format json | grep -o '"filename" : "[^"]*\.png"' | awk -F'"' '{print $4}' | while read -r file; do
+              cp "$file" Screenshots/ || echo "Failed to copy $file"
+            done
+          fi
           
           # Create a summary of the screenshots
           echo "# Safari iOS Extension Screenshots" > Screenshots/README.md

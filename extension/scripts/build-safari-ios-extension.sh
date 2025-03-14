@@ -37,11 +37,35 @@ cd "${ROOT_DIR}" && npm run build
 echo "Copying files to package directory..."
 node "${ROOT_DIR}/scripts/build-extension.cjs"
 
+# Check if package directory exists and has files
+if [ ! -d "${PACKAGE_DIR}" ] || [ -z "$(ls -A ${PACKAGE_DIR} 2>/dev/null)" ]; then
+    echo "Warning: Package directory is empty or doesn't exist."
+    echo "Creating package directory with extension files..."
+    mkdir -p "${PACKAGE_DIR}"
+    cp -R "${ROOT_DIR}/dist" "${PACKAGE_DIR}/"
+    cp "${ROOT_DIR}/manifest.json" "${PACKAGE_DIR}/"
+    cp "${ROOT_DIR}"/*.html "${PACKAGE_DIR}/" 2>/dev/null || true
+    cp "${ROOT_DIR}"/*.css "${PACKAGE_DIR}/" 2>/dev/null || true
+    cp "${ROOT_DIR}/bip39-wordlist.js" "${PACKAGE_DIR}/" 2>/dev/null || true
+fi
+
 # Copy extension files to Safari iOS extension directory
 echo "Copying extension files to Safari iOS extension..."
 rm -rf "${EXTENSION_FILES_DIR}"/* || true
 mkdir -p "${EXTENSION_FILES_DIR}"
-cp -R "${PACKAGE_DIR}"/* "${EXTENSION_FILES_DIR}/"
+
+# Check if there are files to copy
+if [ -d "${PACKAGE_DIR}" ] && [ "$(ls -A ${PACKAGE_DIR} 2>/dev/null)" ]; then
+    cp -R "${PACKAGE_DIR}"/* "${EXTENSION_FILES_DIR}/"
+else
+    echo "Error: No extension files to copy. Package directory is empty."
+    echo "Copying dist directory instead..."
+    cp -R "${ROOT_DIR}/dist" "${EXTENSION_FILES_DIR}/"
+    cp "${ROOT_DIR}/manifest.json" "${EXTENSION_FILES_DIR}/" 2>/dev/null || true
+    cp "${ROOT_DIR}"/*.html "${EXTENSION_FILES_DIR}/" 2>/dev/null || true
+    cp "${ROOT_DIR}"/*.css "${EXTENSION_FILES_DIR}/" 2>/dev/null || true
+    cp "${ROOT_DIR}/bip39-wordlist.js" "${EXTENSION_FILES_DIR}/" 2>/dev/null || true
+fi
 
 # Create a package file based on platform
 if [[ "$PLATFORM" == "macos" ]]; then

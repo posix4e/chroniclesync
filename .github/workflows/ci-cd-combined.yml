@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - webkit
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -154,9 +155,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+        browser: [chrome, firefox, safari]
+        os: [ubuntu-latest, macos-latest]
+        exclude:
+          # Safari tests only run on macOS
+          - browser: safari
+            os: ubuntu-latest
+          # Chrome and Firefox tests only run on Ubuntu
+          - browser: chrome
+            os: macos-latest
+          - browser: firefox
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -168,6 +178,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "safari" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -185,7 +198,7 @@ jobs:
             extension/package-lock.json
 
       - name: Download extension artifacts
-        if: steps.should_test.outputs.should_test == 'true'
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser != 'safari'
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
@@ -199,15 +212,23 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
-          BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
+          BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || matrix.browser == 'firefox' && 'firefox' || 'webkit' }}
         run: |
           npm ci
           # Install all browsers to ensure dependencies are available
           npx playwright install --with-deps
           # Ensure the specific browser is installed properly
-          npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
-          # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || matrix.browser == 'firefox' && 'firefox' || 'webkit' }}
+          
+          # For Safari on macOS, build the Safari iOS extension first
+          if [[ "${{ matrix.browser }}" == "safari" ]]; then
+            npm run build:safari-ios
+            # Run Safari-specific tests
+            npm run test:e2e:safari
+          else
+            # Run browser-specific e2e tests with frame buffer
+            npm run test:e2e:${{ matrix.browser }}
+          fi
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()
@@ -216,5 +237,13 @@ jobs:
           name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
-            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || matrix.browser == 'firefox' && 'firefox' || 'safari' }}/
           retention-days: 30
+          
+      - name: Upload Safari iOS extension artifact
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ios-extension
+          path: extension/safari-ios-extension.zip
+          retention-days: 14

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
+    "build:safari-ios": "bash scripts/build-safari-ios-extension.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -14,7 +15,8 @@
     "test:e2e": "xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "test:e2e:chrome": "BROWSER=chromium xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=chromium",
     "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=firefox",
-    "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
+    "test:e2e:safari": "BROWSER=webkit xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=webkit",
+    "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox & npm run test:e2e:safari",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

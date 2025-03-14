@@ -65,6 +65,15 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // Safari/WebKit testing will be done differently since extension loading
+        // works differently in Safari. We'll use a custom approach for Safari testing.
+      },
+    },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 
+             browser === 'webkit' ? 'test-results/safari/' : 'test-results/chrome/',
 });

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChronicleSync Extension",
   "version": "1.0",
-  "description": "ChronicleSync Chrome Extension",
+  "description": "ChronicleSync Extension for Chrome, Firefox, and Safari",
   "devtools_page": "devtools-page.js",
   "action": {
     "default_popup": "popup.html"
@@ -38,5 +38,11 @@
     "http://localhost:*/*",
     "https://api.chroniclesync.xyz/*",
     "https://api-staging.chroniclesync.xyz/*"
-  ]
+  ],
+  "browser_specific_settings": {
+    "safari": {
+      "strict_min_version": "16.0",
+      "strict_max_version": "17.*"
+    }
+  }
 }

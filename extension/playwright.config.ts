@@ -65,6 +65,32 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // For desktop Safari testing
+      },
+    },
+    {
+      name: 'ios-safari',
+      use: {
+        browserName: 'webkit',
+        // iOS Safari specific configuration
+        isMobile: true,
+        deviceScaleFactor: 2,
+        hasTouch: true,
+        defaultBrowserType: 'webkit',
+        // Common iOS device configurations
+        viewport: { width: 390, height: 844 }, // iPhone 13 Pro dimensions
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+      },
+    },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: (() => {
+    if (browser === 'firefox') return 'test-results/firefox/';
+    if (browser === 'webkit') return 'test-results/webkit/';
+    if (browser === 'ios-safari') return 'test-results/ios-safari/';
+    return 'test-results/chrome/';
+  })(),
 });

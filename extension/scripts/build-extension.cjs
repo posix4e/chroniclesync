@@ -7,6 +7,7 @@ const { join } = require('path');
 const execAsync = promisify(exec);
 const ROOT_DIR = join(__dirname, '..');  // Extension root directory
 const PACKAGE_DIR = join(ROOT_DIR, 'package');
+const SAFARI_DIR = join(ROOT_DIR, '..', 'safari-ios');
 
 /** @type {[string, string][]} File copy specifications [source, destination] */
 const filesToCopy = [
@@ -80,10 +81,71 @@ async function main() {
     // Create the XPI file
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../firefox-extension.xpi ./*`);
     
+    // Create Safari iOS extension package
+    console.log('Creating Safari iOS extension package...');
+    
+    // Create a Safari-specific manifest (Safari Web Extension manifest)
+    const safariManifest = { ...manifest };
+    
+    // Safari doesn't support manifest v3 service workers the same way
+    // Convert background service worker to background page if needed
+    if (safariManifest.background && safariManifest.background.service_worker) {
+      const serviceWorkerName = safariManifest.background.service_worker;
+      safariManifest.background = {
+        "page": "background-safari.html"
+      };
+      
+      // Create a background HTML page that loads the service worker as a script
+      const backgroundHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script type="module" src="${serviceWorkerName}"></script>
+</head>
+<body>
+</body>
+</html>`;
+      
+      fs.writeFileSync(join(PACKAGE_DIR, 'background-safari.html'), backgroundHtml);
+    }
+    
+    // Safari iOS has some permission differences
+    if (safariManifest.permissions) {
+      // Filter out permissions not supported in Safari
+      const supportedPermissions = [
+        "activeTab", 
+        "scripting", 
+        "tabs", 
+        "storage"
+      ];
+      
+      safariManifest.permissions = safariManifest.permissions.filter(
+        permission => supportedPermissions.includes(permission)
+      );
+    }
+    
+    // Write the Safari manifest
+    fs.writeFileSync(
+      join(PACKAGE_DIR, 'safari-manifest.json'), 
+      JSON.stringify(safariManifest, null, 2)
+    );
+    
+    // Create Safari extension zip for inclusion in Xcode project
+    await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../safari-extension.zip ./*`);
+    
+    // Copy the Safari extension zip to the Safari iOS directory
+    await cp(
+      join(ROOT_DIR, 'safari-extension.zip'),
+      join(SAFARI_DIR, 'safari-extension.zip'),
+      { recursive: true }
+    ).catch(err => {
+      console.warn(`Warning: Could not copy safari-extension.zip: ${err.message}`);
+    });
+    
     // Clean up
     await rm(PACKAGE_DIR, { recursive: true });
     
-    console.log('Extension packages created: chrome-extension.zip and firefox-extension.xpi');
+    console.log('Extension packages created: chrome-extension.zip, firefox-extension.xpi, and safari-extension.zip');
   } catch (error) {
     console.error('Error building extension:', error);
     process.exit(1);

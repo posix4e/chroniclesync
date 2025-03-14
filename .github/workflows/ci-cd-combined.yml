@@ -95,7 +95,19 @@ jobs:
       - name: Test Worker
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
-
+        
+  playwright-pages-tests:
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: pages/package-lock.json
+      
       - name: Install dependencies and run page tests
         working-directory: pages
         env:
@@ -114,6 +126,7 @@ jobs:
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test --project=${{ github.event.inputs.browser }}
           fi
+      
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -123,9 +136,34 @@ jobs:
             pages/playwright-report/
             pages/test-results/
           retention-days: 30
-
+          
+  deploy:
+    needs: [build-and-test, playwright-pages-tests]
+    if: success() && (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    outputs:
+      current_version: ${{ steps.deploy-worker.outputs.current_version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            worker/package-lock.json
+      
+      - name: Install Pages Dependencies
+        working-directory: pages
+        run: npm ci
+      
+      - name: Install Worker Dependencies
+        working-directory: worker
+        run: npm ci
+      
       - name: Deploy Pages
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
         working-directory: pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -134,7 +172,6 @@ jobs:
 
       - name: Deploy Worker
         id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -220,7 +257,7 @@ jobs:
           retention-days: 30
 
   build-safari-ios:
-    needs: build-and-test
+    needs: [build-and-test]
     if: success()
     runs-on: macos-latest
     steps:
@@ -317,7 +354,7 @@ jobs:
           fastlane run upload_to_testflight ipa:"safari-ios-extension-signed.ipa" apple_id:"$APPLE_APP_ID" team_id:"$APPLE_TEAM_ID" api_key_id:"$APPLE_API_KEY_ID" api_key_issuer_id:"$APPLE_API_KEY_ISSUER_ID" api_key_path:"~/private_keys/api_key.p8" skip_waiting_for_build_processing:true
           
   test-safari-ios:
-    needs: build-safari-ios
+    needs: [build-safari-ios]
     if: success()
     runs-on: macos-latest
     steps:

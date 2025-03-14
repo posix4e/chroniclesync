@@ -6,15 +6,29 @@ This directory contains the Safari iOS extension for ChronicleSync.
 
 ### Prerequisites
 
-- Xcode 14.0 or later
-- iOS 15.0 or later
-- Apple Developer Account with Safari Extension capabilities
+- For local development and testing:
+  - Any operating system with Node.js
+  - Zip utility installed
+
+- For building a real iOS app:
+  - macOS with Xcode 14.0 or later
+  - iOS 15.0 or later
+  - Apple Developer Account with Safari Extension capabilities
 
 ### Building the Extension
+
+#### On macOS (for real device testing)
 
 1. Open the `ChronicleSync.xcodeproj` file in Xcode
 2. Configure your development team in the Signing & Capabilities section
 3. Build and run the project on a simulator or device
+
+#### On any platform (for CI/CD purposes)
+
+1. Run `npm run build:safari-ios` from the extension directory
+2. This will create a `safari-ios-extension.ipa` file
+
+**Note:** When built on Linux or Windows, the resulting `.ipa` file is not a real iOS app package. It's just a zip file with the extension source code, intended for CI/CD purposes only. A proper IPA file can only be created on macOS with Xcode and proper code signing.
 
 ### Testing with TestFlight
 
@@ -26,13 +40,15 @@ The extension is automatically built and uploaded to TestFlight when changes are
 4. Install the app from TestFlight
 5. Open the app and follow the instructions to enable the Safari extension
 
-## Manual Building
+## Cross-Platform Development Workflow
 
-If you want to build the extension manually:
+The recommended workflow is:
 
-1. Run `npm run build:safari-ios` from the extension directory
-2. This will create a `safari-ios-extension.ipa` file
-3. You can then upload this file to TestFlight manually using Transporter or Xcode
+1. Develop and test the core extension functionality on Chrome or Firefox
+2. Use the GitHub Actions workflow to build and deploy to TestFlight for iOS testing
+3. If you have access to a Mac, you can build and test locally with Xcode
+
+The build script (`build-safari-ios-extension.sh`) will detect your platform and provide appropriate warnings and instructions.
 
 ## Required GitHub Secrets for TestFlight Deployment
 

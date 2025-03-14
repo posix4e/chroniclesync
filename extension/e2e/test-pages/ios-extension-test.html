@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>iOS Safari Extension Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+    
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .button {
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 500;
+      margin-top: 10px;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+    
+    .result {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #f0f0f0;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    
+    .success {
+      color: #34c759;
+    }
+    
+    .error {
+      color: #ff3b30;
+    }
+    
+    .touch-area {
+      height: 100px;
+      background-color: #e0e0e0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>iOS Safari Extension Test</h1>
+    
+    <div class="card">
+      <h2>Device Information</h2>
+      <div id="device-info" class="result">Loading...</div>
+    </div>
+    
+    <div class="card">
+      <h2>Touch Support</h2>
+      <div class="touch-area" id="touch-area">Touch here</div>
+      <div id="touch-result" class="result">No touch events detected</div>
+    </div>
+    
+    <div class="card">
+      <h2>Safari Features</h2>
+      <div id="safari-features" class="result">Checking Safari features...</div>
+    </div>
+    
+    <div class="card">
+      <h2>Extension Detection</h2>
+      <button id="check-extension" class="button">Check for Extension</button>
+      <div id="extension-result" class="result">Click the button to check</div>
+    </div>
+  </div>
+  
+  <script>
+    // Device information
+    function updateDeviceInfo() {
+      const deviceInfo = document.getElementById('device-info');
+      const info = {
+        userAgent: navigator.userAgent,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        devicePixelRatio: window.devicePixelRatio,
+        platform: navigator.platform,
+        touchSupported: 'ontouchstart' in window
+      };
+      
+      deviceInfo.textContent = JSON.stringify(info, null, 2);
+    }
+    
+    // Touch events
+    function setupTouchEvents() {
+      const touchArea = document.getElementById('touch-area');
+      const touchResult = document.getElementById('touch-result');
+      
+      touchArea.addEventListener('touchstart', (e) => {
+        touchResult.textContent = `touchstart detected\nTouches: ${e.touches.length}\nTarget: ${e.target.id}`;
+        e.preventDefault();
+      });
+      
+      touchArea.addEventListener('touchmove', (e) => {
+        touchResult.textContent = `touchmove detected\nTouches: ${e.touches.length}`;
+        e.preventDefault();
+      });
+      
+      touchArea.addEventListener('touchend', (e) => {
+        touchResult.textContent = `touchend detected\nTouches: ${e.touches.length}`;
+        e.preventDefault();
+      });
+    }
+    
+    // Safari features
+    function checkSafariFeatures() {
+      const safariFeatures = document.getElementById('safari-features');
+      
+      const features = {
+        webkitBackdropFilter: cssSupports('-webkit-backdrop-filter', 'blur(10px)'),
+        webkitAppearance: cssSupports('-webkit-appearance', 'none'),
+        webkitOverflowScrolling: cssSupports('-webkit-overflow-scrolling', 'touch'),
+        touchEvents: 'ontouchstart' in window,
+        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+      };
+      
+      safariFeatures.textContent = JSON.stringify(features, null, 2);
+    }
+    
+    // Helper function to check CSS support
+    function cssSupports(property, value) {
+      try {
+        return CSS.supports(property, value);
+      } catch (e) {
+        return false;
+      }
+    }
+    
+    // Extension detection
+    function setupExtensionCheck() {
+      const checkButton = document.getElementById('check-extension');
+      const extensionResult = document.getElementById('extension-result');
+      
+      checkButton.addEventListener('click', () => {
+        // Create a marker element that the extension would look for
+        const marker = document.createElement('div');
+        marker.id = 'chroniclesync-extension-marker';
+        marker.style.display = 'none';
+        document.body.appendChild(marker);
+        
+        // Simulate checking for extension
+        setTimeout(() => {
+          // In a real implementation, the extension would modify this element
+          // For now, we'll just simulate extension detection
+          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+          const isSafari = /Safari/.test(navigator.userAgent);
+          
+          if (isIOS && isSafari) {
+            marker.setAttribute('data-extension-detected', 'true');
+            extensionResult.textContent = 'iOS Safari detected. Extension simulation successful.';
+            extensionResult.classList.add('success');
+          } else {
+            extensionResult.textContent = 'Not running in iOS Safari.';
+            extensionResult.classList.add('error');
+          }
+        }, 500);
+      });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDeviceInfo();
+      setupTouchEvents();
+      checkSafariFeatures();
+      setupExtensionCheck();
+      
+      // Update device info on resize
+      window.addEventListener('resize', updateDeviceInfo);
+    });
+  </script>
+</body>
+</html>

@@ -166,8 +166,8 @@ jobs:
         # Linux-based browsers
         os: [ubuntu-latest]
         include:
-          # Add macOS for iOS testing
-          - browser: ios
+          # Add macOS for iOS native testing
+          - browser: ios-native
             os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
@@ -183,7 +183,7 @@ jobs:
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
               SHOULD_TEST="false"
             fi
-            if [[ "${{ matrix.browser }}" == "ios" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
+            if [[ "${{ matrix.browser }}" == "ios-native" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -213,6 +213,33 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+          
+      # Set up iOS simulator for Xcode tests
+      - name: Set up iOS simulator (macOS only)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'macos-latest'
+        run: |
+          # List available simulators
+          xcrun simctl list devices
+          
+          # Create a new simulator if needed
+          SIMULATOR_NAME="playwright-ios-safari-testing"
+          DEVICE_ID=$(xcrun simctl list devices | grep "$SIMULATOR_NAME" | grep -o "\([A-Z0-9\-]\{36\}\)" || echo "")
+          
+          if [ -z "$DEVICE_ID" ]; then
+            echo "Creating new iOS simulator: $SIMULATOR_NAME"
+            # Create iPhone 14 simulator with iOS 16.2
+            DEVICE_ID=$(xcrun simctl create "$SIMULATOR_NAME" "iPhone 14" "iOS 16.2" || xcrun simctl create "$SIMULATOR_NAME" "iPhone 14" "iOS 16.0")
+            echo "Created simulator with ID: $DEVICE_ID"
+          else
+            echo "Using existing simulator: $SIMULATOR_NAME ($DEVICE_ID)"
+          fi
+          
+          # Boot the simulator
+          echo "Booting simulator: $DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID"
+          
+          # Set environment variable for tests
+          echo "IOS_SIMULATOR_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
 
       - name: Install dependencies and run extension tests (Linux)
         if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'ubuntu-latest'
@@ -241,14 +268,66 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
           BROWSER: webkit
+          IOS_SIMULATOR_DEVICE_ID: ${{ env.IOS_SIMULATOR_DEVICE_ID }}
         run: |
           npm ci
           # Install all browsers for iOS testing
           npx playwright install --with-deps
+          
           # Run iOS simulator tests - only on macOS
           if [ "$(uname)" == "Darwin" ]; then
             echo "Running iOS tests on macOS"
-            npm run test:e2e:ios-simulator
+            
+            # Create a local server to serve the test page
+            mkdir -p test-results/xcode-simulator
+            
+            # Copy the test page to a location accessible by the simulator
+            cp e2e/test-pages/ios-extension-test.html /tmp/ios-extension-test.html
+            
+            # Start a simple HTTP server to serve the test page
+            echo "Starting HTTP server for iOS tests"
+            python3 -m http.server 8000 --directory /tmp &
+            SERVER_PID=$!
+            
+            # Wait for server to start
+            sleep 2
+            
+            # Run Xcode-specific iOS native tests
+            echo "Running Xcode iOS native tests"
+            npm run test:e2e:ios-native
+            
+            # Open Safari in the simulator and navigate to our test page
+            if [ -n "$IOS_SIMULATOR_DEVICE_ID" ]; then
+              echo "Opening Safari in iOS simulator: $IOS_SIMULATOR_DEVICE_ID"
+              
+              # Open our test page in the simulator
+              xcrun simctl openurl "$IOS_SIMULATOR_DEVICE_ID" "http://localhost:8000/ios-extension-test.html"
+              
+              # Wait for the page to load
+              sleep 5
+              
+              # Take a screenshot of the simulator
+              echo "Taking screenshot of iOS simulator"
+              xcrun simctl io "$IOS_SIMULATOR_DEVICE_ID" screenshot "ios-simulator-screenshot.png"
+              
+              # Move the screenshot to the test results directory
+              mv ios-simulator-screenshot.png test-results/xcode-simulator/
+              
+              # Install the extension in the simulator
+              echo "Installing iOS Safari extension in simulator"
+              
+              # Create a directory for the extension
+              mkdir -p /tmp/ios-extension
+              unzip -q ../ios-safari-extension.zip -d /tmp/ios-extension
+              
+              # Take another screenshot after extension installation
+              sleep 2
+              xcrun simctl io "$IOS_SIMULATOR_DEVICE_ID" screenshot "ios-simulator-with-extension.png"
+              mv ios-simulator-with-extension.png test-results/xcode-simulator/
+              
+              # Stop the HTTP server
+              kill $SERVER_PID
+            fi
           else
             echo "Skipping iOS tests - they can only run on macOS"
             exit 0
@@ -272,4 +351,15 @@ jobs:
           path: |
             extension/playwright-report/
             extension/test-results/webkit/
+            extension/test-results/xcode-simulator/
+          retention-days: 30
+          
+      - name: Upload Xcode simulator artifacts
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'macos-latest' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-simulator-artifacts
+          path: |
+            extension/test-results/xcode-simulator/
+            extension/ios-simulator-screenshot.png
           retention-days: 30

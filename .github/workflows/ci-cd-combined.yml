@@ -374,119 +374,12 @@ jobs:
           # Create a shared scheme for the main app tests
           mkdir -p ChronicleSync.xcodeproj/xcshareddata/xcschemes
           
-          # Create ChronicleSync Tests scheme
-          cat > ChronicleSync.xcodeproj/xcshareddata/xcschemes/ChronicleSync_Tests.xcscheme << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Scheme
-             LastUpgradeVersion = "1500"
-             version = "1.7">
-             <BuildAction
-                parallelizeBuildables = "YES"
-                buildImplicitDependencies = "YES">
-             </BuildAction>
-             <TestAction
-                buildConfiguration = "Debug"
-                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-                shouldUseLaunchSchemeArgsEnv = "YES"
-                shouldAutocreateTestPlan = "YES">
-                <Testables>
-                   <TestableReference
-                      skipped = "NO">
-                      <BuildableReference
-                         BuildableIdentifier = "primary"
-                         BlueprintIdentifier = "ChronicleSync Tests"
-                         BuildableName = "ChronicleSync Tests.xctest"
-                         BlueprintName = "ChronicleSync Tests"
-                         ReferencedContainer = "container:ChronicleSync.xcodeproj">
-                      </BuildableReference>
-                   </TestableReference>
-                </Testables>
-             </TestAction>
-             <LaunchAction
-                buildConfiguration = "Debug"
-                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-                launchStyle = "0"
-                useCustomWorkingDirectory = "NO"
-                ignoresPersistentStateOnLaunch = "NO"
-                debugDocumentVersioning = "YES"
-                debugServiceExtension = "internal"
-                allowLocationSimulation = "YES">
-             </LaunchAction>
-             <ProfileAction
-                buildConfiguration = "Release"
-                shouldUseLaunchSchemeArgsEnv = "YES"
-                savedToolIdentifier = ""
-                useCustomWorkingDirectory = "NO"
-                debugDocumentVersioning = "YES">
-             </ProfileAction>
-             <AnalyzeAction
-                buildConfiguration = "Debug">
-             </AnalyzeAction>
-             <ArchiveAction
-                buildConfiguration = "Release"
-                revealArchiveInOrganizer = "YES">
-             </ArchiveAction>
-          </Scheme>
-          EOF
-
-          # Create ChronicleSync Extension Tests scheme
-          cat > ChronicleSync.xcodeproj/xcshareddata/xcschemes/ChronicleSync_Extension_Tests.xcscheme << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Scheme
-             LastUpgradeVersion = "1500"
-             version = "1.7">
-             <BuildAction
-                parallelizeBuildables = "YES"
-                buildImplicitDependencies = "YES">
-             </BuildAction>
-             <TestAction
-                buildConfiguration = "Debug"
-                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-                shouldUseLaunchSchemeArgsEnv = "YES"
-                shouldAutocreateTestPlan = "YES">
-                <Testables>
-                   <TestableReference
-                      skipped = "NO">
-                      <BuildableReference
-                         BuildableIdentifier = "primary"
-                         BlueprintIdentifier = "ChronicleSync Extension Tests"
-                         BuildableName = "ChronicleSync Extension Tests.xctest"
-                         BlueprintName = "ChronicleSync Extension Tests"
-                         ReferencedContainer = "container:ChronicleSync.xcodeproj">
-                      </BuildableReference>
-                   </TestableReference>
-                </Testables>
-             </TestAction>
-             <LaunchAction
-                buildConfiguration = "Debug"
-                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-                launchStyle = "0"
-                useCustomWorkingDirectory = "NO"
-                ignoresPersistentStateOnLaunch = "NO"
-                debugDocumentVersioning = "YES"
-                debugServiceExtension = "internal"
-                allowLocationSimulation = "YES">
-             </LaunchAction>
-             <ProfileAction
-                buildConfiguration = "Release"
-                shouldUseLaunchSchemeArgsEnv = "YES"
-                savedToolIdentifier = ""
-                useCustomWorkingDirectory = "NO"
-                debugDocumentVersioning = "YES">
-             </ProfileAction>
-             <AnalyzeAction
-                buildConfiguration = "Debug">
-             </AnalyzeAction>
-             <ArchiveAction
-                buildConfiguration = "Release"
-                revealArchiveInOrganizer = "YES">
-             </ArchiveAction>
-          </Scheme>
-          EOF
+          # Copy Xcode scheme files from workflow resources
+          cp $GITHUB_WORKSPACE/.github/workflow-resources/xcode-schemes/ChronicleSync_Tests.xcscheme \
+             ChronicleSync.xcodeproj/xcshareddata/xcschemes/
+          
+          cp $GITHUB_WORKSPACE/.github/workflow-resources/xcode-schemes/ChronicleSync_Extension_Tests.xcscheme \
+             ChronicleSync.xcodeproj/xcshareddata/xcschemes/
 
           # Run tests using the new schemes
           xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Tests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" || echo "App tests failed but continuing"

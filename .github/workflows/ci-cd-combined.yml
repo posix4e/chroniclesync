@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -154,9 +155,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+        browser: [chrome, firefox, safari-ios]
+        include:
+          - browser: chrome
+            os: ubuntu-latest
+          - browser: firefox
+            os: ubuntu-latest
+          - browser: safari-ios
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -168,6 +175,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "safari-ios" && "${{ github.event.inputs.browser }}" != "safari" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -192,7 +202,7 @@ jobs:
           path: extension/dist
 
       - name: Install dependencies and run extension tests
-        if: steps.should_test.outputs.should_test == 'true'
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser != 'safari-ios'
         working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
@@ -208,6 +218,91 @@ jobs:
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
           # Run browser-specific e2e tests with frame buffer
           npm run test:e2e:${{ matrix.browser }}
+          
+      - name: Setup Safari iOS build environment
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari-ios'
+        working-directory: extension
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          npm ci
+          
+          # Create keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD="temporary-password"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          # Import certificate to keychain
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo -n "$APPLE_CERTIFICATE_CONTENT" | base64 --decode > $CERTIFICATE_PATH
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Setup provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          PROVISIONING_PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo -n "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PROVISIONING_PROFILE_PATH"
+          
+          # Copy export options plist
+          mkdir -p safari-ios
+          cp scripts/exportOptions.plist safari-ios/
+          
+          # Replace placeholders in exportOptions.plist
+          sed -i '' "s/\$(APPLE_TEAM_ID)/$APPLE_TEAM_ID/g" safari-ios/exportOptions.plist
+          sed -i '' "s/\$(APPLE_PROVISIONING_PROFILE)/profile/g" safari-ios/exportOptions.plist
+          
+      - name: Build Safari iOS Extension
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari-ios'
+        working-directory: extension
+        env:
+          CI: true
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          # Run the build script
+          node scripts/build-safari-ios.cjs
+          
+          # Basic test to verify the build was successful
+          if [ -f "safari-ios/ChronicleSync.ipa" ]; then
+            echo "✅ Safari iOS Extension IPA built successfully"
+          else
+            echo "❌ Safari iOS Extension IPA build failed"
+            exit 1
+          fi
+
+      - name: Upload Safari iOS Extension Artifact
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari-ios'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ios-extension
+          path: extension/safari-ios/ChronicleSync.ipa
+          retention-days: 14
+          
+      - name: Upload to TestFlight
+        if: github.ref == 'refs/heads/main' && steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari-ios'
+        working-directory: extension
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+        run: |
+          # Create API key file
+          mkdir -p ~/.appstoreconnect/private_keys/
+          APPLE_API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8
+          echo -n "$APPLE_API_KEY_CONTENT" | base64 --decode > "$APPLE_API_KEY_PATH"
+          
+          # Upload to TestFlight using altool
+          xcrun altool --upload-app -f safari-ios/ChronicleSync.ipa \
+            --apiKey "$APPLE_API_KEY_ID" \
+            --apiIssuer "$APPLE_API_KEY_ISSUER_ID" \
+            --type ios
+            
+          echo "✅ Safari iOS Extension uploaded to TestFlight successfully"
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()
@@ -216,5 +311,5 @@ jobs:
           name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
-            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || (matrix.browser == 'firefox' && 'firefox' || 'safari-ios') }}/
           retention-days: 30

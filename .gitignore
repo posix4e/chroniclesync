@@ -66,5 +66,14 @@ worker-configuration.json
 *.tgz
 
 # Yarn Integrity file
-.yarn-integritychrome-extension.zip
+.yarn-integrity
+
+# Extension artifacts
+chrome-extension.zip
 extension/chrome-extension.zip
+firefox-extension.xpi
+extension/firefox-extension.xpi
+*.ipa
+*.xcarchive
+extension/safari-ios/
+test-results/

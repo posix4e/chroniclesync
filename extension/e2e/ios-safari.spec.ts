@@ -1,9 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './utils/extension';
 import { IOSSafariHelper } from './utils/ios-safari';
 
-// Skip this test if not running on WebKit
-test.skip(({ browserName }) => browserName !== 'webkit', 'iOS Safari tests are only relevant for WebKit');
-
+// Only run these tests when specifically targeting WebKit
 test.describe('iOS Safari Extension Tests', () => {
   test('should load basic extension functionality in iOS Safari', async ({ page }) => {
     // Navigate to a test page
@@ -62,10 +60,6 @@ test.describe('iOS Safari Extension Tests', () => {
 
 // iOS simulator specific tests
 test.describe('iOS Simulator Tests', () => {
-  // Only run these tests when specifically targeting the iOS simulator
-  test.skip(({ browserName }) => browserName !== 'webkit' || !process.env.BROWSER?.includes('webkit-ios'), 
-    'iOS Simulator tests are only for webkit-ios-simulator project');
-  
   test('should simulate iOS Safari with touch capabilities', async ({ page, context }) => {
     // Navigate to a test page
     await page.goto('about:blank');

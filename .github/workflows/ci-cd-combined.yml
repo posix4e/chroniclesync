@@ -243,8 +243,8 @@ jobs:
           BROWSER: webkit
         run: |
           npm ci
-          # Install WebKit for iOS testing
-          npx playwright install --with-deps webkit
+          # Install all browsers for iOS testing
+          npx playwright install --with-deps
           # Run iOS simulator tests - only on macOS
           if [ "$(uname)" == "Darwin" ]; then
             echo "Running iOS tests on macOS"

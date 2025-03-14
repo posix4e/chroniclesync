@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
     "build:safari-ios": "bash scripts/build-safari-ios-extension.sh",
+    "build:safari-ios:check": "echo \"⚠️ Safari iOS extensions can only be built on macOS with Xcode. Use Chrome or Firefox for cross-platform testing.\"",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

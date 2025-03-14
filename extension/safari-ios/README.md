@@ -50,15 +50,26 @@ The recommended workflow is:
 
 ### Platform Limitations
 
-**Important:** Building a real iOS Safari extension IPA file is **only possible on macOS** with Xcode. 
+**IMPORTANT: Building a Safari iOS extension is ONLY possible on macOS with Xcode.**
 
-- **On Linux/Windows**: The build script will only prepare the extension files and create a source package for reference. This package cannot be installed on iOS devices.
-- **On macOS**: You can build a proper IPA file using Xcode, or use the GitHub Actions workflow which runs on macOS.
+The build script has been updated to:
+- **On macOS**: Build the extension and create a placeholder IPA file
+- **On Linux/Windows**: Exit immediately with a clear error message
 
-The GitHub Actions workflow has been configured to handle this limitation by:
-1. Building Chrome and Firefox extensions on Ubuntu
-2. Building the Safari iOS extension specifically on macOS
-3. Signing and uploading to TestFlight only from the macOS build job
+#### Development Workflow for Non-macOS Users
+
+If you're developing on Linux or Windows:
+
+1. Focus on the Chrome and Firefox extensions, which share the same core code
+2. Use the GitHub Actions workflow for iOS builds, which runs on macOS runners
+3. For local testing, use `npm run build:safari-ios:check` to see platform compatibility
+
+#### GitHub Actions Configuration
+
+The GitHub Actions workflow has been configured to handle platform limitations:
+1. Chrome and Firefox extensions are built on Ubuntu
+2. Safari iOS extension is built **only** on a dedicated macOS runner
+3. TestFlight deployment happens only on the macOS runner with proper signing
 
 The build script (`build-safari-ios-extension.sh`) will detect your platform and provide appropriate warnings and instructions.
 

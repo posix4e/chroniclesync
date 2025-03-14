@@ -257,6 +257,7 @@ jobs:
           retention-days: 30
 
   build-safari-ios:
+    name: Build Safari iOS Extension (macOS only)
     needs: [build-and-test]
     if: success()
     runs-on: macos-latest
@@ -276,6 +277,7 @@ jobs:
       - name: Build Safari iOS Extension
         working-directory: extension
         run: |
+          echo "Building Safari iOS extension on macOS runner"
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ios

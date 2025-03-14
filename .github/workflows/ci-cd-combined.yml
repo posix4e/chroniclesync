@@ -376,6 +376,37 @@ jobs:
           # Run extension tests
           xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_Extension_Tests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" || echo "Extension tests failed but continuing"
       
+      - name: Run UI Tests with Screenshots
+        working-directory: extension/safari-ios
+        run: |
+          # Copy UI Tests scheme from workflow resources
+          cp $GITHUB_WORKSPACE/.github/workflow-resources/xcode-schemes/ChronicleSync_UITests.xcscheme \
+             ChronicleSync.xcodeproj/xcshareddata/xcschemes/
+          
+          # Create a directory for screenshots
+          mkdir -p Screenshots
+          
+          # Run UI tests with screenshot capture
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync_UITests" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" -resultBundlePath TestResults.xcresult || echo "UI tests failed but continuing"
+          
+          # Extract screenshots from the test results
+          xcrun xcresulttool get --path TestResults.xcresult --format json | grep -o '"filename" : "[^"]*\.png"' | awk -F'"' '{print $4}' | while read -r file; do
+            cp "$file" Screenshots/ || echo "Failed to copy $file"
+          done
+          
+          # Create a summary of the screenshots
+          echo "# Safari iOS Extension Screenshots" > Screenshots/README.md
+          echo "" >> Screenshots/README.md
+          echo "These screenshots show the main workflows of the Safari iOS extension:" >> Screenshots/README.md
+          echo "" >> Screenshots/README.md
+          
+          for img in Screenshots/*.png; do
+            filename=$(basename "$img")
+            echo "## ${filename%.png}" >> Screenshots/README.md
+            echo "![${filename%.png}]($filename)" >> Screenshots/README.md
+            echo "" >> Screenshots/README.md
+          done
+      
       - name: Install Test Dependencies
         working-directory: extension
         run: |
@@ -405,5 +436,7 @@ jobs:
           path: |
             extension/safari-ios/build/reports/
             extension/safari-ios/build/logs/
+            extension/safari-ios/Screenshots/
+            extension/safari-ios/TestResults.xcresult/
             extension/test-results/
           retention-days: 14

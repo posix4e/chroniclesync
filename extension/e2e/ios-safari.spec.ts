@@ -48,41 +48,28 @@ test.describe('iOS Safari Extension', () => {
     const apiUrl = process.env.API_URL || server.apiUrl;
     console.log('Testing API health at:', `${apiUrl}/health`);
     
-    try {
-      const healthResponse = await page.request.get(`${apiUrl}/health`, {
-        headers: {
-          'X-Client-Id': testClientId
-        },
-        timeout: 10000
-      });
-      console.log('Health check status:', healthResponse.status());
-      
-      let responseBody;
-      try {
-        responseBody = await healthResponse.json();
-        console.log('Health check response:', responseBody);
-        
-        expect(healthResponse.ok()).toBeTruthy();
-        expect(responseBody.healthy).toBeTruthy();
-      } catch (error) {
-        const responseText = await healthResponse.text();
-        console.log('Health check response text:', responseText);
-        if (responseText === 'Client ID required') {
-          throw new Error('Client ID was not properly set in the request headers');
-        }
-        
-        // If we can't parse the response as JSON, but the status is OK, we'll consider it a success
-        if (healthResponse.ok()) {
-          console.log('Health check successful, but response is not JSON');
-        } else {
-          throw error;
-        }
+    const healthResponse = await page.request.get(`${apiUrl}/health`, {
+      headers: {
+        'X-Client-Id': testClientId
       }
+    });
+    console.log('Health check status:', healthResponse.status());
+    
+    let responseBody;
+    try {
+      responseBody = await healthResponse.json();
     } catch (error) {
-      console.error(`Error checking API health: ${error}`);
-      console.log('API may not be available, skipping test');
-      test.skip();
+      const responseText = await healthResponse.text();
+      console.log('Health check response text:', responseText);
+      if (responseText === 'Client ID required') {
+        throw new Error('Client ID was not properly set in the request headers');
+      }
+      throw error;
     }
+    console.log('Health check response:', responseBody);
+    
+    expect(healthResponse.ok()).toBeTruthy();
+    expect(responseBody.healthy).toBeTruthy();
   });
 
   test('should handle touch interactions on iOS', async ({ page }) => {
@@ -111,68 +98,39 @@ test.describe('iOS Safari Extension', () => {
   test('web app should load React components correctly', async ({ page }) => {
     // Navigate to the web app (simulating what would be loaded in the extension)
     const webAppUrl = process.env.WEB_APP_URL || server.webUrl;
-    console.log(`Testing web app at URL: ${webAppUrl}`);
+    await page.goto(webAppUrl);
     
-    try {
-      // Try to navigate to the web app
-      const response = await page.goto(webAppUrl, { timeout: 10000 });
-      
-      if (!response || !response.ok()) {
-        console.log(`Web app not available at ${webAppUrl}, skipping test`);
-        test.skip();
-        return;
+    // Wait for the root element to be visible
+    const rootElement = await page.locator('#root');
+    await expect(rootElement).toBeVisible();
+    
+    // Wait for React to mount and render content
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Give React a moment to hydrate
+    
+    // Check for React-specific attributes and content
+    const reactRoot = await page.evaluate(() => {
+      const root = document.getElementById('root');
+      return root?.hasAttribute('data-reactroot') ||
+             (root?.children.length ?? 0) > 0;
+    });
+    expect(reactRoot).toBeTruthy();
+    
+    // Check for console errors
+    const errors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(msg.text());
       }
-      
-      // Wait for the root element to be visible
-      const rootElement = await page.locator('#root').first();
-      await expect(rootElement).toBeVisible({ timeout: 5000 }).catch(e => {
-        console.log('Root element not found, web app may not be a React app');
-        // If we can't find the root element, take a screenshot and skip
-        page.screenshot({ path: 'test-results/ios-safari/web-app-error.png', fullPage: true });
-        test.skip();
-        return;
-      });
-      
-      // Wait for React to mount and render content
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000); // Give React a moment to hydrate
-      
-      // Check for React-specific attributes and content
-      const reactRoot = await page.evaluate(() => {
-        const root = document.getElementById('root');
-        return root?.hasAttribute('data-reactroot') ||
-               (root?.children.length ?? 0) > 0;
-      });
-      expect(reactRoot).toBeTruthy();
-      
-      // Check for console errors
-      const errors: string[] = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error') {
-          errors.push(msg.text());
-        }
-      });
-      await page.waitForTimeout(1000);
-      expect(errors).toEqual([]);
-      
-      // Take a screenshot of the web app
-      await page.screenshot({
-        path: 'test-results/ios-safari/web-app.png',
-        fullPage: true
-      });
-    } catch (error) {
-      console.error(`Error testing web app: ${error}`);
-      // Create directory if it doesn't exist
-      await page.evaluate(() => {
-        document.body.innerHTML = `<div id="error">Error connecting to web app at ${window.location.href}</div>`;
-      });
-      await page.screenshot({
-        path: 'test-results/ios-safari/web-app-error.png',
-        fullPage: true
-      });
-      // Don't fail the test if the web app is not available
-      test.skip();
-    }
+    });
+    await page.waitForTimeout(1000);
+    expect(errors).toEqual([]);
+    
+    // Take a screenshot of the web app
+    await page.screenshot({
+      path: 'test-results/ios-safari/web-app.png',
+      fullPage: true
+    });
   });
   
   test('content script functionality simulation', async ({ page }) => {

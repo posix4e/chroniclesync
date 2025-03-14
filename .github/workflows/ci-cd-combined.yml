@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - webkit
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -84,6 +85,13 @@ jobs:
         with:
           name: firefox-extension
           path: extension/firefox-extension.xpi
+          retention-days: 14
+          
+      - name: Upload iOS Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-safari-extension
+          path: extension/ios-safari-extension.zip
           retention-days: 14
 
       - name: Test Extension
@@ -155,8 +163,13 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+        # Linux-based browsers
+        os: [ubuntu-latest]
+        include:
+          # Add macOS for iOS testing
+          - browser: ios
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -168,6 +181,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "ios" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -188,11 +204,18 @@ jobs:
         if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
+          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || (matrix.browser == 'firefox' && 'firefox-extension' || 'ios-safari-extension') }}
           path: extension/dist
 
-      - name: Install dependencies and run extension tests
-        if: steps.should_test.outputs.should_test == 'true'
+      # Install Xcode and iOS simulator for macOS runs
+      - name: Set up Xcode (macOS only)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'macos-latest'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install dependencies and run extension tests (Linux)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'ubuntu-latest'
         working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
@@ -209,12 +232,44 @@ jobs:
           # Run browser-specific e2e tests with frame buffer
           npm run test:e2e:${{ matrix.browser }}
 
-      - name: Upload test results
-        if: steps.should_test.outputs.should_test == 'true' && always()
+      - name: Install dependencies and run iOS extension tests (macOS)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'macos-latest'
+        working-directory: extension
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
+          PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          PORT: 3000
+          BROWSER: webkit
+        run: |
+          npm ci
+          # Install WebKit for iOS testing
+          npx playwright install --with-deps webkit
+          # Run iOS simulator tests - only on macOS
+          if [ "$(uname)" == "Darwin" ]; then
+            echo "Running iOS tests on macOS"
+            npm run test:e2e:ios-simulator
+          else
+            echo "Skipping iOS tests - they can only run on macOS"
+            exit 0
+          fi
+
+      - name: Upload test results (Linux)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'ubuntu-latest' && always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+          retention-days: 30
+          
+      - name: Upload test results (macOS/iOS)
+        if: steps.should_test.outputs.should_test == 'true' && matrix.os == 'macos-latest' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-extension-ios
+          path: |
+            extension/playwright-report/
+            extension/test-results/webkit/
           retention-days: 30

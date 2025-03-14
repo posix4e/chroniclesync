@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { chromium, firefox } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 
 async function globalSetup() {
   console.log('Starting global setup...');
@@ -19,6 +19,8 @@ async function globalSetup() {
     // Test browser launch based on selected browser
     if (browserType === 'firefox') {
       await testFirefoxLaunch();
+    } else if (browserType === 'webkit' || browserType.includes('webkit-ios')) {
+      await testWebKitLaunch();
     } else {
       await testChromiumLaunch();
     }
@@ -91,6 +93,58 @@ async function testFirefoxLaunch() {
 
   await page.close();
   await context.close();
+  await browser.close();
+  console.log('Test browser closed successfully');
+}
+
+async function testWebKitLaunch() {
+  // Verify WebKit installation
+  console.log('Checking WebKit installation...');
+  const executablePath = process.env.PLAYWRIGHT_WEBKIT_PATH || 
+    (await webkit.executablePath());
+  console.log('WebKit executable path:', executablePath);
+
+  // Test browser launch
+  console.log('Testing WebKit launch...');
+  const browser = await webkit.launch();
+  console.log('Browser launched successfully');
+
+  // Test standard context
+  const context = await browser.newContext();
+  console.log('Context created successfully');
+
+  const page = await context.newPage();
+  console.log('Page created successfully');
+
+  await page.goto('about:blank');
+  console.log('Navigation successful');
+
+  await page.close();
+  await context.close();
+
+  // Test iOS simulator context if running in CI
+  if (process.env.CI) {
+    console.log('Testing iOS simulator context...');
+    const iosContext = await browser.newContext({
+      isMobile: true,
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+      viewport: { width: 390, height: 844 },
+    });
+    console.log('iOS context created successfully');
+
+    const iosPage = await iosContext.newPage();
+    console.log('iOS page created successfully');
+
+    await iosPage.goto('about:blank');
+    console.log('iOS navigation successful');
+
+    await iosPage.close();
+    await iosContext.close();
+    console.log('iOS context closed successfully');
+  }
+
   await browser.close();
   console.log('Test browser closed successfully');
 }

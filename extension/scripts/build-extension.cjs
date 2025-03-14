@@ -7,6 +7,7 @@ const { join } = require('path');
 const execAsync = promisify(exec);
 const ROOT_DIR = join(__dirname, '..');  // Extension root directory
 const PACKAGE_DIR = join(ROOT_DIR, 'package');
+const IOS_PACKAGE_DIR = join(ROOT_DIR, 'package-ios');
 
 /** @type {[string, string][]} File copy specifications [source, destination] */
 const filesToCopy = [
@@ -32,11 +33,13 @@ const filesToCopy = [
 
 async function main() {
   try {
-    // Clean up any existing package directory
+    // Clean up any existing package directories
     await rm(PACKAGE_DIR, { recursive: true, force: true });
+    await rm(IOS_PACKAGE_DIR, { recursive: true, force: true });
     
-    // Create package directory
+    // Create package directories
     await mkdir(PACKAGE_DIR, { recursive: true });
+    await mkdir(IOS_PACKAGE_DIR, { recursive: true });
     
     // Run the build
     console.log('Building extension...');
@@ -80,10 +83,48 @@ async function main() {
     // Create the XPI file
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../firefox-extension.xpi ./*`);
     
+    // Create iOS Safari extension package
+    console.log('Creating iOS Safari extension package...');
+    
+    // Copy files to iOS package directory
+    for (const [src, dest] of filesToCopy) {
+      await cp(
+        join(ROOT_DIR, src),
+        join(IOS_PACKAGE_DIR, dest),
+        { recursive: true }
+      ).catch(err => {
+        console.warn(`Warning: Could not copy ${src} to iOS package: ${err.message}`);
+      });
+    }
+    
+    // Read the manifest for iOS modifications
+    const iosManifestPath = join(IOS_PACKAGE_DIR, 'manifest.json');
+    const iosManifest = JSON.parse(fs.readFileSync(iosManifestPath, 'utf8'));
+    
+    // Add iOS Safari specific settings
+    iosManifest.browser_specific_settings = {
+      "safari": {
+        "id": "xyz.chroniclesync.extension",
+        "strict_min_version": "16.0"
+      }
+    };
+    
+    // iOS Safari requires explicit content_security_policy
+    iosManifest.content_security_policy = {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    };
+    
+    // Write the updated iOS manifest
+    fs.writeFileSync(iosManifestPath, JSON.stringify(iosManifest, null, 2));
+    
+    // Create the iOS Safari extension zip file
+    await execAsync(`cd "${IOS_PACKAGE_DIR}" && zip -r ../ios-safari-extension.zip ./*`);
+    
     // Clean up
     await rm(PACKAGE_DIR, { recursive: true });
+    await rm(IOS_PACKAGE_DIR, { recursive: true });
     
-    console.log('Extension packages created: chrome-extension.zip and firefox-extension.xpi');
+    console.log('Extension packages created: chrome-extension.zip, firefox-extension.xpi, and ios-safari-extension.zip');
   } catch (error) {
     console.error('Error building extension:', error);
     process.exit(1);

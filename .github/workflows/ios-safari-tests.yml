@@ -69,15 +69,42 @@ jobs:
           # Wait for Safari to open
           sleep 5
       
+      - name: Start test server
+        run: |
+          cd extension
+          # Start a simple web server to serve test content
+          npx http-server -p 8080 --cors -a 0.0.0.0 &
+          # Wait for server to start
+          sleep 5
+          # Set environment variables for tests
+          echo "WEB_APP_URL=http://localhost:8080" >> $GITHUB_ENV
+          echo "API_URL=https://api-staging.chroniclesync.xyz" >> $GITHUB_ENV
+      
       - name: Run Playwright tests for iOS Safari
         run: |
           cd extension
+          mkdir -p test-results/ios-safari
           BROWSER=ios-safari npx playwright test --project=ios-safari
+      
+      - name: Run specific test files
+        if: always()
+        run: |
+          cd extension
+          # Run each test file separately to isolate failures
+          BROWSER=ios-safari npx playwright test e2e/ios-safari.spec.ts --project=ios-safari
       
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: playwright-report
+          name: playwright-report-ios
           path: extension/test-results/
+          retention-days: 30
+      
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-safari-screenshots
+          path: extension/test-results/ios-safari/
           retention-days: 30

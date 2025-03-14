@@ -62,19 +62,10 @@ npm run test:e2e:ios
 npm run test:e2e:ios-debug
 ```
 
-Alternatively, use the provided script for a more interactive experience:
-
-```bash
-./scripts/run-ios-tests.sh
-```
-
-This script will:
-1. Check for required dependencies
-2. List available iOS simulators
-3. Let you choose a simulator or use the default
-4. Boot the simulator and open Safari
-5. Run the Playwright tests
-6. Shut down the simulator when done
+Before running the tests, make sure you have:
+1. Xcode installed with iOS simulators available
+2. Playwright installed with WebKit support (`npx playwright install webkit`)
+3. A running iOS simulator with Safari open
 
 ## Safari Extension Limitations
 

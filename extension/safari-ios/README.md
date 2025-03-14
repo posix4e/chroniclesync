@@ -48,6 +48,18 @@ The recommended workflow is:
 2. Use the GitHub Actions workflow to build and deploy to TestFlight for iOS testing
 3. If you have access to a Mac, you can build and test locally with Xcode
 
+### Platform Limitations
+
+**Important:** Building a real iOS Safari extension IPA file is **only possible on macOS** with Xcode. 
+
+- **On Linux/Windows**: The build script will only prepare the extension files and create a source package for reference. This package cannot be installed on iOS devices.
+- **On macOS**: You can build a proper IPA file using Xcode, or use the GitHub Actions workflow which runs on macOS.
+
+The GitHub Actions workflow has been configured to handle this limitation by:
+1. Building Chrome and Firefox extensions on Ubuntu
+2. Building the Safari iOS extension specifically on macOS
+3. Signing and uploading to TestFlight only from the macOS build job
+
 The build script (`build-safari-ios-extension.sh`) will detect your platform and provide appropriate warnings and instructions.
 
 ## Required GitHub Secrets for TestFlight Deployment

@@ -17,6 +17,16 @@ fi
 
 echo "Detected platform: $PLATFORM"
 
+# Check if we're on Linux and display a clear message
+if [[ "$PLATFORM" == "linux" ]]; then
+    echo "⚠️  WARNING: Building a real iOS Safari extension IPA file on Linux is not possible."
+    echo "This script will only prepare the extension files for CI purposes."
+    echo "For actual iOS deployment, the build must be performed on macOS with Xcode."
+    echo ""
+    echo "Continuing with preparation of extension files only..."
+    echo ""
+fi
+
 # Check for required tools
 if ! command -v zip &> /dev/null; then
     echo "Error: zip command not found. Please install it first."
@@ -77,18 +87,18 @@ if [[ "$PLATFORM" == "macos" ]]; then
     echo "NOTE: This is a placeholder IPA and not a properly signed iOS app."
     echo "To create a real IPA for TestFlight, use Xcode or the GitHub Actions workflow."
 else
-    echo "Creating Safari iOS extension package for CI purposes..."
-    cd "${ROOT_DIR}" && zip -r safari-ios-extension.ipa "${SAFARI_IOS_DIR}"
-    echo "Safari iOS extension package created: safari-ios-extension.ipa"
+    echo "Creating Safari iOS extension source package for reference only..."
+    cd "${ROOT_DIR}" && zip -r safari-ios-extension-source.zip "${SAFARI_IOS_DIR}"
+    echo "Safari iOS extension source package created: safari-ios-extension-source.zip"
     echo ""
-    echo "⚠️  IMPORTANT: This is NOT a real IPA file that can be installed on iOS devices."
-    echo "This package is only for CI/CD purposes. A proper IPA file requires:"
-    echo "  - Building on macOS with Xcode"
-    echo "  - Code signing with valid Apple certificates"
-    echo "  - Proper app packaging with correct structure"
+    echo "⚠️  IMPORTANT: Building a real IPA file on Linux is NOT POSSIBLE."
+    echo "The source package created is for reference only and cannot be installed on iOS devices."
+    echo "For actual iOS deployment:"
+    echo "  - Use the GitHub Actions workflow with macOS runners"
+    echo "  - Or build manually on a Mac with Xcode"
     echo ""
-    echo "For TestFlight deployment, the GitHub Actions workflow will handle this"
-    echo "on a macOS runner with the proper certificates and provisioning profiles."
+    echo "The GitHub Actions workflow has been configured to handle iOS builds"
+    echo "specifically on macOS runners with the proper certificates."
 fi
 
 # Clean up

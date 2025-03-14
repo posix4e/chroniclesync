@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "B9E8B2C3-6D7E-4F8G-9H0I-1J2K3L4M5N6O",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:ChronicleSync.xcodeproj",
+      "identifier" : "ChronicleSync Extension",
+      "name" : "ChronicleSync Extension"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ChronicleSync.xcodeproj",
+        "identifier" : "ChronicleSync Extension Tests",
+        "name" : "ChronicleSync Extension Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

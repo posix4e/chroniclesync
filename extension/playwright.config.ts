@@ -65,6 +65,19 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // Safari/WebKit testing will be limited to basic functionality
+        // since WebKit in Playwright doesn't fully support extension testing
+        // We'll use this for basic UI testing only
+      },
+    },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: (() => {
+    if (browser === 'firefox') return 'test-results/firefox/';
+    if (browser === 'webkit') return 'test-results/safari/';
+    return 'test-results/chrome/';
+  })(),
 });

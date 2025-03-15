@@ -65,6 +65,16 @@ worker-configuration.json
 # Output of 'npm pack'
 *.tgz
 
+# Extension artifacts
+*.zip
+*.xpi
+*.ipa
+*.xcarchive
+*.app
+*.pkg
+
 # Yarn Integrity file
-.yarn-integritychrome-extension.zip
+.yarn-integrity
 extension/chrome-extension.zip
+extension/firefox-extension.xpi
+extension/safari-extension.ipa

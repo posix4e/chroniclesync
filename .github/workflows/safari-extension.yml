@@ -1,0 +1,335 @@
+name: Safari Extension CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '15.2'
+
+jobs:
+  build-safari-extension:
+    name: Build Safari Extension
+    runs-on: macos-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+
+      - name: Lint extension
+        working-directory: extension
+        run: npm run lint
+
+      - name: Build extension base
+        working-directory: extension
+        run: npm run build
+
+      - name: Prepare Safari extension structure
+        working-directory: extension
+        run: npm run build:safari
+
+      - name: Create Safari App project
+        working-directory: extension/safari
+        run: |
+          # Create a new Xcode project for Safari App Extension
+          mkdir -p ChronicleSync.xcodeproj
+          
+          # Base64 decode the Apple certificate
+          echo "${{ secrets.APPLE_CERTIFICATE_CONTENT }}" | base64 --decode > certificate.p12
+          
+          # Create keychain and import certificate
+          security create-keychain -p "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" build.keychain
+          
+          # Base64 decode the provisioning profile
+          echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 --decode > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Create Safari App
+        working-directory: extension/safari
+        run: |
+          # Create a simple Swift project for Safari extension
+          mkdir -p ChronicleSync/ChronicleSync
+          
+          cat > ChronicleSync/ChronicleSync/AppDelegate.swift << 'EOF'
+          import Cocoa
+          import SafariServices
+          
+          @main
+          class AppDelegate: NSObject, NSApplicationDelegate {
+              var window: NSWindow?
+              
+              func applicationDidFinishLaunching(_ notification: Notification) {
+                  let contentView = NSHostingController(rootView: ContentView())
+                  
+                  window = NSWindow(
+                      contentRect: NSRect(x: 0, y: 0, width: 480, height: 300),
+                      styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                      backing: .buffered,
+                      defer: false)
+                  window?.center()
+                  window?.setFrameAutosaveName("Main Window")
+                  window?.contentView = contentView.view
+                  window?.makeKeyAndOrderFront(nil)
+                  
+                  SFSafariExtensionManager.getStateOfSafariExtension(
+                      withIdentifier: "xyz.chroniclesync.safari-extension") { (state, error) in
+                      guard let state = state, error == nil else {
+                          print("Error getting extension state: \(error?.localizedDescription ?? "unknown error")")
+                          return
+                      }
+                      
+                      DispatchQueue.main.async {
+                          if state.isEnabled {
+                              print("Extension is enabled")
+                          } else {
+                              print("Extension is not enabled")
+                              SFSafariApplication.showPreferencesForExtension(
+                                  withIdentifier: "xyz.chroniclesync.safari-extension") { error in
+                                  guard error == nil else {
+                                      print("Error showing preferences: \(error?.localizedDescription ?? "unknown error")")
+                                      return
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+              
+              func applicationWillTerminate(_ notification: Notification) {
+                  // Insert code here to tear down your application
+              }
+              
+              func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+                  return true
+              }
+          }
+          EOF
+          
+          cat > ChronicleSync/ChronicleSync/ContentView.swift << 'EOF'
+          import SwiftUI
+          import SafariServices
+          
+          struct ContentView: View {
+              @State private var isExtensionEnabled = false
+              
+              var body: some View {
+                  VStack(spacing: 20) {
+                      Image(nsImage: NSImage(named: "AppIcon")!)
+                          .resizable()
+                          .frame(width: 128, height: 128)
+                      
+                      Text("ChronicleSync Safari Extension")
+                          .font(.title)
+                      
+                      Text("Sync your browsing data across browsers")
+                          .font(.subheadline)
+                          .foregroundColor(.secondary)
+                      
+                      Button("Open Safari Extension Preferences") {
+                          SFSafariApplication.showPreferencesForExtension(
+                              withIdentifier: "xyz.chroniclesync.safari-extension") { error in
+                              if let error = error {
+                                  print("Error showing preferences: \(error.localizedDescription)")
+                              }
+                          }
+                      }
+                      .padding()
+                      .background(Color.blue)
+                      .foregroundColor(.white)
+                      .cornerRadius(8)
+                  }
+                  .padding()
+                  .frame(minWidth: 400, minHeight: 300)
+                  .onAppear {
+                      checkExtensionState()
+                  }
+              }
+              
+              func checkExtensionState() {
+                  SFSafariExtensionManager.getStateOfSafariExtension(
+                      withIdentifier: "xyz.chroniclesync.safari-extension") { (state, error) in
+                      guard let state = state, error == nil else {
+                          return
+                      }
+                      
+                      DispatchQueue.main.async {
+                          self.isExtensionEnabled = state.isEnabled
+                      }
+                  }
+              }
+          }
+          EOF
+          
+          # Create project.pbxproj file (simplified version)
+          mkdir -p ChronicleSync.xcodeproj
+          cat > ChronicleSync.xcodeproj/project.pbxproj << 'EOF'
+          // !$*UTF8*$!
+          {
+              archiveVersion = 1;
+              classes = {
+              };
+              objectVersion = 56;
+              objects = {
+                  // Basic project structure
+              };
+              rootObject = 1234567890ABCDEF1234567890ABCDEF;
+          }
+          EOF
+
+      - name: Build Safari App with Extension
+        working-directory: extension/safari
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          # Create an exportOptions.plist file for exporting the IPA
+          cat > exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>${APPLE_TEAM_ID}</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${APPLE_APP_ID}</key>
+                  <string>ChronicleSync Distribution</string>
+                  <key>${APPLE_APP_ID}.extension</key>
+                  <string>ChronicleSync Extension Distribution</string>
+              </dict>
+          </dict>
+          </plist>
+          EOF
+          
+          # Build the app using xcodebuild
+          xcodebuild -project ChronicleSync.xcodeproj \
+            -scheme ChronicleSync \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ./ChronicleSync.xcarchive \
+            clean archive \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            PROVISIONING_PROFILE_SPECIFIER="ChronicleSync Distribution" \
+            CODE_SIGN_STYLE=Manual
+          
+          # Export the archive to an IPA file
+          xcodebuild -exportArchive \
+            -archivePath ./ChronicleSync.xcarchive \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath ./
+
+      - name: Take screenshots for testing
+        working-directory: extension/safari
+        run: |
+          # Create a directory for screenshots
+          mkdir -p screenshots
+          
+          # Use simctl to take screenshots
+          xcrun simctl boot "iPhone 14"
+          xcrun simctl install booted ChronicleSync.app
+          xcrun simctl launch booted ${APPLE_APP_ID}
+          sleep 5
+          xcrun simctl io booted screenshot screenshots/app-launch.png
+          
+          # Take more screenshots of key functionality
+          # (This is a placeholder - in a real implementation, you would use UI testing to navigate through the app)
+          sleep 2
+          xcrun simctl io booted screenshot screenshots/extension-settings.png
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: extension/safari/ChronicleSync.ipa
+          retention-days: 14
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-screenshots
+          path: extension/safari/screenshots
+          retention-days: 14
+
+  deploy-to-testflight:
+    name: Deploy to TestFlight
+    needs: build-safari-extension
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: ./
+
+      - name: Setup App Store Connect API
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+        run: |
+          # Create API key file
+          mkdir -p ~/.appstoreconnect/private_keys/
+          echo "$APPLE_API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8
+          
+          # Create API key info file
+          cat > ~/.appstoreconnect/api_key_info.json << EOF
+          {
+            "key_id": "$APPLE_API_KEY_ID",
+            "issuer_id": "$APPLE_API_KEY_ISSUER_ID"
+          }
+          EOF
+
+      - name: Upload to TestFlight
+        env:
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          # Install Apple's altool
+          brew install --cask apple-configurator
+          
+          # Upload IPA to TestFlight
+          xcrun altool --upload-app -f ChronicleSync.ipa \
+            --type ios \
+            --apiKey ${{ secrets.APPLE_API_KEY_ID }} \
+            --apiIssuer ${{ secrets.APPLE_API_KEY_ISSUER_ID }}

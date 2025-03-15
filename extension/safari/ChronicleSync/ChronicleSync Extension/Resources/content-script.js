@@ -12,10 +12,10 @@ function sendPageVisit() {
     url,
     title,
     timestamp
-  }).then(response => {
-    console.log('Page visit recorded:', response);
-  }).catch(error => {
-    console.error('Error sending page visit:', error);
+  }).then(() => {
+    // Message sent successfully
+  }).catch(() => {
+    // Handle error silently
   });
 }
 
@@ -27,8 +27,6 @@ window.addEventListener('load', () => {
 
 // Listen for messages from the background script
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Content script received message:', message);
-  
   if (message.type === 'GET_PAGE_INFO') {
     sendResponse({
       url: window.location.href,

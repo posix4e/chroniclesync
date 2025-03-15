@@ -3,8 +3,6 @@
 
 // Listen for installation
 browser.runtime.onInstalled.addListener(() => {
-  console.log('ChronicleSync Safari Extension installed');
-  
   // Initialize storage with default settings
   browser.storage.local.set({
     enabled: true,
@@ -15,8 +13,6 @@ browser.runtime.onInstalled.addListener(() => {
 
 // Listen for messages from content script
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Received message in background script:', message);
-  
   if (message.type === 'PAGE_VISIT') {
     // Handle page visit
     recordPageVisit(message.url, message.title, message.timestamp);
@@ -33,7 +29,6 @@ async function recordPageVisit(url, title, timestamp) {
     const settings = await browser.storage.local.get(['enabled', 'syncHistory', 'apiEndpoint']);
     
     if (!settings.enabled || !settings.syncHistory) {
-      console.log('History sync is disabled');
       return;
     }
     
@@ -50,8 +45,8 @@ async function recordPageVisit(url, title, timestamp) {
     
     // Try to sync with the server
     syncWithServer(settings.apiEndpoint);
-  } catch (error) {
-    console.error('Error recording page visit:', error);
+  } catch {
+    // Handle error silently or log to a service
   }
 }
 
@@ -87,7 +82,7 @@ async function syncWithServer(apiEndpoint) {
       
       await browser.storage.local.set({ visits: updatedVisits });
     }
-  } catch (error) {
-    console.error('Error syncing with server:', error);
+  } catch {
+    // Handle error silently or log to a service
   }
 }

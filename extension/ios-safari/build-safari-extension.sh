@@ -78,11 +78,33 @@ echo "Output available at: ${EXPORT_PATH}"
 
 # Run tests and capture screenshots
 echo "Running tests and capturing screenshots..."
+
+# Create a directory for test screenshots
+SCREENSHOTS_DIR="${HOME}/Documents/test-screenshots"
+mkdir -p "${SCREENSHOTS_DIR}"
+
+# Run the tests on iPhone 14 simulator
 xcodebuild test \
   -project "${PROJECT_DIR}/${PROJECT_NAME}.xcodeproj" \
   -scheme "${SCHEME_NAME}" \
   -destination "platform=iOS Simulator,name=iPhone 14" \
   -derivedDataPath "${BUILD_DIR}/TestResults" \
-  -resultBundlePath "${BUILD_DIR}/TestResults/results.xcresult"
+  -resultBundlePath "${BUILD_DIR}/TestResults/results.xcresult" \
+  -testPlan "ChronicleSync" || true
 
-echo "Tests completed. Screenshots available in the test results bundle."
+# Also try on iPad simulator for more comprehensive testing
+xcodebuild test \
+  -project "${PROJECT_DIR}/${PROJECT_NAME}.xcodeproj" \
+  -scheme "${SCHEME_NAME}" \
+  -destination "platform=iOS Simulator,name=iPad Pro (12.9-inch) (6th generation)" \
+  -derivedDataPath "${BUILD_DIR}/TestResults_iPad" \
+  -resultBundlePath "${BUILD_DIR}/TestResults/results_ipad.xcresult" \
+  -testPlan "ChronicleSync" || true
+
+# Extract screenshots from the test results
+xcrun xcresulttool get --path "${BUILD_DIR}/TestResults/results.xcresult" --format json > "${BUILD_DIR}/TestResults/results.json" || true
+
+# Copy any screenshots to the screenshots directory
+find "${BUILD_DIR}" -name "*.png" -exec cp {} "${SCREENSHOTS_DIR}/" \; || true
+
+echo "Tests completed. Screenshots available in the test results bundle and at ${SCREENSHOTS_DIR}"

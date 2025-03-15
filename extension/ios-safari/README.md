@@ -57,6 +57,41 @@ The extension uses XCTest for testing, which allows for:
 
 Tests are located in the `ChronicleSync Tests` directory and can be run from Xcode or via the build script.
 
+### Testing Approach
+
+Our testing strategy focuses on ensuring the extension starts and has basic functionality:
+
+1. **App Launch Test**: Verifies the container app launches successfully and shows the expected UI elements
+2. **Safari Integration Test**: Tests basic Safari functionality and attempts to access the extension
+3. **Settings Integration Test**: Checks if the extension appears in Safari extension settings
+
+Each test captures screenshots at key points, which are saved as test artifacts in CI. This visual verification approach allows us to:
+
+- Confirm the extension UI appears correctly
+- Verify the extension is properly registered with Safari
+- Document the user flow for enabling and using the extension
+
+### Running Tests Locally
+
+To run tests locally on a Mac:
+
+```bash
+cd ChronicleSync
+xcodebuild test \
+  -project "ChronicleSync.xcodeproj" \
+  -scheme "ChronicleSync" \
+  -destination "platform=iOS Simulator,name=iPhone 14"
+```
+
+### Viewing Test Results
+
+After running tests, screenshots and test results can be found in:
+
+- `~/Library/Developer/Xcode/DerivedData/*/Logs/Test/`
+- `build/TestResults/results.xcresult` (when using the build script)
+
+You can open the `.xcresult` bundle in Xcode to view detailed test results and screenshots.
+
 ## CI/CD Integration
 
 The extension is integrated into the main CI/CD pipeline with a dedicated macOS runner. The workflow:

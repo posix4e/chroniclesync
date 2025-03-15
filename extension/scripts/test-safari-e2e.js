@@ -1,7 +1,10 @@
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 // Directory setup
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.join(__dirname, '..');
 const SAFARI_DIR = path.join(ROOT_DIR, 'safari');
 const SCREENSHOTS_DIR = path.join(SAFARI_DIR, 'Screenshots');

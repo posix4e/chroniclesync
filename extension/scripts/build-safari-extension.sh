@@ -38,7 +38,7 @@ cp "$ROOT_DIR/bip39-wordlist.js" "$SAFARI_RESOURCES_DIR/"
 
 # Convert manifest.json to Safari format
 echo "Converting manifest.json to Safari format..."
-node "$SCRIPT_DIR/convert-manifest-to-safari.js"
+node "$SCRIPT_DIR/convert-manifest-to-safari.js" --experimental-modules
 
 # Build the Xcode project
 echo "Building Xcode project..."

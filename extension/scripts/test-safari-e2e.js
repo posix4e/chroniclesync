@@ -1,6 +1,5 @@
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 
 // Directory setup
 const ROOT_DIR = path.join(__dirname, '..');
@@ -13,17 +12,20 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
 }
 
 // Run basic tests to verify the Safari extension works
+// eslint-disable-next-line no-console
 console.log('Running Safari extension e2e tests...');
 
 // Take screenshots of the extension in action
 const takeScreenshot = (name, description) => {
   const screenshotPath = path.join(SCREENSHOTS_DIR, `${name}.png`);
+  // eslint-disable-next-line no-console
   console.log(`Taking screenshot: ${description}`);
   
   // In a real implementation, this would use Safari WebDriver or similar
   // For now, we'll just create a placeholder file
   fs.writeFileSync(screenshotPath, `Screenshot: ${description}`);
   
+  // eslint-disable-next-line no-console
   console.log(`Screenshot saved to ${screenshotPath}`);
 };
 
@@ -33,4 +35,5 @@ takeScreenshot('popup-open', 'Extension popup opened');
 takeScreenshot('settings-page', 'Extension settings page');
 takeScreenshot('history-sync', 'History synchronization in progress');
 
+// eslint-disable-next-line no-console
 console.log('Safari extension e2e tests completed successfully');

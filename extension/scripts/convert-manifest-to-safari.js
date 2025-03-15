@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const ROOT_DIR = path.join(__dirname, '..');
 const SAFARI_DIR = path.join(ROOT_DIR, 'safari');
@@ -16,9 +16,9 @@ const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const safariManifest = {
   ...manifest,
   // Safari specific changes
-  "browser_specific_settings": {
-    "safari": {
-      "strict_min_version": "15.0"
+  'browser_specific_settings': {
+    'safari': {
+      'strict_min_version': '15.0'
     }
   }
 };
@@ -29,6 +29,7 @@ delete safariManifest.devtools_page;
 // Write the updated manifest
 fs.writeFileSync(manifestPath, JSON.stringify(safariManifest, null, 2));
 
+// eslint-disable-next-line no-console
 console.log('Manifest converted to Safari format');
 
 // Create Info.plist for the Safari extension
@@ -58,4 +59,5 @@ const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
 </plist>`;
 
 fs.writeFileSync(infoPlistPath, infoPlist);
+// eslint-disable-next-line no-console
 console.log('Info.plist created for Safari extension');

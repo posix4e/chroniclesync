@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ChronicleSync</h1>
+    </div>
+    
+    <div class="content">
+      <div class="status-section">
+        <div class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Checking status...</span>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button id="syncNowBtn" class="primary-button">Sync Now</button>
+        <button id="settingsBtn" class="secondary-button">Settings</button>
+        <button id="historyBtn" class="secondary-button">View History</button>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <span>v1.0</span>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -155,7 +156,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
+        # Safari is handled in a separate job with macOS runner
     runs-on: ubuntu-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
@@ -217,4 +218,68 @@ jobs:
           path: |
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+          retention-days: 30
+
+  safari-extension-build-and-test:
+    needs: build-and-test
+    if: success()
+    runs-on: macos-latest
+    steps:
+      # Skip this job if a specific browser is requested in workflow_dispatch and it's not safari
+      - name: Check if this browser should be tested
+        id: should_test
+        run: |
+          SHOULD_TEST="true"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.browser }}" != "" ]]; then
+            if [[ "${{ github.event.inputs.browser }}" != "safari" ]]; then
+              SHOULD_TEST="false"
+            fi
+          fi
+          echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
+      
+      - uses: actions/checkout@v4
+        if: steps.should_test.outputs.should_test == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.should_test.outputs.should_test == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
+
+      - name: Download extension artifacts
+        if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/dist
+
+      - name: Build Safari Extension
+        if: steps.should_test.outputs.should_test == 'true'
+        run: |
+          # Ensure the build script is executable
+          chmod +x extension/ios-safari/build-safari-extension.sh
+          
+          # Build the Safari extension
+          cd extension/ios-safari
+          ./build-safari-extension.sh
+        env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+
+      - name: Upload Safari Extension Artifact
+        if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/ios-safari/ChronicleSync/build/export/*.ipa
+          retention-days: 14
+
+      - name: Upload Test Screenshots
+        if: steps.should_test.outputs.should_test == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-test-screenshots
+          path: extension/ios-safari/ChronicleSync/build/TestResults/**/*.png
           retention-days: 30

@@ -83,28 +83,66 @@ echo "Running tests and capturing screenshots..."
 SCREENSHOTS_DIR="${HOME}/Documents/test-screenshots"
 mkdir -p "${SCREENSHOTS_DIR}"
 
-# Run the tests on iPhone 14 simulator
-xcodebuild test \
-  -project "${PROJECT_DIR}/${PROJECT_NAME}.xcodeproj" \
-  -scheme "${SCHEME_NAME}" \
-  -destination "platform=iOS Simulator,name=iPhone 14" \
-  -derivedDataPath "${BUILD_DIR}/TestResults" \
-  -resultBundlePath "${BUILD_DIR}/TestResults/results.xcresult" \
-  -testPlan "ChronicleSync" || true
+# Function to run tests on a specific simulator
+run_tests_on_simulator() {
+    local simulator_name="$1"
+    local result_path="$2"
+    local derived_data_path="$3"
+    
+    echo "Running tests on ${simulator_name}..."
+    
+    # Use set +e to continue script execution even if the test command fails
+    set +e
+    xcodebuild test \
+      -project "${PROJECT_DIR}/${PROJECT_NAME}.xcodeproj" \
+      -scheme "${SCHEME_NAME}" \
+      -destination "platform=iOS Simulator,name=${simulator_name}" \
+      -derivedDataPath "${derived_data_path}" \
+      -resultBundlePath "${result_path}" \
+      -testPlan "ChronicleSync" 2>&1 | tee "${BUILD_DIR}/test_${simulator_name// /_}.log"
+    
+    local test_exit_code=$?
+    set -e
+    
+    if [ $test_exit_code -ne 0 ]; then
+        echo "Warning: Tests on ${simulator_name} exited with code ${test_exit_code}"
+    fi
+    
+    return 0
+}
+
+# Run tests on iPhone 14 simulator
+run_tests_on_simulator "iPhone 14" "${BUILD_DIR}/TestResults/results.xcresult" "${BUILD_DIR}/TestResults"
 
 # Also try on iPad simulator for more comprehensive testing
-xcodebuild test \
-  -project "${PROJECT_DIR}/${PROJECT_NAME}.xcodeproj" \
-  -scheme "${SCHEME_NAME}" \
-  -destination "platform=iOS Simulator,name=iPad Pro (12.9-inch) (6th generation)" \
-  -derivedDataPath "${BUILD_DIR}/TestResults_iPad" \
-  -resultBundlePath "${BUILD_DIR}/TestResults/results_ipad.xcresult" \
-  -testPlan "ChronicleSync" || true
+run_tests_on_simulator "iPad Pro (12.9-inch) (6th generation)" "${BUILD_DIR}/TestResults/results_ipad.xcresult" "${BUILD_DIR}/TestResults_iPad"
 
-# Extract screenshots from the test results
-xcrun xcresulttool get --path "${BUILD_DIR}/TestResults/results.xcresult" --format json > "${BUILD_DIR}/TestResults/results.json" || true
+# Extract screenshots and test results
+echo "Extracting test results and screenshots..."
 
-# Copy any screenshots to the screenshots directory
-find "${BUILD_DIR}" -name "*.png" -exec cp {} "${SCREENSHOTS_DIR}/" \; || true
+# Create results directory if it doesn't exist
+mkdir -p "${BUILD_DIR}/TestResults/extracted"
+
+# Extract test results to JSON format for easier parsing
+for result_bundle in "${BUILD_DIR}/TestResults"/*.xcresult; do
+    if [ -d "$result_bundle" ]; then
+        bundle_name=$(basename "$result_bundle" .xcresult)
+        echo "Extracting data from $bundle_name..."
+        
+        # Extract test summary
+        xcrun xcresulttool get --path "$result_bundle" --format json > "${BUILD_DIR}/TestResults/extracted/${bundle_name}.json" 2>/dev/null || echo "Failed to extract JSON from $bundle_name"
+        
+        # Extract screenshots if available
+        xcrun xcresulttool export --path "$result_bundle" --output-path "${BUILD_DIR}/TestResults/extracted/${bundle_name}_attachments" --type attachments 2>/dev/null || echo "No attachments found in $bundle_name"
+    fi
+done
+
+# Copy all screenshots to the screenshots directory
+echo "Collecting screenshots..."
+find "${BUILD_DIR}" -name "*.png" -exec cp {} "${SCREENSHOTS_DIR}/" \; 2>/dev/null || echo "No PNG files found"
+
+# Also look for attachments in the test results
+find "${BUILD_DIR}/TestResults/extracted" -type f -name "*.png" -exec cp {} "${SCREENSHOTS_DIR}/" \; 2>/dev/null || echo "No PNG attachments found"
 
 echo "Tests completed. Screenshots available in the test results bundle and at ${SCREENSHOTS_DIR}"
+echo "Test logs available at ${BUILD_DIR}/test_*.log"

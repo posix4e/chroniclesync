@@ -283,7 +283,18 @@ jobs:
           name: safari-extension-test-screenshots
           path: |
             extension/ios-safari/ChronicleSync/build/TestResults/**/*.png
-            extension/ios-safari/ChronicleSync/build/TestResults/results.xcresult
-            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/**
+            extension/ios-safari/ChronicleSync/build/TestResults/extracted/**/*.png
             ~/Documents/test-screenshots/*.png
+          retention-days: 30
+          
+      - name: Upload Test Results
+        if: steps.should_test.outputs.should_test == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-test-results
+          path: |
+            extension/ios-safari/ChronicleSync/build/TestResults/*.xcresult
+            extension/ios-safari/ChronicleSync/build/TestResults/extracted/*.json
+            extension/ios-safari/ChronicleSync/build/test_*.log
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/**
           retention-days: 30

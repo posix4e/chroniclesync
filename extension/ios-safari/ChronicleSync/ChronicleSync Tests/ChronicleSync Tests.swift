@@ -38,8 +38,10 @@ class ChronicleSyncTests: XCTestCase {
         saveScreenshot(initialScreenshot, named: "01_app_launch")
         
         // Verify basic UI elements exist
-        XCTAssertTrue(app.staticTexts["ChronicleSync"].exists || app.navigationBars["ChronicleSync"].exists, 
-                     "App title should be visible")
+        XCTAssertTrue(
+            app.staticTexts["ChronicleSync"].exists || app.navigationBars["ChronicleSync"].exists,
+            "App title should be visible"
+        )
         
         // Check for the Enable Extension button or other key UI elements
         let enableButton = app.buttons["Enable Extension"]
@@ -96,7 +98,7 @@ class ChronicleSyncTests: XCTestCase {
                 
                 // Look for our extension in the share sheet
                 // This is a best-effort check as the extension might be in a submenu
-                let extensionExists = safari.buttons["ChronicleSync"].exists || 
+                let extensionExists = safari.buttons["ChronicleSync"].exists ||
                                      safari.collectionViews.buttons["ChronicleSync"].exists ||
                                      safari.scrollViews.buttons["ChronicleSync"].exists
                 
@@ -105,7 +107,10 @@ class ChronicleSyncTests: XCTestCase {
                     XCTAssertTrue(extensionExists, "ChronicleSync extension should be visible in share sheet")
                 } else {
                     // Just log that we couldn't find it directly
-                    print("Note: ChronicleSync extension not directly visible in share sheet")
+                    XCTContext.runActivity(named: "Extension Visibility") { _ in
+                        XCTAttachment(string: "ChronicleSync extension not directly visible in share sheet")
+                            .lifetime = .keepAlways
+                    }
                 }
                 
                 // Dismiss the share sheet by tapping outside
@@ -147,13 +152,16 @@ class ChronicleSyncTests: XCTestCase {
                 saveScreenshot(extensionsScreenshot, named: "08_extensions_settings")
                 
                 // Look for our extension
-                let extensionExists = settings.tables.cells.containing(NSPredicate(format: "label CONTAINS %@", "ChronicleSync")).count > 0
+                let extensionExists = settings.tables.cells
+                    .containing(NSPredicate(format: "label CONTAINS %@", "ChronicleSync"))
+                    .count > 0
                 
                 // We're not asserting here because the extension might not be installed yet
-                if extensionExists {
-                    print("ChronicleSync extension found in Safari Extensions settings")
-                } else {
-                    print("Note: ChronicleSync extension not found in Safari Extensions settings")
+                XCTContext.runActivity(named: "Extension in Settings") { _ in
+                    let message = extensionExists
+                        ? "ChronicleSync extension found in Safari Extensions settings"
+                        : "ChronicleSync extension not found in Safari Extensions settings"
+                    XCTAttachment(string: message).lifetime = .keepAlways
                 }
             }
         }
@@ -173,14 +181,34 @@ class ChronicleSyncTests: XCTestCase {
             // Create directory if it doesn't exist
             let fileManager = FileManager.default
             if !fileManager.fileExists(atPath: screenshotsDir) {
-                try? fileManager.createDirectory(atPath: screenshotsDir, withIntermediateDirectories: true)
+                do {
+                    try fileManager.createDirectory(
+                        atPath: screenshotsDir,
+                        withIntermediateDirectories: true
+                    )
+                } catch {
+                    XCTContext.runActivity(named: "Directory Creation Error") { _ in
+                        XCTAttachment(string: "Failed to create screenshots directory: \(error)")
+                            .lifetime = .keepAlways
+                    }
+                }
             }
             
             // Save the screenshot
             let imagePath = "\(screenshotsDir)/\(name).png"
-            try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: imagePath))
-            
-            print("Screenshot saved to: \(imagePath)")
+            do {
+                try screenshot.pngRepresentation.write(to: URL(fileURLWithPath: imagePath))
+                
+                XCTContext.runActivity(named: "Screenshot Saved") { _ in
+                    XCTAttachment(string: "Screenshot saved to: \(imagePath)")
+                        .lifetime = .keepAlways
+                }
+            } catch {
+                XCTContext.runActivity(named: "Screenshot Save Error") { _ in
+                    XCTAttachment(string: "Failed to save screenshot: \(error)")
+                        .lifetime = .keepAlways
+                }
+            }
         }
     }
 }

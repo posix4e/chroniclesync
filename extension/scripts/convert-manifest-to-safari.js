@@ -33,20 +33,20 @@ if (fs.existsSync(manifestPath)) {
 } else {
   // Create a placeholder manifest.json
   manifest = {
-    "manifest_version": 3,
-    "name": "ChronicleSync Extension",
-    "version": "1.0",
-    "description": "ChronicleSync Safari Extension",
-    "action": {
-      "default_popup": "popup.html"
+    'manifest_version': 3,
+    'name': 'ChronicleSync Extension',
+    'version': '1.0',
+    'description': 'ChronicleSync Safari Extension',
+    'action': {
+      'default_popup': 'popup.html'
     },
-    "permissions": [
-      "activeTab",
-      "scripting",
-      "tabs",
-      "history",
-      "storage",
-      "unlimitedStorage"
+    'permissions': [
+      'activeTab',
+      'scripting',
+      'tabs',
+      'history',
+      'storage',
+      'unlimitedStorage'
     ]
   };
   

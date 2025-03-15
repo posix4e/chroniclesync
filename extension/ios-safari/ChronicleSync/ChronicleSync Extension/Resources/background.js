@@ -3,8 +3,7 @@
 
 // Listen for messages from content scripts
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background script received message:', message);
-  
+  // Process messages from content scripts
   if (message.type === 'HISTORY_ITEM') {
     // Process history item
     processHistoryItem(message.data)
@@ -24,29 +23,24 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Process history item
 async function processHistoryItem(data) {
-  try {
-    // Get API endpoint from settings
-    const { settings } = await browser.storage.local.get('settings');
-    const apiEndpoint = (settings && settings.apiEndpoint) || 'https://api-staging.chroniclesync.xyz';
-    
-    // Send data to API
-    const response = await fetch(`${apiEndpoint}/history`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error processing history item:', error);
-    throw error;
+  // Get API endpoint from settings
+  const { settings } = await browser.storage.local.get('settings');
+  const apiEndpoint = (settings && settings.apiEndpoint) || 'https://api-staging.chroniclesync.xyz';
+  
+  // Send data to API
+  const response = await fetch(`${apiEndpoint}/history`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
   }
+  
+  return await response.json();
 }
 
 // Initialize extension
@@ -64,7 +58,7 @@ async function initializeExtension() {
     });
   }
   
-  console.log('ChronicleSync Safari extension initialized');
+  // Extension initialized
 }
 
 // Call initialize function

@@ -32,9 +32,9 @@ async function sendPageData() {
       type: 'GET_SETTINGS'
     });
     
-    // Check if sync is enabled
+    // Check if sync is disabled
     if (settingsResponse.settings && settingsResponse.settings.syncEnabled === false) {
-      console.log('ChronicleSync: Sync is disabled in settings');
+      // Sync is disabled in settings
       return;
     }
     
@@ -42,14 +42,14 @@ async function sendPageData() {
     const metadata = extractPageMetadata();
     
     // Send to background script
-    const response = await browser.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       type: 'HISTORY_ITEM',
       data: metadata
     });
     
-    console.log('ChronicleSync: Page data sent', response);
-  } catch (error) {
-    console.error('ChronicleSync: Error sending page data', error);
+    // Page data sent successfully
+  } catch {
+    // Error sending page data
   }
 }
 

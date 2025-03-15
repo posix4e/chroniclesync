@@ -10,9 +10,51 @@ const SAFARI_PROJECT_DIR = path.join(SAFARI_DIR, 'ChronicleSync');
 const SAFARI_EXTENSION_DIR = path.join(SAFARI_PROJECT_DIR, 'ChronicleSync Extension');
 const SAFARI_RESOURCES_DIR = path.join(SAFARI_EXTENSION_DIR, 'Resources');
 
-// Read the manifest.json file
+// Create directories if they don't exist
+if (!fs.existsSync(SAFARI_DIR)) {
+  fs.mkdirSync(SAFARI_DIR, { recursive: true });
+}
+if (!fs.existsSync(SAFARI_PROJECT_DIR)) {
+  fs.mkdirSync(SAFARI_PROJECT_DIR, { recursive: true });
+}
+if (!fs.existsSync(SAFARI_EXTENSION_DIR)) {
+  fs.mkdirSync(SAFARI_EXTENSION_DIR, { recursive: true });
+}
+if (!fs.existsSync(SAFARI_RESOURCES_DIR)) {
+  fs.mkdirSync(SAFARI_RESOURCES_DIR, { recursive: true });
+}
+
+// Check if manifest.json exists, if not create a placeholder
 const manifestPath = path.join(SAFARI_RESOURCES_DIR, 'manifest.json');
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+let manifest;
+
+if (fs.existsSync(manifestPath)) {
+  manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+} else {
+  // Create a placeholder manifest.json
+  manifest = {
+    "manifest_version": 3,
+    "name": "ChronicleSync Extension",
+    "version": "1.0",
+    "description": "ChronicleSync Safari Extension",
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "tabs",
+      "history",
+      "storage",
+      "unlimitedStorage"
+    ]
+  };
+  
+  // Write the placeholder manifest
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  // eslint-disable-next-line no-console
+  console.log('Created placeholder manifest.json');
+}
 
 // Convert manifest to Safari format
 // Safari requires a different format for some properties

@@ -1,2 +1,7 @@
 test-results/
 chrome-extension.zip
+firefox-extension.xpi
+safari/ChronicleSync.ipa
+safari/ChronicleSync.xcarchive/
+safari/TestResults.xcresult/
+safari/Screenshots/

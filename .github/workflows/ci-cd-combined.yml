@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -154,9 +155,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+        browser: [chrome, firefox, safari]
+        os: [ubuntu-latest]
+        exclude:
+          - browser: safari
+            os: ubuntu-latest
+        include:
+          - browser: safari
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -168,6 +175,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "safari" && "${{ github.event.inputs.browser }}" != "safari" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -192,7 +202,7 @@ jobs:
           path: extension/dist
 
       - name: Install dependencies and run extension tests
-        if: steps.should_test.outputs.should_test == 'true'
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser != 'safari'
         working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
@@ -208,9 +218,36 @@ jobs:
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
           # Run browser-specific e2e tests with frame buffer
           npm run test:e2e:${{ matrix.browser }}
+          
+      - name: Setup Safari Extension Build Environment
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        working-directory: extension
+        run: |
+          npm ci
+          chmod +x scripts/setup-certificates.sh
+          ./scripts/setup-certificates.sh safari/ExportOptions.plist
+          
+      - name: Build Safari Extension
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        working-directory: extension
+        run: |
+          chmod +x scripts/build-safari-extension.sh
+          ./scripts/build-safari-extension.sh
+          
+      - name: Test Safari Extension
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        working-directory: extension
+        run: |
+          chmod +x scripts/test-safari-extension.sh
+          ./scripts/test-safari-extension.sh
 
       - name: Upload test results
-        if: steps.should_test.outputs.should_test == 'true' && always()
+        if: steps.should_test.outputs.should_test == 'true' && always() && matrix.browser != 'safari'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-reports-extension-${{ matrix.browser }}
@@ -218,3 +255,33 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30
+          
+      - name: Upload Safari test results
+        if: steps.should_test.outputs.should_test == 'true' && always() && matrix.browser == 'safari'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-test-results
+          path: |
+            extension/safari/Screenshots/
+            extension/safari/TestResults.xcresult/
+          retention-days: 30
+          
+      - name: Upload Safari IPA
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: extension/safari/ChronicleSync.ipa
+          retention-days: 14
+          
+      - name: Upload to TestFlight
+        if: github.ref == 'refs/heads/main' && steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        working-directory: extension
+        run: |
+          chmod +x scripts/upload-to-testflight.sh
+          ./scripts/upload-to-testflight.sh safari/ChronicleSync.ipa

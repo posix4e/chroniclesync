@@ -65,6 +65,18 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+        // Safari/WebKit doesn't support loading extensions in Playwright
+        // We'll use a different approach for testing Safari extensions
+      },
+    },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: browser === 'firefox' 
+    ? 'test-results/firefox/' 
+    : browser === 'webkit' 
+      ? 'test-results/safari/' 
+      : 'test-results/chrome/',
 });

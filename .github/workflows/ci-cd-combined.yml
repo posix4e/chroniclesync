@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - webkit
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -71,6 +72,9 @@ jobs:
           sudo apt-get update && sudo apt-get install -y zip
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+          # Create a placeholder for Safari extension (actual build happens on macOS)
+          mkdir -p dist
+          echo "This is a placeholder for the Safari extension. It can only be built on macOS." > dist/safari-extension-placeholder.txt
 
       - name: Upload Chrome Extension Artifact
         uses: actions/upload-artifact@v4
@@ -84,6 +88,13 @@ jobs:
         with:
           name: firefox-extension
           path: extension/firefox-extension.xpi
+          retention-days: 14
+          
+      - name: Upload Safari Extension Placeholder
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-placeholder
+          path: extension/dist/safari-extension-placeholder.txt
           retention-days: 14
 
       - name: Test Extension
@@ -154,9 +165,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+        browser: [chrome, firefox, safari]
+        # Safari tests will run on macOS
+    runs-on: ${{ matrix.browser == 'safari' && 'macos-latest' || 'ubuntu-latest' }}
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested
@@ -168,6 +179,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ matrix.browser }}" == "safari" && "${{ github.event.inputs.browser }}" != "webkit" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -188,7 +202,7 @@ jobs:
         if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
+          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || matrix.browser == 'firefox' && 'firefox-extension' || 'safari-extension-placeholder' }}
           path: extension/dist
 
       - name: Install dependencies and run extension tests
@@ -199,15 +213,27 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
-          BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
+          BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || matrix.browser == 'firefox' && 'firefox' || 'webkit' }}
         run: |
           npm ci
           # Install all browsers to ensure dependencies are available
           npx playwright install --with-deps
           # Ensure the specific browser is installed properly
-          npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
-          # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || matrix.browser == 'firefox' && 'firefox' || 'webkit' }}
+          
+          # For Safari on macOS, we need to build the Safari extension first
+          if [[ "${{ matrix.browser }}" == "safari" ]]; then
+            # Create necessary directories for Safari extension testing
+            mkdir -p safari/ChronicleSync/ChronicleSync\ Extension/Resources
+            cp -r dist/* safari/ChronicleSync/ChronicleSync\ Extension/Resources/
+            
+            # Run Safari-specific tests
+            npm run test:e2e:safari
+          else
+            # Run browser-specific e2e tests with frame buffer
+            ${{ matrix.browser != 'safari' && 'xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24"' || '' }} \
+            npm run test:e2e:${{ matrix.browser }}
+          fi
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()
@@ -216,5 +242,13 @@ jobs:
           name: playwright-reports-extension-${{ matrix.browser }}
           path: |
             extension/playwright-report/
-            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || matrix.browser == 'firefox' && 'firefox' || 'safari' }}/
+          retention-days: 30
+          
+      - name: Upload screenshots
+        if: matrix.browser == 'safari' && steps.should_test.outputs.should_test == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-screenshots
+          path: extension/test-results/safari/*.png
           retention-days: 30

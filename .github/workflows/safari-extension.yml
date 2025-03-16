@@ -42,7 +42,7 @@ jobs:
       - name: Run Basic Tests
         run: |
           cd safari-extension
-          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" test CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" -testPlan ChronicleSync test CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
       - name: Upload Safari Extension Artifact
         uses: actions/upload-artifact@v4

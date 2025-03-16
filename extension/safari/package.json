@@ -1,0 +1,21 @@
+{
+  "name": "chroniclesync-safari-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "./build-safari-extension.sh",
+    "lint": "swiftlint lint",
+    "lint:fix": "swiftlint lint --fix",
+    "lint:strict": "swiftlint lint --strict",
+    "test": "xcodebuild test -project ChronicleSync.xcodeproj -scheme \"ChronicleSync macOS Tests\" -destination \"platform=macOS\" && xcodebuild test -project ChronicleSync.xcodeproj -scheme \"ChronicleSync iOS Tests\" -destination \"platform=iOS Simulator,name=iPhone 14\"",
+    "test:ios": "xcodebuild test -project ChronicleSync.xcodeproj -scheme \"ChronicleSync iOS Tests\" -destination \"platform=iOS Simulator,name=iPhone 14\"",
+    "test:macos": "xcodebuild test -project ChronicleSync.xcodeproj -scheme \"ChronicleSync macOS Tests\" -destination \"platform=macOS\"",
+    "build:ios": "xcodebuild -project ChronicleSync.xcodeproj -scheme \"ChronicleSync (iOS)\" -configuration Release -destination \"generic/platform=iOS\" -archivePath ./build/ChronicleSync-iOS.xcarchive archive",
+    "build:macos": "xcodebuild -project ChronicleSync.xcodeproj -scheme \"ChronicleSync (macOS)\" -configuration Release -archivePath ./build/ChronicleSync-macOS.xcarchive archive",
+    "export:ios": "xcodebuild -exportArchive -archivePath ./build/ChronicleSync-iOS.xcarchive -exportOptionsPlist exportOptions-iOS.plist -exportPath ./build",
+    "export:macos": "xcodebuild -exportArchive -archivePath ./build/ChronicleSync-macOS.xcarchive -exportOptionsPlist exportOptions-macOS.plist -exportPath ./build"
+  },
+  "devDependencies": {
+    "swiftlint": "^1.0.0"
+  }
+}

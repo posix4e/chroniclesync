@@ -57,10 +57,32 @@ To run SwiftLint manually:
 
 ```bash
 cd extension/safari
-swiftlint lint
+npm run lint
 ```
 
-The CI/CD pipeline also runs SwiftLint in strict mode to catch any issues.
+Or from the main extension directory:
+
+```bash
+npm run lint:safari
+```
+
+To run all linting (both JavaScript and Swift):
+
+```bash
+npm run lint:all
+```
+
+Additional npm scripts are available:
+
+```bash
+# Fix auto-fixable linting issues
+npm run lint:fix
+
+# Run linting in strict mode (used in CI/CD)
+npm run lint:strict
+```
+
+The CI/CD pipeline runs SwiftLint in strict mode to catch any issues.
 
 ## Enabling the Extension in Safari
 

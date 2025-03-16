@@ -240,10 +240,15 @@ jobs:
         run: |
           brew install swiftlint
           
+      - name: Install Safari Extension Dependencies
+        run: |
+          cd extension/safari
+          npm install
+          
       - name: Lint Safari Extension Swift Code
         run: |
           cd extension/safari
-          swiftlint lint --strict
+          npm run lint:strict
       
       - name: Build Safari Extension for macOS
         env:

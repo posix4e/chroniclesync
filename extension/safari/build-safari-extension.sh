@@ -6,6 +6,10 @@
 SOURCE_DIR="../"
 DEST_DIR="Shared/Extension Files"
 
+# Set the bundle identifier (use environment variable if available, otherwise default)
+BUNDLE_ID=${APPLE_APP_ID:-"xyz.chroniclesync.app"}
+echo "Using bundle identifier: $BUNDLE_ID"
+
 # Create the destination directory if it doesn't exist
 mkdir -p "$DEST_DIR"
 
@@ -17,6 +21,38 @@ else
   echo "SwiftLint not found. Skipping linting."
   echo "To install SwiftLint, run: brew install swiftlint"
 fi
+
+# Update Info.plist files with the correct bundle identifier
+echo "Updating bundle identifiers in Info.plist files..."
+for plist_file in iOS/Info.plist macOS/Info.plist "iOS Extension/Info.plist" "macOS Extension/Info.plist"; do
+  if [ -f "$plist_file" ]; then
+    # Use PlistBuddy if available, otherwise use sed
+    if command -v /usr/libexec/PlistBuddy &> /dev/null; then
+      /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$plist_file"
+      if [[ "$plist_file" == *"Extension"* ]]; then
+        /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID.extension" "$plist_file"
+      fi
+    else
+      # Fallback to sed
+      sed -i '' "s/<key>CFBundleIdentifier<\/key>.*/<key>CFBundleIdentifier<\/key>\n\t<string>$BUNDLE_ID<\/string>/g" "$plist_file"
+      if [[ "$plist_file" == *"Extension"* ]]; then
+        sed -i '' "s/<key>CFBundleIdentifier<\/key>.*/<key>CFBundleIdentifier<\/key>\n\t<string>$BUNDLE_ID.extension<\/string>/g" "$plist_file"
+      fi
+    fi
+    echo "✓ Updated $plist_file"
+  fi
+done
+
+# Update export options plists
+echo "Updating export options plists..."
+for plist_file in exportOptions-iOS.plist exportOptions-macOS.plist; do
+  if [ -f "$plist_file" ]; then
+    # Update the bundle identifiers in the provisioning profiles section
+    sed -i '' "s/xyz\.chroniclesync\.app/$BUNDLE_ID/g" "$plist_file"
+    sed -i '' "s/xyz\.chroniclesync\.app\.extension/$BUNDLE_ID.extension/g" "$plist_file"
+    echo "✓ Updated $plist_file"
+  fi
+done
 
 # First, build the Chrome/Firefox extension
 echo "Building Chrome/Firefox extension..."

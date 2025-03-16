@@ -21,6 +21,16 @@ This directory contains the Safari extension implementation for ChronicleSync, s
 - Apple Developer account (for signing and distribution)
 - SwiftLint (optional, for code linting)
 
+### Bundle Identifier
+
+The default bundle identifier is `xyz.chroniclesync.app` with the extension bundle identifier being `xyz.chroniclesync.app.extension`. You can override this by setting the `APPLE_APP_ID` environment variable:
+
+```bash
+export APPLE_APP_ID="your.custom.bundle.identifier"
+```
+
+The build script will automatically update all necessary files with the correct bundle identifier.
+
 ### Build Steps
 
 1. Install SwiftLint (optional):
@@ -37,6 +47,7 @@ brew install swiftlint
 
 This script:
 - Runs SwiftLint to check code quality (if installed)
+- Updates bundle identifiers in Info.plist files and export options
 - Builds the Chrome/Firefox extension
 - Copies the necessary files to the Safari extension
 - Validates the extension files
@@ -48,6 +59,18 @@ open ChronicleSync.xcodeproj
 ```
 
 4. Select the target you want to build (iOS or macOS) and click the Run button.
+
+### Building for Distribution
+
+To build for distribution, you'll need to set up the following environment variables:
+
+```bash
+export APPLE_APP_ID="xyz.chroniclesync.app"
+export APPLE_TEAM_ID="your_team_id"
+export APPLE_CERTIFICATE_PASSWORD="your_certificate_password"
+```
+
+Then run the build script and use Xcode to archive and export the app:
 
 ### Linting
 

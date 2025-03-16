@@ -10,6 +10,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         case sync
         case privacy
         case about
+        case debug
         
         var title: String {
             switch self {
@@ -17,6 +18,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             case .sync: return "Synchronization"
             case .privacy: return "Privacy"
             case .about: return "About"
+            case .debug: return "Debug"
             }
         }
     }
@@ -41,17 +43,55 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        print("SettingsViewController: viewDidLoad called")
+        
+        // Debug: Check if outlet is connected
+        if tableView == nil {
+            print("ERROR: tableView outlet is nil")
+            // Create a fallback UI
+            createFallbackUI()
+        } else {
+            print("tableView outlet is connected")
+        }
+        
         setupSettings()
         setupTableView()
     }
     
     private func setupTableView() {
+        if tableView == nil {
+            print("ERROR: Cannot setup tableView because it is nil")
+            return
+        }
+        
         tableView.delegate = self
         tableView.dataSource = self
         
         // Register cell types
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "ActionCell")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "InfoCell")
+    }
+    
+    private func createFallbackUI() {
+        print("Creating fallback UI because tableView outlet is nil")
+        
+        // Create a label
+        let label = UILabel()
+        label.text = "ChronicleSync Settings\n\nThere was an issue loading the settings UI. Please check the console for errors."
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add to view
+        view.addSubview(label)
+        
+        // Add constraints
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+        ])
     }
     
     private func setupSettings() {
@@ -85,7 +125,94 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             })
         ]
         
-        settings = [generalSettings, syncSettings, privacySettings, aboutSettings]
+        // Debug settings
+        let debugSettings: [SettingItem] = [
+            SettingItem(title: "Check Extension Resources", subtitle: "Verify extension files are properly loaded", type: .action, action: { [weak self] in
+                self?.checkExtensionResources()
+            }),
+            SettingItem(title: "Reset UI State", subtitle: "Clear cached UI state and reload", type: .action, action: { [weak self] in
+                self?.resetUIState()
+            }),
+            SettingItem(title: "Bundle Info", subtitle: "Show bundle information", type: .action, action: { [weak self] in
+                self?.showBundleInfo()
+            })
+        ]
+        
+        settings = [generalSettings, syncSettings, privacySettings, aboutSettings, debugSettings]
+    }
+    
+    // MARK: - Debug Methods
+    
+    private func checkExtensionResources() {
+        print("=== Checking Extension Resources ===")
+        
+        // Check main bundle
+        let mainBundle = Bundle.main
+        let bundleID = mainBundle.bundleIdentifier ?? "Unknown"
+        let resourcesPath = mainBundle.resourcePath ?? "Unknown"
+        
+        var message = "Bundle ID: \(bundleID)\n\nResources Path: \(resourcesPath)"
+        
+        // Check for extension resources directory
+        let extensionResourcesPath = resourcesPath + "/Resources"
+        if FileManager.default.fileExists(atPath: extensionResourcesPath) {
+            message += "\n\nExtension Resources Found"
+            
+            // List files in the resources directory
+            do {
+                let files = try FileManager.default.contentsOfDirectory(atPath: extensionResourcesPath)
+                message += "\n\nFiles: \(files.count)"
+                if files.count > 0 {
+                    message += "\n- " + files.prefix(5).joined(separator: "\n- ")
+                    if files.count > 5 {
+                        message += "\n- ... and \(files.count - 5) more"
+                    }
+                }
+            } catch {
+                message += "\n\nError listing files: \(error)"
+            }
+        } else {
+            message += "\n\nExtension Resources NOT Found"
+        }
+        
+        showAlert(title: "Extension Resources", message: message)
+    }
+    
+    private func resetUIState() {
+        UserDefaults.standard.removeObject(forKey: "extensionEnabled")
+        UserDefaults.standard.removeObject(forKey: "darkModeEnabled")
+        UserDefaults.standard.removeObject(forKey: "autoSyncEnabled")
+        UserDefaults.standard.removeObject(forKey: "privateEnabled")
+        UserDefaults.standard.removeObject(forKey: "syncFrequency")
+        
+        // Reload settings
+        setupSettings()
+        tableView?.reloadData()
+        
+        showAlert(title: "UI State Reset", message: "All UI state has been reset to defaults.")
+    }
+    
+    private func showBundleInfo() {
+        let mainBundle = Bundle.main
+        let bundleID = mainBundle.bundleIdentifier ?? "Unknown"
+        let version = mainBundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = mainBundle.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        let executable = mainBundle.infoDictionary?["CFBundleExecutable"] as? String ?? "Unknown"
+        
+        let message = """
+        Bundle ID: \(bundleID)
+        Version: \(version)
+        Build: \(build)
+        Executable: \(executable)
+        """
+        
+        showAlert(title: "Bundle Information", message: message)
+    }
+    
+    private func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
     
     // MARK: - TableView DataSource

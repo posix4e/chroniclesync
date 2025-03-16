@@ -100,8 +100,33 @@ for file in "${essential_files[@]}"; do
   fi
 done
 
+# Print detailed information about the extension resources
+echo "=== Safari Extension Resources ==="
+echo "Resources directory: $SAFARI_EXTENSION_DIR"
+echo "Files in Resources directory:"
+ls -la "$SAFARI_EXTENSION_DIR"
+if [ -d "$SAFARI_EXTENSION_DIR/assets" ]; then
+  echo "Files in assets directory:"
+  ls -la "$SAFARI_EXTENSION_DIR/assets"
+fi
+
+# Check file permissions
+echo "=== File Permissions ==="
+echo "Resources directory permissions:"
+ls -ld "$SAFARI_EXTENSION_DIR"
+echo "Sample file permissions:"
+ls -l "$SAFARI_EXTENSION_DIR/manifest.json"
+ls -l "$SAFARI_EXTENSION_DIR/popup.html" 2>/dev/null || echo "popup.html not found"
+ls -l "$SAFARI_EXTENSION_DIR/background.js" 2>/dev/null || echo "background.js not found"
+
 if [ $missing_files -gt 0 ]; then
   echo "Warning: $missing_files essential files are missing. The extension may not work correctly."
 else
   echo "Safari extension build completed successfully!"
 fi
+
+echo "=== Next Steps ==="
+echo "1. Open the Xcode project: open ChronicleSync.xcodeproj"
+echo "2. Build and run the app in the simulator"
+echo "3. If the app is blank, check the Xcode console for errors"
+echo "4. You may need to clean the build folder and rebuild: Product > Clean Build Folder"

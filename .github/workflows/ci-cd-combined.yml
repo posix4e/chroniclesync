@@ -16,6 +16,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -85,6 +86,21 @@ jobs:
           name: firefox-extension
           path: extension/firefox-extension.xpi
           retention-days: 14
+          
+      - name: Build Safari Extension
+        working-directory: extension/safari
+        run: |
+          ./build-safari-extension.sh
+          # Create a zip file for the Safari extension
+          cd Shared/Extension\ Files
+          zip -r ../../../safari-extension.zip ./*
+          
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
+          retention-days: 14
 
       - name: Test Extension
         working-directory: extension
@@ -147,6 +163,61 @@ jobs:
           else
             npm run deploy -- --env staging
           fi
+
+  build-safari-apps:
+    needs: build-and-test
+    if: success()
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Safari Extension Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
+      
+      - name: Extract Safari Extension
+        run: |
+          mkdir -p extension/safari/Shared/Extension\ Files
+          unzip extension/safari-extension.zip -d extension/safari/Shared/Extension\ Files
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Build Safari Extension for macOS
+        run: |
+          cd extension/safari
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync (macOS)" -configuration Release -archivePath ./build/ChronicleSync-macOS.xcarchive archive
+          xcodebuild -exportArchive -archivePath ./build/ChronicleSync-macOS.xcarchive -exportOptionsPlist exportOptions-macOS.plist -exportPath ./build
+      
+      - name: Build Safari Extension for iOS
+        run: |
+          cd extension/safari
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync (iOS)" -configuration Release -destination "generic/platform=iOS" -archivePath ./build/ChronicleSync-iOS.xcarchive archive
+          xcodebuild -exportArchive -archivePath ./build/ChronicleSync-iOS.xcarchive -exportOptionsPlist exportOptions-iOS.plist -exportPath ./build
+      
+      - name: Upload macOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-macos-app
+          path: extension/safari/build/ChronicleSync.app
+          retention-days: 14
+      
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ios-app
+          path: extension/safari/build/ChronicleSync.ipa
+          retention-days: 14
+      
+      - name: Run Safari Extension Tests
+        run: |
+          cd extension/safari
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync macOS Tests" -destination "platform=macOS"
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync iOS Tests" -destination "platform=iOS Simulator,name=iPhone 14"
 
   playwright-extension-tests:
     needs: build-and-test

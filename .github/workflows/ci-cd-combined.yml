@@ -265,7 +265,7 @@ jobs:
             -configuration Release \
             -archivePath ./build/ChronicleSync-macOS.xcarchive \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.safari" \
+            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.app" \
             archive
           
           # Export archive
@@ -290,7 +290,7 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath ./build/ChronicleSync-iOS.xcarchive \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.safari" \
+            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.app" \
             archive
           
           # Export archive

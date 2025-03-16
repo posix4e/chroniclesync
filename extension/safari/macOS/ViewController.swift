@@ -31,7 +31,7 @@ class ViewController: NSViewController {
     }
 
     @IBAction func enableExtensionClicked(_ sender: Any) {
-        SFSafariApplication.showPreferencesForExtension(withIdentifier: "xyz.chroniclesync.safari.extension") { error in
+        SFSafariApplication.showPreferencesForExtension(withIdentifier: "xyz.chroniclesync.app.extension") { error in
             if let error = error {
                 self.showAlert(title: "Error", message: "Could not open Safari extension preferences: \(error.localizedDescription)")
             }

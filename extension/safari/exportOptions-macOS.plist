@@ -14,9 +14,9 @@
     <true/>
     <key>provisioningProfiles</key>
     <dict>
-        <key>xyz.chroniclesync.safari</key>
+        <key>xyz.chroniclesync.app</key>
         <string>ChronicleSync macOS App</string>
-        <key>xyz.chroniclesync.safari.extension</key>
+        <key>xyz.chroniclesync.app.extension</key>
         <string>ChronicleSync macOS Extension</string>
     </dict>
 </dict>

@@ -709,7 +709,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app";
 				PRODUCT_NAME = ChronicleSync;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -741,7 +741,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app";
 				PRODUCT_NAME = ChronicleSync;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -775,7 +775,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app";
 				PRODUCT_NAME = ChronicleSync;
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -807,7 +807,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app";
 				PRODUCT_NAME = ChronicleSync;
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -836,7 +836,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari.extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.extension";
 				PRODUCT_NAME = "ChronicleSync Extension";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -867,7 +867,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari.extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.extension";
 				PRODUCT_NAME = "ChronicleSync Extension";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -901,7 +901,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari.extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.extension";
 				PRODUCT_NAME = "ChronicleSync Extension";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -933,7 +933,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.chroniclesync.safari.extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.extension";
 				PRODUCT_NAME = "ChronicleSync Extension";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -952,7 +952,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari.ios-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.ios-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -972,7 +972,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari.ios-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.ios-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -993,7 +993,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari.macos-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.macos-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -1012,7 +1012,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari.macos-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.app.macos-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_EMIT_LOC_STRINGS = NO;

@@ -41,7 +41,7 @@ class ViewController: UIViewController {
         print("Main bundle identifier: \(mainBundleID)")
         
         // Expected extension bundle ID
-        let extensionBundleID = "\(mainBundleID).extension"
+        let extensionBundleID = "xyz.chroniclesync.app.extension"
         print("Expected extension bundle ID: \(extensionBundleID)")
         
         // Get the resources path

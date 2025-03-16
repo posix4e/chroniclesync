@@ -21,7 +21,9 @@ echo "Found device with UDID: $DEVICE_UDID"
 
 # Build and run on device
 echo "Building and running on device..."
-xcodebuild -project "$SCRIPT_DIR/ChronicleSync.xcodeproj" -scheme "ChronicleSync" -destination "id=$DEVICE_UDID" build
+# Note: For actual device builds, you'll need proper code signing
+# You'll need to replace DEVELOPMENT_TEAM with your actual team ID
+xcodebuild -project "$SCRIPT_DIR/ChronicleSync.xcodeproj" -scheme "ChronicleSync" -destination "id=$DEVICE_UDID" build DEVELOPMENT_TEAM="YOUR_TEAM_ID"
 
 echo "App built successfully!"
 echo ""

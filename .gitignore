@@ -68,3 +68,24 @@ worker-configuration.json
 # Yarn Integrity file
 .yarn-integritychrome-extension.zip
 extension/chrome-extension.zip
+
+# Safari Extension specific files
+safari-extension/ChronicleSync Extension/Resources/assets/
+safari-extension/ChronicleSync Extension/Resources/background.js
+safari-extension/ChronicleSync Extension/Resources/bip39-wordlist.js
+safari-extension/ChronicleSync Extension/Resources/content-script.js
+safari-extension/ChronicleSync Extension/Resources/devtools-page.js
+safari-extension/ChronicleSync Extension/Resources/devtools.css
+safari-extension/ChronicleSync Extension/Resources/devtools.html
+safari-extension/ChronicleSync Extension/Resources/devtools.js
+safari-extension/ChronicleSync Extension/Resources/history.css
+safari-extension/ChronicleSync Extension/Resources/history.html
+safari-extension/ChronicleSync Extension/Resources/history.js
+safari-extension/ChronicleSync Extension/Resources/popup.css
+safari-extension/ChronicleSync Extension/Resources/popup.html
+safari-extension/ChronicleSync Extension/Resources/popup.js
+safari-extension/ChronicleSync Extension/Resources/settings.css
+safari-extension/ChronicleSync Extension/Resources/settings.html
+safari-extension/ChronicleSync Extension/Resources/settings.js
+safari-extension/ChronicleSync.xcodeproj/project.xcworkspace/
+safari-extension/ChronicleSync.xcodeproj/xcuserdata/

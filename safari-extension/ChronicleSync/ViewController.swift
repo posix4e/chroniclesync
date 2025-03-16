@@ -17,28 +17,16 @@ class ViewController: UIViewController {
     }
     
     @IBAction func openSettings(_ sender: Any) {
-        // Open Safari settings directly using the Safari settings URL scheme
-        if let safariSettingsUrl = URL(string: "App-prefs:SAFARI&path=WEB_EXTENSIONS") {
-            UIApplication.shared.open(safariSettingsUrl, options: [:]) { success in
-                if !success {
-                    // Fallback to general app settings if Safari settings URL doesn't work
-                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(settingsUrl)
-                    }
-                }
-            }
-        } else {
-            // Fallback to general app settings
-            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(settingsUrl)
-            }
+        // Open Safari browser
+        if let safariURL = URL(string: "https://www.apple.com/safari/") {
+            UIApplication.shared.open(safariURL, options: [:], completionHandler: nil)
         }
     }
     
     func updateStatusLabel() {
         // On iOS, we can't programmatically check if the extension is enabled
         // We can only provide instructions to the user
-        statusLabel.text = "To enable the ChronicleSync extension:\n\nTap the 'Open Safari Settings' button below, then:\n1. Select 'Extensions'\n2. Enable ChronicleSync\n3. Allow permissions when prompted"
-        enableExtensionButton.setTitle("Open Safari Settings", for: .normal)
+        statusLabel.text = "To enable the ChronicleSync extension:\n\n1. Tap the 'Open Safari' button below\n2. In Safari, tap the 'Aa' button in the address bar\n3. Select 'Manage Extensions'\n4. Enable ChronicleSync\n5. Allow permissions when prompted"
+        enableExtensionButton.setTitle("Open Safari", for: .normal)
     }
 }

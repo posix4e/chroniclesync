@@ -235,6 +235,15 @@ jobs:
             "key_file": "~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
           }
           EOF
+          
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+          
+      - name: Lint Safari Extension Swift Code
+        run: |
+          cd extension/safari
+          swiftlint lint --strict
       
       - name: Build Safari Extension for macOS
         env:

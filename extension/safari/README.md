@@ -19,24 +19,48 @@ This directory contains the Safari extension implementation for ChronicleSync, s
 - Xcode 13 or later
 - macOS 11 or later
 - Apple Developer account (for signing and distribution)
+- SwiftLint (optional, for code linting)
 
 ### Build Steps
 
-1. First, build the extension files:
+1. Install SwiftLint (optional):
+
+```bash
+brew install swiftlint
+```
+
+2. Build the extension files:
 
 ```bash
 ./build-safari-extension.sh
 ```
 
-This script copies the necessary files from the Chrome/Firefox extension to the Safari extension.
+This script:
+- Runs SwiftLint to check code quality (if installed)
+- Builds the Chrome/Firefox extension
+- Copies the necessary files to the Safari extension
+- Validates the extension files
 
-2. Open the Xcode project:
+3. Open the Xcode project:
 
 ```bash
 open ChronicleSync.xcodeproj
 ```
 
-3. Select the target you want to build (iOS or macOS) and click the Run button.
+4. Select the target you want to build (iOS or macOS) and click the Run button.
+
+### Linting
+
+The project uses SwiftLint to ensure code quality. The linting rules are defined in `.swiftlint.yml`.
+
+To run SwiftLint manually:
+
+```bash
+cd extension/safari
+swiftlint lint
+```
+
+The CI/CD pipeline also runs SwiftLint in strict mode to catch any issues.
 
 ## Enabling the Extension in Safari
 

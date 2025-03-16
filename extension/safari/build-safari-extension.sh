@@ -9,6 +9,15 @@ DEST_DIR="Shared/Extension Files"
 # Create the destination directory if it doesn't exist
 mkdir -p "$DEST_DIR"
 
+# Check if SwiftLint is installed
+if command -v swiftlint &> /dev/null; then
+  echo "Running SwiftLint..."
+  swiftlint lint
+else
+  echo "SwiftLint not found. Skipping linting."
+  echo "To install SwiftLint, run: brew install swiftlint"
+fi
+
 # First, build the Chrome/Firefox extension
 echo "Building Chrome/Firefox extension..."
 cd "$SOURCE_DIR"
@@ -40,6 +49,20 @@ echo "Copying assets..."
 if [ -d "dist/assets" ]; then
   mkdir -p "$DEST_DIR/assets"
   cp -r dist/assets/* "$DEST_DIR/assets/"
+fi
+
+# Validate the extension files
+echo "Validating extension files..."
+if [ ! -f "$DEST_DIR/manifest.json" ]; then
+  echo "Warning: manifest.json not found in $DEST_DIR"
+fi
+
+if [ ! -f "$DEST_DIR/background.js" ]; then
+  echo "Warning: background.js not found in $DEST_DIR"
+fi
+
+if [ ! -f "$DEST_DIR/popup.js" ]; then
+  echo "Warning: popup.js not found in $DEST_DIR"
 fi
 
 echo "Safari extension files have been prepared successfully!"

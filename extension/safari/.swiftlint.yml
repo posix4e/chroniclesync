@@ -1,0 +1,65 @@
+included:
+  - iOS
+  - macOS
+  - iOS Extension
+  - macOS Extension
+  - Tests
+
+excluded:
+  - Pods
+  - Carthage
+  - .build
+  - vendor
+
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - identifier_name
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - closure_spacing
+  - conditional_returns_on_newline
+  - explicit_init
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - missing_docs
+  - overridden_super_call
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - sorted_imports
+
+analyzer_rules:
+  - unused_import
+  - unused_declaration
+
+force_cast: warning
+force_try: warning
+force_unwrapping: warning
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+function_body_length:
+  warning: 100
+  error: 200
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+
+nesting:
+  type_level:
+    warning: 3
+  statement_level:
+    warning: 5
+
+reporter: "xcode"

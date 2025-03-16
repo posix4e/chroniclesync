@@ -1,26 +1,38 @@
 import UIKit
 import SafariServices
+import os.log
 
+/// Main view controller for the ChronicleSync app
 class ViewController: UIViewController {
     
-    @IBOutlet weak var enableExtensionButton: UIButton!
-    @IBOutlet weak var statusLabel: UILabel!
+    // MARK: - Properties
+    
+    /// Button to enable the extension or open Safari
+    @IBOutlet private weak var enableExtensionButton: UIButton!
+    
+    /// Label showing the extension status and instructions
+    @IBOutlet private weak var statusLabel: UILabel!
+    
+    /// Logger for debugging
+    private let logger = Logger(subsystem: "com.chroniclesync.app", category: "viewcontroller")
+    
+    // MARK: - Lifecycle Methods
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("ViewController: viewDidLoad called")
+        logger.log("viewDidLoad called")
         
         // Debug: Check if outlets are connected
         if enableExtensionButton == nil {
-            print("ERROR: enableExtensionButton outlet is nil")
+            logger.error("enableExtensionButton outlet is nil")
         } else {
-            print("enableExtensionButton outlet is connected")
+            logger.log("enableExtensionButton outlet is connected")
         }
         
         if statusLabel == nil {
-            print("ERROR: statusLabel outlet is nil")
+            logger.error("statusLabel outlet is nil")
         } else {
-            print("statusLabel outlet is connected")
+            logger.log("statusLabel outlet is connected")
         }
         
         // Debug: Check extension resources
@@ -31,7 +43,7 @@ class ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        print("ViewController: viewDidAppear called")
+        logger.log("viewDidAppear called")
         updateStatusLabel()
         
         // Check if extension is enabled in UserDefaults
@@ -47,16 +59,22 @@ class ViewController: UIViewController {
         }
     }
     
+    // MARK: - Actions
+    
+    /// Opens Safari when the button is tapped
     @IBAction func openSettings(_ sender: Any) {
-        print("ViewController: openSettings called")
+        logger.log("openSettings called")
         // Open Safari browser
         if let safariURL = URL(string: "https://www.apple.com/safari/") {
             UIApplication.shared.open(safariURL, options: [:], completionHandler: nil)
         }
     }
     
+    // MARK: - Helper Methods
+    
+    /// Updates the status label based on the extension state
     func updateStatusLabel() {
-        print("ViewController: updateStatusLabel called")
+        logger.log("updateStatusLabel called")
         // On iOS, we can't programmatically check if the extension is enabled
         // We can only provide instructions to the user
         let extensionEnabled = UserDefaults.standard.bool(forKey: "extensionEnabled")
@@ -64,7 +82,17 @@ class ViewController: UIViewController {
         if extensionEnabled {
             statusLabel?.text = "ChronicleSync extension is enabled.\n\nYou can use the Settings tab to configure the extension."
         } else {
-            statusLabel?.text = "To enable the ChronicleSync extension:\n\n1. Tap the 'Open Safari' button below\n2. In Safari, tap the 'Aa' button in the address bar\n3. Select 'Manage Extensions'\n4. Enable ChronicleSync\n5. Allow permissions when prompted\n\nOr use the Settings tab to enable the extension."
+            statusLabel?.text = """
+            To enable the ChronicleSync extension:
+
+            1. Tap the 'Open Safari' button below
+            2. In Safari, tap the 'Aa' button in the address bar
+            3. Select 'Manage Extensions'
+            4. Enable ChronicleSync
+            5. Allow permissions when prompted
+
+            Or use the Settings tab to enable the extension.
+            """
         }
         
         enableExtensionButton?.setTitle("Open Safari", for: .normal)
@@ -72,68 +100,70 @@ class ViewController: UIViewController {
     
     // MARK: - Debug Methods
     
+    /// Checks if the extension resources are properly loaded
     func debugCheckExtensionResources() {
-        print("=== Checking Extension Resources ===")
+        logger.log("=== Checking Extension Resources ===")
         
         // Check main bundle
         let mainBundle = Bundle.main
-        print("Main bundle identifier: \(mainBundle.bundleIdentifier ?? "Unknown")")
+        logger.log("Main bundle identifier: \(mainBundle.bundleIdentifier ?? "Unknown")")
         
         // Check extension bundle
         let extensionBundleID = mainBundle.bundleIdentifier?.appending(".extension") ?? "Unknown.extension"
-        print("Expected extension bundle ID: \(extensionBundleID)")
+        logger.log("Expected extension bundle ID: \(extensionBundleID)")
         
         // Check resources path
         if let resourcesPath = mainBundle.resourcePath {
-            print("Resources path: \(resourcesPath)")
+            logger.log("Resources path: \(resourcesPath)")
             
             // Check for extension resources directory
             let extensionResourcesPath = resourcesPath + "/Resources"
             if FileManager.default.fileExists(atPath: extensionResourcesPath) {
-                print("Extension resources directory found at: \(extensionResourcesPath)")
+                logger.log("Extension resources directory found at: \(extensionResourcesPath)")
                 
                 // List files in the resources directory
                 do {
                     let files = try FileManager.default.contentsOfDirectory(atPath: extensionResourcesPath)
-                    print("Files in Resources directory:")
+                    logger.log("Files in Resources directory:")
                     for file in files {
-                        print("- \(file)")
+                        logger.log("- \(file)")
                     }
                 } catch {
-                    print("Error listing files: \(error)")
+                    logger.error("Error listing files: \(error.localizedDescription)")
                 }
                 
                 // Check for specific files
                 let manifestPath = extensionResourcesPath + "/manifest.json"
                 if FileManager.default.fileExists(atPath: manifestPath) {
-                    print("manifest.json found")
+                    logger.log("manifest.json found")
                 } else {
-                    print("ERROR: manifest.json not found")
+                    logger.error("manifest.json not found")
                 }
                 
                 let popupHTMLPath = extensionResourcesPath + "/popup.html"
                 if FileManager.default.fileExists(atPath: popupHTMLPath) {
-                    print("popup.html found")
+                    logger.log("popup.html found")
                 } else {
-                    print("ERROR: popup.html not found")
+                    logger.error("popup.html not found")
                 }
                 
                 let backgroundJSPath = extensionResourcesPath + "/background.js"
                 if FileManager.default.fileExists(atPath: backgroundJSPath) {
-                    print("background.js found")
+                    logger.log("background.js found")
                 } else {
-                    print("ERROR: background.js not found")
+                    logger.error("background.js not found")
                 }
             } else {
-                print("ERROR: Extension resources directory not found")
+                logger.error("Extension resources directory not found")
             }
         } else {
-            print("ERROR: Resources path not found")
+            logger.error("Resources path not found")
         }
     }
     
+    /// Creates a fallback UI when the storyboard connections are broken
     func createFallbackUI() {
-        print("Creating fallback UI because outlets are nil")
+        logger.log("Creating fallback UI because outlets are nil")
         
         // Create a label
         let label = UILabel()

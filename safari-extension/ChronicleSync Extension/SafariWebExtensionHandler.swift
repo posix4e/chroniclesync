@@ -1,9 +1,14 @@
 import SafariServices
 import os.log
 
+/// Handler for Safari web extension requests
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
-    let logger = Logger(subsystem: "com.chroniclesync.app.extension", category: "extension")
+    /// Logger for debugging
+    private let logger = Logger(subsystem: "com.chroniclesync.app.extension", category: "extension")
+    
+    /// Path to the Resources directory
+    private var resourcesDirectory: String?
     
     override init() {
         super.init()
@@ -17,12 +22,15 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         if let resourcesPath = bundle.resourcePath {
             logger.log("Resources path: \(resourcesPath)")
             
+            // Store the resources directory path
+            resourcesDirectory = resourcesPath + "/Resources"
+            
             // Check for manifest.json
             let manifestPath = resourcesPath + "/Resources/manifest.json"
             if FileManager.default.fileExists(atPath: manifestPath) {
                 logger.log("manifest.json found at: \(manifestPath)")
             } else {
-                logger.log("ERROR: manifest.json not found at: \(manifestPath)")
+                logger.error("manifest.json not found at: \(manifestPath)")
             }
             
             // List files in Resources directory
@@ -32,32 +40,30 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                     let files = try FileManager.default.contentsOfDirectory(atPath: resourcesDir)
                     logger.log("Files in Resources directory: \(files)")
                 } catch {
-                    logger.log("Error listing files in Resources directory: \(error.localizedDescription)")
+                    logger.error("Error listing files in Resources directory: \(error.localizedDescription)")
                 }
             } else {
-                logger.log("ERROR: Resources directory not found at: \(resourcesDir)")
+                logger.error("Resources directory not found at: \(resourcesDir)")
             }
         } else {
-            logger.log("ERROR: Resources path not found")
+            logger.error("Resources path not found")
         }
     }
     
+    /// Handles requests from the Safari web extension
+    /// - Parameter context: The extension context
     func beginRequest(with context: NSExtensionContext) {
         logger.log("beginRequest called")
         
         guard context.inputItems.count > 0 else {
-            logger.log("ERROR: No input items in context")
-            let response = NSExtensionItem()
-            response.userInfo = [ SFExtensionMessageKey: [ "error": "No input items" ] ]
-            context.completeRequest(returningItems: [response], completionHandler: nil)
+            logger.error("No input items in context")
+            sendErrorResponse(to: context, error: "No input items")
             return
         }
         
         guard let item = context.inputItems[0] as? NSExtensionItem else {
-            logger.log("ERROR: First input item is not an NSExtensionItem")
-            let response = NSExtensionItem()
-            response.userInfo = [ SFExtensionMessageKey: [ "error": "Invalid input item type" ] ]
-            context.completeRequest(returningItems: [response], completionHandler: nil)
+            logger.error("First input item is not an NSExtensionItem")
+            sendErrorResponse(to: context, error: "Invalid input item type")
             return
         }
         
@@ -70,14 +76,44 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         let responseDict: [String: Any] = [
             "Response to": message?["message"] ?? "",
             "timestamp": Date().timeIntervalSince1970,
-            "extensionInfo": [
-                "bundleID": Bundle(for: type(of: self)).bundleIdentifier ?? "Unknown",
-                "hasResources": FileManager.default.fileExists(atPath: (Bundle(for: type(of: self)).resourcePath ?? "") + "/Resources")
-            ]
+            "extensionInfo": getExtensionInfo()
         ]
         
         response.userInfo = [ SFExtensionMessageKey: responseDict ]
         
         context.completeRequest(returningItems: [response], completionHandler: nil)
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Sends an error response to the extension context
+    /// - Parameters:
+    ///   - context: The extension context
+    ///   - error: The error message
+    private func sendErrorResponse(to context: NSExtensionContext, error: String) {
+        let response = NSExtensionItem()
+        response.userInfo = [ SFExtensionMessageKey: [ "error": error ] ]
+        context.completeRequest(returningItems: [response], completionHandler: nil)
+    }
+    
+    /// Gets information about the extension
+    /// - Returns: A dictionary with extension information
+    private func getExtensionInfo() -> [String: Any] {
+        let bundle = Bundle(for: type(of: self))
+        let bundleID = bundle.bundleIdentifier ?? "Unknown"
+        let hasResources = resourcesDirectory != nil && 
+                          FileManager.default.fileExists(atPath: resourcesDirectory!)
+        
+        var info: [String: Any] = [
+            "bundleID": bundleID,
+            "hasResources": hasResources
+        ]
+        
+        // Add version information if available
+        if let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
+            info["version"] = version
+        }
+        
+        return info
     }
 }

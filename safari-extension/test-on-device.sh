@@ -4,6 +4,13 @@ set -e
 # Define paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Check if DEVELOPMENT_TEAM is set
+if [ -z "$DEVELOPMENT_TEAM" ]; then
+  echo "DEVELOPMENT_TEAM environment variable is not set."
+  echo "You can set it by running: export DEVELOPMENT_TEAM=YOUR_TEAM_ID"
+  echo "Continuing with default placeholder value..."
+fi
+
 # Build the Safari extension
 echo "Building Safari extension..."
 "$SCRIPT_DIR/build-safari-extension.sh"
@@ -23,7 +30,7 @@ echo "Found device with UDID: $DEVICE_UDID"
 echo "Building and running on device..."
 # Note: For actual device builds, you'll need proper code signing
 # You'll need to replace DEVELOPMENT_TEAM with your actual team ID
-xcodebuild -project "$SCRIPT_DIR/ChronicleSync.xcodeproj" -scheme "ChronicleSync" -destination "id=$DEVICE_UDID" build DEVELOPMENT_TEAM="YOUR_TEAM_ID"
+xcodebuild -project "$SCRIPT_DIR/ChronicleSync.xcodeproj" -scheme "ChronicleSync" -destination "id=$DEVICE_UDID" build DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-YOUR_TEAM_ID}"
 
 echo "App built successfully!"
 echo ""

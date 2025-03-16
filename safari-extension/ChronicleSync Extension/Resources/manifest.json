@@ -3,11 +3,21 @@
   "name": "ChronicleSync Extension",
   "version": "1.0",
   "description": "ChronicleSync Safari Extension",
+  "devtools_page": "devtools.html",
   "action": {
     "default_popup": "popup.html"
   },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [{
+    "resources": ["history.html"],
+    "matches": ["<all_urls>"]
+  }],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -21,7 +31,8 @@
     "scripting",
     "tabs",
     "history",
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "http://localhost:*/*",

@@ -187,17 +187,103 @@ jobs:
         with:
           xcode-version: latest-stable
       
+      - name: Setup Apple certificates and provisioning profiles
+        env:
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Create keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD="temporary"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          # Import certificate to keychain
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo -n "$APPLE_CERTIFICATE_CONTENT" | base64 --decode > $CERTIFICATE_PATH
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          PROVISIONING_PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo -n "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PROVISIONING_PROFILE_PATH"
+          
+          # Update export options plists with team ID
+          cd extension/safari
+          sed -i '' "s/TEAM_ID/$APPLE_TEAM_ID/g" exportOptions-macOS.plist
+          sed -i '' "s/TEAM_ID/$APPLE_TEAM_ID/g" exportOptions-iOS.plist
+      
+      - name: Setup App Store Connect API
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+        run: |
+          # Create App Store Connect API key file
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APPLE_API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8
+          
+          # Create API key configuration
+          cat > ~/.appstoreconnect/auth.json << EOF
+          {
+            "key_id": "$APPLE_API_KEY_ID",
+            "issuer_id": "$APPLE_API_KEY_ISSUER_ID",
+            "key_file": "~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
+          }
+          EOF
+      
       - name: Build Safari Extension for macOS
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd extension/safari
-          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync (macOS)" -configuration Release -archivePath ./build/ChronicleSync-macOS.xcarchive archive
-          xcodebuild -exportArchive -archivePath ./build/ChronicleSync-macOS.xcarchive -exportOptionsPlist exportOptions-macOS.plist -exportPath ./build
+          
+          # Create build directory
+          mkdir -p build
+          
+          # Build and archive
+          xcodebuild -project ChronicleSync.xcodeproj \
+            -scheme "ChronicleSync (macOS)" \
+            -configuration Release \
+            -archivePath ./build/ChronicleSync-macOS.xcarchive \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.safari" \
+            archive
+          
+          # Export archive
+          xcodebuild -exportArchive \
+            -archivePath ./build/ChronicleSync-macOS.xcarchive \
+            -exportOptionsPlist exportOptions-macOS.plist \
+            -exportPath ./build
       
       - name: Build Safari Extension for iOS
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd extension/safari
-          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync (iOS)" -configuration Release -destination "generic/platform=iOS" -archivePath ./build/ChronicleSync-iOS.xcarchive archive
-          xcodebuild -exportArchive -archivePath ./build/ChronicleSync-iOS.xcarchive -exportOptionsPlist exportOptions-iOS.plist -exportPath ./build
+          
+          # Create build directory
+          mkdir -p build
+          
+          # Build and archive
+          xcodebuild -project ChronicleSync.xcodeproj \
+            -scheme "ChronicleSync (iOS)" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath ./build/ChronicleSync-iOS.xcarchive \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PRODUCT_BUNDLE_IDENTIFIER="xyz.chroniclesync.safari" \
+            archive
+          
+          # Export archive
+          xcodebuild -exportArchive \
+            -archivePath ./build/ChronicleSync-iOS.xcarchive \
+            -exportOptionsPlist exportOptions-iOS.plist \
+            -exportPath ./build
       
       - name: Upload macOS App Artifact
         uses: actions/upload-artifact@v4

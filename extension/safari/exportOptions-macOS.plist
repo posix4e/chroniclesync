@@ -3,10 +3,21 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>developer-id</string>
+    <string>app-store</string>
     <key>teamID</key>
     <string>TEAM_ID</string>
     <key>signingStyle</key>
     <string>automatic</string>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>xyz.chroniclesync.safari</key>
+        <string>ChronicleSync macOS App</string>
+        <key>xyz.chroniclesync.safari.extension</key>
+        <string>ChronicleSync macOS Extension</string>
+    </dict>
 </dict>
 </plist>

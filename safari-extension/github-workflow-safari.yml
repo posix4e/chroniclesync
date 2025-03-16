@@ -1,0 +1,52 @@
+name: Safari Extension CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-safari-extension:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Build Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Safari Extension
+        run: |
+          cd safari-extension
+          ./build-safari-extension.sh
+
+      - name: Build Xcode Project
+        run: |
+          cd safari-extension
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" build
+
+      - name: Run Basic Tests
+        run: |
+          cd safari-extension
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" test
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: safari-extension/ChronicleSync.xcodeproj
+          retention-days: 14

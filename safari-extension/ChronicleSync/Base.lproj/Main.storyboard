@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="ChronicleSync" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Vc-Qqe">
+                                <rect key="frame" x="20" y="359" width="353" height="134.33333333333337"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="safari" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Vc-Qqf">
+                                        <rect key="frame" x="0.0" y="0.0" width="353" height="50"/>
+                                        <color key="tintColor" systemColor="systemBlueColor"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="50" id="Ygd-Vc-Qqg"/>
+                                        </constraints>
+                                    </imageView>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ChronicleSync Safari Extension" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Vc-Qqh">
+                                        <rect key="frame" x="0.0" y="70" width="353" height="23"/>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="19"/>
+                                        <nil key="textColor"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Checking extension status..." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Vc-Qqi">
+                                        <rect key="frame" x="0.0" y="113" width="353" height="21.333333333333343"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <nil key="textColor"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                            </stackView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Vc-Qqj">
+                                <rect key="frame" x="96.666666666666686" y="513.33333333333337" width="200" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="Ygd-Vc-Qqk"/>
+                                    <constraint firstAttribute="height" constant="40" id="Ygd-Vc-Qql"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Enable Extension"/>
+                                <connections>
+                                    <action selector="openSettings:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Ygd-Vc-Qqm"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="Ygd-Vc-Qqe" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="Ygd-Vc-Qqn"/>
+                            <constraint firstItem="Ygd-Vc-Qqj" firstAttribute="top" secondItem="Ygd-Vc-Qqe" secondAttribute="bottom" constant="20" id="Ygd-Vc-Qqo"/>
+                            <constraint firstItem="Ygd-Vc-Qqj" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Ygd-Vc-Qqp"/>
+                            <constraint firstItem="Ygd-Vc-Qqe" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="Ygd-Vc-Qqq"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ygd-Vc-Qqe" secondAttribute="trailing" constant="20" id="Ygd-Vc-Qqr"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="enableExtensionButton" destination="Ygd-Vc-Qqj" id="Ygd-Vc-Qqs"/>
+                        <outlet property="statusLabel" destination="Ygd-Vc-Qqi" id="Ygd-Vc-Qqt"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="132" y="-27"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="safari" catalog="system" width="128" height="123"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemBlueColor">
+            <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+    </resources>
+</document>

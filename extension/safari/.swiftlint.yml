@@ -10,6 +10,10 @@ excluded:
   - Carthage
   - .build
   - vendor
+  - build
+  - DerivedData
+  - Shared/Extension Files
+  - "**/*.generated.swift"
 
 disabled_rules:
   - trailing_whitespace

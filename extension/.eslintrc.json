@@ -47,6 +47,14 @@
     "react-hooks/exhaustive-deps": "warn",
     "no-console": ["warn", { "allow": ["error", "warn", "info", "debug"] }]
   },
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "node_modules/**",
+    "safari/Shared/Extension Files/**",
+    "**/*.min.js",
+    "**/*-*.js"
+  ],
   "overrides": [
     {
       "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],

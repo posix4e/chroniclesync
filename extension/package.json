@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
     "build:safari": "bash scripts/build-safari-extension.sh",
+    "build:safari:simulator": "bash scripts/build-safari-simulator.sh",
+    "build:safari:with-credentials": "bash scripts/build-safari-with-credentials.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

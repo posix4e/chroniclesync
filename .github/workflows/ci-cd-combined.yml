@@ -248,7 +248,7 @@ jobs:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
         run: |
           npm ci
-          npm run build:safari
+          npm run build:safari:with-credentials
 
       - name: Upload test results (Chrome/Firefox)
         if: steps.should_test.outputs.should_test == 'true' && matrix.browser != 'safari' && always()

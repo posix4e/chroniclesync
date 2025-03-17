@@ -237,6 +237,7 @@ jobs:
         if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari'
         working-directory: extension
         env:
+          CI: true
           APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}

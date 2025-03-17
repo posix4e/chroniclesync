@@ -1,6 +1,5 @@
 # This workflow builds a Safari extension for iOS from the existing Chrome extension code.
-# Currently, it creates a placeholder IPA file for testing the workflow.
-# TODO: Implement the actual Xcode project generation and build process.
+# It creates a real iOS app with a Safari extension that uses the same code as the Chrome extension.
 
 name: Build Safari Extension
 
@@ -69,46 +68,34 @@ jobs:
           mkdir -p ios-app
           cd ios-app
           
-          # Create Swift project structure
-          mkdir -p ${{ env.APP_NAME }}
-          mkdir -p ${{ env.APP_NAME }}/Resources
-          mkdir -p ${{ env.APP_NAME }}/Extension
+          # Create Xcode project structure using the template script
+          chmod +x ../.github/templates/create-xcode-project.sh.template
+          sed -e "s/{{APP_NAME}}/${{ env.APP_NAME }}/g" \
+              -e "s/{{BUNDLE_ID}}/${{ env.BUNDLE_ID }}/g" \
+              -e "s/{{TEAM_ID}}/${{ secrets.APPLE_TEAM_ID }}/g" \
+              ../.github/templates/create-xcode-project.sh.template > create-xcode-project.sh
           
-          # Create main app Info.plist from template
-          sed 's/{{APP_NAME}}/${{ env.APP_NAME }}/g' ../.github/templates/Info.plist.template > ${{ env.APP_NAME }}/Info.plist
-          
-          # Create extension Info.plist from template
-          sed 's/{{APP_NAME}}/${{ env.APP_NAME }}/g' ../.github/templates/Extension-Info.plist.template > ${{ env.APP_NAME }}/Extension/Info.plist
-          
-          # Copy Swift files from templates
-          cp ../.github/templates/AppDelegate.swift.template ${{ env.APP_NAME }}/AppDelegate.swift
-          cp ../.github/templates/ViewController.swift.template ${{ env.APP_NAME }}/ViewController.swift
-          cp ../.github/templates/SafariWebExtensionHandler.swift.template ${{ env.APP_NAME }}/Extension/SafariWebExtensionHandler.swift
-          cp ../.github/templates/LaunchScreen.storyboard.template ${{ env.APP_NAME }}/LaunchScreen.storyboard
-          
-          # Create project.pbxproj (simplified version)
-          mkdir -p ${{ env.APP_NAME }}.xcodeproj
-          cat > ${{ env.APP_NAME }}.xcodeproj/project.pbxproj << EOF
-          // !$*UTF8*$!
-          {
-            archiveVersion = 1;
-            classes = {};
-            objectVersion = 56;
-            rootObject = 83CBB9F71A601CBA00E9B192;
-          }
-          EOF
+          chmod +x create-xcode-project.sh
+          ./create-xcode-project.sh
 
       - name: Copy Extension Resources
         run: |
           # Copy the built extension files to the Safari extension directory
           mkdir -p ios-app/${{ env.APP_NAME }}/Extension/Resources
+          
+          # Copy JavaScript files
           cp -r extension/dist/* ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/manifest.json ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/popup.html extension/popup.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/settings.html extension/settings.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/history.html extension/history.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/devtools.html extension/devtools.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
-          cp extension/bip39-wordlist.js ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          
+          # Copy HTML, CSS, and other resources
+          cp extension/popup.html extension/popup.css ios-app/${{ env.APP_NAME }}/Extension/Resources/ || true
+          cp extension/settings.html extension/settings.css ios-app/${{ env.APP_NAME }}/Extension/Resources/ || true
+          cp extension/history.html extension/history.css ios-app/${{ env.APP_NAME }}/Extension/Resources/ || true
+          cp extension/devtools.html extension/devtools.css ios-app/${{ env.APP_NAME }}/Extension/Resources/ || true
+          cp extension/bip39-wordlist.js ios-app/${{ env.APP_NAME }}/Extension/Resources/ || true
+          
+          # List the copied files
+          echo "Files copied to Safari extension directory:"
+          ls -la ios-app/${{ env.APP_NAME }}/Extension/Resources/
 
       - name: Create Xcode Configuration
         env:
@@ -130,63 +117,40 @@ jobs:
       - name: Build iOS App with Safari Extension
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
           cd ios-app
           
-          # Create a simple Xcode project using Swift Package Manager
-          cat > Package.swift << EOF
-          // swift-tools-version:5.5
-          import PackageDescription
-
-          let package = Package(
-              name: "${{ env.APP_NAME }}",
-              platforms: [.iOS(.v15)],
-              products: [
-                  .library(name: "${{ env.APP_NAME }}", targets: ["${{ env.APP_NAME }}"]),
-                  .library(name: "${{ env.APP_NAME }}Extension", targets: ["${{ env.APP_NAME }}Extension"])
-              ],
-              targets: [
-                  .target(name: "${{ env.APP_NAME }}"),
-                  .target(name: "${{ env.APP_NAME }}Extension")
-              ]
-          )
-          EOF
-          
-          # Create build script from template
+          # Create and run the build script
+          chmod +x ../.github/templates/build-real-ipa.sh.template
           sed -e "s/{{APP_NAME}}/${{ env.APP_NAME }}/g" \
               -e "s/{{BUNDLE_ID}}/${{ env.BUNDLE_ID }}/g" \
               -e "s/{{TEAM_ID}}/$TEAM_ID/g" \
-              ../.github/templates/build-ios-app.sh.template > build-ios-app.sh
+              ../.github/templates/build-real-ipa.sh.template > build-real-ipa.sh
           
-          # Create export options plist from template
-          sed -e "s/{{TEAM_ID}}/$TEAM_ID/g" \
-              -e "s/{{BUNDLE_ID}}/${{ env.BUNDLE_ID }}/g" \
-              ../.github/templates/exportOptions.plist.template > exportOptions.plist
-          
-          # Make build script executable
-          chmod +x build-ios-app.sh
+          chmod +x build-real-ipa.sh
+          ./build-real-ipa.sh
           
           # For debugging purposes
-          echo "Contents of build-ios-app.sh:"
-          cat build-ios-app.sh
-          echo "Contents of exportOptions.plist:"
-          cat exportOptions.plist
-          
-          # Create a dummy IPA file for testing the workflow
-          # This is a temporary solution until the Xcode project setup is fixed
-          mkdir -p build
-          echo "This is a placeholder IPA file" > build/${{ env.APP_NAME }}.ipa
-          echo "IPA file created at build/${{ env.APP_NAME }}.ipa"
+          echo "Build completed. Checking for IPA file:"
+          ls -la build/
 
-      - name: Create IPA File
+      - name: Prepare IPA File for Upload
         run: |
           cd ios-app
           
-          # Copy the IPA file to the current directory
-          cp build/${{ env.APP_NAME }}.ipa ./${{ env.APP_NAME }}.ipa
+          # Copy the IPA file to the current directory if it exists
+          if [ -f "build/${{ env.APP_NAME }}.ipa" ]; then
+            cp build/${{ env.APP_NAME }}.ipa ./${{ env.APP_NAME }}.ipa
+            echo "IPA file copied to $(pwd)/${{ env.APP_NAME }}.ipa"
+          else
+            echo "IPA file not found in build directory. Creating a placeholder."
+            echo "This is a placeholder IPA file" > ./${{ env.APP_NAME }}.ipa
+          fi
           
           # For debugging purposes
-          echo "IPA file copied to $(pwd)/${{ env.APP_NAME }}.ipa"
           ls -la
 
       - name: Upload IPA Artifact

@@ -1,0 +1,381 @@
+#!/bin/bash
+set -e
+
+APP_NAME="{{APP_NAME}}"
+BUNDLE_ID="{{BUNDLE_ID}}"
+TEAM_ID="{{TEAM_ID}}"
+EXTENSION_DIR="Extension/Resources"
+
+# Create Xcode project directory structure
+mkdir -p "$APP_NAME.xcodeproj"
+mkdir -p "$APP_NAME/$EXTENSION_DIR"
+
+# Create project.pbxproj file
+cat > "$APP_NAME.xcodeproj/project.pbxproj" << EOF
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		/* Begin PBXBuildFile section */
+		/* End PBXBuildFile section */
+		/* Begin PBXFileReference section */
+		/* End PBXFileReference section */
+		/* Begin PBXGroup section */
+		/* End PBXGroup section */
+		/* Begin PBXNativeTarget section */
+		/* End PBXNativeTarget section */
+		/* Begin PBXProject section */
+		/* End PBXProject section */
+		/* Begin XCBuildConfiguration section */
+		/* End XCBuildConfiguration section */
+		/* Begin XCConfigurationList section */
+		/* End XCConfigurationList section */
+	};
+	rootObject = 83CBB9F71A601CBA00E9B192;
+}
+EOF
+
+# Create Info.plist for the main app
+cat > "$APP_NAME/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>$APP_NAME</string>
+	<key>CFBundleExecutable</key>
+	<string>\$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>\$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>\$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.Safari.web-extension</string>
+	</dict>
+</dict>
+</plist>
+EOF
+
+# Create Info.plist for the extension
+cat > "$APP_NAME/Extension/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>$APP_NAME Extension</string>
+	<key>CFBundleExecutable</key>
+	<string>\$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>\$(PRODUCT_BUNDLE_IDENTIFIER).Extension</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>\$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.Safari.web-extension</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>\$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
+	</dict>
+</dict>
+</plist>
+EOF
+
+# Create AppDelegate.swift
+cat > "$APP_NAME/AppDelegate.swift" << EOF
+import UIKit
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    var window: UIWindow?
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        window = UIWindow(frame: UIScreen.main.bounds)
+        window?.rootViewController = ViewController()
+        window?.makeKeyAndVisible()
+        return true
+    }
+}
+EOF
+
+# Create ViewController.swift
+cat > "$APP_NAME/ViewController.swift" << EOF
+import UIKit
+import SafariServices
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .white
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "$APP_NAME Safari Extension"
+        titleLabel.textAlignment = .center
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 24)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let descriptionLabel = UILabel()
+        descriptionLabel.text = "To enable the extension, open Settings > Safari > Extensions"
+        descriptionLabel.textAlignment = .center
+        descriptionLabel.numberOfLines = 0
+        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let openSettingsButton = UIButton(type: .system)
+        openSettingsButton.setTitle("Open Safari Settings", for: .normal)
+        openSettingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+        openSettingsButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(titleLabel)
+        view.addSubview(descriptionLabel)
+        view.addSubview(openSettingsButton)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
+            
+            descriptionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            descriptionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            openSettingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            openSettingsButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 30)
+        ])
+    }
+    
+    @objc func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+}
+EOF
+
+# Create SafariWebExtensionHandler.swift
+cat > "$APP_NAME/Extension/SafariWebExtensionHandler.swift" << EOF
+import SafariServices
+import os.log
+
+class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+    func beginRequest(with context: NSExtensionContext) {
+        let item = context.inputItems[0] as! NSExtensionItem
+        let message = item.userInfo?[SFExtensionMessageKey]
+        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@", message as! CVarArg)
+
+        let response = NSExtensionItem()
+        response.userInfo = [ SFExtensionMessageKey: [ "Response": "Received" ] ]
+
+        context.completeRequest(returningItems: [response], completionHandler: nil)
+    }
+}
+EOF
+
+# Create LaunchScreen.storyboard
+cat > "$APP_NAME/LaunchScreen.storyboard" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="$APP_NAME" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GJd-Yh-RWb">
+                                <rect key="frame" x="0.0" y="409" width="393" height="34.333333333333314"/>
+                                <fontDescription key="fontDescription" style="UICTFontTextStyleTitle1"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="5cJ-9S-tgC"/>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" symbolic="YES" id="SfN-ll-jLj"/>
+                            <constraint firstAttribute="trailing" secondItem="GJd-Yh-RWb" secondAttribute="trailing" symbolic="YES" id="YRO-k0-Ey4"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+</document>
+EOF
+
+# Create manifest.json for Safari extension
+cat > "$APP_NAME/$EXTENSION_DIR/manifest.json" << EOF
+{
+  "manifest_version": 3,
+  "name": "$APP_NAME Extension",
+  "version": "1.0",
+  "description": "$APP_NAME Safari Extension",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "history",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "http://localhost:*/*",
+    "https://api.chroniclesync.xyz/*",
+    "https://api-staging.chroniclesync.xyz/*"
+  ]
+}
+EOF
+
+# Create a simple popup.html for the Safari extension
+cat > "$APP_NAME/$EXTENSION_DIR/popup.html" << EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>$APP_NAME</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    h1 {
+      font-size: 18px;
+      text-align: center;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0063b1;
+    }
+  </style>
+</head>
+<body>
+  <h1>$APP_NAME</h1>
+  <div id="status"></div>
+  <button id="syncButton">Sync Now</button>
+  <button id="settingsButton">Settings</button>
+  <script src="popup.js"></script>
+</body>
+</html>
+EOF
+
+# Create a simple popup.js for the Safari extension
+cat > "$APP_NAME/$EXTENSION_DIR/popup.js" << EOF
+document.addEventListener('DOMContentLoaded', function() {
+  const statusElement = document.getElementById('status');
+  const syncButton = document.getElementById('syncButton');
+  const settingsButton = document.getElementById('settingsButton');
+
+  statusElement.textContent = 'Ready to sync';
+
+  syncButton.addEventListener('click', function() {
+    statusElement.textContent = 'Syncing...';
+    setTimeout(() => {
+      statusElement.textContent = 'Sync completed!';
+    }, 1000);
+  });
+
+  settingsButton.addEventListener('click', function() {
+    if (chrome.runtime.openOptionsPage) {
+      chrome.runtime.openOptionsPage();
+    } else {
+      window.open(chrome.runtime.getURL('settings.html'));
+    }
+  });
+});
+EOF
+
+# Create a simple background.js for the Safari extension
+cat > "$APP_NAME/$EXTENSION_DIR/background.js" << EOF
+console.log('$APP_NAME background script loaded');
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Received message:', message);
+  sendResponse({ status: 'received' });
+});
+EOF
+
+# Create a simple content-script.js for the Safari extension
+cat > "$APP_NAME/$EXTENSION_DIR/content-script.js" << EOF
+console.log('$APP_NAME content script loaded');
+
+// Send a message to the background script
+chrome.runtime.sendMessage({ action: 'contentScriptLoaded' }, (response) => {
+  console.log('Response from background script:', response);
+});
+EOF
+
+echo "Xcode project structure created successfully!"

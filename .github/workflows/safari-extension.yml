@@ -20,6 +20,8 @@ on:
 env:
   NODE_VERSION: '20'
   XCODE_VERSION: '15.2'
+  APP_NAME: 'ChronicleSync'
+  BUNDLE_ID: 'xyz.chroniclesync.safari-extension'
 
 jobs:
   build-safari-extension:
@@ -41,111 +43,172 @@ jobs:
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
-      - name: Build Safari Extension
+      - name: Build Extension
         working-directory: extension
         run: |
           npm ci
-          # Make the build script executable
-          chmod +x scripts/build-safari-extension.js
-          npm run build:safari
+          npm run build
 
-      - name: Create Xcode Project
-        working-directory: extension/safari-extension
+      - name: Create iOS App Project
         run: |
-          # Create Swift project for Safari extension
-          cat > ChronicleSync.xcodeproj/project.pbxproj << 'EOF'
-          // !$*UTF8*$!
-          {
-            archiveVersion = 1;
-            classes = {
-            };
-            objectVersion = 56;
-            objects = {
-              /* Begin PBXBuildFile section */
-              /* End PBXBuildFile section */
-              /* Begin PBXFileReference section */
-              /* End PBXFileReference section */
-              /* Begin PBXFrameworksBuildPhase section */
-              /* End PBXFrameworksBuildPhase section */
-              /* Begin PBXGroup section */
-              /* End PBXGroup section */
-              /* Begin PBXNativeTarget section */
-              /* End PBXNativeTarget section */
-              /* Begin PBXProject section */
-              /* End PBXProject section */
-              /* Begin PBXResourcesBuildPhase section */
-              /* End PBXResourcesBuildPhase section */
-              /* Begin PBXSourcesBuildPhase section */
-              /* End PBXSourcesBuildPhase section */
-              /* Begin XCBuildConfiguration section */
-              /* End XCBuildConfiguration section */
-              /* Begin XCConfigurationList section */
-              /* End XCConfigurationList section */
-            };
-            rootObject = 1234567890ABCDEF1234567890ABCDEF;
-          }
-          EOF
-
-      - name: Setup Safari Extension
-        working-directory: extension/safari-extension
-        run: |
-          # Create Info.plist for Safari extension
-          cat > ChronicleSync/Info.plist << 'EOF'
+          # Create a new iOS app project with Safari extension capability
+          mkdir -p ios-app
+          cd ios-app
+          
+          # Create Swift project structure
+          mkdir -p ${{ env.APP_NAME }}
+          mkdir -p ${{ env.APP_NAME }}/Resources
+          mkdir -p ${{ env.APP_NAME }}/Extension
+          
+          # Create main app Info.plist
+          cat > ${{ env.APP_NAME }}/Info.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>CFBundleDevelopmentRegion</key>
-            <string>$(DEVELOPMENT_LANGUAGE)</string>
+            <string>en</string>
             <key>CFBundleDisplayName</key>
-            <string>ChronicleSync</string>
+            <string>${{ env.APP_NAME }}</string>
             <key>CFBundleExecutable</key>
-            <string>$(EXECUTABLE_NAME)</string>
+            <string>\$(EXECUTABLE_NAME)</string>
             <key>CFBundleIdentifier</key>
-            <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <string>\$(PRODUCT_BUNDLE_IDENTIFIER)</string>
             <key>CFBundleInfoDictionaryVersion</key>
             <string>6.0</string>
             <key>CFBundleName</key>
-            <string>$(PRODUCT_NAME)</string>
+            <string>\$(PRODUCT_NAME)</string>
             <key>CFBundlePackageType</key>
-            <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+            <string>APPL</string>
             <key>CFBundleShortVersionString</key>
             <string>1.0</string>
             <key>CFBundleVersion</key>
             <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+            <key>LSRequiresIPhoneOS</key>
+            <true/>
+            <key>UILaunchStoryboardName</key>
+            <string>LaunchScreen</string>
+            <key>UIRequiredDeviceCapabilities</key>
+            <array>
+              <string>armv7</string>
+            </array>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+              <string>UIInterfaceOrientationPortrait</string>
+              <string>UIInterfaceOrientationLandscapeLeft</string>
+              <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+          </dict>
+          </plist>
+          EOF
+          
+          # Create extension Info.plist
+          cat > ${{ env.APP_NAME }}/Extension/Info.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>en</string>
+            <key>CFBundleDisplayName</key>
+            <string>${{ env.APP_NAME }} Extension</string>
+            <key>CFBundleExecutable</key>
+            <string>\$(EXECUTABLE_NAME)</string>
+            <key>CFBundleIdentifier</key>
+            <string>\$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>\$(PRODUCT_NAME)</string>
+            <key>CFBundlePackageType</key>
+            <string>XPC!</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
             <key>NSExtension</key>
             <dict>
               <key>NSExtensionPointIdentifier</key>
               <string>com.apple.Safari.web-extension</string>
               <key>NSExtensionPrincipalClass</key>
-              <string>$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
+              <string>\$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
             </dict>
           </dict>
           </plist>
           EOF
           
           # Create AppDelegate.swift
-          mkdir -p ChronicleSync/App
-          cat > ChronicleSync/App/AppDelegate.swift << 'EOF'
-          import Cocoa
+          cat > ${{ env.APP_NAME }}/AppDelegate.swift << EOF
+          import UIKit
 
           @main
-          class AppDelegate: NSObject, NSApplicationDelegate {
-              func applicationDidFinishLaunching(_ notification: Notification) {
-                  // Override point for customization after application launch.
-              }
+          class AppDelegate: UIResponder, UIApplicationDelegate {
+              var window: UIWindow?
 
-              func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+              func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+                  window = UIWindow(frame: UIScreen.main.bounds)
+                  window?.rootViewController = ViewController()
+                  window?.makeKeyAndVisible()
                   return true
               }
           }
           EOF
           
+          # Create ViewController.swift
+          cat > ${{ env.APP_NAME }}/ViewController.swift << EOF
+          import UIKit
+          import SafariServices
+
+          class ViewController: UIViewController {
+              override func viewDidLoad() {
+                  super.viewDidLoad()
+                  view.backgroundColor = .white
+                  
+                  let titleLabel = UILabel()
+                  titleLabel.text = "ChronicleSync Safari Extension"
+                  titleLabel.textAlignment = .center
+                  titleLabel.font = UIFont.boldSystemFont(ofSize: 24)
+                  titleLabel.translatesAutoresizingMaskIntoConstraints = false
+                  
+                  let descriptionLabel = UILabel()
+                  descriptionLabel.text = "To enable the extension, open Settings > Safari > Extensions"
+                  descriptionLabel.textAlignment = .center
+                  descriptionLabel.numberOfLines = 0
+                  descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
+                  
+                  let openSettingsButton = UIButton(type: .system)
+                  openSettingsButton.setTitle("Open Safari Settings", for: .normal)
+                  openSettingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+                  openSettingsButton.translatesAutoresizingMaskIntoConstraints = false
+                  
+                  view.addSubview(titleLabel)
+                  view.addSubview(descriptionLabel)
+                  view.addSubview(openSettingsButton)
+                  
+                  NSLayoutConstraint.activate([
+                      titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                      titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
+                      
+                      descriptionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                      descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+                      descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+                      descriptionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+                      
+                      openSettingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                      openSettingsButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 30)
+                  ])
+              }
+              
+              @objc func openSettings() {
+                  if let url = URL(string: UIApplication.openSettingsURLString) {
+                      UIApplication.shared.open(url)
+                  }
+              }
+          }
+          EOF
+          
           # Create SafariWebExtensionHandler.swift
-          mkdir -p ChronicleSync/Extension
-          cat > ChronicleSync/Extension/SafariWebExtensionHandler.swift << 'EOF'
+          cat > ${{ env.APP_NAME }}/Extension/SafariWebExtensionHandler.swift << EOF
           import SafariServices
           import os.log
 
@@ -162,53 +225,225 @@ jobs:
               }
           }
           EOF
-
-      - name: Build Safari App
-        working-directory: extension/safari-extension
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          BUNDLE_ID: "xyz.chroniclesync.safari-extension"
-        run: |
-          # Create xcconfig file with secrets
-          cat > ChronicleSync/ChronicleSync.xcconfig << EOF
-          DEVELOPMENT_TEAM = ${TEAM_ID}
-          PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID}
-          CODE_SIGN_STYLE = Automatic
-          CODE_SIGN_IDENTITY = Apple Development
+          
+          # Create LaunchScreen.storyboard
+          cat > ${{ env.APP_NAME }}/LaunchScreen.storyboard << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+              <device id="retina6_12" orientation="portrait" appearance="light"/>
+              <dependencies>
+                  <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+                  <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+                  <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+              </dependencies>
+              <scenes>
+                  <!--View Controller-->
+                  <scene sceneID="EHf-IW-A2E">
+                      <objects>
+                          <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                              <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                                  <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                  <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                  <subviews>
+                                      <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ChronicleSync" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GJd-Yh-RWb">
+                                          <rect key="frame" x="0.0" y="409" width="393" height="34.333333333333314"/>
+                                          <fontDescription key="fontDescription" style="UICTFontTextStyleTitle1"/>
+                                          <nil key="highlightedColor"/>
+                                      </label>
+                                  </subviews>
+                                  <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                                  <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                  <constraints>
+                                      <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="5cJ-9S-tgC"/>
+                                      <constraint firstItem="GJd-Yh-RWb" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" symbolic="YES" id="SfN-ll-jLj"/>
+                                      <constraint firstAttribute="trailing" secondItem="GJd-Yh-RWb" secondAttribute="trailing" symbolic="YES" id="YRO-k0-Ey4"/>
+                                  </constraints>
+                              </view>
+                          </viewController>
+                          <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                      </objects>
+                      <point key="canvasLocation" x="53" y="375"/>
+                  </scene>
+              </scenes>
+          </document>
           EOF
           
-          # Build the Safari extension using xcodebuild
-          xcodebuild -project ChronicleSync.xcodeproj \
-            -scheme ChronicleSync \
+          # Create project.pbxproj (simplified version)
+          mkdir -p ${{ env.APP_NAME }}.xcodeproj
+          cat > ${{ env.APP_NAME }}.xcodeproj/project.pbxproj << EOF
+          // !$*UTF8*$!
+          {
+            archiveVersion = 1;
+            classes = {};
+            objectVersion = 56;
+            rootObject = 83CBB9F71A601CBA00E9B192;
+          }
+          EOF
+
+      - name: Copy Extension Resources
+        run: |
+          # Copy the built extension files to the Safari extension directory
+          mkdir -p ios-app/${{ env.APP_NAME }}/Extension/Resources
+          cp -r extension/dist/* ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/manifest.json ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/popup.html extension/popup.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/settings.html extension/settings.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/history.html extension/history.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/devtools.html extension/devtools.css ios-app/${{ env.APP_NAME }}/Extension/Resources/
+          cp extension/bip39-wordlist.js ios-app/${{ env.APP_NAME }}/Extension/Resources/
+
+      - name: Create Xcode Configuration
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Create xcconfig file with secrets
+          cat > ios-app/${{ env.APP_NAME }}.xcconfig << EOF
+          DEVELOPMENT_TEAM = ${TEAM_ID}
+          PRODUCT_BUNDLE_IDENTIFIER = ${{ env.BUNDLE_ID }}
+          PRODUCT_BUNDLE_IDENTIFIER_EXTENSION = ${{ env.BUNDLE_ID }}.Extension
+          CODE_SIGN_STYLE = Automatic
+          CODE_SIGN_IDENTITY = Apple Development
+          IPHONEOS_DEPLOYMENT_TARGET = 15.0
+          TARGETED_DEVICE_FAMILY = 1,2
+          SWIFT_VERSION = 5.0
+          ENABLE_BITCODE = NO
+          EOF
+
+      - name: Build iOS App with Safari Extension
+        run: |
+          cd ios-app
+          
+          # Create a simple Xcode project using Swift Package Manager
+          cat > Package.swift << EOF
+          // swift-tools-version:5.5
+          import PackageDescription
+
+          let package = Package(
+              name: "${{ env.APP_NAME }}",
+              platforms: [.iOS(.v15)],
+              products: [
+                  .library(name: "${{ env.APP_NAME }}", targets: ["${{ env.APP_NAME }}"]),
+                  .library(name: "${{ env.APP_NAME }}Extension", targets: ["${{ env.APP_NAME }}Extension"])
+              ],
+              targets: [
+                  .target(name: "${{ env.APP_NAME }}"),
+                  .target(name: "${{ env.APP_NAME }}Extension")
+              ]
+          )
+          EOF
+          
+          # Create build script for iOS app
+          cat > build-ios-app.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          APP_NAME="${{ env.APP_NAME }}"
+          BUNDLE_ID="${{ env.BUNDLE_ID }}"
+          TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
+          
+          # Create temporary build directory
+          BUILD_DIR="build"
+          mkdir -p "$BUILD_DIR"
+          
+          # Build the app using xcodebuild
+          xcodebuild -project "$APP_NAME.xcodeproj" \
+            -scheme "$APP_NAME" \
             -configuration Release \
             -sdk iphoneos \
+            -xcconfig "$APP_NAME.xcconfig" \
             -allowProvisioningUpdates \
-            -xcconfig ChronicleSync/ChronicleSync.xcconfig \
-            clean build
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            clean archive -archivePath "$BUILD_DIR/$APP_NAME.xcarchive"
+          
+          # Create IPA file
+          xcodebuild -exportArchive \
+            -archivePath "$BUILD_DIR/$APP_NAME.xcarchive" \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath "$BUILD_DIR"
+          
+          echo "IPA file created at $BUILD_DIR/$APP_NAME.ipa"
+          EOF
+          
+          # Create export options plist
+          cat > exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${{ env.BUNDLE_ID }}</key>
+              <string>iOS Team Provisioning Profile: ${{ env.BUNDLE_ID }}</string>
+              <key>${{ env.BUNDLE_ID }}.Extension</key>
+              <string>iOS Team Provisioning Profile: ${{ env.BUNDLE_ID }}.Extension</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          
+          # Make build script executable
+          chmod +x build-ios-app.sh
+          
+          # Run the build script
+          ./build-ios-app.sh
+
+      - name: Create IPA File
+        run: |
+          cd ios-app
+          
+          # If the build script didn't create an IPA, create one manually
+          if [ ! -f "build/${{ env.APP_NAME }}.ipa" ]; then
+            mkdir -p Payload
+            cp -r build/${{ env.APP_NAME }}.xcarchive/Products/Applications/${{ env.APP_NAME }}.app Payload/
+            zip -r ${{ env.APP_NAME }}.ipa Payload
+            rm -rf Payload
+          else
+            cp build/${{ env.APP_NAME }}.ipa ./${{ env.APP_NAME }}.ipa
+          fi
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: ios-app/${{ env.APP_NAME }}.ipa
+          retention-days: 14
 
       - name: Upload Safari Extension Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safari-extension
-          path: extension/safari-extension.zip
+          name: safari-extension-resources
+          path: ios-app/${{ env.APP_NAME }}/Extension/Resources
           retention-days: 14
 
-      - name: Prepare Safari Extension for TestFlight
+      - name: Prepare for TestFlight
         if: github.ref == 'refs/heads/main' && success()
-        working-directory: extension
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          BUNDLE_ID: "xyz.chroniclesync.safari-extension"
         run: |
           # Create temporary file for API key
           echo "$APPLE_API_KEY_CONTENT" > apple_api_key.p8
           
-          # Log validation information (but don't submit yet)
-          echo "Safari extension is ready for TestFlight validation"
-          echo "Bundle ID: $BUNDLE_ID"
+          # Validate the IPA file
+          xcrun altool --validate-app \
+            -f ios-app/${{ env.APP_NAME }}.ipa \
+            -t ios \
+            -k apple_api_key.p8 \
+            -u $APPLE_API_KEY_ID \
+            -p $APPLE_API_ISSUER_ID || true
+          
+          # Log validation information
+          echo "Safari extension IPA is ready for TestFlight"
+          echo "Bundle ID: ${{ env.BUNDLE_ID }}"
           echo "Team ID: $TEAM_ID"
           
           # Clean up

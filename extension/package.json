@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
+    "build:safari": "bash scripts/build-safari-extension.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

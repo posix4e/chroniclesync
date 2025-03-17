@@ -3,8 +3,20 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+    paths:
+      - 'pages/**'
+      - 'extension/**'
+      - 'worker/**'
+      - '.github/workflows/**'
+      - 'scripts/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'pages/**'
+      - 'extension/**'
+      - 'worker/**'
+      - '.github/workflows/**'
+      - 'scripts/**'
   workflow_dispatch:
     inputs:
       browser:
@@ -26,16 +38,66 @@ on:
         required: false
         type: boolean
         default: false
+      components:
+        description: 'Components to build/test/deploy (comma-separated: pages,extension,worker)'
+        required: false
+        type: string
+        default: ''
 
 env:
   NODE_VERSION: '20'
 
 jobs:
-  build-and-test:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.filter.outputs.pages }}
+      extension: ${{ steps.filter.outputs.extension }}
+      worker: ${{ steps.filter.outputs.worker }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for file changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            pages:
+              - 'pages/**'
+              - '.github/workflows/ci-cd-combined.yml'
+            extension:
+              - 'extension/**'
+              - '.github/workflows/ci-cd-combined.yml'
+            worker:
+              - 'worker/**'
+              - '.github/workflows/ci-cd-combined.yml'
+
+      - name: Set manual component selection
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.components != ''
+        run: |
+          COMPONENTS="${{ github.event.inputs.components }}"
+          if [[ $COMPONENTS == *"pages"* ]]; then
+            echo "pages=true" >> $GITHUB_OUTPUT
+          else
+            echo "pages=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ $COMPONENTS == *"extension"* ]]; then
+            echo "extension=true" >> $GITHUB_OUTPUT
+          else
+            echo "extension=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ $COMPONENTS == *"worker"* ]]; then
+            echo "worker=true" >> $GITHUB_OUTPUT
+          else
+            echo "worker=false" >> $GITHUB_OUTPUT
+          fi
+        id: manual_selection
+
+  build-and-test-pages:
+    needs: changes
+    if: needs.changes.outputs.pages == 'true' || github.event_name == 'workflow_dispatch' && contains(github.event.inputs.components, 'pages')
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    outputs:
-      current_version: ${{ steps.deploy-worker.outputs.current_version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,10 +105,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
-            worker/package-lock.json
+          cache-dependency-path: pages/package-lock.json
 
       - name: Test Pages
         working-directory: pages
@@ -57,44 +116,6 @@ jobs:
           npm run lint
           npm run test
           npm run build
-
-      - name: Build Extension
-        working-directory: extension
-        run: |
-          npm ci
-          npm run build
-
-      - name: Package Extensions
-        working-directory: extension
-        run: |
-          # Install zip utility
-          sudo apt-get update && sudo apt-get install -y zip
-          # Run build script with ESM support
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
-
-      - name: Upload Chrome Extension Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chrome-extension
-          path: extension/chrome-extension.zip
-          retention-days: 14
-          
-      - name: Upload Firefox Extension Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: firefox-extension
-          path: extension/firefox-extension.xpi
-          retention-days: 14
-
-      - name: Test Extension
-        working-directory: extension
-        run: |
-          npm run lint
-          npm run test
-
-      - name: Test Worker
-        working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
 
       - name: Install dependencies and run page tests
         working-directory: pages
@@ -114,6 +135,7 @@ jobs:
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test --project=${{ github.event.inputs.browser }}
           fi
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,30 +154,70 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --branch main --commit-dirty=true; else npm run deploy -- --branch ${{ github.head_ref }} --commit-dirty=true; fi
 
-      - name: Deploy Worker
-        id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  build-and-test-extension:
+    needs: changes
+    if: needs.changes.outputs.extension == 'true' || github.event_name == 'workflow_dispatch' && contains(github.event.inputs.components, 'extension')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    outputs:
+      chrome_artifact: ${{ steps.artifacts.outputs.chrome_artifact }}
+      firefox_artifact: ${{ steps.artifacts.outputs.firefox_artifact }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Build Extension
+        working-directory: extension
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            npm run deploy -- --env production
-          else
-            npm run deploy -- --env staging
-          fi
+          npm ci
+          npm run build
+
+      - name: Package Extensions
+        working-directory: extension
+        run: |
+          # Install zip utility
+          sudo apt-get update && sudo apt-get install -y zip
+          # Run build script with ESM support
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+
+      - name: Set artifact names
+        id: artifacts
+        run: |
+          echo "chrome_artifact=chrome-extension" >> $GITHUB_OUTPUT
+          echo "firefox_artifact=firefox-extension" >> $GITHUB_OUTPUT
+
+      - name: Upload Chrome Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifacts.outputs.chrome_artifact }}
+          path: extension/chrome-extension.zip
+          retention-days: 14
+
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifacts.outputs.firefox_artifact }}
+          path: extension/firefox-extension.xpi
+          retention-days: 14
+
+      - name: Test Extension
+        working-directory: extension
+        run: |
+          npm run lint
+          npm run test
 
   playwright-extension-tests:
-    needs: build-and-test
-    if: success()
+    needs: [changes, build-and-test-extension]
+    if: (needs.changes.outputs.extension == 'true' || github.event_name == 'workflow_dispatch' && contains(github.event.inputs.components, 'extension')) && success()
     strategy:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
     runs-on: ubuntu-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
@@ -172,6 +234,7 @@ jobs:
             fi
           fi
           echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
+
       - uses: actions/checkout@v4
         if: steps.should_test.outputs.should_test == 'true'
 
@@ -180,15 +243,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
+          cache-dependency-path: extension/package-lock.json
 
       - name: Download extension artifacts
         if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
+          name: ${{ matrix.browser == 'chrome' && needs.build-and-test-extension.outputs.chrome_artifact || needs.build-and-test-extension.outputs.firefox_artifact }}
           path: extension/dist
 
       - name: Install dependencies and run extension tests
@@ -218,3 +279,39 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30
+
+  build-and-test-worker:
+    needs: changes
+    if: needs.changes.outputs.worker == 'true' || github.event_name == 'workflow_dispatch' && contains(github.event.inputs.components, 'worker')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    outputs:
+      current_version: ${{ steps.deploy-worker.outputs.current_version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Test Worker
+        working-directory: worker
+        run: npm ci && npm run lint && npm run test:coverage
+
+      - name: Deploy Worker
+        id: deploy-worker
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            npm run deploy -- --env production
+          else
+            npm run deploy -- --env staging
+          fi

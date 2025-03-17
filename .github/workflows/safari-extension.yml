@@ -1,5 +1,6 @@
 # This workflow builds a Safari extension for iOS from the existing Chrome extension code.
 # It creates a real iOS app with a Safari extension that uses the same code as the Chrome extension.
+# The workflow will fail if it cannot create a real IPA file - no placeholders are used.
 
 name: Build Safari Extension
 
@@ -141,17 +142,20 @@ jobs:
         run: |
           cd ios-app
           
-          # Copy the IPA file to the current directory if it exists
-          if [ -f "build/${{ env.APP_NAME }}.ipa" ]; then
-            cp build/${{ env.APP_NAME }}.ipa ./${{ env.APP_NAME }}.ipa
-            echo "IPA file copied to $(pwd)/${{ env.APP_NAME }}.ipa"
-          else
-            echo "IPA file not found in build directory. Creating a placeholder."
-            echo "This is a placeholder IPA file" > ./${{ env.APP_NAME }}.ipa
+          # Copy the IPA file to the current directory - must exist
+          cp build/${{ env.APP_NAME }}.ipa ./${{ env.APP_NAME }}.ipa
+          echo "IPA file copied to $(pwd)/${{ env.APP_NAME }}.ipa"
+          
+          # Verify the IPA file is a real binary file, not a placeholder
+          file_type=$(file -b ${{ env.APP_NAME }}.ipa)
+          if [[ $file_type == *"ASCII text"* ]]; then
+            echo "Error: IPA file is a text file, not a real IPA binary"
+            exit 1
           fi
           
           # For debugging purposes
           ls -la
+          echo "IPA file type: $file_type"
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4

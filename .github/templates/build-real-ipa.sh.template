@@ -89,7 +89,7 @@ cat > exportOptions.plist << EOF
 </plist>
 EOF
 
-# Try to build the app using xcodebuild
+# Build the app using xcodebuild - no fallbacks, must succeed
 echo "Building iOS app with Safari extension..."
 xcodebuild -project "$APP_NAME.xcodeproj" \
   -scheme "$APP_NAME" \
@@ -99,21 +99,12 @@ xcodebuild -project "$APP_NAME.xcodeproj" \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM_ID" \
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-  clean archive -archivePath "$BUILD_DIR/$APP_NAME.xcarchive" || {
-    echo "xcodebuild failed, creating a placeholder IPA for testing"
-    mkdir -p "$BUILD_DIR"
-    echo "This is a placeholder IPA file" > "$BUILD_DIR/$APP_NAME.ipa"
-    exit 0
-  }
+  clean archive -archivePath "$BUILD_DIR/$APP_NAME.xcarchive"
 
-# Create IPA file
+# Create IPA file - no fallbacks, must succeed
 xcodebuild -exportArchive \
   -archivePath "$BUILD_DIR/$APP_NAME.xcarchive" \
   -exportOptionsPlist exportOptions.plist \
-  -exportPath "$BUILD_DIR" || {
-    echo "Export archive failed, creating a placeholder IPA for testing"
-    echo "This is a placeholder IPA file" > "$BUILD_DIR/$APP_NAME.ipa"
-    exit 0
-  }
+  -exportPath "$BUILD_DIR"
 
 echo "IPA file created at $BUILD_DIR/$APP_NAME.ipa"

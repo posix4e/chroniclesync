@@ -1,0 +1,49 @@
+import UIKit
+import SafariServices
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .white
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "ChronicleSync Safari Extension"
+        titleLabel.textAlignment = .center
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 24)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let descriptionLabel = UILabel()
+        descriptionLabel.text = "To enable the extension, open Settings > Safari > Extensions"
+        descriptionLabel.textAlignment = .center
+        descriptionLabel.numberOfLines = 0
+        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let openSettingsButton = UIButton(type: .system)
+        openSettingsButton.setTitle("Open Safari Settings", for: .normal)
+        openSettingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+        openSettingsButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(titleLabel)
+        view.addSubview(descriptionLabel)
+        view.addSubview(openSettingsButton)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
+            
+            descriptionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            descriptionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            openSettingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            openSettingsButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 30)
+        ])
+    }
+    
+    @objc func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+}

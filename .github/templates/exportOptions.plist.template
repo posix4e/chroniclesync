@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>development</string>
+  <key>teamID</key>
+  <string>{{TEAM_ID}}</string>
+  <key>compileBitcode</key>
+  <false/>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>{{BUNDLE_ID}}</key>
+    <string>iOS Team Provisioning Profile: {{BUNDLE_ID}}</string>
+    <key>{{BUNDLE_ID}}.Extension</key>
+    <string>iOS Team Provisioning Profile: {{BUNDLE_ID}}.Extension</string>
+  </dict>
+</dict>
+</plist>

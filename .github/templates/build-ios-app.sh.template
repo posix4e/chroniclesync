@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+
+APP_NAME="{{APP_NAME}}"
+BUNDLE_ID="{{BUNDLE_ID}}"
+TEAM_ID="{{TEAM_ID}}"
+
+# Create temporary build directory
+BUILD_DIR="build"
+mkdir -p "$BUILD_DIR"
+
+# Build the app using xcodebuild
+xcodebuild -project "$APP_NAME.xcodeproj" \
+  -scheme "$APP_NAME" \
+  -configuration Release \
+  -sdk iphoneos \
+  -xcconfig "$APP_NAME.xcconfig" \
+  -allowProvisioningUpdates \
+  DEVELOPMENT_TEAM="$TEAM_ID" \
+  PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+  clean archive -archivePath "$BUILD_DIR/$APP_NAME.xcarchive"
+
+# Create IPA file
+xcodebuild -exportArchive \
+  -archivePath "$BUILD_DIR/$APP_NAME.xcarchive" \
+  -exportOptionsPlist exportOptions.plist \
+  -exportPath "$BUILD_DIR"
+
+echo "IPA file created at $BUILD_DIR/$APP_NAME.ipa"

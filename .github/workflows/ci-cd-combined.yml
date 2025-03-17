@@ -271,3 +271,11 @@ jobs:
             extension/safari-macos-extension.zip
             extension/safari-ios-extension.zip
           retention-days: 14
+          
+      - name: Upload Safari Screenshots
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-screenshots
+          path: extension/safari-screenshots.zip
+          retention-days: 14

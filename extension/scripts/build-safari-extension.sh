@@ -120,9 +120,62 @@ EOF
     echo "Safari extension packages created: safari-macos-extension.zip and safari-ios-extension.zip"
 }
 
-# For CI environment or GitHub Actions, create a simple package instead of building with Xcode
+# For CI environment or GitHub Actions, run UI tests and create a simple package
 if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
-    echo "Running in CI environment, creating simple package instead of full build"
+    echo "Running in CI environment"
+    
+    # Create a directory for screenshots
+    SCREENSHOTS_DIR="$SAFARI_DIR/screenshots"
+    mkdir -p "$SCREENSHOTS_DIR"
+    
+    # Run UI tests if on macOS with Xcode
+    if [ "$(uname)" = "Darwin" ] && command -v xcodebuild &> /dev/null; then
+        echo "Running UI tests to capture screenshots..."
+        
+        # Build the app for testing
+        xcodebuild build-for-testing \
+            -project "$SAFARI_PROJECT" \
+            -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO || echo "Warning: Failed to build for testing"
+        
+        # Run the UI tests
+        xcodebuild test-without-building \
+            -project "$SAFARI_PROJECT" \
+            -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -testPlan "ChronicleSync_UITests" \
+            -resultBundlePath "$SCREENSHOTS_DIR/TestResults.xcresult" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO || echo "Warning: UI tests failed"
+        
+        # Extract screenshots from the test results
+        if [ -d "$SCREENSHOTS_DIR/TestResults.xcresult" ]; then
+            echo "Extracting screenshots from test results..."
+            
+            # Use xcparse if available, otherwise just copy the result bundle
+            if command -v xcparse &> /dev/null; then
+                xcparse screenshots "$SCREENSHOTS_DIR/TestResults.xcresult" "$SCREENSHOTS_DIR/Screenshots"
+            else
+                cp -r "$SCREENSHOTS_DIR/TestResults.xcresult" "$SCREENSHOTS_DIR/Screenshots"
+            fi
+            
+            # Create a zip file with the screenshots
+            cd "$SCREENSHOTS_DIR"
+            zip -r "$EXTENSION_DIR/safari-screenshots.zip" .
+            echo "Screenshots saved to safari-screenshots.zip"
+        fi
+    else
+        echo "Skipping UI tests (not on macOS or xcodebuild not available)"
+    fi
+    
+    # Create a simple package for distribution
+    echo "Creating simple package instead of full build"
     create_simple_package
     exit 0
 fi

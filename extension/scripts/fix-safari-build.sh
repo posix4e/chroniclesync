@@ -55,6 +55,48 @@ cat > "$IOS_APP_DIR/Info.plist" << EOF
     <string>ChronicleSync</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>MinimumOSVersion</key>
+    <string>15.0</string>
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>1</integer>
+        <integer>2</integer>
+    </array>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.Safari.web-extension</string>
+    </dict>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>${BUNDLE_ID}</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>chroniclesync</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
 EOF
@@ -79,6 +121,8 @@ cat > "$EXTENSION_BUNDLE_DIR/Info.plist" << EOF
     <string>ChronicleSync Extension</string>
     <key>CFBundlePackageType</key>
     <string>XPC!</string>
+    <key>MinimumOSVersion</key>
+    <string>15.0</string>
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionPointIdentifier</key>
@@ -86,6 +130,12 @@ cat > "$EXTENSION_BUNDLE_DIR/Info.plist" << EOF
         <key>NSExtensionPrincipalClass</key>
         <string>SafariWebExtensionHandler</string>
     </dict>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>iPhoneOS</string>
+    </array>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 ChronicleSync. All rights reserved.</string>
 </dict>
 </plist>
 EOF
@@ -175,6 +225,54 @@ cat > "$MACOS_APP_DIR/Contents/Info.plist" << EOF
     <string>ChronicleSync</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 ChronicleSync. All rights reserved.</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+</dict>
+</plist>
+EOF
+
+# Create Info.plist for macOS extension
+mkdir -p "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents"
+cat > "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>${BUNDLE_ID}.extension</string>
+    <key>CFBundleVersion</key>
+    <string>${BUILD_NUMBER}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${VERSION}</string>
+    <key>CFBundleDisplayName</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundleName</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundleExecutable</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundlePackageType</key>
+    <string>XPC!</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.Safari.web-extension</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>SafariWebExtensionHandler</string>
+    </dict>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 ChronicleSync. All rights reserved.</string>
 </dict>
 </plist>
 EOF

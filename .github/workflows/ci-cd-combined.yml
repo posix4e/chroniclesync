@@ -238,6 +238,7 @@ jobs:
         working-directory: extension
         env:
           CI: true
+          GITHUB_ACTIONS: true
           APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}

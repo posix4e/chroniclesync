@@ -85,9 +85,9 @@ else
     done
 fi
 
-# For CI environment, create a simple package instead of building with Xcode
-if [ -n "$CI" ]; then
-    echo "Running in CI environment, creating simple package instead of full build"
+# Always create a simple package for CI environments or when provisioning profiles are missing
+create_simple_package() {
+    echo "Creating simple package for Safari extension..."
     
     # Create a simple zip file with the extension resources
     mkdir -p "$SAFARI_DIR/build/simple-package"
@@ -118,6 +118,12 @@ EOF
     cp "$EXTENSION_DIR/safari-macos-extension.zip" "$EXTENSION_DIR/safari-ios-extension.zip"
     
     echo "Safari extension packages created: safari-macos-extension.zip and safari-ios-extension.zip"
+}
+
+# For CI environment or GitHub Actions, create a simple package instead of building with Xcode
+if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    echo "Running in CI environment, creating simple package instead of full build"
+    create_simple_package
     exit 0
 fi
 
@@ -161,10 +167,13 @@ xcodebuild -project "$SAFARI_PROJECT" -scheme "ChronicleSync" -configuration Rel
     -archivePath "$ARCHIVE_PATH" archive \
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
     DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-    CODE_SIGN_IDENTITY="Apple Development" || {
+    CODE_SIGN_IDENTITY="Apple Development" \
+    CODE_SIGN_STYLE="Manual" \
+    PROVISIONING_PROFILE_SPECIFIER="" \
+    -allowProvisioningUpdates || {
         echo "Xcode build failed, creating simple package instead"
-        mkdir -p "$EXPORT_PATH"
-        cp -r "$RESOURCES_DIR" "$EXPORT_PATH/ChronicleSync.app"
+        create_simple_package
+        exit 0
     }
 
 # Export macOS app if archive was created

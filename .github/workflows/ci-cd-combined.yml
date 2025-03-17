@@ -3,8 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+    paths:
+      - 'pages/**'
+      - '.github/workflows/ci-cd-combined.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'pages/**'
+      - '.github/workflows/ci-cd-combined.yml'
   workflow_dispatch:
     inputs:
       browser:
@@ -31,7 +37,47 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      pages_changed: ${{ steps.filter.outputs.pages_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for changes in pages directory
+        id: filter
+        run: |
+          # For workflow_dispatch, always consider pages as changed
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "pages_changed=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # For push and pull_request events, check if pages directory was modified
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            BASE_SHA=$(git rev-parse HEAD~1)
+            HEAD_SHA=${{ github.sha }}
+          else
+            BASE_SHA=${{ github.event.pull_request.base.sha }}
+            HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          fi
+          
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
+          if echo "$CHANGED_FILES" | grep -q "^pages/"; then
+            echo "pages_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "pages_changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Debug output
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
   build-and-test:
+    needs: check-changes
+    if: needs.check-changes.outputs.pages_changed == 'true'
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     outputs:
@@ -53,6 +99,7 @@ jobs:
         env:
           API_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
         run: |
+          echo "Running Pages tests because changes were detected in the pages directory"
           npm ci
           npm run lint
           npm run test
@@ -104,6 +151,7 @@ jobs:
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
           PORT: 3000
         run: |
+          echo "Running Playwright tests for pages because changes were detected in the pages directory"
           npm ci
           npx playwright install --with-deps
           # Run tests in headless mode for all browsers if no specific browser is selected
@@ -130,7 +178,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: if [ "${{ github.ref }}" = "refs/heads/main" ]; then npm run deploy -- --branch main --commit-dirty=true; else npm run deploy -- --branch ${{ github.head_ref }} --commit-dirty=true; fi
+        run: |
+          echo "Deploying Pages because changes were detected in the pages directory"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then 
+            npm run deploy -- --branch main --commit-dirty=true
+          else 
+            npm run deploy -- --branch ${{ github.head_ref }} --commit-dirty=true
+          fi
 
       - name: Deploy Worker
         id: deploy-worker
@@ -149,8 +203,8 @@ jobs:
           fi
 
   playwright-extension-tests:
-    needs: build-and-test
-    if: success()
+    needs: [check-changes, build-and-test]
+    if: needs.check-changes.outputs.pages_changed == 'true' && success()
     strategy:
       fail-fast: false
       matrix:

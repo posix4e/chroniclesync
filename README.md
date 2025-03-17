@@ -29,3 +29,13 @@ chroniclesync/
 ├── extension/      # Chrome extension
 └── worker/         # Cloudflare Worker backend
 ```
+
+### CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **Path-Based Triggers**: The CI/CD pipeline for pages is only triggered when changes are made to the `pages/` directory
+- **Manual Workflow**: You can also manually trigger the workflow using the GitHub Actions UI
+- **Deployment**: Pages are automatically deployed to Cloudflare Pages when changes are detected in the pages directory
+
+To modify the CI/CD pipeline configuration, see the workflow file at `.github/workflows/ci-cd-combined.yml`.

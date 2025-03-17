@@ -95,6 +95,29 @@ The web application implements real-time synchronization with:
    npm run deploy
    ```
 
+### CI/CD Pipeline
+
+The pages application uses a GitHub Actions workflow for continuous integration and deployment:
+
+1. **Automatic Triggers**: 
+   - The CI/CD pipeline is automatically triggered when changes are made to files in the `pages/` directory
+   - The workflow will not run for changes to other parts of the repository
+
+2. **Manual Deployment**:
+   - You can manually trigger the workflow from the GitHub Actions tab
+   - This is useful for deploying without making code changes
+
+3. **Workflow Steps**:
+   - Lint and test the pages code
+   - Build the application
+   - Run Playwright end-to-end tests
+   - Deploy to Cloudflare Pages (for main branch or PRs targeting main)
+
+4. **Environment Variables**:
+   - The workflow uses different API endpoints based on the branch:
+     - `https://api.chroniclesync.xyz` for the main branch
+     - `https://api-staging.chroniclesync.xyz` for other branches
+
 ## Performance Optimization
 
 1. **Code Splitting**

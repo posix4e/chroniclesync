@@ -80,4 +80,36 @@ class ChronicleSync_ScreenshotTests: XCTestCase {
         // Take a final screenshot
         takeScreenshot(name: "FinalState")
     }
+    
+    func testTestModeScreenshots() throws {
+        // Launch the app in test mode
+        app.launchArguments = ["-UITestMode"]
+        app.launch()
+        
+        // Wait for the UI to stabilize
+        sleep(1)
+        
+        // Take a screenshot of the main screen in test mode
+        takeScreenshot(name: "TestMode_MainScreen")
+        
+        // Verify test mode elements are present
+        XCTAssertTrue(app.staticTexts["testModeLabel"].exists, "Test mode label should be visible")
+        
+        // Wait for the test settings screen to appear
+        let testSettingsTitle = app.staticTexts["testSettingsTitle"]
+        XCTAssertTrue(testSettingsTitle.waitForExistence(timeout: 5), "Test settings title should appear")
+        
+        // Take a screenshot of the test settings screen
+        takeScreenshot(name: "TestMode_SettingsScreen")
+        
+        // Tap the simulate activation button
+        app.buttons["simulateActivationButton"].tap()
+        
+        // Wait for the alert to appear
+        let alert = app.alerts["Extension Activated"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5), "Activation alert should appear")
+        
+        // Take a screenshot of the activation alert
+        takeScreenshot(name: "TestMode_ActivationAlert")
+    }
 }

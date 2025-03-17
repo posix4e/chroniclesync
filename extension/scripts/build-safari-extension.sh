@@ -142,33 +142,74 @@ if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO || echo "Warning: Failed to build for testing"
         
-        # Run the UI tests
+        # Run the standard UI tests
+        echo "Running standard UI tests..."
         xcodebuild test-without-building \
             -project "$SAFARI_PROJECT" \
             -scheme "ChronicleSync" \
             -destination "platform=iOS Simulator,name=iPhone 14" \
             -testPlan "ChronicleSync_UITests" \
-            -resultBundlePath "$SCREENSHOTS_DIR/TestResults.xcresult" \
+            -resultBundlePath "$SCREENSHOTS_DIR/StandardTestResults.xcresult" \
             -allowProvisioningUpdates \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO || echo "Warning: UI tests failed"
+            CODE_SIGNING_ALLOWED=NO || echo "Warning: Standard UI tests failed"
         
-        # Extract screenshots from the test results
-        if [ -d "$SCREENSHOTS_DIR/TestResults.xcresult" ]; then
-            echo "Extracting screenshots from test results..."
-            
-            # Use xcparse if available, otherwise just copy the result bundle
-            if command -v xcparse &> /dev/null; then
-                xcparse screenshots "$SCREENSHOTS_DIR/TestResults.xcresult" "$SCREENSHOTS_DIR/Screenshots"
-            else
-                cp -r "$SCREENSHOTS_DIR/TestResults.xcresult" "$SCREENSHOTS_DIR/Screenshots"
+        # Run the extension integration tests
+        echo "Running extension integration tests..."
+        xcodebuild test \
+            -project "$SAFARI_PROJECT" \
+            -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -only-testing:ChronicleSync\ UITests/ChronicleSync_ExtensionIntegrationTests \
+            -resultBundlePath "$SCREENSHOTS_DIR/ExtensionTestResults.xcresult" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO || echo "Warning: Extension integration tests failed"
+        
+        # Run the test mode screenshot tests
+        echo "Running test mode screenshot tests..."
+        xcodebuild test \
+            -project "$SAFARI_PROJECT" \
+            -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -only-testing:ChronicleSync\ UITests/ChronicleSync_ScreenshotTests/testTestModeScreenshots \
+            -resultBundlePath "$SCREENSHOTS_DIR/TestModeResults.xcresult" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO || echo "Warning: Test mode screenshot tests failed"
+        
+        # Extract screenshots from all test results
+        echo "Extracting screenshots from test results..."
+        mkdir -p "$SCREENSHOTS_DIR/Screenshots"
+        
+        # Process each result bundle
+        for result_bundle in "$SCREENSHOTS_DIR"/*.xcresult; do
+            if [ -d "$result_bundle" ]; then
+                bundle_name=$(basename "$result_bundle" .xcresult)
+                echo "Processing $bundle_name..."
+                
+                # Use xcparse if available, otherwise just copy the result bundle
+                if command -v xcparse &> /dev/null; then
+                    xcparse screenshots "$result_bundle" "$SCREENSHOTS_DIR/Screenshots/$bundle_name"
+                else
+                    mkdir -p "$SCREENSHOTS_DIR/Screenshots/$bundle_name"
+                    cp -r "$result_bundle" "$SCREENSHOTS_DIR/Screenshots/$bundle_name/"
+                fi
             fi
-            
-            # Create a zip file with the screenshots
-            cd "$SCREENSHOTS_DIR"
-            zip -r "$EXTENSION_DIR/safari-screenshots.zip" .
-            echo "Screenshots saved to safari-screenshots.zip"
+        done
+        
+        # Create a zip file with the screenshots
+        cd "$SCREENSHOTS_DIR"
+        zip -r "$EXTENSION_DIR/safari-screenshots.zip" .
+        echo "Screenshots saved to safari-screenshots.zip"
+        
+        # Upload screenshots to a public location if environment variable is set
+        if [ -n "$SCREENSHOT_UPLOAD_URL" ]; then
+            echo "Uploading screenshots to $SCREENSHOT_UPLOAD_URL..."
+            curl -X POST -F "file=@$EXTENSION_DIR/safari-screenshots.zip" "$SCREENSHOT_UPLOAD_URL" || echo "Warning: Failed to upload screenshots"
         fi
     else
         echo "Skipping UI tests (not on macOS or xcodebuild not available)"

@@ -248,6 +248,7 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
+          SCREENSHOT_UPLOAD_URL: ${{ secrets.SCREENSHOT_UPLOAD_URL }}
         run: |
           npm ci
           npm run build:safari
@@ -278,4 +279,37 @@ jobs:
         with:
           name: safari-screenshots
           path: extension/safari-screenshots.zip
-          retention-days: 14
+          retention-days: 30
+          
+      - name: Process and Publish Safari Extension Test Results
+        if: steps.should_test.outputs.should_test == 'true' && matrix.browser == 'safari' && always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f "extension/safari-screenshots.zip" ]; then
+            echo "Safari extension test screenshots are available as artifacts"
+            
+            # If this is a PR, add a comment with links to the screenshots
+            if [ -n "$PR_NUMBER" ]; then
+              ARTIFACT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+              
+              # Create a comment with links to the screenshots
+              COMMENT="## Safari Extension Test Results 🧪\n\n"
+              COMMENT+="Safari extension integration tests have been completed.\n\n"
+              COMMENT+="### 📸 [View Screenshots]($ARTIFACT_URL)\n\n"
+              COMMENT+="The screenshots show:\n"
+              COMMENT+="- The main app in test mode\n"
+              COMMENT+="- The special settings screen for testing\n"
+              COMMENT+="- Safari with the extension loaded\n"
+              
+              # Post the comment to the PR
+              curl -s -X POST \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+                -d "{\"body\":\"$COMMENT\"}"
+            fi
+          else
+            echo "No Safari extension test screenshots were generated"
+          fi

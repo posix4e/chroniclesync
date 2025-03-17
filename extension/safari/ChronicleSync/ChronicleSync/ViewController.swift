@@ -1,5 +1,6 @@
 import UIKit
 import SafariServices
+import SafariServices.SFSafariApplication
 
 class ViewController: UIViewController {
     
@@ -131,7 +132,7 @@ class ViewController: UIViewController {
     }
     
     private func updateExtensionStatus() {
-        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: getExtensionBundleIdentifier()) { [weak self] (state, error) in
+        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: getExtensionBundleIdentifier()) { [weak self] (state: SFSafariExtensionState?, error: Error?) in
             DispatchQueue.main.async {
                 if let state = state, state.isEnabled {
                     self?.statusLabel.text = "Extension is enabled"
@@ -147,7 +148,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func enableExtensionTapped(_ sender: Any) {
-        SFSafariApplication.showPreferencesForExtension(withIdentifier: getExtensionBundleIdentifier()) { [weak self] error in
+        SFSafariApplication.showPreferencesForExtension(withIdentifier: getExtensionBundleIdentifier()) { [weak self] (error: Error?) in
             DispatchQueue.main.async {
                 if let error = error {
                     let alert = UIAlertController(title: "Error", message: "Could not open Safari extension preferences: \(error.localizedDescription)", preferredStyle: .alert)

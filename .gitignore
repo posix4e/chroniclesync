@@ -62,9 +62,7 @@ worker-configuration.json
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
 *.tgz
-
-# Yarn Integrity file
-.yarn-integritychrome-extension.zip
-extension/chrome-extension.zip
+*.zip
+*.xpi
+*.ipa

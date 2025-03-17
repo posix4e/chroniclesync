@@ -1,0 +1,215 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '15.2'
+
+jobs:
+  build-safari-extension:
+    name: Build Safari Extension
+    runs-on: macos-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Build Safari Extension
+        working-directory: extension
+        run: |
+          npm ci
+          # Make the build script executable
+          chmod +x scripts/build-safari-extension.js
+          npm run build:safari
+
+      - name: Create Xcode Project
+        working-directory: extension/safari-extension
+        run: |
+          # Create Swift project for Safari extension
+          cat > ChronicleSync.xcodeproj/project.pbxproj << 'EOF'
+          // !$*UTF8*$!
+          {
+            archiveVersion = 1;
+            classes = {
+            };
+            objectVersion = 56;
+            objects = {
+              /* Begin PBXBuildFile section */
+              /* End PBXBuildFile section */
+              /* Begin PBXFileReference section */
+              /* End PBXFileReference section */
+              /* Begin PBXFrameworksBuildPhase section */
+              /* End PBXFrameworksBuildPhase section */
+              /* Begin PBXGroup section */
+              /* End PBXGroup section */
+              /* Begin PBXNativeTarget section */
+              /* End PBXNativeTarget section */
+              /* Begin PBXProject section */
+              /* End PBXProject section */
+              /* Begin PBXResourcesBuildPhase section */
+              /* End PBXResourcesBuildPhase section */
+              /* Begin PBXSourcesBuildPhase section */
+              /* End PBXSourcesBuildPhase section */
+              /* Begin XCBuildConfiguration section */
+              /* End XCBuildConfiguration section */
+              /* Begin XCConfigurationList section */
+              /* End XCConfigurationList section */
+            };
+            rootObject = 1234567890ABCDEF1234567890ABCDEF;
+          }
+          EOF
+
+      - name: Setup Safari Extension
+        working-directory: extension/safari-extension
+        run: |
+          # Create Info.plist for Safari extension
+          cat > ChronicleSync/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>$(DEVELOPMENT_LANGUAGE)</string>
+            <key>CFBundleDisplayName</key>
+            <string>ChronicleSync</string>
+            <key>CFBundleExecutable</key>
+            <string>$(EXECUTABLE_NAME)</string>
+            <key>CFBundleIdentifier</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>$(PRODUCT_NAME)</string>
+            <key>CFBundlePackageType</key>
+            <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+            <key>NSExtension</key>
+            <dict>
+              <key>NSExtensionPointIdentifier</key>
+              <string>com.apple.Safari.web-extension</string>
+              <key>NSExtensionPrincipalClass</key>
+              <string>$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          
+          # Create AppDelegate.swift
+          mkdir -p ChronicleSync/App
+          cat > ChronicleSync/App/AppDelegate.swift << 'EOF'
+          import Cocoa
+
+          @main
+          class AppDelegate: NSObject, NSApplicationDelegate {
+              func applicationDidFinishLaunching(_ notification: Notification) {
+                  // Override point for customization after application launch.
+              }
+
+              func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+                  return true
+              }
+          }
+          EOF
+          
+          # Create SafariWebExtensionHandler.swift
+          mkdir -p ChronicleSync/Extension
+          cat > ChronicleSync/Extension/SafariWebExtensionHandler.swift << 'EOF'
+          import SafariServices
+          import os.log
+
+          class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+              func beginRequest(with context: NSExtensionContext) {
+                  let item = context.inputItems[0] as! NSExtensionItem
+                  let message = item.userInfo?[SFExtensionMessageKey]
+                  os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@", message as! CVarArg)
+
+                  let response = NSExtensionItem()
+                  response.userInfo = [ SFExtensionMessageKey: [ "Response": "Received" ] ]
+
+                  context.completeRequest(returningItems: [response], completionHandler: nil)
+              }
+          }
+          EOF
+
+      - name: Build Safari App
+        working-directory: extension/safari-extension
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: "xyz.chroniclesync.safari-extension"
+        run: |
+          # Create xcconfig file with secrets
+          cat > ChronicleSync/ChronicleSync.xcconfig << EOF
+          DEVELOPMENT_TEAM = ${TEAM_ID}
+          PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID}
+          CODE_SIGN_STYLE = Automatic
+          CODE_SIGN_IDENTITY = Apple Development
+          EOF
+          
+          # Build the Safari extension using xcodebuild
+          xcodebuild -project ChronicleSync.xcodeproj \
+            -scheme ChronicleSync \
+            -configuration Release \
+            -sdk iphoneos \
+            -allowProvisioningUpdates \
+            -xcconfig ChronicleSync/ChronicleSync.xcconfig \
+            clean build
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari-extension.zip
+          retention-days: 14
+
+      - name: Prepare Safari Extension for TestFlight
+        if: github.ref == 'refs/heads/main' && success()
+        working-directory: extension
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: "xyz.chroniclesync.safari-extension"
+        run: |
+          # Create temporary file for API key
+          echo "$APPLE_API_KEY_CONTENT" > apple_api_key.p8
+          
+          # Log validation information (but don't submit yet)
+          echo "Safari extension is ready for TestFlight validation"
+          echo "Bundle ID: $BUNDLE_ID"
+          echo "Team ID: $TEAM_ID"
+          
+          # Clean up
+          rm apple_api_key.p8

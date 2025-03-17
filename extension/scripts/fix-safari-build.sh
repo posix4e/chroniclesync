@@ -185,6 +185,27 @@ chmod +x "$IOS_APP_DIR/ChronicleSync"
 echo "#!/bin/sh" > "$EXTENSION_BUNDLE_DIR/ChronicleSync Extension"
 chmod +x "$EXTENSION_BUNDLE_DIR/ChronicleSync Extension"
 
+# Create a PkgInfo file for the app and extension (required by some iOS versions)
+echo "APPL????" > "$IOS_APP_DIR/PkgInfo"
+echo "XPC!????" > "$EXTENSION_BUNDLE_DIR/PkgInfo"
+
+# Create a minimal entitlements file
+cat > "$IOS_APP_DIR/entitlements.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+# Copy entitlements to extension
+cp "$IOS_APP_DIR/entitlements.plist" "$EXTENSION_BUNDLE_DIR/entitlements.plist"
+
 # Create a Payload directory for the IPA
 echo "Creating IPA structure..."
 mkdir -p "$BUILD_DIR/Payload"
@@ -282,6 +303,27 @@ echo "#!/bin/sh" > "$MACOS_APP_DIR/Contents/MacOS/ChronicleSync"
 chmod +x "$MACOS_APP_DIR/Contents/MacOS/ChronicleSync"
 echo "#!/bin/sh" > "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents/MacOS/ChronicleSync Extension"
 chmod +x "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents/MacOS/ChronicleSync Extension"
+
+# Create PkgInfo files for macOS
+echo "APPL????" > "$MACOS_APP_DIR/Contents/PkgInfo"
+echo "XPC!????" > "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents/PkgInfo"
+
+# Create entitlements for macOS
+cat > "$MACOS_APP_DIR/Contents/entitlements.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+# Copy entitlements to extension
+cp "$MACOS_APP_DIR/Contents/entitlements.plist" "$MACOS_APP_DIR/Contents/PlugIns/ChronicleSync Extension.appex/Contents/entitlements.plist"
 
 # Create the macOS package
 cd "$BUILD_DIR"

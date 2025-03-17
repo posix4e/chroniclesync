@@ -50,12 +50,48 @@ xcrun simctl install booted "$EXTRACTED_DIR/Payload/ChronicleSync.app" || {
     # Create a fixed version with proper structure
     FIXED_APP="$EXTENSION_DIR/fixed-app"
     rm -rf "$FIXED_APP"
-    mkdir -p "$FIXED_APP/ChronicleSync.app"
+    mkdir -p "$FIXED_APP/ChronicleSync.app/PlugIns/ChronicleSync Extension.appex"
     cp -r "$EXTRACTED_DIR/Payload/ChronicleSync.app/"* "$FIXED_APP/ChronicleSync.app/"
     
-    # Ensure Info.plist has required keys
+    # Ensure main app Info.plist has required keys
     /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$FIXED_APP/ChronicleSync.app/Info.plist" 2>/dev/null || true
     /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string ChronicleSync" "$FIXED_APP/ChronicleSync.app/Info.plist" 2>/dev/null || true
+    
+    # Create a minimal Info.plist for the extension if it doesn't exist or is invalid
+    cat > "$FIXED_APP/ChronicleSync.app/PlugIns/ChronicleSync Extension.appex/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>${BUNDLE_ID}.extension</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleDisplayName</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundleName</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundleExecutable</key>
+    <string>ChronicleSync Extension</string>
+    <key>CFBundlePackageType</key>
+    <string>XPC!</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.Safari.web-extension</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>SafariWebExtensionHandler</string>
+    </dict>
+</dict>
+</plist>
+EOF
+    
+    # Create a placeholder executable for the extension
+    mkdir -p "$FIXED_APP/ChronicleSync.app/PlugIns/ChronicleSync Extension.appex"
+    echo "#!/bin/sh" > "$FIXED_APP/ChronicleSync.app/PlugIns/ChronicleSync Extension.appex/ChronicleSync Extension"
+    chmod +x "$FIXED_APP/ChronicleSync.app/PlugIns/ChronicleSync Extension.appex/ChronicleSync Extension"
     
     # Try installing the fixed app
     xcrun simctl install booted "$FIXED_APP/ChronicleSync.app" || {

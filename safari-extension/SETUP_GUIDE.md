@@ -68,12 +68,10 @@ Add the following secrets to your GitHub repository:
 2. Add the following secrets:
    - `APPLE_CERTIFICATE_CONTENT`: Paste the base64-encoded certificate
    - `APPLE_CERTIFICATE_PASSWORD`: The password you set for the .p12 file
-   - `APPLE_APP_PROVISIONING_PROFILE`: Paste the base64-encoded provisioning profile for the main app
-   - `APPLE_EXTENSION_PROVISIONING_PROFILE`: Paste the base64-encoded provisioning profile for the Safari extension
+   - `APPLE_PROVISIONING_PROFILE`: Paste the base64-encoded provisioning profile (must include both app and extension)
    - `APPLE_TEAM_ID`: Your Apple Developer Team ID (found in the Apple Developer Portal)
-   - `APPLE_APP_ID`: Your app's bundle identifier (e.g., "com.yourcompany.chroniclesync")
 
-**Note:** For backward compatibility, you can also set `APPLE_PROVISIONING_PROFILE` with a single provisioning profile, but it's recommended to use separate profiles for the app and extension.
+**Important:** Your provisioning profile must include both the main app bundle ID (`com.chroniclesync.ChronicleSync`) and the extension bundle ID (`com.chroniclesync.ChronicleSync.Extension`). This is typically a wildcard provisioning profile or one specifically configured for both bundle IDs.
 
 ### Step 4: Update Xcode Project Configuration
 

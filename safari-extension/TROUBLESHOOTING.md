@@ -25,8 +25,8 @@ No Accounts: Add a new account in Accounts settings.
 - **Missing or expired provisioning profile:**
   - Generate a new provisioning profile in the [Apple Developer Portal](https://developer.apple.com/account/resources/profiles/list)
   - Ensure the profile includes the Safari Extension entitlement
-  - Create separate profiles for the main app and the extension
-  - Re-encode and update the `APPLE_APP_PROVISIONING_PROFILE` and `APPLE_EXTENSION_PROVISIONING_PROFILE` secrets
+  - Make sure the profile covers both the main app bundle ID (`com.chroniclesync.ChronicleSync`) and the extension bundle ID (`com.chroniclesync.ChronicleSync.Extension`)
+  - Re-encode and update the `APPLE_PROVISIONING_PROFILE` secret
 
 - **Incorrect Team ID:**
   - Verify your `APPLE_TEAM_ID` secret matches your Apple Developer Team ID

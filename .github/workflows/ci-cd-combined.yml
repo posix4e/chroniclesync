@@ -229,46 +229,26 @@ jobs:
           security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           
-      - name: Install the provisioning profiles
+      - name: Install the provisioning profile
         env:
-          APP_PROVISIONING_PROFILE: ${{ secrets.APPLE_APP_PROVISIONING_PROFILE }}
-          EXTENSION_PROVISIONING_PROFILE: ${{ secrets.APPLE_EXTENSION_PROVISIONING_PROFILE }}
           PROVISIONING_PROFILE_CONTENT: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
           # Create directory for provisioning profiles if it doesn't exist
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          # Import app provisioning profile from secrets
-          if [ ! -z "$APP_PROVISIONING_PROFILE" ]; then
-            APP_PROFILE_PATH=$RUNNER_TEMP/app_profile.mobileprovision
-            echo -n "$APP_PROVISIONING_PROFILE" | base64 --decode -o $APP_PROFILE_PATH
-            
-            # Copy app provisioning profile with specific name
-            cp $APP_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/ChronicleSync_Profile.mobileprovision
-            echo "Installed app provisioning profile"
-          else
-            echo "WARNING: APP_PROVISIONING_PROFILE is not set"
-          fi
+          # Import provisioning profile from secrets
+          PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+          echo -n "$PROVISIONING_PROFILE_CONTENT" | base64 --decode -o $PROFILE_PATH
           
-          # Import extension provisioning profile from secrets
-          if [ ! -z "$EXTENSION_PROVISIONING_PROFILE" ]; then
-            EXT_PROFILE_PATH=$RUNNER_TEMP/extension_profile.mobileprovision
-            echo -n "$EXTENSION_PROVISIONING_PROFILE" | base64 --decode -o $EXT_PROFILE_PATH
-            
-            # Copy extension provisioning profile with specific name
-            cp $EXT_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/ChronicleSync_Extension_Profile.mobileprovision
-            echo "Installed extension provisioning profile"
-          else
-            echo "WARNING: EXTENSION_PROVISIONING_PROFILE is not set"
-          fi
+          # Extract profile UUID for unique filename
+          PROFILE_UUID=$(grep -a -A 1 "UUID" $PROFILE_PATH | grep -o "[-A-Z0-9]\{36\}" || echo "profile")
           
-          # For backward compatibility
-          if [ ! -z "$PROVISIONING_PROFILE_CONTENT" ]; then
-            PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
-            echo -n "$PROVISIONING_PROFILE_CONTENT" | base64 --decode -o $PROFILE_PATH
-            cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/ChronicleSync_Profile.mobileprovision
-            echo "Installed legacy provisioning profile"
-          fi
+          # Copy provisioning profile to directory with UUID as filename
+          cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          
+          # Also create symbolic links with the names expected by the build script
+          ln -sf ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/ChronicleSync_Profile.mobileprovision
+          ln -sf ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/ChronicleSync_Extension_Profile.mobileprovision
           
           # Debug: List installed provisioning profiles
           echo "Installed provisioning profiles:"
@@ -333,9 +313,9 @@ jobs:
               <string>manual</string>
               <key>provisioningProfiles</key>
               <dict>
-                  <key>${APPLE_APP_ID}</key>
+                  <key>com.chroniclesync.ChronicleSync</key>
                   <string>ChronicleSync_Profile</string>
-                  <key>${APPLE_APP_ID}.extension</key>
+                  <key>com.chroniclesync.ChronicleSync.Extension</key>
                   <string>ChronicleSync_Extension_Profile</string>
               </dict>
           </dict>
@@ -345,15 +325,14 @@ jobs:
           # Build and sign the app with manual signing
           xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive \
             DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="ChronicleSync_Profile"
+            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*][config=Release][bundle=com.chroniclesync.ChronicleSync]"="ChronicleSync_Profile" \
+            "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*][config=Release][bundle=com.chroniclesync.ChronicleSync.Extension]"="ChronicleSync_Extension_Profile"
           
           # Export the archive as IPA
           xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" \
-            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}"
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}"
 
       - name: Test Safari Extension
         env:

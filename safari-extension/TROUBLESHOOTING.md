@@ -4,11 +4,15 @@ This guide addresses common issues encountered when setting up, building, and de
 
 ## Common Build and Signing Issues
 
-### 1. "No profiles for ... were found"
+### 1. "No profiles for ... were found" or "No Accounts: Add a new account in Accounts settings"
 
-**Error message:**
+**Error messages:**
 ```
 No profiles for '***' were found: Xcode couldn't find any iOS App Development provisioning profiles matching '***'. Automatic signing is disabled and unable to generate a profile.
+```
+
+```
+No Accounts: Add a new account in Accounts settings.
 ```
 
 **Possible causes and solutions:**
@@ -21,16 +25,37 @@ No profiles for '***' were found: Xcode couldn't find any iOS App Development pr
 - **Missing or expired provisioning profile:**
   - Generate a new provisioning profile in the [Apple Developer Portal](https://developer.apple.com/account/resources/profiles/list)
   - Ensure the profile includes the Safari Extension entitlement
-  - Re-encode and update the `APPLE_PROVISIONING_PROFILE` secret
+  - Create separate profiles for the main app and the extension
+  - Re-encode and update the `APPLE_APP_PROVISIONING_PROFILE` and `APPLE_EXTENSION_PROVISIONING_PROFILE` secrets
 
 - **Incorrect Team ID:**
   - Verify your `APPLE_TEAM_ID` secret matches your Apple Developer Team ID
   - Find your Team ID in the [Apple Developer Portal](https://developer.apple.com/account/#/membership)
 
+- **No Apple ID in CI environment:**
+  - For CI environments, use manual signing instead of automatic signing
+  - Configure the exportOptions.plist with manual signing:
+  ```xml
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+      <key>com.yourcompany.app</key>
+      <string>Profile_Name</string>
+      <key>com.yourcompany.app.extension</key>
+      <string>Extension_Profile_Name</string>
+  </dict>
+  ```
+  
 - **Fix in CI workflow:**
-  - Add the `-allowProvisioningUpdates` flag to the xcodebuild command:
+  - Use manual signing with specific provisioning profile names:
   ```yaml
-  xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
+  xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive \
+    DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+    PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" \
+    CODE_SIGN_STYLE="Manual" \
+    CODE_SIGN_IDENTITY="iPhone Distribution" \
+    PROVISIONING_PROFILE_SPECIFIER="ChronicleSync_Profile"
   ```
 
 ### 2. "Unable to find a matching code-signing identity"

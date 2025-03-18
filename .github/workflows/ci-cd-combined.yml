@@ -242,8 +242,15 @@ jobs:
           # Create directory for provisioning profiles if it doesn't exist
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           
-          # Copy provisioning profile to directory
-          cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+          # Extract profile UUID for unique filename
+          PROFILE_UUID=$(grep -a -A 1 "UUID" $PROFILE_PATH | grep -o "[-A-Z0-9]\{36\}" || echo "profile")
+          
+          # Copy provisioning profile to directory with unique name
+          cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          
+          # Debug: List installed provisioning profiles
+          echo "Installed provisioning profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Prepare Safari Extension
         run: |
@@ -306,11 +313,11 @@ jobs:
           </plist>
           EOL
           
-          # Build and sign the app
-          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}"
+          # Build and sign the app with allowProvisioningUpdates flag
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
           
-          # Export the archive as IPA
-          xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}"
+          # Export the archive as IPA with allowProvisioningUpdates flag
+          xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
 
       - name: Test Safari Extension
         env:

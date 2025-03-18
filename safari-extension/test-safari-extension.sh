@@ -22,7 +22,9 @@ take_screenshot() {
   xcrun simctl install "$DEVICE_ID" "$SAFARI_DIR/build/ChronicleSync.app"
   
   echo "Launching app..."
-  xcrun simctl launch "$DEVICE_ID" "com.chroniclesync.ChronicleSync"
+  # Use APPLE_APP_ID environment variable if set, otherwise use default
+  APP_ID="${APPLE_APP_ID:-com.chroniclesync.ChronicleSync}"
+  xcrun simctl launch "$DEVICE_ID" "$APP_ID"
   
   # Wait for app to fully launch
   sleep 5
@@ -31,7 +33,9 @@ take_screenshot() {
   xcrun simctl io "$DEVICE_ID" screenshot "$SCREENSHOTS_DIR/$SCREENSHOT_NAME"
   
   echo "Terminating app..."
-  xcrun simctl terminate "$DEVICE_ID" "com.chroniclesync.ChronicleSync"
+  # Use APPLE_APP_ID environment variable if set, otherwise use default
+  APP_ID="${APPLE_APP_ID:-com.chroniclesync.ChronicleSync}"
+  xcrun simctl terminate "$DEVICE_ID" "$APP_ID"
   
   echo "Shutting down simulator..."
   xcrun simctl shutdown "$DEVICE_ID"

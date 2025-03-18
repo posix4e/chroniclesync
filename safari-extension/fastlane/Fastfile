@@ -1,0 +1,81 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Setup code signing"
+  lane :setup_signing do
+    # Setup CI if running in a CI environment
+    setup_ci if ENV['CI']
+    
+    # Use match to sync certificates and profiles
+    match(
+      type: "development",
+      app_identifier: [
+        ENV["APPLE_APP_ID"],
+        "#{ENV["APPLE_APP_ID"]}.extension"
+      ],
+      readonly: true
+    )
+    
+    match(
+      type: "appstore",
+      app_identifier: [
+        ENV["APPLE_APP_ID"],
+        "#{ENV["APPLE_APP_ID"]}.extension"
+      ],
+      readonly: true
+    )
+  end
+  
+  desc "Build the Safari extension"
+  lane :build do
+    # Setup code signing first
+    setup_signing
+    
+    # Build the app
+    build_app(
+      project: "ChronicleSync.xcodeproj",
+      scheme: "ChronicleSync",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          ENV["APPLE_APP_ID"] => "match AppStore #{ENV["APPLE_APP_ID"]}",
+          "#{ENV["APPLE_APP_ID"]}.extension" => "match AppStore #{ENV["APPLE_APP_ID"]}.extension"
+        }
+      },
+      skip_profile_detection: true,
+      output_directory: "build",
+      output_name: "ChronicleSync.ipa"
+    )
+  end
+  
+  desc "Test the Safari extension in a simulator"
+  lane :test do
+    # Get the first available iPhone simulator
+    device_id = sh("xcrun simctl list devices available | grep 'iPhone' | head -1 | sed -E 's/.*\\(([A-Za-z0-9-]+)\\).*/\\1/'").strip
+    
+    # Create screenshots directory
+    sh("mkdir -p ../screenshots")
+    
+    # Boot the simulator
+    sh("xcrun simctl boot '#{device_id}'")
+    
+    # Install the app
+    sh("xcrun simctl install '#{device_id}' '../build/ChronicleSync.app'")
+    
+    # Launch the app
+    sh("xcrun simctl launch '#{device_id}' '#{ENV["APPLE_APP_ID"]}'")
+    
+    # Wait for app to fully launch
+    sleep(5)
+    
+    # Take screenshot
+    sh("xcrun simctl io '#{device_id}' screenshot '../screenshots/chroniclesync_screenshot.png'")
+    
+    # Terminate the app
+    sh("xcrun simctl terminate '#{device_id}' '#{ENV["APPLE_APP_ID"]}'")
+    
+    # Shutdown the simulator
+    sh("xcrun simctl shutdown '#{device_id}'")
+  end
+end

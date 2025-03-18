@@ -46,28 +46,44 @@ fi
 
 echo "Safari extension resources prepared successfully!"
 
-# Build the Xcode project (requires xcodebuild)
-if command -v xcodebuild &> /dev/null; then
-  echo "Building Safari extension with xcodebuild..."
-  cd "$SAFARI_DIR"
-  
-  # Check if APPLE_TEAM_ID and APPLE_APP_ID are set
-  if [ -z "${APPLE_TEAM_ID}" ] || [ -z "${APPLE_APP_ID}" ]; then
-    echo "Warning: APPLE_TEAM_ID or APPLE_APP_ID environment variables are not set."
-    echo "You can set them by running:"
-    echo "export APPLE_TEAM_ID=your_team_id"
-    echo "export APPLE_APP_ID=your.app.bundle.id"
-    echo "Attempting to build without these variables may fail."
-  fi
-  
-  # Build with allowProvisioningUpdates flag to enable automatic provisioning
-  xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
-  
-  # Export the archive as IPA
-  xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
-  
-  echo "IPA file created at $SAFARI_DIR/build/ChronicleSync.ipa"
-else
-  echo "xcodebuild not found. Skipping IPA creation."
-  echo "To build the IPA file, run this script on a macOS system with Xcode installed."
+# Build the Xcode project using Fastlane
+cd "$SAFARI_DIR"
+
+# Check if required environment variables are set
+if [ -z "${APPLE_TEAM_ID}" ] || [ -z "${APPLE_APP_ID}" ] || [ -z "${APPLE_ID}" ] || [ -z "${MATCH_GIT_URL}" ]; then
+  echo "Warning: One or more required environment variables are not set."
+  echo "Required variables:"
+  echo "  - APPLE_TEAM_ID: Your Apple Developer Team ID"
+  echo "  - APPLE_APP_ID: Your app's bundle identifier"
+  echo "  - APPLE_ID: Your Apple ID email"
+  echo "  - MATCH_GIT_URL: Git URL for your match certificates repository"
+  echo ""
+  echo "You can set them by running:"
+  echo "export APPLE_TEAM_ID=your_team_id"
+  echo "export APPLE_APP_ID=your.app.bundle.id"
+  echo "export APPLE_ID=your@apple.id"
+  echo "export MATCH_GIT_URL=https://github.com/your-org/certificates.git"
+  echo ""
+  echo "Attempting to build without these variables may fail."
 fi
+
+# Check if fastlane is installed
+if ! command -v fastlane &> /dev/null; then
+  echo "Fastlane not found. Installing..."
+  gem install fastlane
+fi
+
+# Check if bundle is installed
+if ! command -v bundle &> /dev/null; then
+  echo "Bundler not found. Installing..."
+  gem install bundler
+fi
+
+# Install dependencies
+bundle install
+
+# Run fastlane to build the app
+echo "Building Safari extension with Fastlane..."
+bundle exec fastlane build
+
+echo "IPA file created at $SAFARI_DIR/build/ChronicleSync.ipa"

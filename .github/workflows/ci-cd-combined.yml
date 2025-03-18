@@ -277,72 +277,47 @@ jobs:
             cp -R extension/dist/extracted/assets/* "safari-extension/ChronicleSync Extension/Resources/assets/"
           fi
 
-      - name: Build Safari Extension
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: safari-extension
+          
+      - name: Install Fastlane
+        working-directory: safari-extension
+        run: |
+          gem install fastlane
+          bundle install
+          
+      - name: Build Safari Extension with Fastlane
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          MATCH_KEYCHAIN_NAME: login.keychain
+          MATCH_KEYCHAIN_PASSWORD: ${{ github.run_id }}
+          GIT_AUTHORIZATION: ${{ secrets.GIT_AUTHORIZATION }}
+        working-directory: safari-extension
         run: |
-          cd safari-extension
+          # Configure git for match repository access if using GitHub
+          if [[ "$MATCH_GIT_URL" == *"github.com"* ]]; then
+            git config --global url."https://x-access-token:${GIT_AUTHORIZATION}@github.com/".insteadOf "https://github.com/"
+          fi
           
-          # Create a temporary exportOptions.plist with the correct team ID
-          cat > exportOptions.plist << EOL
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>teamID</key>
-              <string>${APPLE_TEAM_ID}</string>
-              <key>compileBitcode</key>
-              <false/>
-              <key>uploadBitcode</key>
-              <false/>
-              <key>uploadSymbols</key>
-              <true/>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>${APPLE_APP_ID}</key>
-                  <string>ChronicleSync</string>
-                  <key>${APPLE_APP_ID}.extension</key>
-                  <string>ChronicleSync Extension</string>
-              </dict>
-          </dict>
-          </plist>
-          EOL
-          
-          # Build and sign the app with allowProvisioningUpdates flag
-          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
-          
-          # Export the archive as IPA
-          xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" PRODUCT_BUNDLE_IDENTIFIER="${APPLE_APP_ID}" -allowProvisioningUpdates
+          # Run fastlane to build the app
+          bundle exec fastlane build
 
-      - name: Test Safari Extension
+      - name: Test Safari Extension with Fastlane
         env:
           APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        working-directory: safari-extension
         run: |
-          cd safari-extension
-          # Start simulator
-          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -E 's/.*\(([A-Za-z0-9-]+)\).*/\1/')
-          xcrun simctl boot "$DEVICE_ID"
-          
-          # Install app
-          xcrun simctl install "$DEVICE_ID" "build/ChronicleSync.app"
-          
-          # Launch app
-          xcrun simctl launch "$DEVICE_ID" "${APPLE_APP_ID}"
-          
-          # Wait for app to fully launch
-          sleep 5
-          
-          # Take screenshot
-          mkdir -p screenshots
-          xcrun simctl io "$DEVICE_ID" screenshot "screenshots/chroniclesync_screenshot.png"
-          
-          # Shutdown simulator
-          xcrun simctl shutdown "$DEVICE_ID"
+          # Run fastlane to test the app
+          bundle exec fastlane test
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4

@@ -5,41 +5,16 @@ set -e
 
 # Define paths
 SAFARI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCREENSHOTS_DIR="$SAFARI_DIR/screenshots"
 
-# Create screenshots directory
-mkdir -p "$SCREENSHOTS_DIR"
-
-# Function to run the simulator and take a screenshot
-take_screenshot() {
-  local DEVICE_ID=$1
-  local SCREENSHOT_NAME=$2
-  
-  echo "Starting simulator with device ID: $DEVICE_ID"
-  xcrun simctl boot "$DEVICE_ID"
-  
-  echo "Installing app on simulator..."
-  xcrun simctl install "$DEVICE_ID" "$SAFARI_DIR/build/ChronicleSync.app"
-  
-  echo "Launching app..."
-  # Use APPLE_APP_ID environment variable if set, otherwise use default
-  APP_ID="${APPLE_APP_ID:-com.chroniclesync.ChronicleSync}"
-  xcrun simctl launch "$DEVICE_ID" "$APP_ID"
-  
-  # Wait for app to fully launch
-  sleep 5
-  
-  echo "Taking screenshot..."
-  xcrun simctl io "$DEVICE_ID" screenshot "$SCREENSHOTS_DIR/$SCREENSHOT_NAME"
-  
-  echo "Terminating app..."
-  # Use APPLE_APP_ID environment variable if set, otherwise use default
-  APP_ID="${APPLE_APP_ID:-com.chroniclesync.ChronicleSync}"
-  xcrun simctl terminate "$DEVICE_ID" "$APP_ID"
-  
-  echo "Shutting down simulator..."
-  xcrun simctl shutdown "$DEVICE_ID"
-}
+# Check if required environment variables are set
+if [ -z "${APPLE_APP_ID}" ]; then
+  echo "Warning: APPLE_APP_ID environment variable is not set."
+  echo "You can set it by running:"
+  echo "export APPLE_APP_ID=your.app.bundle.id"
+  echo ""
+  echo "Using default value: com.chroniclesync.ChronicleSync"
+  export APPLE_APP_ID="com.chroniclesync.ChronicleSync"
+fi
 
 # Check if we have a built app
 if [ ! -d "$SAFARI_DIR/build/ChronicleSync.app" ]; then
@@ -47,19 +22,25 @@ if [ ! -d "$SAFARI_DIR/build/ChronicleSync.app" ]; then
   exit 1
 fi
 
-# Get available simulators
-echo "Available simulators:"
-DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -E 's/.*\(([A-Za-z0-9-]+)\).*/\1/')
-
-if [ -z "$DEVICE_ID" ]; then
-  echo "Error: No available iPhone simulator found."
-  exit 1
+# Check if fastlane is installed
+if ! command -v fastlane &> /dev/null; then
+  echo "Fastlane not found. Installing..."
+  gem install fastlane
 fi
 
-echo "Using simulator with device ID: $DEVICE_ID"
+# Check if bundle is installed
+if ! command -v bundle &> /dev/null; then
+  echo "Bundler not found. Installing..."
+  gem install bundler
+fi
 
-# Take screenshot
-take_screenshot "$DEVICE_ID" "chroniclesync_screenshot.png"
+# Install dependencies
+cd "$SAFARI_DIR"
+bundle install
+
+# Run fastlane to test the app
+echo "Testing Safari extension with Fastlane..."
+bundle exec fastlane test
 
 echo "Test completed successfully!"
-echo "Screenshot saved to: $SCREENSHOTS_DIR/chroniclesync_screenshot.png"
+echo "Screenshot saved to: $SAFARI_DIR/screenshots/chroniclesync_screenshot.png"

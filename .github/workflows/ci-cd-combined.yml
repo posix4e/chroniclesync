@@ -20,6 +20,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -180,3 +181,103 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30
+
+  build-safari-extension:
+    needs: build-and-test
+    if: success() && (github.event.inputs.browser == '' || github.event.inputs.browser == 'safari')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/dist
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Prepare Safari Extension
+        run: |
+          # Create necessary directories
+          mkdir -p "safari-extension/ChronicleSync Extension/Resources"
+          
+          # Copy extension files to Safari extension
+          cp extension/popup.html "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/popup.css "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/settings.html "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/settings.css "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/history.html "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/history.css "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/devtools.html "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/devtools.css "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/bip39-wordlist.js "safari-extension/ChronicleSync Extension/Resources/"
+          
+          # Extract and copy JS files from the Chrome extension
+          unzip -o extension/dist/chrome-extension.zip -d extension/dist/extracted
+          cp extension/dist/extracted/popup.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/background.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/settings.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/history.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/devtools.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/devtools-page.js "safari-extension/ChronicleSync Extension/Resources/"
+          cp extension/dist/extracted/content-script.js "safari-extension/ChronicleSync Extension/Resources/"
+          
+          # Copy assets directory if it exists
+          if [ -d "extension/dist/extracted/assets" ]; then
+            mkdir -p "safari-extension/ChronicleSync Extension/Resources/assets"
+            cp -R extension/dist/extracted/assets/* "safari-extension/ChronicleSync Extension/Resources/assets/"
+          fi
+
+      - name: Build Safari Extension
+        run: |
+          cd safari-extension
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos -archivePath "build/ChronicleSync.xcarchive" archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          xcodebuild -exportArchive -archivePath "build/ChronicleSync.xcarchive" -exportOptionsPlist exportOptions.plist -exportPath "build" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Test Safari Extension
+        run: |
+          cd safari-extension
+          # Start simulator
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed -E 's/.*\(([A-Za-z0-9-]+)\).*/\1/')
+          xcrun simctl boot "$DEVICE_ID"
+          
+          # Install app
+          xcrun simctl install "$DEVICE_ID" "build/ChronicleSync.app"
+          
+          # Launch app
+          xcrun simctl launch "$DEVICE_ID" "com.chroniclesync.ChronicleSync"
+          
+          # Wait for app to fully launch
+          sleep 5
+          
+          # Take screenshot
+          mkdir -p screenshots
+          xcrun simctl io "$DEVICE_ID" screenshot "screenshots/chroniclesync_screenshot.png"
+          
+          # Shutdown simulator
+          xcrun simctl shutdown "$DEVICE_ID"
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: safari-extension/build/ChronicleSync.ipa
+          retention-days: 14
+          
+      - name: Upload Screenshot Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-screenshot
+          path: safari-extension/screenshots/chroniclesync_screenshot.png
+          retention-days: 14

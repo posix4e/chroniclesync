@@ -1,0 +1,121 @@
+name: Safari iOS Extension Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '15.2'
+
+jobs:
+  build-safari-extension:
+    runs-on: macos-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
+            worker/package-lock.json
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Build Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create Safari Extension Project
+        run: |
+          # Use the script to create the Safari extension project
+          ./scripts/create-safari-extension.sh
+
+      - name: Copy Extension Resources
+        run: |
+          # Copy the built Chrome extension files to the Safari extension resources
+          mkdir -p SafariExtension/ChronicleSync/ChronicleSync/Resources
+          cp extension/history.html SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/history.css SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/history.js SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/settings.html SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/settings.css SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/settings.js SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          
+          # Copy other necessary files
+          cp extension/background.js SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          cp extension/content-script.js SafariExtension/ChronicleSync/ChronicleSync/Resources/
+          
+          # Copy extension resources to the Safari extension
+          mkdir -p SafariExtension/ChronicleSync/ChronicleSync\ Extension/Resources
+          cp extension/manifest.json SafariExtension/ChronicleSync/ChronicleSync\ Extension/Resources/
+          cp -r extension/icons SafariExtension/ChronicleSync/ChronicleSync\ Extension/Resources/ || true
+
+      - name: Build Xcode Project
+        run: |
+          cd SafariExtension
+          
+          # Make the build script executable
+          chmod +x build-safari-extension.sh
+          
+          # Run the build script
+          ./build-safari-extension.sh
+
+      - name: Test in Simulator
+        run: |
+          # Start the simulator
+          SIMULATOR_UDID=$(xcrun simctl list devices | grep "iPhone" | head -1 | sed -E 's/.*\(([A-Z0-9-]+)\).*/\1/')
+          xcrun simctl boot $SIMULATOR_UDID
+          
+          # Create a simulator-compatible app
+          cd SafariExtension
+          xcodebuild -project ChronicleSync/ChronicleSync.xcodeproj -scheme ChronicleSync -sdk iphonesimulator -configuration Release
+          
+          # Install the app in the simulator
+          xcrun simctl install $SIMULATOR_UDID ChronicleSync/build/Release-iphonesimulator/ChronicleSync.app
+          
+          # Take a screenshot of the home screen
+          xcrun simctl io $SIMULATOR_UDID screenshot artifacts/screenshot1.png
+          
+          # Launch the app
+          xcrun simctl launch $SIMULATOR_UDID com.chroniclesync.app
+          
+          # Wait for app to launch
+          sleep 5
+          
+          # Take a screenshot of the app
+          xcrun simctl io $SIMULATOR_UDID screenshot artifacts/screenshot2.png
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chroniclesync-safari-extension
+          path: SafariExtension/ChronicleSync/artifacts/ChronicleSync.ipa
+          retention-days: 14
+          
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-screenshots
+          path: SafariExtension/artifacts/*.png
+          retention-days: 14

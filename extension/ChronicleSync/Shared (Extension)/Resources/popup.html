@@ -1,11 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="popup.css">
-    <script type="module" src="popup.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <strong>Hello World!</strong>
+  <div class="container">
+    <h1>ChronicleSync</h1>
+    
+    <div class="client-section">
+      <h2>Client ID</h2>
+      <div class="client-id-display">
+        <span id="clientId">Loading...</span>
+        <button id="editClientId">Edit</button>
+      </div>
+      <div class="client-id-edit hidden">
+        <input type="text" id="clientIdInput" placeholder="Enter your client ID">
+        <button id="saveClientId">Save</button>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="syncNow">Sync Now</button>
+      <button id="viewHistory">View History</button>
+      <button id="openSettings">Settings</button>
+    </div>
+    
+    <div class="status">
+      <p>Last sync: <span id="lastSync">Never</span></p>
+      <p id="syncStatus"></p>
+    </div>
+  </div>
+  
+  <script src="popup.js" type="module"></script>
 </body>
 </html>

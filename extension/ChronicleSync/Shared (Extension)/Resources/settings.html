@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync Settings</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .settings-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+    }
+    
+    h2 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .setting-item {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    input[type="text"], 
+    input[type="number"], 
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+    }
+    
+    .checkbox-container input {
+      margin-right: 8px;
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    
+    button:hover {
+      background-color: #0055aa;
+    }
+    
+    .button-group {
+      margin-top: 20px;
+    }
+    
+    .status-message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background-color: rgba(0, 128, 0, 0.1);
+      color: green;
+    }
+    
+    .error {
+      background-color: rgba(255, 0, 0, 0.1);
+      color: red;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .settings-section {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      input[type="text"], 
+      input[type="number"], 
+      select {
+        background-color: rgba(0, 0, 0, 0.3);
+        border-color: #444;
+        color: white;
+      }
+      
+      .success {
+        background-color: rgba(0, 128, 0, 0.2);
+        color: lightgreen;
+      }
+      
+      .error {
+        background-color: rgba(255, 0, 0, 0.2);
+        color: lightcoral;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>ChronicleSync Settings</h1>
+  
+  <div class="settings-section">
+    <h2>Account Settings</h2>
+    
+    <div class="setting-item">
+      <label for="clientId">Client ID</label>
+      <input type="text" id="clientId" placeholder="Enter your client ID">
+    </div>
+    
+    <div class="setting-item">
+      <label for="apiEndpoint">API Endpoint</label>
+      <input type="text" id="apiEndpoint" placeholder="https://api.chroniclesync.xyz/sync">
+    </div>
+  </div>
+  
+  <div class="settings-section">
+    <h2>Sync Settings</h2>
+    
+    <div class="setting-item">
+      <label for="syncInterval">Sync Interval (minutes)</label>
+      <input type="number" id="syncInterval" min="1" max="60">
+    </div>
+    
+    <div class="setting-item checkbox-container">
+      <input type="checkbox" id="extractContent">
+      <label for="extractContent">Extract page content for search</label>
+    </div>
+  </div>
+  
+  <div class="settings-section">
+    <h2>Data Management</h2>
+    
+    <div class="button-group">
+      <button id="clearLocalData">Clear Local Data</button>
+      <button id="exportData">Export Data</button>
+      <button id="importData">Import Data</button>
+    </div>
+  </div>
+  
+  <div class="button-group">
+    <button id="saveSettings">Save Settings</button>
+    <button id="resetSettings">Reset to Defaults</button>
+  </div>
+  
+  <div id="statusMessage" class="status-message" style="display: none;"></div>
+  
+  <script src="settings.js" type="module"></script>
+</body>
+</html>

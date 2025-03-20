@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync History</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+    }
+    
+    .search-container {
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .filter-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    button {
+      padding: 8px 12px;
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background-color: #0055aa;
+    }
+    
+    .history-list {
+      margin-top: 20px;
+    }
+    
+    .history-item {
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .history-item-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin: 0;
+    }
+    
+    .history-item-time {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .history-item-url {
+      color: #0066cc;
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+    
+    .history-item-content {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .history-item-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    
+    .history-item-actions button {
+      font-size: 12px;
+      padding: 5px 10px;
+    }
+    
+    .delete-btn {
+      background-color: #cc0000;
+    }
+    
+    .delete-btn:hover {
+      background-color: #aa0000;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .pagination button {
+      min-width: 40px;
+    }
+    
+    .pagination button.active {
+      background-color: #004499;
+    }
+    
+    .no-results {
+      padding: 20px;
+      text-align: center;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+    }
+    
+    .highlight {
+      background-color: yellow;
+      color: black;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .history-item {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: #444;
+      }
+      
+      .history-item-time {
+        color: #aaa;
+      }
+      
+      .history-item-url {
+        color: #66aaff;
+      }
+      
+      .search-input, select {
+        background-color: rgba(0, 0, 0, 0.3);
+        border-color: #444;
+        color: white;
+      }
+      
+      .no-results {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      .highlight {
+        background-color: #aa0;
+        color: black;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Browsing History</h1>
+  
+  <div class="controls">
+    <div class="search-container">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search history...">
+    </div>
+    
+    <div class="filter-container">
+      <label for="deviceFilter">Device:</label>
+      <select id="deviceFilter">
+        <option value="all">All Devices</option>
+      </select>
+    </div>
+    
+    <div class="filter-container">
+      <label for="timeFilter">Time:</label>
+      <select id="timeFilter">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+    </div>
+    
+    <button id="refreshBtn">Refresh</button>
+  </div>
+  
+  <div id="historyList" class="history-list">
+    <!-- History items will be inserted here -->
+  </div>
+  
+  <div id="pagination" class="pagination">
+    <!-- Pagination buttons will be inserted here -->
+  </div>
+  
+  <script src="history.js" type="module"></script>
+</body>
+</html>

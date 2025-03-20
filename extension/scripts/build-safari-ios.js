@@ -1,11 +1,17 @@
 /* eslint-disable no-console */
-const { mkdir, rm, cp, writeFile, readFile } = require('fs/promises');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const { join } = require('path');
-const fs = require('fs');
+import { mkdir, rm, cp, writeFile, readFile } from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { join } from 'path';
 
 const execAsync = promisify(exec);
+
+// Get the directory path in ES modules
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const ROOT_DIR = join(__dirname, '..');  // Extension root directory
 const SAFARI_DIR = join(ROOT_DIR, 'safari-ios');
 const XCODE_PROJECT_DIR = join(SAFARI_DIR, 'ChronicleSync');

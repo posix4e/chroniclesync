@@ -60,19 +60,35 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-#if os(macOS)
-        if (message.body as! String != "open-preferences") {
+        guard let messageString = message.body as? String else {
             return
         }
-
-        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
-            guard error == nil else {
-                // Insert code to inform the user that something went wrong.
-                return
+        
+#if os(iOS)
+        if messageString == "open-settings" {
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(settingsURL)
+                }
             }
+        } else if messageString == "open-website" {
+            if let websiteURL = URL(string: "https://chroniclesync.xyz") {
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(websiteURL)
+                }
+            }
+        }
+#elseif os(macOS)
+        if messageString == "open-preferences" {
+            SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
+                guard error == nil else {
+                    // Insert code to inform the user that something went wrong.
+                    return
+                }
 
-            DispatchQueue.main.async {
-                NSApp.terminate(self)
+                DispatchQueue.main.async {
+                    NSApp.terminate(self)
+                }
             }
         }
 #endif

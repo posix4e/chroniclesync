@@ -10,11 +10,49 @@
     <script src="../Script.js" defer></script>
 </head>
 <body>
-    <img src="../Icon.png" width="128" height="128" alt="ChronicleSync Icon">
-    <p class="platform-ios">You can turn on ChronicleSync’s Safari extension in Settings.</p>
-    <p class="platform-mac state-unknown">You can turn on ChronicleSync’s extension in Safari Extensions preferences.</p>
-    <p class="platform-mac state-on">ChronicleSync’s extension is currently on. You can turn it off in Safari Extensions preferences.</p>
-    <p class="platform-mac state-off">ChronicleSync’s extension is currently off. You can turn it on in Safari Extensions preferences.</p>
-    <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+    <div class="container">
+        <img src="../Icon.png" width="128" height="128" alt="ChronicleSync Icon">
+        <h1>ChronicleSync</h1>
+        <h2>Sync your browsing history across devices</h2>
+        
+        <div class="platform-ios instructions">
+            <h3>Enable the Safari Extension</h3>
+            <ol>
+                <li>Open the <strong>Settings</strong> app on your device</li>
+                <li>Scroll down and tap on <strong>Safari</strong></li>
+                <li>Tap on <strong>Extensions</strong></li>
+                <li>Find and enable <strong>ChronicleSync</strong></li>
+                <li>Tap on <strong>ChronicleSync</strong> and ensure all permissions are enabled</li>
+            </ol>
+            
+            <h3>Using the Extension</h3>
+            <ol>
+                <li>Open <strong>Safari</strong></li>
+                <li>Tap the <strong>AA</strong> button in the address bar</li>
+                <li>Select <strong>ChronicleSync</strong> from the menu</li>
+                <li>Enter your <strong>Client ID</strong> in the popup</li>
+            </ol>
+            
+            <div class="button-container">
+                <button class="open-settings">Open Settings</button>
+                <button class="open-website">Visit ChronicleSync Website</button>
+            </div>
+        </div>
+        
+        <div class="platform-mac state-unknown">
+            <p>You can turn on ChronicleSync's extension in Safari Extensions preferences.</p>
+            <button class="open-preferences">Quit and Open Safari Extensions Preferences…</button>
+        </div>
+        
+        <div class="platform-mac state-on">
+            <p>ChronicleSync's extension is currently on. You can turn it off in Safari Extensions preferences.</p>
+            <button class="open-preferences">Quit and Open Safari Extensions Preferences…</button>
+        </div>
+        
+        <div class="platform-mac state-off">
+            <p>ChronicleSync's extension is currently off. You can turn it on in Safari Extensions preferences.</p>
+            <button class="open-preferences">Quit and Open Safari Extensions Preferences…</button>
+        </div>
+    </div>
 </body>
 </html>

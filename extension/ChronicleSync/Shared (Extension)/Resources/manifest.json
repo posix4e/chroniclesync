@@ -16,17 +16,24 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [{
-    "resources": ["history.html"],
+    "resources": [
+      "history.html",
+      "config.js",
+      "db/*.js",
+      "utils/*.js"
+    ],
     "matches": ["<all_urls>"]
   }],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content-script.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "type": "module"
     }
   ],
   "permissions": [

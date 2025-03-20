@@ -24,14 +24,26 @@ jobs:
       - name: List Available Simulators
         run: xcrun simctl list devices available
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
       - name: Install Dependencies
         run: |
-          cd extension/ChronicleSync
-          # Add any dependency installation steps here if needed
-          # For example: pod install, etc.
+          # Install npm dependencies
+          npm ci
       
+      - name: Build Extension with Webpack
+        run: |
+          # Build the extension with webpack
+          npm run build
+          
       - name: Build for Simulator
         run: |
+          # Copy webpack build to Xcode project
+          cp -R dist/* "extension/ChronicleSync/Shared (Extension)/Resources/"
+          
           cd extension/ChronicleSync
           
           # Find available iPhone simulator
@@ -203,19 +215,11 @@ jobs:
       
       - name: Create Unsigned IPA
         run: |
-          cd extension/ChronicleSync
-          # Create a directory for the app
-          mkdir -p Payload
+          # Use our npm script to create the IPA
+          npm run build:ipa
           
-          # Find and copy the app bundle
-          cp -r build/Build/Products/Debug-iphonesimulator/ChronicleSync.app Payload/
-          
-          # Create the IPA (which is just a zip file with a specific structure)
-          zip -r ChronicleSync-Simulator.ipa Payload
-          
-          # Move to a known location
-          mkdir -p artifacts
-          mv ChronicleSync-Simulator.ipa artifacts/
+          # Ensure artifacts directory exists
+          mkdir -p extension/ChronicleSync/artifacts
       
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4

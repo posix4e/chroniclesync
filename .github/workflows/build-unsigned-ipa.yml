@@ -37,7 +37,7 @@ jobs:
           xcodebuild \
             -scheme "ChronicleSync (iOS)" \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" \
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.2" \
             -configuration Debug \
             -derivedDataPath build \
             clean build
@@ -45,7 +45,7 @@ jobs:
       - name: Boot Simulator and Install App
         run: |
           # Start the simulator
-          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 14" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          SIMULATOR_UDID="3B4A102C-DCE4-43B5-AE70-54753F07BEE7"
           echo "Using simulator with UDID: $SIMULATOR_UDID"
           
           # Boot the simulator

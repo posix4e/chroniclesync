@@ -214,16 +214,11 @@ jobs:
           # Run the build script
           npm run build:safari-ios-ipa
 
-      - name: Upload IPA file
+      - name: Upload Safari iOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: safari-ios-extension
-          path: extension/build/ChronicleSync.ipa
-          retention-days: 14
-
-      - name: Upload simulator screenshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: safari-ios-screenshot
-          path: extension/build/screenshot.png
+          path: |
+            extension/build/ChronicleSync.ipa
+            extension/build/screenshot.png
           retention-days: 14

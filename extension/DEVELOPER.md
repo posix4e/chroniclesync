@@ -22,10 +22,20 @@ The ChronicleSync extension consists of several key components:
    npm run build
    ```
 
-3. Load the extension in Chrome:
+3. Load the extension in browsers:
+   
+   **Chrome**:
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked" and select the `extension/dist` directory
+   
+   **Firefox**:
+   - Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+   - Click "Load Temporary Add-on"
+   - Select the `extension/dist/manifest.json` file
+   
+   **Safari iOS**:
+   - See [Safari iOS Extension Developer Guide](safari-ios/DEVELOPER.md) for detailed instructions
 
 ## Testing
 
@@ -41,12 +51,23 @@ The ChronicleSync extension consists of several key components:
 
 ## Building for Production
 
-1. Build the production version:
+1. Build the production versions:
    ```bash
-   npm run build:prod
+   # For Chrome
+   npm run build:extension
+   
+   # For Firefox
+   npm run build:extension  # Creates both Chrome and Firefox packages
+   
+   # For Safari iOS
+   npm run build:safari-ios
+   npm run build:safari-ios-ipa  # Requires macOS
    ```
 
-2. The built extension will be in the `dist` directory, ready for packaging and distribution.
+2. The built extensions will be:
+   - Chrome: `chrome-extension.zip`
+   - Firefox: `firefox-extension.xpi`
+   - Safari iOS: Xcode project in `safari-ios/` directory and IPA file in `build/` directory
 
 ## Extension APIs
 
@@ -64,6 +85,7 @@ The extension exposes the following key APIs:
 
 ## Debugging
 
+### Chrome
 1. Access the extension's background page:
    - Go to `chrome://extensions`
    - Find ChronicleSync
@@ -73,6 +95,30 @@ The extension exposes the following key APIs:
    - Open Chrome DevTools
    - Check the Console tab for extension logs
    - Use the Network tab to monitor sync operations
+
+### Firefox
+1. Access the extension's background page:
+   - Go to `about:debugging#/runtime/this-firefox`
+   - Find ChronicleSync
+   - Click "Inspect" next to the extension
+
+2. View logs:
+   - The Firefox Browser Toolbox will open
+   - Check the Console tab for extension logs
+
+### Safari iOS
+1. Debugging on iOS devices:
+   - Connect your iOS device to a Mac
+   - Open Safari on the Mac
+   - Enable Web Inspector in Safari's Advanced settings
+   - Open the Develop menu and select your device
+   - Select the Safari extension to inspect
+
+2. Debugging in Simulator:
+   - Run the app in the iOS Simulator
+   - Open Safari on the Mac
+   - Open the Develop menu and select the Simulator
+   - Select the Safari extension to inspect
 
 ## Common Issues and Solutions
 
@@ -88,3 +134,8 @@ The extension exposes the following key APIs:
 3. **Build Issues**
    - Clear node_modules and reinstall dependencies
    - Verify Node.js version compatibility
+   
+4. **Safari iOS Issues**
+   - Ensure Xcode is properly configured
+   - Check that the Safari extension is enabled in Settings
+   - Verify the app has the correct entitlements for Safari extensions

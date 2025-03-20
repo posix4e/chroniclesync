@@ -20,6 +20,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari-ios
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -117,7 +118,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
+        # Future platforms can be added here (e.g., android)
     runs-on: ubuntu-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
@@ -130,6 +131,9 @@ jobs:
               SHOULD_TEST="false"
             fi
             if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
+              SHOULD_TEST="false"
+            fi
+            if [[ "${{ github.event.inputs.browser }}" == "safari-ios" ]]; then
               SHOULD_TEST="false"
             fi
           fi
@@ -180,3 +184,46 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30
+
+  safari-ios-extension:
+    needs: build-and-test
+    if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.browser == '' || github.event.inputs.browser == 'safari-ios')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+
+      - name: Build Safari iOS extension
+        working-directory: extension
+        run: npm run build:safari-ios
+
+      - name: Build IPA file and test in simulator
+        working-directory: extension
+        run: |
+          # Make the build script executable
+          chmod +x scripts/build-safari-ios-ipa.sh
+          # Run the build script
+          npm run build:safari-ios-ipa
+
+      - name: Upload IPA file
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ios-extension
+          path: extension/build/ChronicleSync.ipa
+          retention-days: 14
+
+      - name: Upload simulator screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ios-screenshot
+          path: extension/build/screenshot.png
+          retention-days: 14

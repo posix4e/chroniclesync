@@ -6,7 +6,7 @@ Sync stuff across browsers
 
 - **Offline-First**: Continue working without internet connection with automatic background sync
 - **Not Secure**: I'm to lazy and the models suck too much for local encryption, but it's coming.
-- **Not Multiplatform**: We haven't added IOS support cause basic stuff still doesn't work.
+- **Multiplatform**: Support for Chrome, Firefox, and Safari iOS.
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
 ## Quick Start
@@ -26,6 +26,6 @@ Sync stuff across browsers
 ```
 chroniclesync/
 ├── pages/          # Frontend React application
-├── extension/      # Chrome extension
+├── extension/      # Browser extensions (Chrome, Firefox, Safari iOS)
 └── worker/         # Cloudflare Worker backend
 ```

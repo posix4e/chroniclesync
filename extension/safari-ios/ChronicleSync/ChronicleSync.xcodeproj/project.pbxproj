@@ -1,0 +1,43 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {
+    };
+    objectVersion = 54;
+    objects = {
+        /* Project object */
+        8D8647D92B8F1F7A00A9D3F1 /* Project object */ = {
+            isa = PBXProject;
+            attributes = {
+                BuildIndependentTargetsInParallel = 1;
+                LastSwiftUpdateCheck = 1520;
+                LastUpgradeCheck = 1520;
+                TargetAttributes = {
+                    8D8647E02B8F1F7A00A9D3F1 = {
+                        CreatedOnToolsVersion = 15.2;
+                    };
+                    8D8647F62B8F1F7B00A9D3F1 = {
+                        CreatedOnToolsVersion = 15.2;
+                    };
+                };
+            };
+            buildConfigurationList = 8D8647DD2B8F1F7A00A9D3F1 /* Build configuration list for PBXProject "ChronicleSync" */;
+            compatibilityVersion = "Xcode 14.0";
+            developmentRegion = en;
+            hasScannedForEncodings = 0;
+            knownRegions = (
+                en,
+                Base,
+            );
+            mainGroup = 8D8647D82B8F1F7A00A9D3F1;
+            productRefGroup = 8D8647E22B8F1F7A00A9D3F1 /* Products */;
+            projectDirPath = "";
+            projectRoot = "";
+            targets = (
+                8D8647E02B8F1F7A00A9D3F1 /* ChronicleSync */,
+                8D8647F62B8F1F7B00A9D3F1 /* ChronicleSync Extension */,
+            );
+        };
+    };
+    rootObject = 8D8647D92B8F1F7A00A9D3F1 /* Project object */;
+}

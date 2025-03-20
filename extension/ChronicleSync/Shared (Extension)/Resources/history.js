@@ -54,18 +54,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       const day = 24 * 60 * 60 * 1000;
       
       switch (timeFilter) {
-        case 'today':
-          since = new Date().setHours(0, 0, 0, 0);
-          break;
-        case 'yesterday':
-          since = new Date().setHours(0, 0, 0, 0) - day;
-          break;
-        case 'week':
-          since = now - (7 * day);
-          break;
-        case 'month':
-          since = now - (30 * day);
-          break;
+      case 'today':
+        since = new Date().setHours(0, 0, 0, 0);
+        break;
+      case 'yesterday':
+        since = new Date().setHours(0, 0, 0, 0) - day;
+        break;
+      case 'week':
+        since = now - (7 * day);
+        break;
+      case 'month':
+        since = now - (30 * day);
+        break;
       }
       
       // Get device filter

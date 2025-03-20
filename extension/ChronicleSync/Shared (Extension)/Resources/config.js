@@ -12,14 +12,14 @@ async function loadFromNative() {
   return new Promise((resolve, reject) => {
     try {
       browser.runtime.sendNativeMessage(
-        { type: "loadFromNative", key: "chroniclesync_config" },
+        { type: 'loadFromNative', key: 'chroniclesync_config' },
         (response) => {
           if (browser.runtime.lastError) {
             reject(browser.runtime.lastError);
           } else if (response && response.success && response.data && response.data.value) {
             resolve(response.data.value);
           } else {
-            reject(new Error("No config found in native storage"));
+            reject(new Error('No config found in native storage'));
           }
         }
       );
@@ -35,9 +35,9 @@ async function saveToNative(configData) {
     try {
       browser.runtime.sendNativeMessage(
         { 
-          type: "saveToNative", 
+          type: 'saveToNative', 
           data: { 
-            key: "chroniclesync_config", 
+            key: 'chroniclesync_config', 
             value: configData 
           } 
         },
@@ -47,7 +47,7 @@ async function saveToNative(configData) {
           } else if (response && response.success) {
             resolve(true);
           } else {
-            reject(new Error(response?.message || "Failed to save to native storage"));
+            reject(new Error(response?.message || 'Failed to save to native storage'));
           }
         }
       );

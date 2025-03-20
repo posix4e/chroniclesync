@@ -57,7 +57,7 @@ async function getNativeDeviceInfo() {
   return new Promise((resolve, reject) => {
     try {
       browser.runtime.sendNativeMessage(
-        { type: "getDeviceInfo" },
+        { type: 'getDeviceInfo' },
         (response) => {
           if (browser.runtime.lastError) {
             reject(browser.runtime.lastError);

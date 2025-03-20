@@ -45,7 +45,7 @@ async function syncHistory(forceFullSync = false) {
     const stored = await browser.storage.local.get(['lastSync']);
     const storedLastSync = stored.lastSync || 0;
 
-    const startTime = forceFullSync ? 0 : storedLastSync;
+    const _startTime = forceFullSync ? 0 : storedLastSync;
 
     const historyStore = new HistoryStore();
     await historyStore.init();
@@ -162,7 +162,7 @@ initializeExtension().then(() => {
 });
 
 // Listen for tab updates
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+browser.tabs.onUpdated.addListener((tabId, changeInfo, _tab) => {
   if (changeInfo.url) {
     console.debug(`Navigation to: ${changeInfo.url}`);
     setTimeout(() => syncHistory(false), 1000);

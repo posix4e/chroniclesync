@@ -221,9 +221,8 @@ export class HistoryStore {
               const matches = [];
               let startIndex = 0;
               
-              while (true) {
-                const index = content.indexOf(queryLower, startIndex);
-                if (index === -1) break;
+              let index;
+              while ((index = content.indexOf(queryLower, startIndex)) !== -1) {
                 
                 // Get context around the match
                 const contextStart = Math.max(0, index - 50);

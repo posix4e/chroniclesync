@@ -75,6 +75,9 @@ async function createXcodeProject() {
   await mkdir(join(XCODE_PROJECT_DIR, 'ChronicleSync'), { recursive: true });
   await mkdir(join(XCODE_PROJECT_DIR, 'ChronicleSync Extension'), { recursive: true });
   await mkdir(join(XCODE_PROJECT_DIR, 'Resources'), { recursive: true });
+  await mkdir(join(XCODE_PROJECT_DIR, 'ChronicleSync.xcodeproj'), { recursive: true });
+  await mkdir(join(XCODE_PROJECT_DIR, 'ChronicleSync.xcodeproj', 'xcshareddata'), { recursive: true });
+  await mkdir(join(XCODE_PROJECT_DIR, 'ChronicleSync.xcodeproj', 'xcshareddata', 'xcschemes'), { recursive: true });
   
   // Create Info.plist for the extension
   const infoPlist = await createInfoPlist();
@@ -125,7 +128,7 @@ async function createXcodeProject() {
     rootObject = 8D8647D92B8F1F7A00A9D3F1 /* Project object */;
 }`;
   
-  await writeFile(join(XCODE_PROJECT_DIR, 'project.pbxproj'), pbxproj);
+  await writeFile(join(XCODE_PROJECT_DIR, 'ChronicleSync.xcodeproj', 'project.pbxproj'), pbxproj);
   
   // Create SafariWebExtensionHandler.swift
   const handlerSwift = `import SafariServices
@@ -186,6 +189,87 @@ class ViewController: UIViewController {
 }`;
   
   await writeFile(join(XCODE_PROJECT_DIR, 'ChronicleSync', 'ViewController.swift'), viewControllerSwift);
+  
+  // Create scheme file
+  const schemeXML = `<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "1520"
+   version = "1.7">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8D8647E02B8F1F7A00A9D3F1"
+               BuildableName = "ChronicleSync.app"
+               BlueprintName = "ChronicleSync"
+               ReferencedContainer = "container:ChronicleSync.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldAutocreateTestPlan = "YES">
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "8D8647E02B8F1F7A00A9D3F1"
+            BuildableName = "ChronicleSync.app"
+            BlueprintName = "ChronicleSync"
+            ReferencedContainer = "container:ChronicleSync.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "8D8647E02B8F1F7A00A9D3F1"
+            BuildableName = "ChronicleSync.app"
+            BlueprintName = "ChronicleSync"
+            ReferencedContainer = "container:ChronicleSync.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>`;
+  
+  await writeFile(join(XCODE_PROJECT_DIR, 'ChronicleSync.xcodeproj', 'xcshareddata', 'xcschemes', 'ChronicleSync.xcscheme'), schemeXML);
 }
 
 async function main() {

@@ -33,35 +33,57 @@ jobs:
       - name: Build for Simulator
         run: |
           cd extension/ChronicleSync
+          
+          # Find available iPhone simulator
+          echo "Finding available iPhone simulator..."
+          AVAILABLE_SIMULATOR=$(xcrun simctl list devices available | grep "iPhone" | grep -v "unavailable" | head -1)
+          SIMULATOR_NAME=$(echo "$AVAILABLE_SIMULATOR" | sed -E 's/.*iPhone[^(]*\(.*\).*/iPhone/' | xargs)
+          SIMULATOR_OS=$(echo "$AVAILABLE_SIMULATOR" | sed -E 's/.*iOS ([0-9.]+).*/\1/' | xargs)
+          
+          echo "Using simulator: $SIMULATOR_NAME with iOS $SIMULATOR_OS"
+          
           # Build for iPhone simulator
           xcodebuild \
             -scheme "ChronicleSync (iOS)" \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 15,OS=17.2" \
+            -destination "platform=iOS Simulator,id=`echo "$AVAILABLE_SIMULATOR" | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/'`" \
             -configuration Debug \
             -derivedDataPath build \
             clean build
       
       - name: Boot Simulator and Install App
         run: |
-          # Start the simulator - specifically looking for iPhone 15 with OS 17.2
-          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep "17.2" | grep -v "Pro" | grep -v "Plus" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          # List available simulators and find a suitable iPhone simulator
+          echo "Listing available simulators:"
+          xcrun simctl list devices available
+          
+          # Try to find iPhone 15 with any OS version
+          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "Pro" | grep -v "Plus" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          
+          # If not found, try any iPhone
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "iPhone 15 not found, trying any iPhone..."
+            SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          fi
+          
           echo "Using simulator with UDID: $SIMULATOR_UDID"
           
           # Check if we found a valid simulator
           if [ -z "$SIMULATOR_UDID" ]; then
-            echo "Error: Could not find iPhone 15 with OS 17.2 simulator. Listing available simulators:"
-            xcrun simctl list devices available
+            echo "Error: Could not find any iPhone simulator. Exiting."
             exit 1
           fi
           
           # Boot the simulator
+          echo "Booting simulator..."
           xcrun simctl boot "$SIMULATOR_UDID"
           
           # Wait for simulator to boot
+          echo "Waiting for simulator to boot..."
           sleep 20
           
           # Install the app
+          echo "Installing app..."
           APP_PATH="extension/ChronicleSync/build/Build/Products/Debug-iphonesimulator/ChronicleSync.app"
           xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
           

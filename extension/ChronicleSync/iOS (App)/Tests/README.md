@@ -15,6 +15,7 @@ The tests are organized into several files:
 7. `ExtensionPageInteractionTests.swift` - Tests for page interaction features
 8. `PagesTests.swift` - Tests for various pages in the extension
 9. `XCUIElementExtensions.swift` - Helper extensions for XCUIElement
+10. `TestsInfo.plist` - Configuration file for the test target
 
 ## Running the Tests
 

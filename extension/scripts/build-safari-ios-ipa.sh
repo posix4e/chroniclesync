@@ -25,22 +25,29 @@ echo "Building Safari iOS extension..."
 
 # Check if xcodebuild is available
 if ! command -v xcodebuild &> /dev/null; then
-  echo "xcodebuild command not found. Creating a mock IPA file for CI."
-  
-  # Create a mock IPA file for CI environments where Xcode is not available
-  mkdir -p "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app/Payload"
-  echo "Mock Safari iOS Extension" > "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app/Payload/info.txt"
-  
-  # Create a mock screenshot
-  echo "Mock Screenshot" > "${SCREENSHOT_PATH}"
-  
-  # Create a mock IPA
-  cd "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app"
-  zip -r "${IPA_PATH}" Payload
-  
-  echo "Created mock IPA file at: ${IPA_PATH}"
-  echo "Created mock screenshot at: ${SCREENSHOT_PATH}"
-  exit 0
+  # Check if we're running on macOS
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "ERROR: xcodebuild command not found on macOS. This is required for building Safari iOS extensions."
+    echo "Please make sure Xcode is installed and xcodebuild is available in your PATH."
+    exit 1
+  else
+    echo "Running on non-macOS platform. Creating a mock IPA file for CI."
+    
+    # Create a mock IPA file for CI environments where Xcode is not available
+    mkdir -p "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app/Payload"
+    echo "Mock Safari iOS Extension" > "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app/Payload/info.txt"
+    
+    # Create a mock screenshot
+    echo "Mock Screenshot" > "${SCREENSHOT_PATH}"
+    
+    # Create a mock IPA
+    cd "${ARCHIVE_PATH}/Products/Applications/${PROJECT_NAME}.app"
+    zip -r "${IPA_PATH}" Payload
+    
+    echo "Created mock IPA file at: ${IPA_PATH}"
+    echo "Created mock screenshot at: ${SCREENSHOT_PATH}"
+    exit 0
+  fi
 fi
 
 # Build the archive for simulator
@@ -65,12 +72,19 @@ echo "IPA file created at: ${IPA_PATH}"
 
 # Check if xcrun is available
 if ! command -v xcrun &> /dev/null; then
-  echo "xcrun command not found. Skipping simulator tests."
-  
-  # Create a mock screenshot if it doesn't exist yet
-  if [ ! -f "${SCREENSHOT_PATH}" ]; then
-    echo "Creating mock screenshot..."
-    echo "Mock Screenshot" > "${SCREENSHOT_PATH}"
+  # Check if we're running on macOS
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "ERROR: xcrun command not found on macOS. This is required for testing Safari iOS extensions."
+    echo "Please make sure Xcode is installed and xcrun is available in your PATH."
+    exit 1
+  else
+    echo "Running on non-macOS platform. Skipping simulator tests."
+    
+    # Create a mock screenshot if it doesn't exist yet
+    if [ ! -f "${SCREENSHOT_PATH}" ]; then
+      echo "Creating mock screenshot..."
+      echo "Mock Screenshot" > "${SCREENSHOT_PATH}"
+    fi
   fi
 else
   # Launch simulator and install the app

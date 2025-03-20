@@ -189,6 +189,8 @@ jobs:
     needs: build-and-test
     if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.browser == '' || github.event.inputs.browser == 'safari-ios')
     runs-on: macos-latest
+    env:
+      XCODE_PATH: "/Applications/Xcode.app"
     steps:
       - uses: actions/checkout@v4
 
@@ -201,6 +203,15 @@ jobs:
       - name: Install dependencies
         working-directory: extension
         run: npm ci
+
+      - name: Verify Xcode installation
+        run: |
+          if [ ! -d "$XCODE_PATH" ]; then
+            echo "ERROR: Xcode not found at $XCODE_PATH"
+            exit 1
+          fi
+          xcodebuild -version
+          xcrun --version
 
       - name: Build Safari iOS extension
         working-directory: extension

@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "ChronicleSync",
+  "version": "1.0",
+  "description": "Sync your browsing history across devices with ChronicleSync",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    }
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [{
+    "resources": ["history.html"],
+    "matches": ["<all_urls>"]
+  }],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "history",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://api.chroniclesync.xyz/*",
+    "https://api-staging.chroniclesync.xyz/*"
+  ]
+}

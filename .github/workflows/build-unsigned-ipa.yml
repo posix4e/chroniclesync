@@ -101,18 +101,38 @@ jobs:
             echo "Error: Info.plist not found in app bundle. Listing app bundle contents:"
             ls -la "$APP_PATH"
             exit 1
+          else
+            echo "Info.plist found. Examining contents:"
+            echo "File size: $(wc -c < "$APP_PATH/Info.plist") bytes"
+            echo "First 20 lines of Info.plist:"
+            head -n 20 "$APP_PATH/Info.plist"
+            echo "..."
           fi
           
-          # Get bundle identifier
-          BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier || echo "")
+          # Get bundle identifier using multiple methods
+          echo "Attempting to read bundle identifier..."
+          
+          # Method 1: Use plutil (preferred method)
+          BUNDLE_ID=$(plutil -p "$APP_PATH/Info.plist" 2>/dev/null | grep CFBundleIdentifier | awk -F'"' '{print $4}' || echo "")
+          
+          # Method 2: Use grep directly on the plist file
           if [ -z "$BUNDLE_ID" ]; then
-            echo "Warning: Could not read bundle identifier from Info.plist. Using fallback method..."
-            BUNDLE_ID=$(plutil -p "$APP_PATH/Info.plist" | grep CFBundleIdentifier | awk -F'"' '{print $4}' || echo "")
-            if [ -z "$BUNDLE_ID" ]; then
-              echo "Warning: Still could not determine bundle identifier. Using default..."
-              BUNDLE_ID="com.chroniclesync.app"
-            fi
+            echo "Trying alternative method to read bundle identifier..."
+            BUNDLE_ID=$(grep -A1 CFBundleIdentifier "$APP_PATH/Info.plist" 2>/dev/null | grep string | sed -E 's/.*<string>(.*)<\/string>.*/\1/' || echo "")
           fi
+          
+          # Method 3: Use defaults with correct path
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "Trying defaults command to read bundle identifier..."
+            BUNDLE_ID=$(defaults read "$APP_PATH/Info.plist" CFBundleIdentifier 2>/dev/null || echo "")
+          fi
+          
+          # Fallback to default if all methods fail
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "Warning: Could not determine bundle identifier. Using default..."
+            BUNDLE_ID="xyz.chroniclesync.ChronicleSync"
+          fi
+          
           echo "Bundle identifier: $BUNDLE_ID"
           
           # Install the app

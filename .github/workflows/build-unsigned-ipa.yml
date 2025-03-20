@@ -37,7 +37,7 @@ jobs:
           xcodebuild \
             -scheme "ChronicleSync (iOS)" \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \
             -configuration Debug \
             -derivedDataPath build \
             clean build
@@ -45,18 +45,29 @@ jobs:
       - name: Boot Simulator and Install App
         run: |
           # Start the simulator
-          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 16" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
           echo "Using simulator with UDID: $SIMULATOR_UDID"
+          
+          # Check if we found a valid simulator
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "Error: Could not find iPhone 15 simulator. Listing available simulators:"
+            xcrun simctl list devices available
+            exit 1
+          fi
           
           # Boot the simulator
           xcrun simctl boot "$SIMULATOR_UDID"
           
           # Wait for simulator to boot
-          sleep 10
+          sleep 15
           
           # Install the app
           APP_PATH="extension/ChronicleSync/build/Build/Products/Debug-iphonesimulator/ChronicleSync.app"
           xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
+          
+          # Verify installation
+          echo "Verifying app installation..."
+          xcrun simctl listapps "$SIMULATOR_UDID" | grep -q ChronicleSync || echo "Warning: App may not have been installed correctly"
           
           # Create screenshots directory
           mkdir -p screenshots

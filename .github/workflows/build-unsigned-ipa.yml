@@ -24,11 +24,33 @@ jobs:
       - name: List Available Simulators
         run: xcrun simctl list devices available
       
-      - name: Install Dependencies
+      - name: Install Dependencies and Update iOS Extension Files
         run: |
-          cd extension/ChronicleSync
-          # Add any dependency installation steps here if needed
-          # For example: pod install, etc.
+          cd extension
+          npm install
+          
+          # Build and copy files to iOS extension
+          npm run build:ios
+          
+          # Check if there are any changes to commit
+          cd ..
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Changes detected in iOS extension files"
+            
+            # Configure Git
+            git config --local user.email "github-actions@github.com"
+            git config --local user.name "GitHub Actions"
+            
+            # Commit the changes
+            git add extension/ChronicleSync/Shared\ \(Extension\)/Resources/
+            git commit -m "Update iOS extension files from Chrome extension source"
+            
+            # We don't push here to avoid unexpected changes during PR builds
+            # The changes will be visible in the build logs
+            echo "Changes committed but not pushed. Review and push manually if needed."
+          else
+            echo "No changes detected in iOS extension files"
+          fi
       
       - name: Build for Simulator
         run: |

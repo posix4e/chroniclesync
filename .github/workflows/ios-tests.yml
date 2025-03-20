@@ -1,0 +1,44 @@
+name: iOS Tests
+
+on:
+  push:
+    branches: [ main, add-github-actions-workflow ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: extension/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd extension
+        npm ci
+    
+    - name: Install Playwright browsers
+      run: |
+        cd extension
+        npx playwright install --with-deps chromium
+    
+    - name: Run iOS tests
+      run: |
+        cd extension
+        npm run test:e2e:ios
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report
+        path: extension/test-results/
+        retention-days: 30

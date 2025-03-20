@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronicleSync iOS App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+        }
+        .button:hover {
+            background-color: #0077ed;
+        }
+        .info-box {
+            background-color: #f2f2f7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        .info-label {
+            font-weight: 500;
+            color: #666;
+        }
+        .info-value {
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ChronicleSync</h1>
+        
+        <div id="ios-platform-info" class="info-box">
+            <h3>Device Information</h3>
+            <div class="info-item">
+                <span class="info-label">Platform:</span>
+                <span class="info-value" id="platform">iOS</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Model:</span>
+                <span class="info-value" id="model">iPhone14,3</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">OS Version:</span>
+                <span class="info-value" id="osVersion">16.5</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Device ID:</span>
+                <span class="info-value" id="deviceId">12345678-1234-1234-1234-123456789012</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">App Version:</span>
+                <span class="info-value" id="appVersion">1.0.0</span>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button id="openSettings" class="button">Open Settings</button>
+            <button id="openWebsite" class="button">Visit ChronicleSync Website</button>
+            <button id="saveData" class="button">Save Test Data</button>
+            <button id="loadData" class="button">Load Test Data</button>
+        </div>
+        
+        <div id="result" class="info-box" style="display: none;">
+            <h3>Operation Result</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Mock iOS native messaging
+        const mockNative = {
+            // Storage for mock data
+            storage: new Map(),
+            
+            // Mock device info
+            deviceInfo: {
+                platform: 'iOS',
+                model: 'iPhone14,3',
+                osVersion: '16.5',
+                deviceId: '12345678-1234-1234-1234-123456789012',
+                appVersion: '1.0.0'
+            },
+            
+            // Mock message handler
+            postMessage: function(message) {
+                console.log('Message to native:', message);
+                
+                // Show result box
+                document.getElementById('result').style.display = 'block';
+                
+                // Handle different message types
+                switch(message.type) {
+                    case 'open-settings':
+                        document.getElementById('resultContent').textContent = 'Settings opened';
+                        return { success: true, message: 'Settings opened' };
+                    
+                    case 'open-website':
+                        document.getElementById('resultContent').textContent = 'Website opened';
+                        return { success: true, message: 'Website opened' };
+                    
+                    case 'getDeviceInfo':
+                        document.getElementById('resultContent').textContent = 'Device info retrieved';
+                        return { success: true, data: this.deviceInfo };
+                    
+                    case 'saveToNative':
+                        if (message.data && message.data.key) {
+                            this.storage.set(message.data.key, message.data.value);
+                            document.getElementById('resultContent').textContent = `Data saved with key: ${message.data.key}`;
+                            return { success: true, message: 'Data saved successfully' };
+                        } else {
+                            document.getElementById('resultContent').textContent = 'Error: Missing key or value';
+                            return { success: false, message: 'Missing key or value' };
+                        }
+                    
+                    case 'loadFromNative':
+                        if (message.key) {
+                            const value = this.storage.get(message.key);
+                            if (value) {
+                                document.getElementById('resultContent').textContent = `Data loaded: ${JSON.stringify(value)}`;
+                                return { success: true, data: { key: message.key, value } };
+                            } else {
+                                document.getElementById('resultContent').textContent = `No data found for key: ${message.key}`;
+                                return { success: false, message: `No data found for key: ${message.key}` };
+                            }
+                        } else {
+                            document.getElementById('resultContent').textContent = 'Error: Missing key';
+                            return { success: false, message: 'Missing key' };
+                        }
+                    
+                    default:
+                        document.getElementById('resultContent').textContent = `Unknown message type: ${message.type}`;
+                        return { success: false, message: 'Unknown message type' };
+                }
+            }
+        };
+
+        // Initialize UI with device info
+        document.getElementById('platform').textContent = mockNative.deviceInfo.platform;
+        document.getElementById('model').textContent = mockNative.deviceInfo.model;
+        document.getElementById('osVersion').textContent = mockNative.deviceInfo.osVersion;
+        document.getElementById('deviceId').textContent = mockNative.deviceInfo.deviceId;
+        document.getElementById('appVersion').textContent = mockNative.deviceInfo.appVersion;
+
+        // Set up button event listeners
+        document.getElementById('openSettings').addEventListener('click', function() {
+            mockNative.postMessage({ type: 'open-settings' });
+        });
+
+        document.getElementById('openWebsite').addEventListener('click', function() {
+            mockNative.postMessage({ type: 'open-website' });
+        });
+
+        document.getElementById('saveData').addEventListener('click', function() {
+            const testData = {
+                name: 'Test User',
+                settings: {
+                    theme: 'dark',
+                    notifications: true
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            mockNative.postMessage({
+                type: 'saveToNative',
+                data: {
+                    key: 'testData',
+                    value: testData
+                }
+            });
+        });
+
+        document.getElementById('loadData').addEventListener('click', function() {
+            mockNative.postMessage({
+                type: 'loadFromNative',
+                key: 'testData'
+            });
+        });
+
+        // Mock the webkit message handler for testing
+        window.webkit = {
+            messageHandlers: {
+                controller: {
+                    postMessage: function(message) {
+                        return mockNative.postMessage(message);
+                    }
+                }
+            }
+        };
+
+        // Listen for custom events (for testing)
+        window.addEventListener('mock-native-message', function(event) {
+            if (event.detail) {
+                mockNative.postMessage(event.detail);
+            }
+        });
+    </script>
+</body>
+</html>

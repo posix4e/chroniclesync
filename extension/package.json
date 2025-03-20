@@ -16,6 +16,7 @@
     "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=firefox",
     "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
+    "test:e2e:ios": "cd e2e && ./run-ios-tests.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

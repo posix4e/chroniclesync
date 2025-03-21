@@ -1,0 +1,210 @@
+name: iOS XCTest Suite
+
+on:
+  push:
+    branches: [ main, ios-* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      debug_mode:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  ios-xctest:
+    name: Run iOS XCTests
+    runs-on: macos-latest
+    
+    env:
+      API_BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz' }}
+      WEB_BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://chroniclesync.xyz' || 'https://staging.chroniclesync.xyz' }}
+      DEBUG_MODE: ${{ github.event.inputs.debug_mode && 'true' || 'false' }}
+      TEST_USERNAME: ${{ secrets.TEST_USERNAME || 'test@example.com' }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD || 'TestPassword123' }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: List Available Simulators
+        run: xcrun simctl list devices available
+      
+      # Find a suitable simulator
+      - name: Find Suitable Simulator
+        id: find_simulator
+        run: |
+          # Try to find iPhone 15 with any OS version
+          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 15" | grep -v "Pro" | grep -v "Plus" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          
+          # If not found, try any iPhone
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "iPhone 15 not found, trying any iPhone..."
+            SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          fi
+          
+          echo "Using simulator with UDID: $SIMULATOR_UDID"
+          echo "simulator_udid=$SIMULATOR_UDID" >> $GITHUB_OUTPUT
+          
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "Error: Could not find any iPhone simulator. Exiting."
+            exit 1
+          fi
+      
+      # Add test target to Xcode project
+      - name: Add Test Target to Xcode Project
+        run: |
+          cd extension/ChronicleSync
+          
+          # Create a script to add the test target
+          cat > add_test_target.rb << 'EOF'
+          #!/usr/bin/env ruby
+          require 'xcodeproj'
+          
+          # Open the project
+          project_path = 'ChronicleSync.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          # Find the iOS app target
+          ios_app_target = project.targets.find { |t| t.name == 'ChronicleSync (iOS)' }
+          
+          if ios_app_target.nil?
+            puts "Error: Could not find iOS app target"
+            exit 1
+          end
+          
+          # Create a new test target
+          test_target = project.new_target(:unit_test_bundle, 'ChronicleSync iOS Tests', :ios)
+          
+          # Add test files to the target
+          test_files_dir = 'iOS (Tests)'
+          test_files = Dir.glob("#{test_files_dir}/*.swift")
+          
+          # Create a group for test files if it doesn't exist
+          test_group = project.main_group.find_subpath('iOS (Tests)', true)
+          
+          # Add files to the group and target
+          test_files.each do |file_path|
+            file_ref = test_group.new_file(File.basename(file_path))
+            test_target.add_file_references([file_ref])
+          end
+          
+          # Add Info.plist to the test target
+          info_plist_path = 'iOS (Tests)/Info.plist'
+          info_plist_ref = test_group.new_file(File.basename(info_plist_path))
+          
+          # Set the Info.plist path in build settings
+          test_target.build_configurations.each do |config|
+            config.build_settings['INFOPLIST_FILE'] = info_plist_path
+            config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'xyz.chroniclesync.ChronicleSync.Tests'
+            config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
+            config.build_settings['TEST_TARGET_NAME'] = 'ChronicleSync (iOS)'
+          end
+          
+          # Create a test plan if it doesn't exist
+          test_plan_path = 'iOS (Tests)/ChronicleSync.xctestplan'
+          test_plan_ref = test_group.new_file(File.basename(test_plan_path))
+          
+          # Add a dependency on the app target
+          test_target.add_dependency(ios_app_target)
+          
+          # Save the project
+          project.save
+          
+          puts "Test target added successfully"
+          EOF
+          
+          # Make the script executable
+          chmod +x add_test_target.rb
+          
+          # Install xcodeproj gem
+          gem install xcodeproj
+          
+          # Run the script
+          ./add_test_target.rb
+      
+      # Build and run tests
+      - name: Build and Run Tests
+        env:
+          TEST_ENVIRONMENT_URL: ${{ env.WEB_BASE_URL }}
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+          TEST_USERNAME: ${{ env.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ env.TEST_PASSWORD }}
+          DEBUG_MODE: ${{ env.DEBUG_MODE }}
+        run: |
+          cd extension/ChronicleSync
+          
+          # Create a directory for test results
+          mkdir -p ../../test-results
+          
+          # Build and test
+          xcodebuild \
+            -scheme "ChronicleSync iOS Tests" \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${{ steps.find_simulator.outputs.simulator_udid }}" \
+            -resultBundlePath ../../test-results/TestResults.xcresult \
+            test
+      
+      # Generate test report
+      - name: Generate Test Report
+        if: always()
+        run: |
+          # Create a simple HTML report
+          cat > test-results/report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>iOS XCTest Results</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              h1 { color: #333; }
+              .success { color: green; }
+              .failure { color: red; }
+              .test-summary { margin: 20px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }
+              .screenshots { display: flex; flex-wrap: wrap; gap: 10px; }
+              .screenshot { margin: 10px; }
+              .screenshot img { max-width: 300px; border: 1px solid #ddd; }
+            </style>
+          </head>
+          <body>
+            <h1>iOS XCTest Results</h1>
+            
+            <div class="test-summary">
+              <h2>Test Environment</h2>
+              <p><strong>API URL:</strong> $API_BASE_URL</p>
+              <p><strong>Web URL:</strong> $TEST_ENVIRONMENT_URL</p>
+              <p><strong>Debug Mode:</strong> $DEBUG_MODE</p>
+              <p><strong>Date:</strong> $(date)</p>
+            </div>
+            
+            <div class="test-results">
+              <h2>Test Results</h2>
+              <p>See attached XCTest results for detailed information.</p>
+            </div>
+          </body>
+          </html>
+          EOF
+      
+      # Upload test results
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-xctest-results
+          path: test-results/
+          retention-days: 14

@@ -129,14 +129,6 @@ jobs:
           *Note: These are basic screenshots. The extension may need to be manually enabled in Settings > Safari > Extensions.*
           EOF
       
-      - name: Create Unsigned IPA
-        run: |
-          cd extension/ChronicleSync
-          mkdir -p Payload artifacts
-          cp -r build/Build/Products/Debug-iphonesimulator/ChronicleSync.app Payload/
-          zip -r ChronicleSync-Simulator.ipa Payload
-          mv ChronicleSync-Simulator.ipa artifacts/
-      
       - name: Prepare UI Tests
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.run_uitests == 'true'
         run: |
@@ -161,6 +153,14 @@ jobs:
             -sdk iphonesimulator \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.simulator_udid }}" \
             -resultBundlePath TestResults
+      
+      - name: Create Unsigned IPA
+        run: |
+          cd extension/ChronicleSync
+          mkdir -p Payload artifacts
+          cp -r build/Build/Products/Debug-iphonesimulator/ChronicleSync.app Payload/
+          zip -r ChronicleSync-Simulator.ipa Payload
+          mv ChronicleSync-Simulator.ipa artifacts/
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

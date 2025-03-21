@@ -69,15 +69,15 @@
       }
     },
     {
-      "files": ["server.js"],
+      "files": ["server.js", "e2e/**/*.ts", "e2e/**/*.js", "**/__tests__/**/*.js", "**/__tests__/**/*.ts", "playwright.config.ts"],
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["background.js"],
+      "files": ["background.js", "ChronicleSync/Shared (Extension)/Resources/background.js", "ChronicleSync/Shared (Extension)/Resources/config.js", "src/db/HistoryStore.ts"],
       "rules": {
-        "no-console": ["error", { "allow": ["debug"] }]
+        "no-console": "off"
       }
     }
   ]

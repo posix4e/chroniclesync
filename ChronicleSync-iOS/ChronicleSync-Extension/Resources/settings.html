@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #0077ff;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    button {
+      background-color: #0077ff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0066cc;
+    }
+    .section {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChronicleSync Settings</h1>
+  
+  <div class="section">
+    <h2>Account</h2>
+    <div class="form-group">
+      <label for="apiKey">API Key</label>
+      <input type="text" id="apiKey" placeholder="Enter your API key">
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Sync Settings</h2>
+    <div class="form-group">
+      <label for="enableSync">Enable Sync</label>
+      <label class="switch">
+        <input type="checkbox" id="enableSync" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="form-group">
+      <label for="syncFrequency">Sync Frequency</label>
+      <select id="syncFrequency">
+        <option value="15">Every 15 minutes</option>
+        <option value="30" selected>Every 30 minutes</option>
+        <option value="60">Every hour</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Privacy</h2>
+    <div class="form-group">
+      <label for="privacyMode">Privacy Mode</label>
+      <select id="privacyMode">
+        <option value="standard" selected>Standard</option>
+        <option value="enhanced">Enhanced Privacy</option>
+      </select>
+    </div>
+  </div>
+  
+  <button id="saveSettings">Save Settings</button>
+  
+  <script src="browser-polyfill.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get form elements
+      const apiKeyInput = document.getElementById('apiKey');
+      const enableSyncCheckbox = document.getElementById('enableSync');
+      const syncFrequencySelect = document.getElementById('syncFrequency');
+      const privacyModeSelect = document.getElementById('privacyMode');
+      const saveButton = document.getElementById('saveSettings');
+      
+      // Load settings from storage
+      browser.storage.local.get([
+        'chronicleSync_apiKey',
+        'chronicleSync_enableSync',
+        'chronicleSync_syncFrequency',
+        'chronicleSync_privacyMode'
+      ], function(result) {
+        if (result.chronicleSync_apiKey) {
+          apiKeyInput.value = result.chronicleSync_apiKey;
+        }
+        
+        if (result.chronicleSync_enableSync !== undefined) {
+          enableSyncCheckbox.checked = result.chronicleSync_enableSync;
+        }
+        
+        if (result.chronicleSync_syncFrequency) {
+          syncFrequencySelect.value = result.chronicleSync_syncFrequency;
+        }
+        
+        if (result.chronicleSync_privacyMode) {
+          privacyModeSelect.value = result.chronicleSync_privacyMode;
+        }
+      });
+      
+      // Save settings
+      saveButton.addEventListener('click', function() {
+        const settings = {
+          chronicleSync_apiKey: apiKeyInput.value,
+          chronicleSync_enableSync: enableSyncCheckbox.checked,
+          chronicleSync_syncFrequency: syncFrequencySelect.value,
+          chronicleSync_privacyMode: privacyModeSelect.value
+        };
+        
+        browser.storage.local.set(settings, function() {
+          alert('Settings saved successfully!');
+          
+          // Send message to background script to update settings
+          browser.runtime.sendMessage({
+            action: 'settingsUpdated',
+            settings: settings
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

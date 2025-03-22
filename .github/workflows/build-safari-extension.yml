@@ -1,0 +1,56 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Install dependencies
+      run: |
+        cd ChronicleSync-iOS
+        pod install || true
+    
+    - name: Build
+      run: |
+        cd ChronicleSync-iOS
+        xcodebuild clean build -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-iOS" -destination "platform=iOS Simulator,name=iPhone 14" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+    
+    - name: Run tests
+      run: |
+        cd ChronicleSync-iOS
+        xcodebuild test -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-ExtensionTests" -destination "platform=iOS Simulator,name=iPhone 14" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+    
+    - name: Create IPA
+      run: |
+        cd ChronicleSync-iOS
+        mkdir -p build/ipa
+        xcodebuild -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-iOS" -configuration Release -archivePath build/ChronicleSync.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+        xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/ipa -exportOptionsPlist exportOptions.plist || true
+        # Create a dummy IPA if export fails due to signing issues
+        if [ ! -f build/ipa/ChronicleSync-iOS.ipa ]; then
+          cd build/ipa
+          mkdir -p Payload/ChronicleSync-iOS.app
+          cp -r ../ChronicleSync.xcarchive/Products/Applications/ChronicleSync-iOS.app/* Payload/ChronicleSync-iOS.app/
+          zip -r ChronicleSync-iOS.ipa Payload
+          rm -rf Payload
+        fi
+    
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: ChronicleSync-iOS
+        path: ChronicleSync-iOS/build/ipa/ChronicleSync-iOS.ipa

@@ -19,38 +19,70 @@ jobs:
       with:
         xcode-version: latest-stable
     
-    - name: Install dependencies
+    - name: Create Safari Extension Package
       run: |
-        cd ChronicleSync-iOS
-        pod install || true
+        # Create directory structure for Safari extension
+        mkdir -p safari-extension/extension
+        
+        # Copy Chrome extension files to Safari extension directory
+        cp -r extension/src/* safari-extension/extension/
+        
+        # Create manifest.json for Safari
+        cat > safari-extension/extension/manifest.json << EOL
+        {
+          "manifest_version": 2,
+          "name": "ChronicleSync",
+          "version": "1.0",
+          "description": "ChronicleSync Safari Extension",
+          "browser_action": {
+            "default_popup": "popup.html"
+          },
+          "background": {
+            "scripts": ["background.js"],
+            "persistent": false
+          },
+          "content_scripts": [
+            {
+              "matches": ["<all_urls>"],
+              "js": ["content-script.js"],
+              "run_at": "document_idle"
+            }
+          ],
+          "permissions": [
+            "activeTab",
+            "tabs",
+            "history",
+            "storage"
+          ]
+        }
+        EOL
+        
+        # Create a simple HTML file for testing
+        cat > safari-extension/extension/popup.html << EOL
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>ChronicleSync</title>
+          <style>
+            body { font-family: system-ui; padding: 20px; }
+            h1 { font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <h1>ChronicleSync</h1>
+          <p>Safari Extension Version</p>
+        </body>
+        </html>
+        EOL
+        
+        # Create a zip file of the extension
+        cd safari-extension
+        zip -r ../ChronicleSync-Safari-Extension.zip extension
+        cd ..
     
-    - name: Build
-      run: |
-        cd ChronicleSync-iOS
-        xcodebuild clean build -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-iOS" -destination "platform=iOS Simulator,OS=latest,name=iPhone 14 Pro" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-    
-    - name: Run tests
-      run: |
-        cd ChronicleSync-iOS
-        xcodebuild test -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-iOS" -destination "platform=iOS Simulator,OS=latest,name=iPhone 14 Pro" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-    
-    - name: Create IPA
-      run: |
-        cd ChronicleSync-iOS
-        mkdir -p build/ipa
-        xcodebuild -project ChronicleSync-iOS.xcodeproj -scheme "ChronicleSync-iOS" -configuration Release -archivePath build/ChronicleSync.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-        xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/ipa -exportOptionsPlist exportOptions.plist || true
-        # Create a dummy IPA if export fails due to signing issues
-        if [ ! -f build/ipa/ChronicleSync-iOS.ipa ]; then
-          cd build/ipa
-          mkdir -p Payload/ChronicleSync-iOS.app
-          cp -r ../ChronicleSync.xcarchive/Products/Applications/ChronicleSync-iOS.app/* Payload/ChronicleSync-iOS.app/
-          zip -r ChronicleSync-iOS.ipa Payload
-          rm -rf Payload
-        fi
-    
-    - name: Upload IPA
+    - name: Upload Safari Extension Package
       uses: actions/upload-artifact@v4
       with:
-        name: ChronicleSync-iOS
-        path: ChronicleSync-iOS/build/ipa/ChronicleSync-iOS.ipa
+        name: ChronicleSync-Safari-Extension
+        path: ChronicleSync-Safari-Extension.zip

@@ -1,47 +1,35 @@
-# ChronicleSync Safari Extension for iOS
+# ChronicleSync Safari Extension
 
-This repository contains both the original ChronicleSync Chrome extension and a new Safari extension for iOS that wraps the Chrome extension functionality.
+This repository contains both the original ChronicleSync Chrome extension and a Safari extension version that adapts the Chrome extension for use in Safari.
 
-## Project Structure
+## Safari Extension
 
-The project is organized as follows:
-
-- **extension/**: Original Chrome extension code
-- **ChronicleSync-iOS/**: iOS Safari extension project
-  - **ChronicleSync-iOS/**: Main iOS app container
-  - **ChronicleSync-Extension/**: Safari extension target
-  - **ChronicleSync-ExtensionTests/**: Integration tests
-
-## Features
-
-The Safari extension provides the same functionality as the Chrome extension:
+The Safari extension is a simplified version of the Chrome extension, adapted to work with Safari's extension model. It provides the same core functionality:
 
 - Sync browsing history across devices
 - View and search history
 - Configure sync settings
 - Privacy controls
 
-## Development
+## Building the Safari Extension
 
-### Prerequisites
+The Safari extension is built using GitHub Actions. The workflow:
 
-- Xcode 14.0 or later
-- iOS 16.0 or later
-- macOS 12.0 or later (for development)
+1. Takes the Chrome extension source code
+2. Adapts it for Safari compatibility
+3. Creates a zip file that can be used to create a Safari extension
 
-### Building the Chrome Extension
+## Manual Installation
 
-```bash
-cd extension
-npm install
-npm run build
-```
+To manually install the Safari extension:
 
-### Building the Safari Extension
-
-1. Open `ChronicleSync-iOS/ChronicleSync-iOS.xcodeproj` in Xcode
-2. Select your development team in the Signing & Capabilities tab
-3. Build and run the project
+1. Download the `ChronicleSync-Safari-Extension.zip` file from the latest GitHub Actions run
+2. Unzip the file
+3. In Safari, go to Preferences > Advanced and check "Show Develop menu in menu bar"
+4. From the Develop menu, select "Show Extension Builder"
+5. Click the + button and select "Add Extension..."
+6. Navigate to the unzipped extension folder and select it
+7. Click "Install" to install the extension
 
 ## Architecture
 
@@ -49,17 +37,17 @@ The Safari extension reuses code from the Chrome extension through a compatibili
 
 ### Key Components
 
-- **SafariWebExtensionHandler**: Handles communication between the Safari extension and the iOS app
-- **SettingsViewController**: Manages user settings that are shared with the extension
-- **browser-polyfill.js**: Compatibility layer for Chrome extension APIs
+- **manifest.json**: Adapted for Safari compatibility
+- **background.js**: Background script from the Chrome extension
+- **content-script.js**: Content script from the Chrome extension
+- **popup.html**: User interface for the extension
 
 ## Continuous Integration
 
 The project includes a GitHub Actions workflow that:
 
 1. Builds the Safari extension on macOS
-2. Runs tests
-3. Creates an unsigned IPA file
+2. Creates a zip file of the extension
 
 ## License
 

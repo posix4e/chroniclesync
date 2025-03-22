@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync History</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .search-container {
+      margin-bottom: 20px;
+    }
+    #searchInput {
+      width: 70%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    #searchButton {
+      padding: 10px 15px;
+      background-color: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    #searchButton:hover {
+      background-color: #0066cc;
+    }
+    .history-item {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+    }
+    .history-item:hover {
+      background-color: #f9f9f9;
+    }
+    .favicon {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+    }
+    .history-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .history-url {
+      color: #0077ff;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .history-time {
+      color: #666;
+      font-size: 14px;
+      margin-left: auto;
+      min-width: 150px;
+      text-align: right;
+    }
+    .history-content {
+      flex-grow: 1;
+    }
+    .filters {
+      display: flex;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+    .filter-button {
+      padding: 8px 12px;
+      background-color: #f0f0f0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .filter-button.active {
+      background-color: #0077ff;
+      color: white;
+    }
+    .no-results {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 10px;
+    }
+    .pagination button {
+      padding: 8px 12px;
+      background-color: #f0f0f0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .pagination button.active {
+      background-color: #0077ff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Browsing History</h1>
+  
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search history...">
+    <button id="searchButton">Search</button>
+  </div>
+  
+  <div class="filters">
+    <button class="filter-button active" data-period="all">All History</button>
+    <button class="filter-button" data-period="today">Today</button>
+    <button class="filter-button" data-period="yesterday">Yesterday</button>
+    <button class="filter-button" data-period="week">Last 7 Days</button>
+    <button class="filter-button" data-period="month">Last 30 Days</button>
+  </div>
+  
+  <div id="historyList">
+    <!-- History items will be inserted here -->
+    <div class="no-results">Loading history...</div>
+  </div>
+  
+  <div class="pagination" id="pagination">
+    <!-- Pagination buttons will be inserted here -->
+  </div>
+  
+  <script src="browser-polyfill.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('searchInput');
+      const searchButton = document.getElementById('searchButton');
+      const historyList = document.getElementById('historyList');
+      const filterButtons = document.querySelectorAll('.filter-button');
+      const pagination = document.getElementById('pagination');
+      
+      let currentFilter = 'all';
+      let currentPage = 1;
+      const itemsPerPage = 20;
+      let historyItems = [];
+      
+      // Load history from storage
+      loadHistory();
+      
+      // Add event listeners
+      searchButton.addEventListener('click', searchHistory);
+      searchInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+          searchHistory();
+        }
+      });
+      
+      filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          currentFilter = this.dataset.period;
+          currentPage = 1;
+          displayHistory();
+        });
+      });
+      
+      function loadHistory() {
+        // In a real implementation, this would load history from the browser
+        // For this demo, we'll use mock data
+        browser.storage.local.get('chronicleSync_history', function(result) {
+          if (result.chronicleSync_history) {
+            historyItems = result.chronicleSync_history;
+          } else {
+            // Mock data if no history is found
+            historyItems = [
+              {
+                title: 'ChronicleSync - Home',
+                url: 'https://chroniclesync.xyz',
+                visitTime: new Date().getTime() - 1000 * 60 * 5, // 5 minutes ago
+                favicon: 'https://chroniclesync.xyz/favicon.ico'
+              },
+              {
+                title: 'GitHub - ChronicleSync',
+                url: 'https://github.com/chroniclesync/chroniclesync',
+                visitTime: new Date().getTime() - 1000 * 60 * 30, // 30 minutes ago
+                favicon: 'https://github.com/favicon.ico'
+              },
+              {
+                title: 'ChronicleSync Documentation',
+                url: 'https://docs.chroniclesync.xyz',
+                visitTime: new Date().getTime() - 1000 * 60 * 60, // 1 hour ago
+                favicon: 'https://docs.chroniclesync.xyz/favicon.ico'
+              }
+            ];
+            
+            // Save mock data to storage
+            browser.storage.local.set({ 'chronicleSync_history': historyItems });
+          }
+          
+          displayHistory();
+        });
+      }
+      
+      function searchHistory() {
+        const query = searchInput.value.toLowerCase();
+        
+        if (query.trim() === '') {
+          displayHistory();
+          return;
+        }
+        
+        const filteredItems = historyItems.filter(item => 
+          item.title.toLowerCase().includes(query) || 
+          item.url.toLowerCase().includes(query)
+        );
+        
+        displayHistoryItems(filteredItems);
+      }
+      
+      function displayHistory() {
+        let filteredItems = [...historyItems];
+        
+        // Apply time filter
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterday = today - 24 * 60 * 60 * 1000;
+        const lastWeek = today - 7 * 24 * 60 * 60 * 1000;
+        const lastMonth = today - 30 * 24 * 60 * 60 * 1000;
+        
+        switch (currentFilter) {
+          case 'today':
+            filteredItems = filteredItems.filter(item => item.visitTime >= today);
+            break;
+          case 'yesterday':
+            filteredItems = filteredItems.filter(item => item.visitTime >= yesterday && item.visitTime < today);
+            break;
+          case 'week':
+            filteredItems = filteredItems.filter(item => item.visitTime >= lastWeek);
+            break;
+          case 'month':
+            filteredItems = filteredItems.filter(item => item.visitTime >= lastMonth);
+            break;
+        }
+        
+        // Sort by visit time (newest first)
+        filteredItems.sort((a, b) => b.visitTime - a.visitTime);
+        
+        displayHistoryItems(filteredItems);
+      }
+      
+      function displayHistoryItems(items) {
+        // Calculate pagination
+        const totalPages = Math.ceil(items.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageItems = items.slice(startIndex, endIndex);
+        
+        // Clear history list
+        historyList.innerHTML = '';
+        
+        if (pageItems.length === 0) {
+          historyList.innerHTML = '<div class="no-results">No history items found</div>';
+          pagination.innerHTML = '';
+          return;
+        }
+        
+        // Create history items
+        pageItems.forEach(item => {
+          const historyItem = document.createElement('div');
+          historyItem.className = 'history-item';
+          
+          const visitDate = new Date(item.visitTime);
+          const formattedDate = visitDate.toLocaleString();
+          
+          historyItem.innerHTML = `
+            <img class="favicon" src="${item.favicon || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="%23ccc"/></svg>'}" alt="">
+            <div class="history-content">
+              <div class="history-title">${item.title}</div>
+              <a href="${item.url}" class="history-url" target="_blank">${item.url}</a>
+            </div>
+            <div class="history-time">${formattedDate}</div>
+          `;
+          
+          historyList.appendChild(historyItem);
+        });
+        
+        // Create pagination
+        updatePagination(totalPages);
+      }
+      
+      function updatePagination(totalPages) {
+        pagination.innerHTML = '';
+        
+        if (totalPages <= 1) {
+          return;
+        }
+        
+        // Previous button
+        const prevButton = document.createElement('button');
+        prevButton.textContent = '← Previous';
+        prevButton.disabled = currentPage === 1;
+        prevButton.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            displayHistory();
+          }
+        });
+        pagination.appendChild(prevButton);
+        
+        // Page numbers
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+          startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+          const pageButton = document.createElement('button');
+          pageButton.textContent = i.toString();
+          pageButton.classList.toggle('active', i === currentPage);
+          pageButton.addEventListener('click', () => {
+            currentPage = i;
+            displayHistory();
+          });
+          pagination.appendChild(pageButton);
+        }
+        
+        // Next button
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next →';
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            displayHistory();
+          }
+        });
+        pagination.appendChild(nextButton);
+      }
+    });
+  </script>
+</body>
+</html>

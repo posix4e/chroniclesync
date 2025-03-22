@@ -1,0 +1,88 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Create Safari Extension Package
+      run: |
+        # Create directory structure for Safari extension
+        mkdir -p safari-extension/extension
+        
+        # Copy Chrome extension files to Safari extension directory
+        cp -r extension/src/* safari-extension/extension/
+        
+        # Create manifest.json for Safari
+        cat > safari-extension/extension/manifest.json << EOL
+        {
+          "manifest_version": 2,
+          "name": "ChronicleSync",
+          "version": "1.0",
+          "description": "ChronicleSync Safari Extension",
+          "browser_action": {
+            "default_popup": "popup.html"
+          },
+          "background": {
+            "scripts": ["background.js"],
+            "persistent": false
+          },
+          "content_scripts": [
+            {
+              "matches": ["<all_urls>"],
+              "js": ["content-script.js"],
+              "run_at": "document_idle"
+            }
+          ],
+          "permissions": [
+            "activeTab",
+            "tabs",
+            "history",
+            "storage"
+          ]
+        }
+        EOL
+        
+        # Create a simple HTML file for testing
+        cat > safari-extension/extension/popup.html << EOL
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>ChronicleSync</title>
+          <style>
+            body { font-family: system-ui; padding: 20px; }
+            h1 { font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <h1>ChronicleSync</h1>
+          <p>Safari Extension Version</p>
+        </body>
+        </html>
+        EOL
+        
+        # Create a zip file of the extension
+        cd safari-extension
+        zip -r ../ChronicleSync-Safari-Extension.zip extension
+        cd ..
+    
+    - name: Upload Safari Extension Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: ChronicleSync-Safari-Extension
+        path: ChronicleSync-Safari-Extension.zip

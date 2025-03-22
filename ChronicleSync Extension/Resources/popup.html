@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ChronicleSync Extension</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="popup-container">
+    <header>
+      <h1>ChronicleSync</h1>
+    </header>
+    
+    <div class="status-section">
+      <div class="status-item">
+        <span class="label">Status:</span>
+        <span id="sync-status">Not synced</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Last Sync:</span>
+        <span id="last-sync">Never</span>
+      </div>
+    </div>
+    
+    <div class="client-section">
+      <div class="input-group">
+        <label for="client-id">Client ID:</label>
+        <input type="text" id="client-id" placeholder="Enter your client ID">
+      </div>
+      <button id="save-client-id">Save</button>
+    </div>
+    
+    <div class="actions-section">
+      <button id="sync-now">Sync Now</button>
+      <button id="view-history">View History</button>
+      <button id="open-settings">Settings</button>
+    </div>
+    
+    <div id="message" class="hidden"></div>
+  </div>
+  
+  <script src="ChromeExtensionCompatibility.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

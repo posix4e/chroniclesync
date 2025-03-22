@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ChronicleSync - Settings</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div id="settings-container">
+    <header>
+      <h1>ChronicleSync Settings</h1>
+    </header>
+    
+    <div class="settings-section">
+      <h2>Sync Settings</h2>
+      
+      <div class="setting-item">
+        <label for="sync-enabled">Enable Sync</label>
+        <div class="toggle-container">
+          <input type="checkbox" id="sync-enabled" class="toggle-input">
+          <label for="sync-enabled" class="toggle-label"></label>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <label for="sync-interval">Sync Interval (minutes)</label>
+        <div class="range-container">
+          <input type="range" id="sync-interval" min="1" max="60" step="1" value="5">
+          <span id="sync-interval-value">5</span>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <label for="max-history">Maximum History Items</label>
+        <select id="max-history">
+          <option value="100">100</option>
+          <option value="500">500</option>
+          <option value="1000" selected>1,000</option>
+          <option value="5000">5,000</option>
+          <option value="10000">10,000</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>API Settings</h2>
+      
+      <div class="setting-item">
+        <label for="client-id">Client ID</label>
+        <input type="text" id="client-id" placeholder="Enter your client ID">
+      </div>
+      
+      <div class="setting-item">
+        <label for="api-endpoint">API Endpoint</label>
+        <input type="text" id="api-endpoint" placeholder="https://api.chroniclesync.xyz">
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>Privacy</h2>
+      
+      <div class="setting-item">
+        <label for="content-extraction">Extract Page Content</label>
+        <div class="toggle-container">
+          <input type="checkbox" id="content-extraction" class="toggle-input">
+          <label for="content-extraction" class="toggle-label"></label>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <button id="clear-history">Clear Local History</button>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="save-settings">Save Settings</button>
+    </div>
+    
+    <div id="message" class="hidden"></div>
+  </div>
+  
+  <script src="ChromeExtensionCompatibility.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

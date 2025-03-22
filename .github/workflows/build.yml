@@ -1,0 +1,53 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Install dependencies
+      run: |
+        brew install xcbeautify
+        
+    - name: Build Safari Extension
+      run: |
+        xcodebuild clean build -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO | xcbeautify
+        
+    - name: Run Tests
+      run: |
+        xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync Tests" -destination "platform=iOS Simulator,name=iPhone 14" | xcbeautify
+        
+    - name: Create IPA
+      run: |
+        mkdir -p build/Payload
+        cp -r build/Release-iphoneos/ChronicleSync.app build/Payload/
+        cd build && zip -r ChronicleSync.ipa Payload
+        
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: ChronicleSync-Safari
+        path: build/ChronicleSync.ipa
+        
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          build/Release-iphoneos/
+          build/*.ipa

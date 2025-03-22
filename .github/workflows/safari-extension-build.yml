@@ -1,0 +1,68 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ChronicleSync-Safari/**'
+      - '.github/workflows/safari-extension-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ChronicleSync-Safari/**'
+      - '.github/workflows/safari-extension-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Install dependencies
+        run: |
+          cd ChronicleSync-Safari
+          # Add any dependency installation steps here if needed
+      
+      - name: Build
+        run: |
+          cd ChronicleSync-Safari
+          xcodebuild clean build -project ChronicleSync-Safari.xcodeproj -scheme "ChronicleSync-Safari" -destination "platform=iOS Simulator,name=iPhone 14" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      
+      - name: Run Tests
+        run: |
+          cd ChronicleSync-Safari
+          xcodebuild test -project ChronicleSync-Safari.xcodeproj -scheme "ChronicleSync-Safari" -destination "platform=iOS Simulator,name=iPhone 14" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      
+      - name: Archive
+        run: |
+          cd ChronicleSync-Safari
+          xcodebuild archive -project ChronicleSync-Safari.xcodeproj -scheme "ChronicleSync-Safari" -archivePath "build/ChronicleSync-Safari.xcarchive" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      
+      - name: Create IPA
+        run: |
+          cd ChronicleSync-Safari
+          mkdir -p build/Payload
+          cp -r build/ChronicleSync-Safari.xcarchive/Products/Applications/ChronicleSync-Safari.app build/Payload/
+          cd build
+          zip -r ChronicleSync-Safari.ipa Payload
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v3
+        with:
+          name: ChronicleSync-Safari-IPA
+          path: ChronicleSync-Safari/build/ChronicleSync-Safari.ipa
+      
+      - name: Upload Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ChronicleSync-Safari-Archive
+          path: ChronicleSync-Safari/build/ChronicleSync-Safari.xcarchive

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChronicleSync Settings</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #F2F2F7;
+        }
+        
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-top: 0;
+            color: #000;
+            border-bottom: 1px solid #E5E5EA;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 18px;
+            margin-top: 20px;
+            color: #000;
+        }
+        
+        .settings-section {
+            margin-bottom: 30px;
+        }
+        
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #D1D1D6;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #0077FF;
+        }
+        
+        .help-text {
+            display: block;
+            font-size: 12px;
+            color: #8E8E93;
+            margin-top: 5px;
+        }
+        
+        .mnemonic-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .settings-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .primary-button {
+            background-color: #0077FF;
+            color: white;
+            border: none;
+        }
+        
+        .primary-button:hover {
+            background-color: #0055CC;
+        }
+        
+        .secondary-button {
+            background-color: #F2F2F7;
+            color: #0077FF;
+            border: 1px solid #0077FF;
+        }
+        
+        .secondary-button:hover {
+            background-color: #E5E5EA;
+        }
+        
+        .reset-settings {
+            background-color: transparent;
+            color: #FF3B30;
+            border: 1px solid #FF3B30;
+        }
+        
+        .reset-settings:hover {
+            background-color: #FFEBEE;
+        }
+        
+        .status {
+            margin-top: 16px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+        }
+        
+        .error {
+            background-color: #FFEBEE;
+            color: #C62828;
+        }
+        
+        /* Safari-specific instructions */
+        .safari-instructions {
+            background-color: #E3F2FD;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .safari-instructions h3 {
+            margin-top: 0;
+            color: #1565C0;
+        }
+        
+        .safari-instructions ol {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        
+        .safari-instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h1>ChronicleSync Settings</h1>
+        
+        <div class="safari-instructions">
+            <h3>Safari Extension Setup Instructions</h3>
+            <ol>
+                <li>Open Safari Preferences (⌘,)</li>
+                <li>Go to the Extensions tab</li>
+                <li>Make sure ChronicleSync is enabled</li>
+                <li>Click on ChronicleSync and ensure "All Websites" is selected for permissions</li>
+                <li>Return to this page and configure your settings below</li>
+            </ol>
+        </div>
+        
+        <section class="settings-section">
+            <h2>Configuration</h2>
+            <div id="mnemonicContainer" class="setting-item">
+                <label for="mnemonic">Mnemonic Phrase:</label>
+                <textarea id="mnemonic" placeholder="Enter your 24-word mnemonic phrase" rows="3" required></textarea>
+                <div class="mnemonic-actions">
+                    <button id="generateMnemonic" class="secondary-button">Generate New</button>
+                    <button id="showMnemonic" class="secondary-button">Show/Hide</button>
+                </div>
+                <small class="help-text">Your mnemonic phrase is used to generate your unique client ID. Keep it safe!</small>
+            </div>
+            <div class="setting-item">
+                <label for="clientId">Client ID:</label>
+                <input type="text" id="clientId" placeholder="Generated from mnemonic" readonly>
+            </div>
+            <div class="setting-item">
+                <label for="environment">Environment:</label>
+                <select id="environment" required>
+                    <option value="production">Production</option>
+                    <option value="staging">Staging</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="customUrlContainer" class="setting-item" style="display: none;">
+                <label for="customApiUrl">Custom API URL:</label>
+                <input type="url" id="customApiUrl" placeholder="https://your-custom-api.com">
+                <small class="help-text">Only used when Environment is set to Custom</small>
+            </div>
+            <div class="setting-item">
+                <label for="expirationDays">History Expiration (Days):</label>
+                <input type="number" id="expirationDays" min="1" placeholder="7" required>
+                <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
+            </div>
+        </section>
+
+        <div id="status-container"></div>
+        
+        <div class="settings-actions">
+            <button id="saveSettings" class="primary-button">Save Settings</button>
+            <button id="resetSettings" class="reset-settings">Reset to Default</button>
+        </div>
+    </div>
+    <script type="module" src="settings.js"></script>
+</body>
+</html>

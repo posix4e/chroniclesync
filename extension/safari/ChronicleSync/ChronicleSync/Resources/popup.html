@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ChronicleSync Extension</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 16px;
+      width: 320px;
+      color: #333;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #000;
+    }
+    
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    
+    button {
+      background-color: #0077FF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #0055CC;
+    }
+    
+    .secondary-button {
+      background-color: #F2F2F7;
+      color: #0077FF;
+      border: 1px solid #0077FF;
+    }
+    
+    .secondary-button:hover {
+      background-color: #E5E5EA;
+    }
+    
+    .status {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .success {
+      background-color: #E8F5E9;
+      color: #2E7D32;
+    }
+    
+    .error {
+      background-color: #FFEBEE;
+      color: #C62828;
+    }
+    
+    .info {
+      background-color: #E3F2FD;
+      color: #1565C0;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChronicleSync</h1>
+  
+  <div id="status-container"></div>
+  
+  <div class="button-container">
+    <button id="viewHistory">View History</button>
+    <button id="openSettings">Settings</button>
+    <button id="syncNow" class="secondary-button">Sync Now</button>
+  </div>
+  
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

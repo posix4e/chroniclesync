@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chronicle Sync History</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #F2F2F7;
+        color: #333;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        background-color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      
+      h1 {
+        font-size: 24px;
+        margin: 0;
+        color: #000;
+      }
+      
+      .search-container {
+        display: flex;
+        gap: 10px;
+        width: 50%;
+      }
+      
+      .search-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #D1D1D6;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      
+      .search-input:focus {
+        outline: none;
+        border-color: #0077FF;
+      }
+      
+      .search-button {
+        background-color: #0077FF;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      
+      .search-button:hover {
+        background-color: #0055CC;
+      }
+      
+      .filters {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        background-color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .filter-label {
+        font-size: 14px;
+        font-weight: 500;
+      }
+      
+      .filter-select {
+        padding: 8px;
+        border: 1px solid #D1D1D6;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      
+      .history-list {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      
+      .history-item {
+        padding: 15px 20px;
+        border-bottom: 1px solid #E5E5EA;
+        transition: background-color 0.2s;
+      }
+      
+      .history-item:last-child {
+        border-bottom: none;
+      }
+      
+      .history-item:hover {
+        background-color: #F2F2F7;
+      }
+      
+      .history-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0 0 5px 0;
+        color: #0077FF;
+      }
+      
+      .history-url {
+        font-size: 14px;
+        color: #8E8E93;
+        margin: 0 0 5px 0;
+        word-break: break-all;
+      }
+      
+      .history-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #8E8E93;
+      }
+      
+      .history-time {
+        font-style: italic;
+      }
+      
+      .history-device {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .device-icon {
+        width: 16px;
+        height: 16px;
+      }
+      
+      .no-results {
+        padding: 30px;
+        text-align: center;
+        color: #8E8E93;
+      }
+      
+      .loading {
+        padding: 30px;
+        text-align: center;
+        color: #8E8E93;
+      }
+      
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      
+      .pagination-button {
+        background-color: white;
+        border: 1px solid #D1D1D6;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      
+      .pagination-button:hover {
+        background-color: #F2F2F7;
+      }
+      
+      .pagination-button.active {
+        background-color: #0077FF;
+        color: white;
+        border-color: #0077FF;
+      }
+      
+      .pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>ChronicleSync History</h1>
+        <div class="search-container">
+          <input type="text" id="searchInput" class="search-input" placeholder="Search your browsing history...">
+          <button id="searchButton" class="search-button">Search</button>
+        </div>
+      </header>
+      
+      <div class="filters">
+        <div class="filter-group">
+          <span class="filter-label">Device:</span>
+          <select id="deviceFilter" class="filter-select">
+            <option value="all">All Devices</option>
+            <!-- Devices will be populated dynamically -->
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <span class="filter-label">Time Range:</span>
+          <select id="timeFilter" class="filter-select">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="historyContainer" class="history-list">
+        <div class="loading">Loading history...</div>
+      </div>
+      
+      <div id="pagination" class="pagination">
+        <!-- Pagination will be populated dynamically -->
+      </div>
+    </div>
+    
+    <script src="history.js" type="module"></script>
+  </body>
+</html>

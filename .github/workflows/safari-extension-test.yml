@@ -1,0 +1,38 @@
+name: Safari Extension Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'extension/safari/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'extension/safari/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Safari Extension
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Build and Test
+        run: |
+          cd extension/safari/ChronicleSync
+          xcodebuild test -scheme ChronicleSync -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' | xcpretty
+      
+      - name: Upload Test Screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-screenshots
+          path: ~/Library/Developer/Xcode/DerivedData/*/Logs/Test/*.xcresult/Attachments/**/*.png
+          if-no-files-found: ignore

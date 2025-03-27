@@ -17,7 +17,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  XCODE_VERSION: '14.2'
+  XCODE_VERSION: '14.3'
 
 jobs:
   build-and-test-ios:
@@ -32,8 +32,10 @@ jobs:
           cache-dependency-path: |
             extension/package-lock.json
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Build JavaScript for Safari Extension
         working-directory: extension

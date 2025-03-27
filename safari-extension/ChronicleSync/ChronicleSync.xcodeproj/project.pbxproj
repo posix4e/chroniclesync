@@ -1,0 +1,705 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A1A1A1A1A1A1A1A1A1A1A1A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1B /* AppDelegate.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A1C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1D /* SceneDelegate.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A1E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1F /* ViewController.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A20 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A21 /* LaunchScreen.storyboard */; };
+		1A1A1A1A1A1A1A1A1A1A1A24 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A25 /* SafariWebExtensionHandler.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A28 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A29 /* popup.html */; };
+		1A1A1A1A1A1A1A1A1A1A1A2A /* history.html in Resources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A2B /* history.html */; };
+		1A1A1A1A1A1A1A1A1A1A1A2C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A2D /* manifest.json */; };
+		1A1A1A1A1A1A1A1A1A1A1A30 /* ChronicleSync_Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A31 /* ChronicleSync_Tests.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A34 /* ChronicleSync_UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A35 /* ChronicleSync_UITests.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A36 /* SafariExtension_UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A37 /* SafariExtension_UITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1A1A1A1A1A1A1A1A1A1A1A38 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A1A1A1A1A1A1A1A1A1A1A39 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A1A1A1A1A1A1A1A1A1A1A3A;
+			remoteInfo = ChronicleSync;
+		};
+		1A1A1A1A1A1A1A1A1A1A1A3B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A1A1A1A1A1A1A1A1A1A1A39 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A1A1A1A1A1A1A1A1A1A1A3A;
+			remoteInfo = ChronicleSync;
+		};
+		1A1A1A1A1A1A1A1A1A1A1A3C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A1A1A1A1A1A1A1A1A1A1A39 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A1A1A1A1A1A1A1A1A1A1A3D;
+			remoteInfo = "ChronicleSync Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1A1A1A1A1A1A1A1A1A1A1A3A /* ChronicleSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChronicleSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A1A1A1A1A1A1A1A1A1A1A3D /* ChronicleSync Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "ChronicleSync Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A1A1A1A1A1A1A1A1A1A1A3E /* ChronicleSync Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ChronicleSync Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A1A1A1A1A1A1A1A1A1A1A3F /* ChronicleSync UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ChronicleSync UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A1A1A1A1A1A1A1A1A1A1B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A22 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A23 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A25 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A29 /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = popup.html; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A2B /* history.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = history.html; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A2D /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A2F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A31 /* ChronicleSync_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicleSync_Tests.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A33 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A35 /* ChronicleSync_UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicleSync_UITests.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A37 /* SafariExtension_UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariExtension_UITests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1A1A1A1A1A1A1A1A1A1A1A40 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A41 /* ChronicleSync */,
+				1A1A1A1A1A1A1A1A1A1A42 /* ChronicleSync Extension */,
+				1A1A1A1A1A1A1A1A1A1A43 /* ChronicleSync Tests */,
+				1A1A1A1A1A1A1A1A1A1A44 /* ChronicleSync UITests */,
+				1A1A1A1A1A1A1A1A1A1A45 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A45 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A3A /* ChronicleSync.app */,
+				1A1A1A1A1A1A1A1A1A1A3D /* ChronicleSync Extension.appex */,
+				1A1A1A1A1A1A1A1A1A1A3E /* ChronicleSync Tests.xctest */,
+				1A1A1A1A1A1A1A1A1A1A3F /* ChronicleSync UITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A41 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A1B /* AppDelegate.swift */,
+				1A1A1A1A1A1A1A1A1A1A1D /* SceneDelegate.swift */,
+				1A1A1A1A1A1A1A1A1A1A1F /* ViewController.swift */,
+				1A1A1A1A1A1A1A1A1A1A21 /* LaunchScreen.storyboard */,
+				1A1A1A1A1A1A1A1A1A1A23 /* Info.plist */,
+			);
+			path = ChronicleSync;
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A42 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A25 /* SafariWebExtensionHandler.swift */,
+				1A1A1A1A1A1A1A1A1A1A27 /* Info.plist */,
+				1A1A1A1A1A1A1A1A1A1A46 /* Resources */,
+			);
+			path = "ChronicleSync Extension";
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A46 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A29 /* popup.html */,
+				1A1A1A1A1A1A1A1A1A1A2B /* history.html */,
+				1A1A1A1A1A1A1A1A1A1A2D /* manifest.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A43 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A31 /* ChronicleSync_Tests.swift */,
+				1A1A1A1A1A1A1A1A1A1A2F /* Info.plist */,
+			);
+			path = "ChronicleSync Tests";
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A44 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A35 /* ChronicleSync_UITests.swift */,
+				1A1A1A1A1A1A1A1A1A1A37 /* SafariExtension_UITests.swift */,
+				1A1A1A1A1A1A1A1A1A1A33 /* Info.plist */,
+			);
+			path = "ChronicleSync UITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A1A1A1A1A1A1A1A1A1A1A47 /* ChronicleSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A1A1A1A1A1A1A1A1A1A48 /* Build configuration list for PBXNativeTarget "ChronicleSync" */;
+			buildPhases = (
+				1A1A1A1A1A1A1A1A1A1A49 /* Sources */,
+				1A1A1A1A1A1A1A1A1A1A4A /* Frameworks */,
+				1A1A1A1A1A1A1A1A1A1A4B /* Resources */,
+				1A1A1A1A1A1A1A1A1A1A4C /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A1A1A1A1A1A1A1A1A1A4D /* PBXTargetDependency */,
+			);
+			name = ChronicleSync;
+			productName = ChronicleSync;
+			productReference = 1A1A1A1A1A1A1A1A1A1A3A /* ChronicleSync.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1A1A1A1A1A1A1A1A1A1A4E /* ChronicleSync Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A1A1A1A1A1A1A1A1A1A4F /* Build configuration list for PBXNativeTarget "ChronicleSync Extension" */;
+			buildPhases = (
+				1A1A1A1A1A1A1A1A1A1A50 /* Sources */,
+				1A1A1A1A1A1A1A1A1A1A51 /* Frameworks */,
+				1A1A1A1A1A1A1A1A1A1A52 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ChronicleSync Extension";
+			productName = "ChronicleSync Extension";
+			productReference = 1A1A1A1A1A1A1A1A1A1A3D /* ChronicleSync Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		1A1A1A1A1A1A1A1A1A1A53 /* ChronicleSync Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A1A1A1A1A1A1A1A1A1A54 /* Build configuration list for PBXNativeTarget "ChronicleSync Tests" */;
+			buildPhases = (
+				1A1A1A1A1A1A1A1A1A1A55 /* Sources */,
+				1A1A1A1A1A1A1A1A1A1A56 /* Frameworks */,
+				1A1A1A1A1A1A1A1A1A1A57 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A1A1A1A1A1A1A1A1A1A58 /* PBXTargetDependency */,
+			);
+			name = "ChronicleSync Tests";
+			productName = "ChronicleSync Tests";
+			productReference = 1A1A1A1A1A1A1A1A1A1A3E /* ChronicleSync Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1A1A1A1A1A1A1A1A1A1A59 /* ChronicleSync UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A1A1A1A1A1A1A1A1A1A5A /* Build configuration list for PBXNativeTarget "ChronicleSync UITests" */;
+			buildPhases = (
+				1A1A1A1A1A1A1A1A1A1A5B /* Sources */,
+				1A1A1A1A1A1A1A1A1A1A5C /* Frameworks */,
+				1A1A1A1A1A1A1A1A1A1A5D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A1A1A1A1A1A1A1A1A1A5E /* PBXTargetDependency */,
+			);
+			name = "ChronicleSync UITests";
+			productName = "ChronicleSync UITests";
+			productReference = 1A1A1A1A1A1A1A1A1A1A3F /* ChronicleSync UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A1A1A1A1A1A1A1A1A1A39 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					1A1A1A1A1A1A1A1A1A1A47 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					1A1A1A1A1A1A1A1A1A1A4E = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					1A1A1A1A1A1A1A1A1A1A53 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 1A1A1A1A1A1A1A1A1A1A47;
+					};
+					1A1A1A1A1A1A1A1A1A1A59 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 1A1A1A1A1A1A1A1A1A1A47;
+					};
+				};
+			};
+			buildConfigurationList = 1A1A1A1A1A1A1A1A1A1A5F /* Build configuration list for PBXProject "ChronicleSync" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A1A1A1A1A1A1A1A1A1A1A40;
+			productRefGroup = 1A1A1A1A1A1A1A1A1A1A45 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A1A1A1A1A1A1A1A1A1A47 /* ChronicleSync */,
+				1A1A1A1A1A1A1A1A1A1A4E /* ChronicleSync Extension */,
+				1A1A1A1A1A1A1A1A1A1A53 /* ChronicleSync Tests */,
+				1A1A1A1A1A1A1A1A1A1A59 /* ChronicleSync UITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A1A1A1A1A1A1A1A1A1A4B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A20 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A52 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A28 /* popup.html in Resources */,
+				1A1A1A1A1A1A1A1A1A1A2A /* history.html in Resources */,
+				1A1A1A1A1A1A1A1A1A1A2C /* manifest.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A57 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A5D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A1A1A1A1A1A1A1A1A1A49 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A1E /* ViewController.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A /* AppDelegate.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1C /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A50 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A24 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A55 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A30 /* ChronicleSync_Tests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A1A1A1A1A1A1A1A1A1A5B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A1A1A1A1A1A1A1A1A1A34 /* ChronicleSync_UITests.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A36 /* SafariExtension_UITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1A1A1A1A1A1A1A1A1A1A4D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A1A1A1A1A1A1A1A1A1A4E /* ChronicleSync Extension */;
+			targetProxy = 1A1A1A1A1A1A1A1A1A1A3C /* PBXContainerItemProxy */;
+		};
+		1A1A1A1A1A1A1A1A1A1A58 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A1A1A1A1A1A1A1A1A1A47 /* ChronicleSync */;
+			targetProxy = 1A1A1A1A1A1A1A1A1A1A38 /* PBXContainerItemProxy */;
+		};
+		1A1A1A1A1A1A1A1A1A1A5E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A1A1A1A1A1A1A1A1A1A47 /* ChronicleSync */;
+			targetProxy = 1A1A1A1A1A1A1A1A1A1A3B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		1A1A1A1A1A1A1A1A1A1A21 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A22 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		1A1A1A1A1A1A1A1A1A1A60 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1A1A1A1A1A1A1A1A1A1A61 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A62 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ChronicleSync/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A1A1A1A1A1A1A1A1A1A63 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ChronicleSync/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ChronicleSync Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A1A1A1A1A1A1A1A1A1A65 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ChronicleSync Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A66 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync Tests/Info.plist";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChronicleSync.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChronicleSync";
+			};
+			name = Debug;
+		};
+		1A1A1A1A1A1A1A1A1A1A67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync Tests/Info.plist";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ChronicleSync.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ChronicleSync";
+			};
+			name = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A68 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync UITests/Info.plist";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ChronicleSync;
+			};
+			name = Debug;
+		};
+		1A1A1A1A1A1A1A1A1A1A69 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ChronicleSync UITests/Info.plist";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.chroniclesync.safari-extension.uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ChronicleSync;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A1A1A1A1A1A1A1A1A1A48 /* Build configuration list for PBXNativeTarget "ChronicleSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A1A1A1A1A1A1A1A1A1A62 /* Debug */,
+				1A1A1A1A1A1A1A1A1A1A63 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A4F /* Build configuration list for PBXNativeTarget "ChronicleSync Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A1A1A1A1A1A1A1A1A1A64 /* Debug */,
+				1A1A1A1A1A1A1A1A1A1A65 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A54 /* Build configuration list for PBXNativeTarget "ChronicleSync Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A1A1A1A1A1A1A1A1A1A66 /* Debug */,
+				1A1A1A1A1A1A1A1A1A1A67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A5A /* Build configuration list for PBXNativeTarget "ChronicleSync UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A1A1A1A1A1A1A1A1A1A68 /* Debug */,
+				1A1A1A1A1A1A1A1A1A1A69 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A1A1A1A1A1A1A1A1A1A5F /* Build configuration list for PBXProject "ChronicleSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A1A1A1A1A1A1A1A1A1A60 /* Debug */,
+				1A1A1A1A1A1A1A1A1A1A61 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1A1A1A1A1A1A1A1A1A1A39 /* Project object */;
+}

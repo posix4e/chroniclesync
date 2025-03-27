@@ -1,0 +1,83 @@
+name: Safari Extension CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'safari-extension/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'safari-extension/**'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '15.0'
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            safari-extension/package-lock.json
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install Safari Extension Dependencies
+        working-directory: safari-extension
+        run: npm ci
+
+      - name: Build Safari Extension
+        working-directory: safari-extension
+        run: npm run build
+
+      - name: Run Unit Tests
+        working-directory: safari-extension
+        run: npm run test
+
+      - name: Run iOS Tests
+        run: |
+          cd safari-extension/ChronicleSync
+          xcodebuild test -scheme ChronicleSync -destination 'platform=iOS Simulator,name=iPhone 15' | xcpretty
+
+      - name: Capture Screenshots
+        run: |
+          mkdir -p safari-extension/screenshots
+          find safari-extension/ChronicleSync/ChronicleSync\ UITests -name "*.xcresult" -type d -exec xcrun xcresulttool get --path {} --format json | jq -r '.actions._values[] | select(.actionResult.testsRef != null) | .actionResult.testsRef.id._value' \; | while read test_ref_id; do
+            xcrun xcresulttool get --path safari-extension/ChronicleSync/ChronicleSync\ UITests/*.xcresult --id $test_ref_id --format json | jq -r '.summaries._values[].attachments._values[] | select(.filename != null) | .filename' | while read filename; do
+              attachment_id=$(xcrun xcresulttool get --path safari-extension/ChronicleSync/ChronicleSync\ UITests/*.xcresult --id $test_ref_id --format json | jq -r ".summaries._values[].attachments._values[] | select(.filename == \"$filename\") | .payloadRef.id._value")
+              xcrun xcresulttool export --path safari-extension/ChronicleSync/ChronicleSync\ UITests/*.xcresult --id $attachment_id --output-path safari-extension/screenshots/$filename
+            done
+          done
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-screenshots
+          path: safari-extension/screenshots
+          retention-days: 14
+
+      - name: Package Safari Extension
+        working-directory: safari-extension
+        run: |
+          cd ChronicleSync
+          xcodebuild archive -scheme ChronicleSync -archivePath ChronicleSync.xcarchive | xcpretty
+          mkdir -p ../dist
+          cp -r ChronicleSync.xcarchive ../dist/
+
+      - name: Upload Safari Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: safari-extension/dist
+          retention-days: 14

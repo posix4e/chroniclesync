@@ -1,5 +1,7 @@
 import { browserAPI } from '../src/utils/browser-api';
 import { BrowserType } from '../src/utils/platform';
+import '../src/types/safari';
+import '../src/types/firefox';
 
 // Mock the platform module
 jest.mock('../src/utils/platform', () => ({
@@ -20,8 +22,66 @@ jest.mock('../src/utils/platform', () => ({
 // Import the mocked module
 import { detectBrowser } from '../src/utils/platform';
 
+// Define mock types to satisfy TypeScript
+interface MockChrome {
+  storage: {
+    local: {
+      get: jest.Mock;
+      set: jest.Mock;
+      remove: jest.Mock;
+      clear: jest.Mock;
+    }
+  };
+  tabs: {
+    query: jest.Mock;
+    create: jest.Mock;
+    sendMessage: jest.Mock;
+  };
+  runtime: {
+    sendMessage: jest.Mock;
+    onMessage: {
+      addListener: jest.Mock;
+    }
+  };
+  history: {
+    search: jest.Mock;
+  }
+}
+
+interface MockSafari {
+  extension: {
+    settings: {
+      getItem: jest.Mock;
+      setItem: jest.Mock;
+      removeItem: jest.Mock;
+      key: jest.Mock;
+      length: number;
+    };
+    dispatchMessage: jest.Mock;
+  };
+  application: {
+    activeBrowserWindow: {
+      activeTab: {
+        id: number;
+        url: string;
+        title: string;
+      };
+      openTab: jest.Mock;
+      tabs: any[];
+    };
+    browserWindows: any[];
+    addEventListener: jest.Mock;
+  };
+  self: {
+    addEventListener: jest.Mock;
+    removeEventListener: jest.Mock;
+  }
+}
+
 describe('Browser API Abstraction', () => {
   const mockDetectBrowser = detectBrowser as jest.Mock;
+  let mockChrome: MockChrome;
+  let mockSafari: MockSafari;
   
   beforeEach(() => {
     // Reset all mocks
@@ -31,7 +91,7 @@ describe('Browser API Abstraction', () => {
     mockDetectBrowser.mockReturnValue(BrowserType.Chrome);
     
     // Mock Chrome APIs
-    global.chrome = {
+    mockChrome = {
       storage: {
         local: {
           get: jest.fn((keys, callback) => callback({ testKey: 'testValue' })),
@@ -41,8 +101,34 @@ describe('Browser API Abstraction', () => {
         }
       },
       tabs: {
-        query: jest.fn((queryInfo, callback) => callback([{ id: 1, url: 'https://example.com' }])),
-        create: jest.fn((options, callback) => callback({ id: 2, url: options.url })),
+        query: jest.fn((queryInfo, callback) => callback([{
+          id: 1,
+          url: 'https://example.com',
+          index: 0,
+          pinned: false,
+          highlighted: false,
+          windowId: 0,
+          active: true,
+          incognito: false,
+          selected: true,
+          discarded: false,
+          autoDiscardable: false,
+          title: 'Example'
+        }])),
+        create: jest.fn((options, callback) => callback({
+          id: 2,
+          url: options.url,
+          index: 0,
+          pinned: false,
+          highlighted: false,
+          windowId: 0,
+          active: true,
+          incognito: false,
+          selected: true,
+          discarded: false,
+          autoDiscardable: false,
+          title: 'Example'
+        })),
         sendMessage: jest.fn((tabId, message, callback) => callback({ response: 'ok' }))
       },
       runtime: {
@@ -52,12 +138,18 @@ describe('Browser API Abstraction', () => {
         }
       },
       history: {
-        search: jest.fn((query, callback) => callback([{ url: 'https://example.com', title: 'Example' }]))
+        search: jest.fn((query, callback) => callback([{
+          id: '1',
+          url: 'https://example.com',
+          title: 'Example',
+          lastVisitTime: Date.now(),
+          visitCount: 1
+        }]))
       }
     };
     
     // Mock Safari APIs
-    global.safari = {
+    mockSafari = {
       extension: {
         settings: {
           getItem: jest.fn((key) => key === 'testKey' ? 'testValue' : null),
@@ -89,12 +181,16 @@ describe('Browser API Abstraction', () => {
         removeEventListener: jest.fn()
       }
     };
+    
+    // Assign mocks to global objects
+    (global as any).chrome = mockChrome;
+    (global as any).safari = mockSafari;
   });
   
   afterEach(() => {
     // Clean up
-    delete global.chrome;
-    delete global.safari;
+    delete (global as any).chrome;
+    delete (global as any).safari;
   });
   
   describe('Storage API', () => {
@@ -103,7 +199,7 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.storage.get('testKey');
       
-      expect(chrome.storage.local.get).toHaveBeenCalledWith('testKey', expect.any(Function));
+      expect(mockChrome.storage.local.get).toHaveBeenCalledWith('testKey', expect.any(Function));
       expect(result).toEqual({ testKey: 'testValue' });
     });
     
@@ -112,7 +208,7 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.storage.get('testKey');
       
-      expect(safari.extension.settings.getItem).toHaveBeenCalledWith('testKey');
+      expect(mockSafari.extension.settings.getItem).toHaveBeenCalledWith('testKey');
       expect(result).toEqual({ testKey: 'testValue' });
     });
     
@@ -121,7 +217,7 @@ describe('Browser API Abstraction', () => {
       
       await browserAPI.storage.set({ testKey: 'newValue' });
       
-      expect(chrome.storage.local.set).toHaveBeenCalledWith({ testKey: 'newValue' }, expect.any(Function));
+      expect(mockChrome.storage.local.set).toHaveBeenCalledWith({ testKey: 'newValue' }, expect.any(Function));
     });
     
     test('set should work in Safari', async () => {
@@ -129,7 +225,7 @@ describe('Browser API Abstraction', () => {
       
       await browserAPI.storage.set({ testKey: 'newValue' });
       
-      expect(safari.extension.settings.setItem).toHaveBeenCalledWith('testKey', 'newValue');
+      expect(mockSafari.extension.settings.setItem).toHaveBeenCalledWith('testKey', 'newValue');
     });
   });
   
@@ -139,8 +235,21 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.tabs.getActive();
       
-      expect(chrome.tabs.query).toHaveBeenCalledWith({ active: true, currentWindow: true }, expect.any(Function));
-      expect(result).toEqual({ id: 1, url: 'https://example.com' });
+      expect(mockChrome.tabs.query).toHaveBeenCalledWith({ active: true, currentWindow: true }, expect.any(Function));
+      expect(result).toEqual({
+        id: 1,
+        url: 'https://example.com',
+        index: 0,
+        pinned: false,
+        highlighted: false,
+        windowId: 0,
+        active: true,
+        incognito: false,
+        selected: true,
+        discarded: false,
+        autoDiscardable: false,
+        title: 'Example'
+      });
     });
     
     test('getActive should work in Safari', async () => {
@@ -148,7 +257,20 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.tabs.getActive();
       
-      expect(result).toEqual({ id: 1, url: 'https://example.com', title: 'Example' });
+      expect(result).toEqual({
+        id: 1,
+        url: 'https://example.com',
+        title: 'Example',
+        index: 0,
+        pinned: false,
+        highlighted: false,
+        windowId: 0,
+        active: true,
+        incognito: false,
+        selected: true,
+        discarded: false,
+        autoDiscardable: false
+      });
     });
     
     test('create should work in Chrome', async () => {
@@ -156,8 +278,21 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.tabs.create({ url: 'https://example.org' });
       
-      expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'https://example.org' }, expect.any(Function));
-      expect(result).toEqual({ id: 2, url: 'https://example.org' });
+      expect(mockChrome.tabs.create).toHaveBeenCalledWith({ url: 'https://example.org' }, expect.any(Function));
+      expect(result).toEqual({
+        id: 2,
+        url: 'https://example.org',
+        index: 0,
+        pinned: false,
+        highlighted: false,
+        windowId: 0,
+        active: true,
+        incognito: false,
+        selected: true,
+        discarded: false,
+        autoDiscardable: false,
+        title: 'Example'
+      });
     });
     
     test('create should work in Safari', async () => {
@@ -165,8 +300,21 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.tabs.create({ url: 'https://example.org' });
       
-      expect(safari.application.activeBrowserWindow.openTab).toHaveBeenCalled();
-      expect(result).toEqual({ id: 2, url: undefined });
+      expect(mockSafari.application.activeBrowserWindow.openTab).toHaveBeenCalled();
+      expect(result).toEqual({
+        id: 2,
+        url: '',
+        index: 0,
+        pinned: false,
+        highlighted: false,
+        windowId: 0,
+        active: true,
+        incognito: false,
+        selected: true,
+        discarded: false,
+        autoDiscardable: false,
+        title: ''
+      });
     });
   });
   
@@ -176,7 +324,7 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.runtime.sendMessage({ action: 'test' });
       
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'test' }, expect.any(Function));
+      expect(mockChrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'test' }, expect.any(Function));
       expect(result).toEqual({ response: 'ok' });
     });
     
@@ -187,8 +335,8 @@ describe('Browser API Abstraction', () => {
       // We'll just verify the dispatch happens
       const promise = browserAPI.runtime.sendMessage({ action: 'test' });
       
-      expect(safari.extension.dispatchMessage).toHaveBeenCalledWith('fromPage', { action: 'test' });
-      expect(safari.self.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+      expect(mockSafari.extension.dispatchMessage).toHaveBeenCalledWith('fromPage', { action: 'test' });
+      expect(mockSafari.self.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
       
       // Resolve the promise to avoid test warnings
       // In a real scenario, the event listener would call the resolve function
@@ -202,8 +350,14 @@ describe('Browser API Abstraction', () => {
       
       const result = await browserAPI.history.search({ text: 'example', maxResults: 10 });
       
-      expect(chrome.history.search).toHaveBeenCalledWith({ text: 'example', maxResults: 10 }, expect.any(Function));
-      expect(result).toEqual([{ url: 'https://example.com', title: 'Example' }]);
+      expect(mockChrome.history.search).toHaveBeenCalledWith({ text: 'example', maxResults: 10 }, expect.any(Function));
+      expect(result).toEqual([{
+        id: '1',
+        url: 'https://example.com',
+        title: 'Example',
+        lastVisitTime: expect.any(Number),
+        visitCount: 1
+      }]);
     });
     
     test('search should return empty array in Safari', async () => {

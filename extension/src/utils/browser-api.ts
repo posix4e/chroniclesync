@@ -6,6 +6,8 @@
  */
 
 import { BrowserType, detectBrowser, isSafari } from './platform';
+import '../types/safari';
+import '../types/firefox';
 
 /**
  * Storage API abstraction
@@ -24,7 +26,9 @@ export const storage = {
           // Get all items
           for (let i = 0; i < safari.extension.settings.length; i++) {
             const key = safari.extension.settings.key(i);
-            result[key] = safari.extension.settings.getItem(key);
+            if (key) {
+              result[key] = safari.extension.settings.getItem(key);
+            }
           }
           resolve(result);
         } else {
@@ -103,7 +107,9 @@ export const storage = {
       return new Promise((resolve) => {
         for (let i = 0; i < safari.extension.settings.length; i++) {
           const key = safari.extension.settings.key(i);
-          safari.extension.settings.removeItem(key);
+          if (key) {
+            safari.extension.settings.removeItem(key);
+          }
         }
         resolve();
       });
@@ -125,7 +131,7 @@ export const tabs = {
   /**
    * Get the current active tab
    */
-  async getActive(): Promise<any> {
+  async getActive(): Promise<chrome.tabs.Tab> {
     const browserType = detectBrowser();
     
     if (browserType === BrowserType.Safari) {
@@ -134,8 +140,18 @@ export const tabs = {
         resolve({
           id: activeTab.id,
           url: activeTab.url,
-          title: activeTab.title
-        });
+          title: activeTab.title,
+          // Add required properties to satisfy Tab interface
+          index: 0,
+          pinned: false,
+          highlighted: false,
+          windowId: 0,
+          active: true,
+          incognito: false,
+          selected: true,
+          discarded: false,
+          autoDiscardable: false
+        } as chrome.tabs.Tab);
       });
     } else {
       // Chrome or Firefox
@@ -150,17 +166,28 @@ export const tabs = {
   /**
    * Create a new tab
    */
-  async create(options: { url: string }): Promise<any> {
+  async create(options: chrome.tabs.CreateProperties): Promise<chrome.tabs.Tab> {
     const browserType = detectBrowser();
     
     if (browserType === BrowserType.Safari) {
       return new Promise((resolve) => {
         const newTab = safari.application.activeBrowserWindow.openTab();
-        newTab.url = options.url;
+        newTab.url = options.url || '';
         resolve({
           id: newTab.id,
-          url: newTab.url
-        });
+          url: newTab.url,
+          // Add required properties to satisfy Tab interface
+          index: 0,
+          pinned: false,
+          highlighted: false,
+          windowId: 0,
+          active: true,
+          incognito: false,
+          selected: true,
+          discarded: false,
+          autoDiscardable: false,
+          title: ''
+        } as chrome.tabs.Tab);
       });
     } else {
       // Chrome or Firefox
@@ -182,7 +209,7 @@ export const tabs = {
       return new Promise((resolve) => {
         // Find the tab by ID
         const allWindows = safari.application.browserWindows;
-        let targetTab = null;
+        let targetTab: SafariTab | null = null;
         
         for (let i = 0; i < allWindows.length; i++) {
           const tabs = allWindows[i].tabs;
@@ -264,17 +291,28 @@ export const runtime = {
    * Add a listener for messages from content scripts or popup
    */
   onMessage: {
-    addListener(callback: (message: any, sender: any, sendResponse: (response?: any) => void) => void): void {
+    addListener(callback: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void): void {
       const browserType = detectBrowser();
       
       if (browserType === BrowserType.Safari) {
-        safari.application.addEventListener('message', (event) => {
+        safari.application.addEventListener('message', (event: any) => {
           if (event.name === 'fromPage') {
-            const sender = {
+            const sender: chrome.runtime.MessageSender = {
               tab: {
                 id: event.target.id,
-                url: event.target.url
-              }
+                url: event.target.url,
+                // Add required properties to satisfy Tab interface
+                index: 0,
+                pinned: false,
+                highlighted: false,
+                windowId: 0,
+                active: true,
+                incognito: false,
+                selected: true,
+                discarded: false,
+                autoDiscardable: false,
+                title: ''
+              } as chrome.tabs.Tab
             };
             
             const sendResponse = (response: any) => {
@@ -299,7 +337,7 @@ export const history = {
   /**
    * Search browser history
    */
-  async search(query: { text: string, maxResults?: number, startTime?: number, endTime?: number }): Promise<any[]> {
+  async search(query: chrome.history.HistoryQuery): Promise<chrome.history.HistoryItem[]> {
     const browserType = detectBrowser();
     
     if (browserType === BrowserType.Safari) {

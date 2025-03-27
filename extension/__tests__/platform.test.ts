@@ -1,23 +1,21 @@
 import { BrowserType, detectBrowser, isSafari, isChrome, isFirefox, isIOS } from '../src/utils/platform';
-
-// Mock the global objects
-declare global {
-  interface Window {
-    chrome?: any;
-    browser?: any;
-    safari?: any;
-    MSStream?: any;
-  }
-}
+import '../src/types/safari';
+import '../src/types/firefox';
 
 describe('Platform Detection', () => {
   const originalNavigator = global.navigator;
   const originalWindow = global.window;
+  const originalChrome = global.chrome;
   
   beforeEach(() => {
     // Reset the mocks before each test
     global.window = {} as any;
     global.navigator = {} as any;
+    
+    // Delete global chrome object if it exists
+    delete (global as any).chrome;
+    delete (global as any).safari;
+    delete (global as any).browser;
     
     // Reset the navigator.userAgent
     Object.defineProperty(global.navigator, 'userAgent', {
@@ -30,11 +28,12 @@ describe('Platform Detection', () => {
     // Restore the original objects after each test
     global.navigator = originalNavigator;
     global.window = originalWindow;
+    global.chrome = originalChrome;
   });
   
   test('detectBrowser should detect Chrome', () => {
     // Mock Chrome
-    global.window.chrome = {
+    (global as any).chrome = {
       runtime: {
         id: 'chrome-extension-id'
       }
@@ -48,7 +47,7 @@ describe('Platform Detection', () => {
   
   test('detectBrowser should detect Firefox', () => {
     // Mock Firefox
-    global.window.browser = {
+    (global.window as any).browser = {
       runtime: {
         id: 'firefox-extension-id'
       }
@@ -62,7 +61,7 @@ describe('Platform Detection', () => {
   
   test('detectBrowser should detect Safari', () => {
     // Mock Safari
-    global.window.safari = {
+    (global.window as any).safari = {
       extension: {}
     };
     
@@ -86,6 +85,9 @@ describe('Platform Detection', () => {
       value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
       configurable: true
     });
+    
+    // Mock MSStream to be undefined (as it would be on iOS)
+    (global.window as any).MSStream = undefined;
     
     expect(isIOS()).toBe(true);
     

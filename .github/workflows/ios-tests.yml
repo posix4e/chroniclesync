@@ -1,0 +1,74 @@
+name: iOS Safari Extension Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/safari/**'
+      - 'extension/src/**'
+      - '.github/workflows/ios-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/safari/**'
+      - 'extension/src/**'
+      - '.github/workflows/ios-tests.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '14.2'
+
+jobs:
+  build-and-test-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Build JavaScript for Safari Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+          npm run build:all
+
+      - name: Build iOS App
+        working-directory: extension
+        run: |
+          npm run build:safari
+
+      - name: Run iOS Tests
+        working-directory: extension
+        run: |
+          npm run test:ios
+
+      - name: Upload Test Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-screenshots
+          path: extension/safari/ChronicleSync/TestResults/**/*.png
+          retention-days: 14
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: extension/safari/ChronicleSync/TestResults
+          retention-days: 14
+
+      - name: Upload Safari Extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: extension/safari/ChronicleSync/build/Debug-iphonesimulator/ChronicleSync.app
+          retention-days: 14

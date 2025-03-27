@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
+    "build:all": "node scripts/build-all-extensions.cjs",
+    "build:safari": "cd safari/ChronicleSync && xcodebuild -scheme 'ChronicleSync' -configuration Debug -sdk iphonesimulator",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -16,6 +18,7 @@
     "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=firefox",
     "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
+    "test:ios": "cd safari/ChronicleSync && xcodebuild test -scheme 'ChronicleSync' -destination 'platform=iOS Simulator,name=iPhone 14' -resultBundlePath './TestResults'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

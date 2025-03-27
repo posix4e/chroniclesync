@@ -1,4 +1,4 @@
-import { getConfig } from '../config';
+import { getConfig } from '../config.js';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';

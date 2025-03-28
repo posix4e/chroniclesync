@@ -80,10 +80,50 @@ async function main() {
     // Create the XPI file
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../firefox-extension.xpi ./*`);
     
+    // Create Safari extension package
+    console.log('Creating Safari extension package...');
+    
+    // Create Safari directory
+    const SAFARI_DIR = join(PACKAGE_DIR, 'safari');
+    await mkdir(SAFARI_DIR, { recursive: true });
+    
+    // Copy Safari-specific files
+    await cp(
+      join(ROOT_DIR, 'safari/manifest.json'),
+      join(SAFARI_DIR, 'manifest.json'),
+      { recursive: true }
+    ).catch(err => {
+      console.warn(`Warning: Could not copy safari/manifest.json: ${err.message}`);
+    });
+    
+    await cp(
+      join(ROOT_DIR, 'safari/Info.plist'),
+      join(SAFARI_DIR, 'Info.plist'),
+      { recursive: true }
+    ).catch(err => {
+      console.warn(`Warning: Could not copy safari/Info.plist: ${err.message}`);
+    });
+    
+    // Copy the extension files to the Safari directory
+    for (const [src, dest] of filesToCopy) {
+      if (src !== 'manifest.json') { // Skip the Chrome manifest
+        await cp(
+          join(PACKAGE_DIR, dest),
+          join(SAFARI_DIR, dest),
+          { recursive: true }
+        ).catch(err => {
+          console.warn(`Warning: Could not copy ${dest} to Safari: ${err.message}`);
+        });
+      }
+    }
+    
+    // Create the Safari extension zip file
+    await execAsync(`cd "${SAFARI_DIR}" && zip -r ../../safari-extension.zip ./*`);
+    
     // Clean up
     await rm(PACKAGE_DIR, { recursive: true });
     
-    console.log('Extension packages created: chrome-extension.zip and firefox-extension.xpi');
+    console.log('Extension packages created: chrome-extension.zip, firefox-extension.xpi, and safari-extension.zip');
   } catch (error) {
     console.error('Error building extension:', error);
     process.exit(1);

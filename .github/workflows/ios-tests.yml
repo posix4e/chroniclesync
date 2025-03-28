@@ -1,0 +1,70 @@
+name: iOS Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test-ios:
+    name: Build and Test iOS
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Install dependencies
+        run: |
+          cd extension
+          npm ci
+          npm run build
+      
+      - name: Build Safari extension
+        run: |
+          cd extension
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+      
+      - name: Build iOS app
+        run: |
+          cd extension/ios-tests/ChronicleSync
+          xcodebuild build-for-testing -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest"
+      
+      - name: Run iOS tests
+        run: |
+          cd extension/ios-tests/ChronicleSync
+          xcodebuild test-without-building -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" -resultBundlePath TestResults.xcresult
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-test-results
+          path: extension/ios-tests/ChronicleSync/TestResults.xcresult
+          retention-days: 30
+      
+      - name: Extract screenshots
+        if: always()
+        run: |
+          cd extension/ios-tests/ChronicleSync
+          mkdir -p screenshots
+          xcrun xcresulttool get --path TestResults.xcresult --format json | grep -o '"filename" : ".*\.png"' | awk -F'"' '{print $4}' | xargs -I{} find TestResults.xcresult -name {} -exec cp {} screenshots/ \;
+      
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-screenshots
+          path: extension/ios-tests/ChronicleSync/screenshots
+          retention-days: 30

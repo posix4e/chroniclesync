@@ -2,6 +2,7 @@ import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
+import { getBrowserAPI, storage, runtime, queryTabs } from './utils/platform';
 
 interface SyncResponse {
   history?: HistoryEntry[];
@@ -19,9 +20,9 @@ const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 async function initializeExtension(): Promise<boolean> {
   try {
-    await chrome.storage.local.get(['initialized']);
+    await storage.local.get(['initialized']);
     await getConfig();
-    await chrome.storage.local.set({ initialized: true });
+    await storage.local.set({ initialized: true });
     return true;
   } catch (error) {
     console.error('Failed to initialize extension:', error);
@@ -31,7 +32,7 @@ async function initializeExtension(): Promise<boolean> {
 
 async function syncHistory(forceFullSync = false): Promise<void> {
   try {
-    const initialized = await chrome.storage.local.get(['initialized']);
+    const initialized = await storage.local.get<{initialized?: boolean}>(['initialized']);
     if (!initialized.initialized) {
       const success = await initializeExtension();
       if (!success) {
@@ -52,7 +53,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
     const systemInfo = await getSystemInfo();
     const now = Date.now();
 
-    const stored = await chrome.storage.local.get(['lastSync']);
+    const stored = await storage.local.get<{lastSync?: number}>(['lastSync']);
     const storedLastSync = stored.lastSync || 0;
 
     const startTime = forceFullSync ? 0 : storedLastSync;
@@ -62,16 +63,21 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
     await historyStore.updateDevice(systemInfo);
 
-    const historyItems = await chrome.history.search({
-      text: '',
-      startTime: startTime,
-      endTime: now,
-      maxResults: 10000
+    const browserAPI = getBrowserAPI();
+    const historyItems = await new Promise<chrome.history.HistoryItem[]>((resolve) => {
+      browserAPI.history.search({
+        text: '',
+        startTime: startTime,
+        endTime: now,
+        maxResults: 10000
+      }, resolve);
     });
 
     const historyData = await Promise.all(historyItems.map(async item => {
       if (!item.url) return [];
-      const visits = await chrome.history.getVisits({ url: item.url });
+      const visits = await new Promise<chrome.history.VisitItem[]>((resolve) => {
+        browserAPI.history.getVisits({ url: item.url }, resolve);
+      });
       
       return visits
         .filter((visit: chrome.history.VisitItem) => {
@@ -132,11 +138,16 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
       const newLastSync = syncResponse.lastSyncTime || now;
       const lastSyncDate = new Date(newLastSync).toLocaleString();
-      await chrome.storage.local.set({ lastSync: newLastSync });
-      await chrome.storage.sync.set({ lastSync: lastSyncDate });
+      await storage.local.set({ lastSync: newLastSync });
+      
+      // Use browser API for sync storage
+      const browserAPI = getBrowserAPI();
+      await new Promise<void>((resolve) => {
+        browserAPI.storage.sync.set({ lastSync: lastSyncDate }, () => resolve());
+      });
 
       try {
-        chrome.runtime.sendMessage({ 
+        runtime.sendMessage({ 
           type: 'syncComplete',
           stats: {
             sent: unsyncedEntries.length,
@@ -156,7 +167,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
     console.error('Error syncing history:', error);
     try {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      chrome.runtime.sendMessage({ 
+      runtime.sendMessage({ 
         type: 'syncError',
         error: errorMessage
       }).catch(() => {
@@ -175,7 +186,8 @@ syncHistory(true);
 setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
+const browserAPI = getBrowserAPI();
+browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   if (changeInfo.url) {
     console.debug(`Navigation to: ${changeInfo.url}`);
     setTimeout(() => syncHistory(false), 1000);
@@ -183,9 +195,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 });
 
 // Listen for messages from the page
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getClientId') {
-    chrome.storage.local.get(['initialized']).then(async result => {
+    storage.local.get<{initialized?: boolean}>(['initialized']).then(async result => {
       if (!result.initialized) {
         const success = await initializeExtension();
         if (!success) {

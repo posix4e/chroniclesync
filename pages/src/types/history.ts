@@ -1,3 +1,5 @@
+import { DeviceInfo } from '../../../shared/types';
+
 export interface HistoryItem {
   url: string;
   title: string;
@@ -22,13 +24,7 @@ export interface HistoryFilters {
 
 export interface HistoryResponse {
   history: HistoryItem[];
-  deviceInfo: {
-    deviceId: string;
-    platform: string;
-    userAgent: string;
-    browserName: string;
-    browserVersion: string;
-  };
+  deviceInfo: DeviceInfo;
   pagination: {
     total: number;
     page: number;

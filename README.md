@@ -27,5 +27,6 @@ Sync stuff across browsers
 chroniclesync/
 ├── pages/          # Frontend React application
 ├── extension/      # Chrome extension
-└── worker/         # Cloudflare Worker backend
+├── worker/         # Cloudflare Worker backend
+└── shared/         # Shared types and utilities
 ```

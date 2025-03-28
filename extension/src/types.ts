@@ -1,16 +1,6 @@
-export interface DeviceInfo {
-  deviceId: string;
-  platform: string;
-  userAgent: string;
-  browserName: string;
-  browserVersion: string;
-}
+import { DeviceInfo, PageContent } from '../../shared/types';
 
-export interface PageContent {
-  content: string;
-  summary: string;
-  extractedAt: number;
-}
+export { DeviceInfo, PageContent };
 
 export interface HistoryEntry {
   url: string;

@@ -3,6 +3,8 @@ const { mkdir, rm, cp } = require('fs/promises');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const { join } = require('path');
+const glob = require('glob');
+const fs = require('fs');
 
 const execAsync = promisify(exec);
 const ROOT_DIR = join(__dirname, '..');  // Extension root directory
@@ -22,6 +24,8 @@ const filesToCopy = [
   ['bip39-wordlist.js', 'bip39-wordlist.js'],
   [join('dist', 'popup.js'), 'popup.js'],
   [join('dist', 'background.js'), 'background.js'],
+  // Include any additional assets that might be generated for the background script
+  [join('dist', 'assets', 'background-*.js'), 'assets/'],
   [join('dist', 'settings.js'), 'settings.js'],
   [join('dist', 'history.js'), 'history.js'],
   [join('dist', 'devtools.js'), 'devtools.js'],
@@ -45,13 +49,34 @@ async function main() {
     // Copy necessary files
     console.log('Copying files...');
     for (const [src, dest] of filesToCopy) {
-      await cp(
-        join(ROOT_DIR, src),
-        join(PACKAGE_DIR, dest),
-        { recursive: true }
-      ).catch(err => {
-        console.warn(`Warning: Could not copy ${src}: ${err.message}`);
-      });
+      const srcPath = join(ROOT_DIR, src);
+      
+      // Check if the source path contains a glob pattern
+      if (srcPath.includes('*')) {
+        // Use glob to find matching files
+        const files = glob.sync(srcPath);
+        console.log(`Found ${files.length} files matching pattern ${srcPath}`);
+        
+        for (const file of files) {
+          const fileName = file.split('/').pop();
+          await cp(
+            file,
+            join(PACKAGE_DIR, dest, fileName),
+            { recursive: true }
+          ).catch(err => {
+            console.warn(`Warning: Could not copy ${file}: ${err.message}`);
+          });
+        }
+      } else {
+        // Regular file copy
+        await cp(
+          srcPath,
+          join(PACKAGE_DIR, dest),
+          { recursive: true }
+        ).catch(err => {
+          console.warn(`Warning: Could not copy ${src}: ${err.message}`);
+        });
+      }
     }
     
     // Create Chrome zip file
@@ -62,7 +87,6 @@ async function main() {
     console.log('Creating Firefox extension XPI file...');
     
     // Read the manifest
-    const fs = require('fs');
     const manifestPath = join(PACKAGE_DIR, 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     

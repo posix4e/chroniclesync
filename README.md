@@ -70,20 +70,23 @@ If the self-signed IPA creation fails, the workflow will:
 2. Include any available archive contents
 3. Generate detailed debug information
 
-#### Future Enhancement: Apple Developer Signing
+#### Apple Developer Signing
 
-The workflow includes commented code for using Apple Developer credentials from GitHub secrets. To enable this in the future:
+The workflow uses Apple Developer credentials from GitHub secrets to create properly signed IPAs:
 
-1. Add the following secrets to your GitHub repository:
+1. The following secrets are used from your GitHub repository:
    - `APPLE_TEAM_ID`: Your Apple Developer Team ID
-   - `APPLE_CERTIFICATE_BASE64`: Base64-encoded P12 certificate
+   - `APPLE_CERTIFICATE_CONTENT`: Base64-encoded P12 certificate
    - `APPLE_CERTIFICATE_PASSWORD`: Password for the P12 certificate
-   - `APPLE_PROVISIONING_PROFILE_BASE64`: Base64-encoded provisioning profile
-   - `APPLE_KEYCHAIN_PASSWORD`: (Optional) Password for the temporary keychain
+   - `APPLE_PROVISIONING_PROFILE`: Base64-encoded provisioning profile
+   - `APPLE_API_KEY_ID`: Apple API Key ID for App Store Connect API
+   - `APPLE_API_KEY_ISSUER_ID`: Apple API Key Issuer ID
+   - `APPLE_API_KEY_CONTENT`: Base64-encoded Apple API Key
+   - `APPLE_APP_ID`: Your app's ID in App Store Connect
 
-2. Uncomment the relevant sections in the workflow file
+2. The workflow automatically detects these secrets and uses them for signing
 
-This will allow the workflow to create properly signed IPAs that can be installed on registered test devices or submitted to TestFlight.
+This allows the workflow to create properly signed IPAs that can be installed on registered test devices or submitted to TestFlight.
 
 To properly sign and distribute the iOS extension for real devices, you'll need:
 - An Apple Developer account

@@ -133,101 +133,95 @@ jobs:
       - name: Create archive and IPA
         if: env.BUILD_SUCCESS == 'true'
         continue-on-error: true
-        # Future enhancement: Use Apple Developer credentials from GitHub secrets when available
-        # Uncomment these lines when you have the secrets configured in your GitHub repository
-        # env:
-        #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        #   APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-        #   APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        #   APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        #   APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD || 'github-actions' }}
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_KEYCHAIN_PASSWORD: 'github-actions'
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
           cd extension/ios-tests/ChronicleSync
           
           # Create IPA directory
           mkdir -p "./IPA"
           
-          # For now, we're always using self-signing
-          # In the future, when Apple Developer credentials are available, uncomment the if-else block
-          # and remove the echo lines below
-          
-          echo "=== Creating self-signed archive for iOS app ===" | tee -a archive_log.txt
-          
-          # The following block is for future use with Apple Developer credentials
-          # Uncomment when you have the secrets configured in your GitHub repository
-          
-          # if [ -n "$APPLE_TEAM_ID" ] && [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
-          #   echo "=== Creating archive with Apple Developer credentials ===" | tee -a archive_log.txt
-          #   
-          #   # Create keychain
-          #   KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
-          #   KEYCHAIN_PASSWORD="${APPLE_KEYCHAIN_PASSWORD}"
-          #   
-          #   # Create temporary keychain
-          #   security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          #   security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          #   security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          #   
-          #   # Add keychain to search list
-          #   security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
-          #   
-          #   # Decode and import certificate
-          #   echo "=== Importing certificate ===" | tee -a archive_log.txt
-          #   CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
-          #   echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
-          #   security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          #   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          #   
-          #   # Get the identity from the keychain
-          #   IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "1)" | awk -F '"' '{print $2}')
-          #   echo "Using identity: $IDENTITY" | tee -a archive_log.txt
-          #   
-          #   # Import provisioning profile if available
-          #   if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
-          #     echo "=== Importing provisioning profile ===" | tee -a archive_log.txt
-          #     PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          #     echo -n "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
-          #     mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          #     PROFILE_UUID=$(grep -a -A 1 "UUID" "$PROFILE_PATH" | grep -o "[-A-Z0-9]\{36\}")
-          #     cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
-          #     echo "Imported provisioning profile with UUID: $PROFILE_UUID" | tee -a archive_log.txt
-          #   else
-          #     echo "No provisioning profile provided, will use automatic signing" | tee -a archive_log.txt
-          #   fi
-          #   
-          #   # Create export options plist
-          #   cat > ExportOptions.plist << EOL
-          #   <?xml version="1.0" encoding="UTF-8"?>
-          #   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          #   <plist version="1.0">
-          #   <dict>
-          #       <key>method</key>
-          #       <string>development</string>
-          #       <key>teamID</key>
-          #       <string>$APPLE_TEAM_ID</string>
-          #       <key>compileBitcode</key>
-          #       <false/>
-          #       <key>signingStyle</key>
-          #       <string>automatic</string>
-          #   </dict>
-          #   </plist>
-          #   EOL
-          #   
-          #   # Create a signing configuration for CI
-          #   cat > ci_signing_config.xcconfig << EOL
-          #   DEVELOPMENT_TEAM = $APPLE_TEAM_ID
-          #   CODE_SIGN_IDENTITY = Apple Development
-          #   CODE_SIGN_STYLE = Automatic
-          #   EOL
-          #   
-          #   # Archive the app with Apple Developer signing
-          #   echo "=== Building archive with Apple Developer signing ===" | tee -a archive_log.txt
-          #   xcodebuild archive -scheme "ChronicleSync" -archivePath "./ChronicleSync.xcarchive" -xcconfig ci_signing_config.xcconfig -allowProvisioningUpdates -verbose 2>&1 | tee -a archive_log.txt
-          #   ARCHIVE_EXIT_CODE=${PIPESTATUS[0]}
-          #   
-          # else
-          #   echo "=== Creating self-signed archive for iOS app ===" | tee -a archive_log.txt
-          #   echo "No Apple Developer credentials provided, using self-signing" | tee -a archive_log.txt
+          # Check if Apple Developer credentials are available
+          if [ -n "$APPLE_TEAM_ID" ] && [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
+            echo "=== Creating archive with Apple Developer credentials ===" | tee -a archive_log.txt
+            
+            # Create keychain
+            KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+            KEYCHAIN_PASSWORD="${APPLE_KEYCHAIN_PASSWORD}"
+            
+            # Create temporary keychain
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            
+            # Add keychain to search list
+            security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
+            
+            # Decode and import certificate
+            echo "=== Importing certificate ===" | tee -a archive_log.txt
+            CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+            echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+            security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            
+            # Get the identity from the keychain
+            IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "1)" | sed -E 's/.*\) ([A-F0-9]+) "(.*)"/\2/')
+            echo "Using identity: $IDENTITY" | tee -a archive_log.txt
+            
+            # Import provisioning profile if available
+            if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
+              echo "=== Importing provisioning profile ===" | tee -a archive_log.txt
+              PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+              echo -n "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              PROFILE_UUID=$(grep -a -A 1 "UUID" "$PROFILE_PATH" | grep -o "[-A-Z0-9]\{36\}" || uuidgen)
+              cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
+              echo "Imported provisioning profile with UUID: $PROFILE_UUID" | tee -a archive_log.txt
+            else
+              echo "No provisioning profile provided, will use automatic signing" | tee -a archive_log.txt
+            fi
+            
+            # Create export options plist
+            cat > ExportOptions.plist << EOL
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>method</key>
+                <string>development</string>
+                <key>teamID</key>
+                <string>$APPLE_TEAM_ID</string>
+                <key>compileBitcode</key>
+                <false/>
+                <key>signingStyle</key>
+                <string>automatic</string>
+            </dict>
+            </plist>
+            EOL
+            
+            # Create a signing configuration for CI
+            cat > ci_signing_config.xcconfig << EOL
+            DEVELOPMENT_TEAM = $APPLE_TEAM_ID
+            CODE_SIGN_IDENTITY = Apple Development
+            CODE_SIGN_STYLE = Automatic
+            EOL
+            
+            # Archive the app with Apple Developer signing
+            echo "=== Building archive with Apple Developer signing ===" | tee -a archive_log.txt
+            xcodebuild archive -scheme "ChronicleSync" -archivePath "./ChronicleSync.xcarchive" -xcconfig ci_signing_config.xcconfig -allowProvisioningUpdates -verbose 2>&1 | tee -a archive_log.txt
+            ARCHIVE_EXIT_CODE=${PIPESTATUS[0]}
+            
+          else
+            echo "=== Creating self-signed archive for iOS app ===" | tee -a archive_log.txt
+            echo "No Apple Developer credentials provided, using self-signing" | tee -a archive_log.txt
             
             # Create a self-signed certificate for code signing
             echo "=== Creating self-signed certificate ===" | tee -a archive_log.txt
@@ -313,18 +307,13 @@ jobs:
               echo "## Build Information" >> "./IPA/DEBUG_INFO.md"
               echo "- Build Date: $(date)" >> "./IPA/DEBUG_INFO.md"
               echo "- Xcode Version: $(xcodebuild -version)" >> "./IPA/DEBUG_INFO.md"
-              # For now, we're always using self-signing
-              echo "- Self-signed Identity: $IDENTITY" >> "./IPA/DEBUG_INFO.md"
-              echo "- Signing Method: Self-signed" >> "./IPA/DEBUG_INFO.md"
-              
-              # Uncomment when you have the secrets configured in your GitHub repository
-              # if [ -n "$APPLE_TEAM_ID" ]; then
-              #   echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
-              #   echo "- Signing Method: Apple Developer" >> "./IPA/DEBUG_INFO.md"
-              # else
-              #   echo "- Self-signed Identity: $IDENTITY" >> "./IPA/DEBUG_INFO.md"
-              #   echo "- Signing Method: Self-signed" >> "./IPA/DEBUG_INFO.md"
-              # fi
+              if [ -n "$APPLE_TEAM_ID" ]; then
+                echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
+                echo "- Signing Method: Apple Developer" >> "./IPA/DEBUG_INFO.md"
+              else
+                echo "- Self-signed Identity: $IDENTITY" >> "./IPA/DEBUG_INFO.md"
+                echo "- Signing Method: Self-signed" >> "./IPA/DEBUG_INFO.md"
+              fi
               echo "" >> "./IPA/DEBUG_INFO.md"
               echo "## IPA Contents" >> "./IPA/DEBUG_INFO.md"
               echo "\`\`\`" >> "./IPA/DEBUG_INFO.md"
@@ -333,15 +322,11 @@ jobs:
               
               # Add note about IPA
               echo "## Note" >> "./IPA/DEBUG_INFO.md"
-              # For now, we're always using self-signing
-              echo "This IPA is self-signed for debugging purposes only. It cannot be installed on physical devices without proper Apple Developer provisioning." >> "./IPA/DEBUG_INFO.md"
-              
-              # Uncomment when you have the secrets configured in your GitHub repository
-              # if [ -n "$APPLE_TEAM_ID" ]; then
-              #   echo "This IPA is signed with an Apple Developer certificate. It can be installed on registered test devices." >> "./IPA/DEBUG_INFO.md"
-              # else
-              #   echo "This IPA is self-signed for debugging purposes only. It cannot be installed on physical devices without proper Apple Developer provisioning." >> "./IPA/DEBUG_INFO.md"
-              # fi
+              if [ -n "$APPLE_TEAM_ID" ]; then
+                echo "This IPA is signed with an Apple Developer certificate. It can be installed on registered test devices." >> "./IPA/DEBUG_INFO.md"
+              else
+                echo "This IPA is self-signed for debugging purposes only. It cannot be installed on physical devices without proper Apple Developer provisioning." >> "./IPA/DEBUG_INFO.md"
+              fi
             else
               echo "Export failed" | tee -a archive_log.txt
               echo "ARCHIVE_SUCCESS=false" >> $GITHUB_ENV
@@ -358,11 +343,10 @@ jobs:
               echo "## Build Information" >> "./IPA/DEBUG_INFO.md"
               echo "- Build Date: $(date)" >> "./IPA/DEBUG_INFO.md"
               echo "- Xcode Version: $(xcodebuild -version)" >> "./IPA/DEBUG_INFO.md"
-              # Uncomment when you have the secrets configured in your GitHub repository
-              # if [ -n "$APPLE_TEAM_ID" ]; then
-              #   echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
-              #   echo "- Signing Method: Apple Developer (failed)" >> "./IPA/DEBUG_INFO.md"
-              # fi
+              if [ -n "$APPLE_TEAM_ID" ]; then
+                echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
+                echo "- Signing Method: Apple Developer (failed)" >> "./IPA/DEBUG_INFO.md"
+              fi
               echo "" >> "./IPA/DEBUG_INFO.md"
               echo "## Extension Files" >> "./IPA/DEBUG_INFO.md"
               echo "\`\`\`" >> "./IPA/DEBUG_INFO.md"
@@ -396,11 +380,10 @@ jobs:
             echo "## Build Information" >> "./IPA/DEBUG_INFO.md"
             echo "- Build Date: $(date)" >> "./IPA/DEBUG_INFO.md"
             echo "- Xcode Version: $(xcodebuild -version)" >> "./IPA/DEBUG_INFO.md"
-            # Uncomment when you have the secrets configured in your GitHub repository
-            # if [ -n "$APPLE_TEAM_ID" ]; then
-            #   echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
-            #   echo "- Signing Method: Apple Developer (failed)" >> "./IPA/DEBUG_INFO.md"
-            # fi
+            if [ -n "$APPLE_TEAM_ID" ]; then
+              echo "- Team ID: $APPLE_TEAM_ID" >> "./IPA/DEBUG_INFO.md"
+              echo "- Signing Method: Apple Developer (failed)" >> "./IPA/DEBUG_INFO.md"
+            fi
             echo "" >> "./IPA/DEBUG_INFO.md"
             echo "## Extension Files" >> "./IPA/DEBUG_INFO.md"
             echo "\`\`\`" >> "./IPA/DEBUG_INFO.md"

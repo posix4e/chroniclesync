@@ -351,3 +351,11 @@ jobs:
             echo "- Test results" >> $GITHUB_STEP_SUMMARY
             echo "- Screenshots (if any were captured)" >> $GITHUB_STEP_SUMMARY
           fi
+          
+      - name: Check Test Status
+        if: always() && env.BUILD_SUCCESS == 'true'
+        run: |
+          if [ "$TESTS_SUCCESS" != "true" ]; then
+            echo "::error::Tests failed or timed out. Check the test logs for details."
+            exit 1
+          fi

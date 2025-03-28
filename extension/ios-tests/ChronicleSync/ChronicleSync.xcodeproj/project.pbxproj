@@ -55,9 +55,9 @@
                 1A2B3C4D5E6F7890ABCDEF02 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF04 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF06 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-                1A2B3C4D5E6F7890ABCDEF08 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+                1A2B3C4D5E6F7890ABCDEF71 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF10 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-                1A2B3C4D5E6F7890ABCDEF12 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+                1A2B3C4D5E6F7890ABCDEF72 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF14 /* ChronicleSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicleSync.swift; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF16 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
                 1A2B3C4D5E6F7890ABCDEF18 /* ChronicleSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ChronicleSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -380,7 +380,7 @@
                 1A2B3C4D5E6F7890ABCDEF08 /* Main.storyboard */ = {
                         isa = PBXVariantGroup;
                         children = (
-                                1A2B3C4D5E6F7890ABCDEF08 /* Base */,
+                                1A2B3C4D5E6F7890ABCDEF71 /* Base */,
                         );
                         name = Main.storyboard;
                         sourceTree = "<group>";
@@ -388,7 +388,7 @@
                 1A2B3C4D5E6F7890ABCDEF12 /* LaunchScreen.storyboard */ = {
                         isa = PBXVariantGroup;
                         children = (
-                                1A2B3C4D5E6F7890ABCDEF12 /* Base */,
+                                1A2B3C4D5E6F7890ABCDEF72 /* Base */,
                         );
                         name = LaunchScreen.storyboard;
                         sourceTree = "<group>";

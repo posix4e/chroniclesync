@@ -12,6 +12,7 @@ const PACKAGE_DIR = join(ROOT_DIR, 'package');
 
 /** @type {[string, string][]} File copy specifications [source, destination] */
 const filesToCopy = [
+  // HTML and CSS files
   ['manifest.json', 'manifest.json'],
   ['popup.html', 'popup.html'],
   ['popup.css', 'popup.css'],
@@ -22,16 +23,6 @@ const filesToCopy = [
   ['devtools.html', 'devtools.html'],
   ['devtools.css', 'devtools.css'],
   ['bip39-wordlist.js', 'bip39-wordlist.js'],
-  [join('dist', 'popup.js'), 'popup.js'],
-  [join('dist', 'background.js'), 'background.js'],
-  // Include any additional assets that might be generated for the background script
-  [join('dist', 'assets', 'background-*.js'), 'assets/'],
-  [join('dist', 'settings.js'), 'settings.js'],
-  [join('dist', 'history.js'), 'history.js'],
-  [join('dist', 'devtools.js'), 'devtools.js'],
-  [join('dist', 'devtools-page.js'), 'devtools-page.js'],
-  [join('dist', 'content-script.js'), 'content-script.js'],
-  [join('dist', 'assets'), 'assets']
 ];
 
 async function main() {
@@ -47,36 +38,50 @@ async function main() {
     await execAsync('npm run build', { cwd: ROOT_DIR });
     
     // Copy necessary files
-    console.log('Copying files...');
+    console.log('Copying static files...');
     for (const [src, dest] of filesToCopy) {
       const srcPath = join(ROOT_DIR, src);
-      
-      // Check if the source path contains a glob pattern
-      if (srcPath.includes('*')) {
-        // Use glob to find matching files
-        const files = glob.sync(srcPath);
-        console.log(`Found ${files.length} files matching pattern ${srcPath}`);
-        
-        for (const file of files) {
-          const fileName = file.split('/').pop();
-          await cp(
-            file,
-            join(PACKAGE_DIR, dest, fileName),
-            { recursive: true }
-          ).catch(err => {
-            console.warn(`Warning: Could not copy ${file}: ${err.message}`);
-          });
-        }
-      } else {
-        // Regular file copy
-        await cp(
-          srcPath,
-          join(PACKAGE_DIR, dest),
-          { recursive: true }
-        ).catch(err => {
-          console.warn(`Warning: Could not copy ${src}: ${err.message}`);
-        });
-      }
+      await cp(
+        srcPath,
+        join(PACKAGE_DIR, dest),
+        { recursive: true }
+      ).catch(err => {
+        console.warn(`Warning: Could not copy ${src}: ${err.message}`);
+      });
+    }
+    
+    // Copy all files from dist directory
+    console.log('Copying built files from dist directory...');
+    const distDir = join(ROOT_DIR, 'dist');
+    
+    // First, copy all JS files from the root of dist
+    const jsFiles = glob.sync(join(distDir, '*.js'));
+    console.log(`Found ${jsFiles.length} JS files in dist root`);
+    
+    for (const file of jsFiles) {
+      const fileName = file.split('/').pop();
+      await cp(
+        file,
+        join(PACKAGE_DIR, fileName),
+        { recursive: true }
+      ).catch(err => {
+        console.warn(`Warning: Could not copy ${file}: ${err.message}`);
+      });
+    }
+    
+    // Then copy the assets directory if it exists
+    const assetsDir = join(distDir, 'assets');
+    if (fs.existsSync(assetsDir)) {
+      console.log('Copying assets directory...');
+      await cp(
+        assetsDir,
+        join(PACKAGE_DIR, 'assets'),
+        { recursive: true }
+      ).catch(err => {
+        console.warn(`Warning: Could not copy assets directory: ${err.message}`);
+      });
+    } else {
+      console.log('No assets directory found, skipping...');
     }
     
     // Create Chrome zip file

@@ -106,7 +106,7 @@ jobs:
         run: |
           cd extension/ios-tests/ChronicleSync
           mkdir -p screenshots
-          xcrun xcresulttool get --path TestResults.xcresult --format json | grep -o '"filename" : ".*\.png"' | awk -F'"' '{print $4}' | xargs -I{} find TestResults.xcresult -name {} -exec cp {} screenshots/ \;
+          xcrun xcresulttool get --legacy --path TestResults.xcresult --format json | grep -o '"filename" : ".*\.png"' | awk -F'"' '{print $4}' | xargs -I{} find TestResults.xcresult -name {} -exec cp {} screenshots/ \;
       
       - name: Upload screenshots
         uses: actions/upload-artifact@v4

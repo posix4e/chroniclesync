@@ -1,6 +1,6 @@
-import { DeviceInfo, PageContent } from '../../shared/types';
+import type { DeviceInfo, PageContent } from '../../shared/types';
 
-export { DeviceInfo, PageContent };
+export type { DeviceInfo, PageContent };
 
 export interface HistoryEntry {
   url: string;

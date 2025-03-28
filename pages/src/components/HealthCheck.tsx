@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { API_URL } from '../utils/api';
-import type { HealthStatus } from '../types';
+import type { HealthStatus } from '../../../shared/types';
 
 export function HealthCheck() {
   const [status, setStatus] = useState<string>('Checking...');

@@ -2,9 +2,10 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HealthCheck } from '../HealthCheck';
 import React from 'react';
+import { createFetchMock } from '../../../../shared/test-utils';
 
 // Mock fetch globally
-const mockFetch = jest.fn();
+const mockFetch = createFetchMock();
 global.fetch = mockFetch;
 
 describe('HealthCheck', () => {
@@ -25,9 +26,8 @@ describe('HealthCheck', () => {
   });
 
   it('displays healthy status after successful check', async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ healthy: true })
-    });
+    // Use our shared test utility
+    mockFetch.mockImplementation(createFetchMock({ healthy: true }, true));
 
     render(<HealthCheck />);
     fireEvent.click(screen.getByRole('button', { name: 'Check Health' }));
@@ -42,9 +42,8 @@ describe('HealthCheck', () => {
 
   it('displays unhealthy status with error message', async () => {
     const errorMessage = 'Database connection failed';
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({ healthy: false, error: errorMessage })
-    });
+    // Use our shared test utility
+    mockFetch.mockImplementation(createFetchMock({ healthy: false, error: errorMessage }, true));
 
     const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
     
@@ -61,6 +60,8 @@ describe('HealthCheck', () => {
 
   it('handles network errors gracefully', async () => {
     const networkError = new Error('Network error');
+    // Reset the mock and make it reject with an error
+    mockFetch.mockReset();
     mockFetch.mockRejectedValueOnce(networkError);
 
     const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});

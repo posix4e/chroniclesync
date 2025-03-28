@@ -29,8 +29,10 @@ chroniclesync/
 ├── extension/      # Chrome extension
 ├── worker/         # Cloudflare Worker backend
 └── shared/         # Shared code between projects
-    ├── types.ts    # Common TypeScript interfaces
-    ├── config.ts   # Shared configuration
-    ├── constants.ts # Shared constants
-    └── build-utils.ts # Shared build utilities
+    ├── types.ts           # Common TypeScript interfaces
+    ├── config.ts          # Shared configuration values
+    ├── constants.ts       # Shared constants
+    ├── build-utils.ts     # Browser-compatible build utilities
+    ├── node-build-utils.ts # Node.js-specific build utilities
+    └── test-utils.ts      # Shared test utilities
 ```

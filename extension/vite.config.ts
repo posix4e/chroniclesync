@@ -1,29 +1,48 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync } from 'fs';
+
+/**
+ * Consolidated build configuration for ChronicleSync extension
+ * - Handles all entry points
+ * - Copies static assets
+ * - Configures development server
+ * - Includes test configuration
+ */
 
 // Custom plugin to copy files after build
-const copyFiles = () => ({
-  name: 'copy-files',
+const copyStaticAssets = () => ({
+  name: 'copy-static-assets',
   closeBundle: () => {
-    // Copy HTML, CSS, and manifest files to dist
+    // Create dist directory if it doesn't exist
+    if (!existsSync(resolve(__dirname, 'dist'))) {
+      mkdirSync(resolve(__dirname, 'dist'), { recursive: true });
+    }
+    
+    // Static files to copy
     const files = [
+      // HTML files
       'popup.html',
-      'manifest.json',
-      'popup.css',
       'settings.html',
-      'settings.css',
-      'bip39-wordlist.js',
       'history.html',
-      'history.css',
       'devtools.html',
-      'devtools.css'
+      
+      // CSS files
+      'popup.css',
+      'settings.css',
+      'history.css',
+      'devtools.css',
+      
+      // Other assets
+      'manifest.json',
+      'bip39-wordlist.js'
     ];
 
     for (const file of files) {
       try {
         copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', file));
+        console.log(`Copied ${file} to dist`);
       } catch (error) {
         console.warn(`Warning: Could not copy ${file}: ${error}`);
       }
@@ -32,18 +51,25 @@ const copyFiles = () => ({
 });
 
 export default defineConfig({
-  plugins: [react(), copyFiles()],
+  plugins: [react(), copyStaticAssets()],
+  
+  // Build configuration
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
+        // Main extension components
         popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'src/background.ts'),
+        background: resolve(__dirname, 'src/background/index.ts'),
         settings: resolve(__dirname, 'src/settings/index.ts'),
         history: resolve(__dirname, 'src/history.tsx'),
+        
+        // DevTools components
         devtools: resolve(__dirname, 'src/devtools.tsx'),
         'devtools-page': resolve(__dirname, 'src/devtools-page.ts'),
+        
+        // Content script
         'content-script': resolve(__dirname, 'src/content-script.ts')
       },
       output: {
@@ -52,11 +78,29 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[ext]',
         inlineDynamicImports: false
       }
-    }
+    },
+    // Ensure source maps for easier debugging
+    sourcemap: true,
   },
+  
+  // Development server
   server: {
     port: 54512,
     host: '0.0.0.0',
-    cors: true
+    cors: true,
+    open: '/popup.html'
+  },
+  
+  // Test configuration (consolidated from vitest.config.ts)
+  test: {
+    environment: 'jsdom',
+    include: ['**/__tests__/**/*.test.[jt]s?(x)'],
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    }
   }
 });

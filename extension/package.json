@@ -6,18 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:extension": "node scripts/build-extension.cjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
-    "test:e2e:chrome": "BROWSER=chromium xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=chromium",
-    "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=firefox",
-    "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
-    "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "test:e2e": "playwright test",
+    "test:e2e:chrome": "playwright test --project=chromium",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "clean": "rm -rf dist node_modules/.vite"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

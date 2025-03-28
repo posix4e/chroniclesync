@@ -1,28 +1,34 @@
-const defaultConfig = {
-  apiEndpoint: 'https://api.chroniclesync.xyz',  // Worker API endpoint
-  pagesUrl: 'https://chroniclesync.pages.dev',   // Pages UI endpoint
-  clientId: 'extension-default'
-};
+import { urls, DEFAULT_CLIENT_ID, ENVIRONMENTS, STORAGE_KEYS } from '../shared/constants';
 
-const STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
+const defaultConfig = {
+  apiEndpoint: urls.production.apiEndpoint,  // Worker API endpoint
+  pagesUrl: urls.production.pagesUrl,        // Pages UI endpoint
+  clientId: DEFAULT_CLIENT_ID
+};
 
 // Load configuration from storage or use defaults
 async function getConfig() {
   try {
-    const result = await chrome.storage.sync.get(['apiEndpoint', 'pagesUrl', 'clientId', 'environment', 'customApiUrl']);
+    const result = await chrome.storage.sync.get([
+      STORAGE_KEYS.API_ENDPOINT, 
+      STORAGE_KEYS.PAGES_URL, 
+      STORAGE_KEYS.CLIENT_ID, 
+      STORAGE_KEYS.ENVIRONMENT, 
+      STORAGE_KEYS.CUSTOM_API_URL
+    ]);
     
     // Determine API endpoint based on environment
     let apiEndpoint = defaultConfig.apiEndpoint;
-    if (result.environment === 'staging') {
-      apiEndpoint = STAGING_API_URL;
-    } else if (result.environment === 'custom' && result.customApiUrl) {
-      apiEndpoint = result.customApiUrl;
+    if (result[STORAGE_KEYS.ENVIRONMENT] === ENVIRONMENTS.STAGING) {
+      apiEndpoint = urls.staging.apiEndpoint;
+    } else if (result[STORAGE_KEYS.ENVIRONMENT] === ENVIRONMENTS.CUSTOM && result[STORAGE_KEYS.CUSTOM_API_URL]) {
+      apiEndpoint = result[STORAGE_KEYS.CUSTOM_API_URL];
     }
 
     return {
       apiEndpoint: apiEndpoint,
-      pagesUrl: result.pagesUrl || defaultConfig.pagesUrl,
-      clientId: result.clientId || defaultConfig.clientId
+      pagesUrl: result[STORAGE_KEYS.PAGES_URL] || defaultConfig.pagesUrl,
+      clientId: result[STORAGE_KEYS.CLIENT_ID] || defaultConfig.clientId
     };
   } catch (error) {
     console.error('Error loading config:', error);
@@ -34,9 +40,9 @@ async function getConfig() {
 async function saveConfig(config) {
   try {
     await chrome.storage.sync.set({
-      apiEndpoint: config.apiEndpoint,
-      pagesUrl: config.pagesUrl,
-      clientId: config.clientId
+      [STORAGE_KEYS.API_ENDPOINT]: config.apiEndpoint,
+      [STORAGE_KEYS.PAGES_URL]: config.pagesUrl,
+      [STORAGE_KEYS.CLIENT_ID]: config.clientId
     });
     return true;
   } catch (error) {

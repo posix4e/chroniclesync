@@ -1,6 +1,9 @@
 /**
  * Shared constants used across the application
  */
+import { urls } from './config';
+
+export { urls };
 
 // Sync status values
 export const SYNC_STATUS = {

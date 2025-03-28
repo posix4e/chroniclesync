@@ -76,7 +76,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
     const historyData = await Promise.all(historyItems.map(async item => {
       if (!item.url) return [];
       const visits = await new Promise<chrome.history.VisitItem[]>((resolve) => {
-        browserAPI.history.getVisits({ url: item.url }, resolve);
+        browserAPI.history.getVisits({ url: item.url! }, resolve);
       });
       
       return visits

@@ -66,16 +66,16 @@ export async function queryTabs(queryInfo: chrome.tabs.QueryInfo): Promise<chrom
  */
 export const storage = {
   local: {
-    get: async <T>(keys: string | string[] | null): Promise<T> => {
+    get: async <T extends object>(keys: string | string[] | null | undefined): Promise<T> => {
       const browserAPI = getBrowserAPI();
       
       if (detectBrowser() === BrowserType.Chrome) {
         return new Promise<T>((resolve) => {
-          browserAPI.storage.local.get(keys, (result: T) => resolve(result));
+          browserAPI.storage.local.get(keys as any, (result: T) => resolve(result));
         });
       } else {
         // Firefox and Safari use promises
-        return browserAPI.storage.local.get(keys) as Promise<T>;
+        return browserAPI.storage.local.get(keys as any) as Promise<T>;
       }
     },
     

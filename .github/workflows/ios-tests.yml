@@ -160,17 +160,19 @@ jobs:
           
           # Archive the app
           xcodebuild archive -scheme "ChronicleSync" -archivePath "./ChronicleSync.xcarchive" -allowProvisioningUpdates -verbose 2>&1 | tee -a archive_log.txt
+          ARCHIVE_EXIT_CODE=${PIPESTATUS[0]}
           
           # Check if archive was successful
-          if [ $? -eq 0 ]; then
+          if [ $ARCHIVE_EXIT_CODE -eq 0 ] && [ -d "./ChronicleSync.xcarchive" ]; then
             echo "Archive successful" | tee -a archive_log.txt
             
             # Export the archive as an IPA
             echo "=== Exporting archive as IPA ===" | tee -a archive_log.txt
             xcodebuild -exportArchive -archivePath "./ChronicleSync.xcarchive" -exportOptionsPlist ExportOptions.plist -exportPath "./IPA" -allowProvisioningUpdates -verbose 2>&1 | tee -a archive_log.txt
+            EXPORT_EXIT_CODE=${PIPESTATUS[0]}
             
             # Check if export was successful
-            if [ $? -eq 0 ]; then
+            if [ $EXPORT_EXIT_CODE -eq 0 ] && [ -d "./IPA" ] && [ "$(ls -A ./IPA)" ]; then
               echo "Export successful" | tee -a archive_log.txt
               echo "ARCHIVE_SUCCESS=true" >> $GITHUB_ENV
             else
@@ -216,39 +218,15 @@ jobs:
           # Create a variable to store the exit code
           TEST_EXIT_CODE=0
           
-          # Run the test with a timeout using perl (since timeout command is not available on macOS)
+          # Run the test with a simpler approach - GitHub Actions timeout will handle it
           if [ "$SIMULATOR_ID" == "generic" ]; then
-            # Use perl to implement a timeout (9 minutes = 540 seconds)
-            perl -e '
-              eval {
-                local $SIG{ALRM} = sub { die "timeout\n" };
-                alarm 540;
-                system "xcodebuild test -scheme \"ChronicleSync\" -destination \"platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder\" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt";
-                alarm 0;
-              };
-              if ($@ eq "timeout\n") {
-                print "Test timed out after 9 minutes\n";
-                exit 124;
-              }
-              exit $? >> 8;
-            '
-            TEST_EXIT_CODE=$?
+            echo "Running tests with generic simulator..." | tee -a test_log.txt
+            xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
           else
-            # Use perl to implement a timeout (9 minutes = 540 seconds)
-            perl -e '
-              eval {
-                local $SIG{ALRM} = sub { die "timeout\n" };
-                alarm 540;
-                system "xcodebuild test -scheme \"ChronicleSync\" -destination \"platform=iOS Simulator,id='$SIMULATOR_ID'\" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt";
-                alarm 0;
-              };
-              if ($@ eq "timeout\n") {
-                print "Test timed out after 9 minutes\n";
-                exit 124;
-              }
-              exit $? >> 8;
-            '
-            TEST_EXIT_CODE=$?
+            echo "Running tests with simulator ID: $SIMULATOR_ID..." | tee -a test_log.txt
+            xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
           fi
           
           # Check if tests were successful
@@ -256,23 +234,16 @@ jobs:
             echo "Tests successful" | tee -a test_log.txt
             echo "TESTS_SUCCESS=true" >> $GITHUB_ENV
             echo "test_result=success" >> $GITHUB_OUTPUT
-          elif [ $TEST_EXIT_CODE -eq 124 ]; then
-            echo "Tests timed out after 9 minutes" | tee -a test_log.txt
-            echo "TESTS_SUCCESS=false" >> $GITHUB_ENV
-            echo "test_result=timeout" >> $GITHUB_OUTPUT
-            
-            # Create a minimal test result if it doesn't exist
-            if [ ! -d "TestResults.xcresult" ]; then
-              mkdir -p "TestResults.xcresult"
-              echo "Test execution timed out after 9 minutes" > "TestResults.xcresult/README.txt"
-            fi
-            
-            # Don't fail the workflow, but mark this step as timed out
-            exit 0
           else
             echo "Tests failed with exit code $TEST_EXIT_CODE" | tee -a test_log.txt
             echo "TESTS_SUCCESS=false" >> $GITHUB_ENV
             echo "test_result=failure" >> $GITHUB_OUTPUT
+            
+            # Ensure TestResults.xcresult exists for artifact upload
+            if [ ! -d "TestResults.xcresult" ]; then
+              mkdir -p "TestResults.xcresult"
+              echo "Test execution failed with exit code $TEST_EXIT_CODE" > "TestResults.xcresult/README.txt"
+            fi
             
             # Don't fail the workflow, but mark this step as failed
             # This allows subsequent steps to run while still indicating the test failure
@@ -354,12 +325,7 @@ jobs:
           if [ "$TESTS_SUCCESS" == "true" ]; then
             echo "✅ **Tests:** Successful" >> $GITHUB_STEP_SUMMARY
           elif [ "$BUILD_SUCCESS" == "true" ]; then
-            # Check if we have a test result from the test step
-            if [ "${{ steps.test_step.outputs.test_result }}" == "timeout" ]; then
-              echo "⏱️ **Tests:** Timed out (10 minute limit)" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
           else
             echo "⏭️ **Tests:** Skipped (build failed)" >> $GITHUB_STEP_SUMMARY
           fi

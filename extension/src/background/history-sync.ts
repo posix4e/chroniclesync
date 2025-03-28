@@ -1,0 +1,152 @@
+import { HistoryStore } from '../db/HistoryStore';
+import { getSystemInfo } from '../utils/system';
+import { syncWithServer } from '../api/client';
+import { getConfig } from '../../config';
+import { HistoryEntry, DeviceInfo } from '../types';
+
+export interface SyncStats {
+  sent: number;
+  received: number;
+  devices: number;
+}
+
+/**
+ * Synchronizes browser history with the server
+ */
+export async function syncHistory(forceFullSync = false): Promise<void> {
+  try {
+    const initialized = await chrome.storage.local.get(['initialized']);
+    if (!initialized.initialized) {
+      const success = await initializeExtension();
+      if (!success) {
+        console.debug('Sync skipped: Extension not initialized');
+        return;
+      }
+    }
+
+    const config = await getConfig();
+
+    if (!config.clientId || config.clientId === 'extension-default') {
+      console.debug('Sync paused: No client ID configured');
+      throw new Error('Please configure your Client ID in the extension popup');
+    }
+
+    console.debug('Starting sync with client ID:', config.clientId);
+
+    const systemInfo = await getSystemInfo();
+    const now = Date.now();
+
+    const stored = await chrome.storage.local.get(['lastSync']);
+    const storedLastSync = stored.lastSync || 0;
+
+    const startTime = forceFullSync ? 0 : storedLastSync;
+
+    const historyStore = new HistoryStore();
+    await historyStore.init();
+
+    await historyStore.updateDevice(systemInfo);
+
+    const historyItems = await chrome.history.search({
+      text: '',
+      startTime: startTime,
+      endTime: now,
+      maxResults: 10000
+    });
+
+    const historyData = await Promise.all(historyItems.map(async item => {
+      if (!item.url) return [];
+      const visits = await chrome.history.getVisits({ url: item.url });
+      
+      return visits
+        .filter((visit: chrome.history.VisitItem) => {
+          const visitTime = visit.visitTime || 0;
+          return visitTime >= startTime && visitTime <= now;
+        })
+        .map((visit: chrome.history.VisitItem) => ({
+          url: item.url!,
+          title: item.title || '',
+          visitTime: visit.visitTime || Date.now(),
+          visitId: visit.visitId.toString(),
+          referringVisitId: visit.referringVisitId?.toString() || '0',
+          transition: visit.transition || 'link',
+          ...systemInfo
+        }));
+    }));
+
+    const flattenedHistoryData = historyData.flat();
+    
+    for (const entry of flattenedHistoryData) {
+      await historyStore.addEntry(entry);
+    }
+
+    const unsyncedEntries = await historyStore.getUnsyncedEntries();
+
+    if (unsyncedEntries.length > 0) {
+      const syncResponse = await syncWithServer(unsyncedEntries, systemInfo, storedLastSync);
+
+      if (syncResponse.history && syncResponse.history.length > 0) {
+        await historyStore.mergeRemoteEntries(syncResponse.history);
+      }
+
+      if (syncResponse.devices) {
+        for (const device of syncResponse.devices) {
+          await historyStore.updateDevice(device);
+        }
+      }
+
+      for (const entry of unsyncedEntries) {
+        await historyStore.markAsSynced(entry.visitId);
+      }
+
+      const newLastSync = syncResponse.lastSyncTime || now;
+      const lastSyncDate = new Date(newLastSync).toLocaleString();
+      await chrome.storage.local.set({ lastSync: newLastSync });
+      await chrome.storage.sync.set({ lastSync: lastSyncDate });
+
+      try {
+        chrome.runtime.sendMessage({ 
+          type: 'syncComplete',
+          stats: {
+            sent: unsyncedEntries.length,
+            received: syncResponse.history?.length || 0,
+            devices: syncResponse.devices?.length || 0
+          } as SyncStats
+        }).catch(() => {
+          // Ignore error when no receivers are present
+        });
+      } catch {
+        // Catch any other messaging errors
+      }
+    }
+
+    console.debug('Successfully completed sync');
+  } catch (error) {
+    console.error('Error syncing history:', error);
+    try {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      chrome.runtime.sendMessage({ 
+        type: 'syncError',
+        error: errorMessage
+      }).catch(() => {
+        // Ignore error when no receivers are present
+      });
+    } catch {
+      // Catch any other messaging errors
+    }
+  }
+}
+
+/**
+ * Initializes the extension
+ */
+export async function initializeExtension(): Promise<boolean> {
+  try {
+    await chrome.storage.local.get(['initialized']);
+    await getConfig();
+    await chrome.storage.local.set({ initialized: true });
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize extension:', error);
+    return false;
+  }
+}

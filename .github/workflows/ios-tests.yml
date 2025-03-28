@@ -101,7 +101,7 @@ jobs:
           path: extension/ios-tests/ChronicleSync/setup_log.txt
           retention-days: 30
       
-      - name: Build iOS app
+      - name: Build iOS app for simulator
         run: |
           cd extension/ios-tests/ChronicleSync
           
@@ -128,6 +128,69 @@ jobs:
         with:
           name: ios-build-logs
           path: extension/ios-tests/ChronicleSync/build_log.txt
+          retention-days: 30
+          
+      - name: Create archive and IPA
+        if: env.BUILD_SUCCESS == 'true'
+        run: |
+          cd extension/ios-tests/ChronicleSync
+          
+          echo "=== Creating archive for iOS app ===" | tee -a archive_log.txt
+          
+          # Create a temporary export options plist
+          cat > ExportOptions.plist << EOL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>FAKETEAMID</string>
+              <key>compileBitcode</key>
+              <false/>
+          </dict>
+          </plist>
+          EOL
+          
+          # Archive the app
+          xcodebuild archive -scheme "ChronicleSync" -archivePath "./ChronicleSync.xcarchive" -verbose 2>&1 | tee -a archive_log.txt
+          
+          # Check if archive was successful
+          if [ $? -eq 0 ]; then
+            echo "Archive successful" | tee -a archive_log.txt
+            
+            # Export the archive as an IPA
+            echo "=== Exporting archive as IPA ===" | tee -a archive_log.txt
+            xcodebuild -exportArchive -archivePath "./ChronicleSync.xcarchive" -exportOptionsPlist ExportOptions.plist -exportPath "./IPA" -verbose 2>&1 | tee -a archive_log.txt
+            
+            # Check if export was successful
+            if [ $? -eq 0 ]; then
+              echo "Export successful" | tee -a archive_log.txt
+              echo "ARCHIVE_SUCCESS=true" >> $GITHUB_ENV
+            else
+              echo "Export failed" | tee -a archive_log.txt
+              echo "ARCHIVE_SUCCESS=false" >> $GITHUB_ENV
+            fi
+          else
+            echo "Archive failed" | tee -a archive_log.txt
+            echo "ARCHIVE_SUCCESS=false" >> $GITHUB_ENV
+          fi
+      
+      - name: Upload archive logs
+        uses: actions/upload-artifact@v4
+        if: always() && env.BUILD_SUCCESS == 'true'
+        with:
+          name: ios-archive-logs
+          path: extension/ios-tests/ChronicleSync/archive_log.txt
+          retention-days: 30
+          
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        if: env.BUILD_SUCCESS == 'true' && env.ARCHIVE_SUCCESS == 'true'
+        with:
+          name: ios-ipa
+          path: extension/ios-tests/ChronicleSync/IPA
           retention-days: 30
       
       - name: Test iOS app

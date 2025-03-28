@@ -66,5 +66,5 @@ export default defineConfig({
       },
     },
   ],
-  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chrome/',
+  outputDir: browser === 'firefox' ? 'test-results/firefox/' : 'test-results/chromium/',
 });

@@ -200,17 +200,27 @@ jobs:
           
           echo "=== Testing iOS app with simulator: $SIMULATOR_NAME ($SIMULATOR_ID) ===" | tee -a test_log.txt
           
+          # Create a variable to store the exit code
+          TEST_EXIT_CODE=0
+          
           if [ "$SIMULATOR_ID" == "generic" ]; then
+            # Use a temporary file to capture the output while still showing it in real-time
             xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
           else
             xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
           fi
           
           # Check if tests were successful
-          if [ $? -eq 0 ]; then
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
             echo "Tests successful" | tee -a test_log.txt
+            echo "TESTS_SUCCESS=true" >> $GITHUB_ENV
           else
-            echo "Tests failed" | tee -a test_log.txt
+            echo "Tests failed with exit code $TEST_EXIT_CODE" | tee -a test_log.txt
+            echo "TESTS_SUCCESS=false" >> $GITHUB_ENV
+            # Make the step fail if tests fail
+            exit $TEST_EXIT_CODE
           fi
       
       - name: Upload test logs
@@ -234,7 +244,20 @@ jobs:
         run: |
           cd extension/ios-tests/ChronicleSync
           mkdir -p screenshots
-          xcrun xcresulttool get --legacy --path TestResults.xcresult --format json | grep -o '"filename" : ".*\.png"' | awk -F'"' '{print $4}' | xargs -I{} find TestResults.xcresult -name {} -exec cp {} screenshots/ \;
+          
+          # Check if TestResults.xcresult exists
+          if [ -d "TestResults.xcresult" ]; then
+            xcrun xcresulttool get --legacy --path TestResults.xcresult --format json | grep -o '"filename" : ".*\.png"' | awk -F'"' '{print $4}' | xargs -I{} find TestResults.xcresult -name {} -exec cp {} screenshots/ \;
+            
+            # Check if any screenshots were found
+            if [ "$(ls -A screenshots)" ]; then
+              echo "Screenshots extracted successfully"
+            else
+              echo "No screenshots found in test results"
+            fi
+          else
+            echo "TestResults.xcresult directory not found, skipping screenshot extraction"
+          fi
       
       - name: Upload screenshots
         uses: actions/upload-artifact@v4

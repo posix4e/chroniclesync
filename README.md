@@ -28,5 +28,9 @@ chroniclesync/
 ├── pages/          # Frontend React application
 ├── extension/      # Chrome extension
 ├── worker/         # Cloudflare Worker backend
-└── shared/         # Shared types and utilities
+└── shared/         # Shared code between projects
+    ├── types.ts    # Common TypeScript interfaces
+    ├── config.ts   # Shared configuration
+    ├── constants.ts # Shared constants
+    └── build-utils.ts # Shared build utilities
 ```

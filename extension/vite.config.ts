@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { createCopyFilesPlugin, commonBuildOptions, commonServerOptions } from '../shared/build-utils';
+import { createCopyFilesPlugin } from '../shared/node-build-utils';
+import { commonBuildOptions, commonServerOptions } from '../shared/build-utils';
 
 // Files to copy after build
 const filesToCopy = [

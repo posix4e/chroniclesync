@@ -1,5 +1,3 @@
-import { resolve } from 'path';
-
 // Common URLs and endpoints
 export const urls = {
   production: {
@@ -12,17 +10,9 @@ export const urls = {
   }
 };
 
-// Common paths that can be used across projects
-export const commonPaths = {
-  extension: resolve(__dirname, '../extension'),
-  extensionDist: resolve(__dirname, '../extension/dist'),
-  pages: resolve(__dirname, '../pages'),
-  pagesDist: resolve(__dirname, '../pages/dist'),
-};
-
-// Default server configuration
+// Default server configuration (for build tools only, not for browser)
 export const defaultServer = {
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: 3000,
   host: '0.0.0.0',
   cors: true
 };

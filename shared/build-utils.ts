@@ -1,26 +1,7 @@
-import { copyFileSync } from 'fs';
-import { resolve } from 'path';
-
 /**
- * Creates a Vite plugin that copies files after build
- * @param sourceDir - Source directory
- * @param targetDir - Target directory
- * @param files - Array of files to copy
+ * This file contains browser-compatible build utilities
+ * For Node.js-specific utilities, see node-build-utils.ts
  */
-export function createCopyFilesPlugin(sourceDir: string, targetDir: string, files: string[]) {
-  return {
-    name: 'copy-files',
-    closeBundle: () => {
-      for (const file of files) {
-        try {
-          copyFileSync(resolve(sourceDir, file), resolve(targetDir, file));
-        } catch (error) {
-          console.warn(`Warning: Could not copy ${file}: ${error}`);
-        }
-      }
-    }
-  };
-}
 
 /**
  * Common Vite build configuration options

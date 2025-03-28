@@ -86,7 +86,10 @@ jobs:
         working-directory: extension
         run: |
           npm run lint
-          npm run test
+          # Install xvfb for headless browser testing
+          sudo apt-get update && sudo apt-get install -y xvfb
+          # Run tests with xvfb
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npm run test
 
       - name: Test Worker
         working-directory: worker
@@ -168,8 +171,10 @@ jobs:
           npx playwright install --with-deps
           # Ensure the specific browser is installed properly
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
+          # Install xvfb for headless browser testing
+          sudo apt-get update && sudo apt-get install -y xvfb
           # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npm run test:e2e:${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()

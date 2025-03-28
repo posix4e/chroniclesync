@@ -1,12 +1,6 @@
-export interface HealthStatus {
-  healthy: boolean;
-  error?: string;
-}
+import type { HealthStatus, Location } from '../../../shared/types';
 
-export interface Location {
-  hostname: string;
-  [key: string]: unknown;
-}
+export type { HealthStatus, Location };
 
 export interface ClientStats {
   clientId: string;

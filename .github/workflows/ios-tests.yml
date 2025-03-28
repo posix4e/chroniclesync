@@ -44,20 +44,27 @@ jobs:
         run: |
           cd extension/ios-tests/ChronicleSync
           
-          # Find an available simulator
-          SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and (.name | contains("iPhone"))) | .udid' | head -n 1)
-          
-          if [ -z "$SIMULATOR_ID" ]; then
-            echo "No available iPhone simulator found, trying any simulator"
-            SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true) | .udid' | head -n 1)
-          fi
-          
-          if [ -z "$SIMULATOR_ID" ]; then
-            echo "No available simulator found, using generic destination"
-            xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult
+          # Try specific iPhone 16 Pro simulator first
+          if xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro" -resultBundlePath TestResults.xcresult; then
+            echo "Successfully built and tested with iPhone 16 Pro simulator"
           else
-            echo "Using simulator with ID: $SIMULATOR_ID"
-            xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult
+            echo "Failed with specific simulator, trying fallback options"
+            
+            # Find an available simulator
+            SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and (.name | contains("iPhone"))) | .udid' | head -n 1)
+            
+            if [ -z "$SIMULATOR_ID" ]; then
+              echo "No available iPhone simulator found, trying any simulator"
+              SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true) | .udid' | head -n 1)
+            fi
+            
+            if [ -z "$SIMULATOR_ID" ]; then
+              echo "No available simulator found, using generic destination"
+              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult
+            else
+              echo "Using simulator with ID: $SIMULATOR_ID"
+              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult
+            fi
           fi
       
       - name: Upload test results

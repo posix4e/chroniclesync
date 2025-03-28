@@ -40,51 +40,88 @@ jobs:
         run: |
           xcrun simctl list devices available
 
-      - name: Build and test iOS app
+      - name: Setup environment
         run: |
           cd extension/ios-tests/ChronicleSync
           
           # Debug: List directory structure
-          echo "=== Directory Structure ===" | tee -a build_log.txt
-          find . -type f | sort | tee -a build_log.txt
+          echo "=== Directory Structure ===" | tee -a setup_log.txt
+          find . -type f | sort | tee -a setup_log.txt
           
           # Debug: Check Assets.xcassets
-          echo "=== Assets.xcassets Content ===" | tee -a build_log.txt
-          find ./ChronicleSync/Assets.xcassets -type f | sort | tee -a build_log.txt
+          echo "=== Assets.xcassets Content ===" | tee -a setup_log.txt
+          find ./ChronicleSync/Assets.xcassets -type f | sort | tee -a setup_log.txt
           
           # Debug: Check Extension Resources
-          echo "=== Extension Resources ===" | tee -a build_log.txt
-          find ./ChronicleSync\ Extension/Resources -type f | sort | tee -a build_log.txt
+          echo "=== Extension Resources ===" | tee -a setup_log.txt
+          find ./ChronicleSync\ Extension/Resources -type f | sort | tee -a setup_log.txt
           
-          # Try specific iPhone 16 Pro simulator first
-          echo "=== Running xcodebuild with iPhone 16 Pro simulator ===" | tee -a build_log.txt
-          if xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt; then
-            echo "Successfully built and tested with iPhone 16 Pro simulator" | tee -a build_log.txt
+          # Find available simulator
+          echo "=== Available Simulators ===" | tee -a setup_log.txt
+          xcrun simctl list devices available | tee -a setup_log.txt
+          
+          # Try to find iPhone 16 Pro simulator
+          IPHONE_16_PRO=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and .name == "iPhone 16 Pro") | .udid' | head -n 1)
+          
+          if [ -n "$IPHONE_16_PRO" ]; then
+            echo "Found iPhone 16 Pro simulator: $IPHONE_16_PRO" | tee -a setup_log.txt
+            echo "SIMULATOR_ID=$IPHONE_16_PRO" >> $GITHUB_ENV
+            echo "SIMULATOR_NAME=iPhone 16 Pro" >> $GITHUB_ENV
           else
-            echo "Failed with specific simulator, trying fallback options" | tee -a build_log.txt
+            # Find any iPhone simulator
+            IPHONE_SIM=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and (.name | contains("iPhone"))) | .udid' | head -n 1)
             
-            # Find an available simulator
-            echo "=== Available Simulators ===" | tee -a build_log.txt
-            xcrun simctl list devices available | tee -a build_log.txt
-            
-            SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and (.name | contains("iPhone"))) | .udid' | head -n 1)
-            
-            if [ -z "$SIMULATOR_ID" ]; then
-              echo "No available iPhone simulator found, trying any simulator" | tee -a build_log.txt
-              SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true) | .udid' | head -n 1)
-            fi
-            
-            if [ -z "$SIMULATOR_ID" ]; then
-              echo "No available simulator found, using generic destination" | tee -a build_log.txt
-              echo "=== Running xcodebuild with generic destination ===" | tee -a build_log.txt
-              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt
+            if [ -n "$IPHONE_SIM" ]; then
+              IPHONE_NAME=$(xcrun simctl list devices available -j | jq -r --arg UDID "$IPHONE_SIM" '.devices | to_entries[] | .value[] | select(.udid == $UDID) | .name' | head -n 1)
+              echo "Found iPhone simulator: $IPHONE_SIM ($IPHONE_NAME)" | tee -a setup_log.txt
+              echo "SIMULATOR_ID=$IPHONE_SIM" >> $GITHUB_ENV
+              echo "SIMULATOR_NAME=$IPHONE_NAME" >> $GITHUB_ENV
             else
-              echo "Using simulator with ID: $SIMULATOR_ID" | tee -a build_log.txt
-              echo "=== Running xcodebuild with simulator ID: $SIMULATOR_ID ===" | tee -a build_log.txt
-              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt
+              # Find any simulator
+              ANY_SIM=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true) | .udid' | head -n 1)
+              
+              if [ -n "$ANY_SIM" ]; then
+                ANY_NAME=$(xcrun simctl list devices available -j | jq -r --arg UDID "$ANY_SIM" '.devices | to_entries[] | .value[] | select(.udid == $UDID) | .name' | head -n 1)
+                echo "Found simulator: $ANY_SIM ($ANY_NAME)" | tee -a setup_log.txt
+                echo "SIMULATOR_ID=$ANY_SIM" >> $GITHUB_ENV
+                echo "SIMULATOR_NAME=$ANY_NAME" >> $GITHUB_ENV
+              else
+                echo "No available simulator found, will use generic destination" | tee -a setup_log.txt
+                echo "SIMULATOR_ID=generic" >> $GITHUB_ENV
+                echo "SIMULATOR_NAME=generic" >> $GITHUB_ENV
+              fi
             fi
           fi
+      
+      - name: Upload setup logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-setup-logs
+          path: extension/ios-tests/ChronicleSync/setup_log.txt
+          retention-days: 30
+      
+      - name: Build iOS app
+        run: |
+          cd extension/ios-tests/ChronicleSync
           
+          echo "=== Building iOS app with simulator: $SIMULATOR_NAME ($SIMULATOR_ID) ===" | tee -a build_log.txt
+          
+          if [ "$SIMULATOR_ID" == "generic" ]; then
+            xcodebuild build -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -verbose 2>&1 | tee -a build_log.txt
+          else
+            xcodebuild build -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -verbose 2>&1 | tee -a build_log.txt
+          fi
+          
+          # Check if build was successful
+          if [ $? -eq 0 ]; then
+            echo "Build successful" | tee -a build_log.txt
+            echo "BUILD_SUCCESS=true" >> $GITHUB_ENV
+          else
+            echo "Build failed" | tee -a build_log.txt
+            echo "BUILD_SUCCESS=false" >> $GITHUB_ENV
+          fi
+      
       - name: Upload build logs
         uses: actions/upload-artifact@v4
         if: always()
@@ -93,16 +130,44 @@ jobs:
           path: extension/ios-tests/ChronicleSync/build_log.txt
           retention-days: 30
       
+      - name: Test iOS app
+        if: env.BUILD_SUCCESS == 'true'
+        run: |
+          cd extension/ios-tests/ChronicleSync
+          
+          echo "=== Testing iOS app with simulator: $SIMULATOR_NAME ($SIMULATOR_ID) ===" | tee -a test_log.txt
+          
+          if [ "$SIMULATOR_ID" == "generic" ]; then
+            xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+          else
+            xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
+          fi
+          
+          # Check if tests were successful
+          if [ $? -eq 0 ]; then
+            echo "Tests successful" | tee -a test_log.txt
+          else
+            echo "Tests failed" | tee -a test_log.txt
+          fi
+      
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        if: always() && env.BUILD_SUCCESS == 'true'
+        with:
+          name: ios-test-logs
+          path: extension/ios-tests/ChronicleSync/test_log.txt
+          retention-days: 30
+      
       - name: Upload test results
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && env.BUILD_SUCCESS == 'true'
         with:
           name: ios-test-results
           path: extension/ios-tests/ChronicleSync/TestResults.xcresult
           retention-days: 30
       
       - name: Extract screenshots
-        if: always()
+        if: always() && env.BUILD_SUCCESS == 'true'
         run: |
           cd extension/ios-tests/ChronicleSync
           mkdir -p screenshots
@@ -110,7 +175,7 @@ jobs:
       
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && env.BUILD_SUCCESS == 'true'
         with:
           name: ios-screenshots
           path: extension/ios-tests/ChronicleSync/screenshots

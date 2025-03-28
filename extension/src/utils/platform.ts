@@ -2,6 +2,9 @@
  * Platform detection and API compatibility layer
  */
 
+// Define browser type for Firefox/Safari WebExtension API
+declare const browser: typeof chrome;
+
 export enum BrowserType {
   Chrome = 'chrome',
   Firefox = 'firefox',
@@ -16,9 +19,10 @@ export function detectBrowser(): BrowserType {
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
     // Chrome, Edge, Opera, Brave, etc.
     return BrowserType.Chrome;
-  } else if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.id) {
+  } else if (typeof window !== 'undefined' && 'browser' in window && 
+             typeof (window as any).browser?.runtime?.id !== 'undefined') {
     // Check for Firefox-specific APIs
-    if (typeof browser.runtime.getBrowserInfo === 'function') {
+    if (typeof (window as any).browser?.runtime?.getBrowserInfo === 'function') {
       return BrowserType.Firefox;
     }
     // Safari uses WebExtension API but doesn't have Firefox-specific APIs
@@ -31,14 +35,14 @@ export function detectBrowser(): BrowserType {
 /**
  * Returns the appropriate browser API object based on the current browser
  */
-export function getBrowserAPI() {
+export function getBrowserAPI(): typeof chrome {
   // For Chrome and others that don't support the browser namespace
-  if (typeof browser === 'undefined') {
+  if (typeof window !== 'undefined' && !('browser' in window)) {
     return chrome;
   }
   
   // For Firefox and Safari that support the browser namespace
-  return browser;
+  return (window as any).browser as typeof chrome;
 }
 
 /**
@@ -48,12 +52,12 @@ export async function queryTabs(queryInfo: chrome.tabs.QueryInfo): Promise<chrom
   const browserAPI = getBrowserAPI();
   
   if (detectBrowser() === BrowserType.Chrome) {
-    return new Promise((resolve) => {
+    return new Promise<chrome.tabs.Tab[]>((resolve) => {
       browserAPI.tabs.query(queryInfo, resolve);
     });
   } else {
     // Firefox and Safari use promises
-    return browserAPI.tabs.query(queryInfo);
+    return browserAPI.tabs.query(queryInfo) as Promise<chrome.tabs.Tab[]>;
   }
 }
 
@@ -66,12 +70,12 @@ export const storage = {
       const browserAPI = getBrowserAPI();
       
       if (detectBrowser() === BrowserType.Chrome) {
-        return new Promise((resolve) => {
-          browserAPI.storage.local.get(keys, resolve);
+        return new Promise<T>((resolve) => {
+          browserAPI.storage.local.get(keys, (result: T) => resolve(result));
         });
       } else {
         // Firefox and Safari use promises
-        return browserAPI.storage.local.get(keys);
+        return browserAPI.storage.local.get(keys) as Promise<T>;
       }
     },
     
@@ -79,12 +83,12 @@ export const storage = {
       const browserAPI = getBrowserAPI();
       
       if (detectBrowser() === BrowserType.Chrome) {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           browserAPI.storage.local.set(items, () => resolve());
         });
       } else {
         // Firefox and Safari use promises
-        return browserAPI.storage.local.set(items);
+        return browserAPI.storage.local.set(items) as Promise<void>;
       }
     }
   }
@@ -94,12 +98,12 @@ export const storage = {
  * Normalizes the browser.runtime API to work across browsers
  */
 export const runtime = {
-  sendMessage: async <T>(message: any): Promise<T> => {
+  sendMessage: async <T>(message: unknown): Promise<T> => {
     const browserAPI = getBrowserAPI();
     
     if (detectBrowser() === BrowserType.Chrome) {
-      return new Promise((resolve, reject) => {
-        browserAPI.runtime.sendMessage(message, (response) => {
+      return new Promise<T>((resolve, reject) => {
+        browserAPI.runtime.sendMessage(message, (response: T) => {
           if (browserAPI.runtime.lastError) {
             reject(browserAPI.runtime.lastError);
           } else {
@@ -109,7 +113,7 @@ export const runtime = {
       });
     } else {
       // Firefox and Safari use promises
-      return browserAPI.runtime.sendMessage(message);
+      return browserAPI.runtime.sendMessage(message) as Promise<T>;
     }
   }
 };

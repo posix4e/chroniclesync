@@ -187,7 +187,7 @@ setInterval(() => syncHistory(false), SYNC_INTERVAL);
 
 // Listen for navigation events
 const browserAPI = getBrowserAPI();
-browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
+browserAPI.tabs.onUpdated.addListener(async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, _tab: chrome.tabs.Tab) => {
   if (changeInfo.url) {
     console.debug(`Navigation to: ${changeInfo.url}`);
     setTimeout(() => syncHistory(false), 1000);
@@ -195,7 +195,7 @@ browserAPI.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
 });
 
 // Listen for messages from the page
-browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener((request: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
   if (request.type === 'getClientId') {
     storage.local.get<{initialized?: boolean}>(['initialized']).then(async result => {
       if (!result.initialized) {

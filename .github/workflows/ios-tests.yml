@@ -216,14 +216,39 @@ jobs:
           # Create a variable to store the exit code
           TEST_EXIT_CODE=0
           
-          # Run the test with a timeout
+          # Run the test with a timeout using perl (since timeout command is not available on macOS)
           if [ "$SIMULATOR_ID" == "generic" ]; then
-            # Use a temporary file to capture the output while still showing it in real-time
-            timeout 9m xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
-            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            # Use perl to implement a timeout (9 minutes = 540 seconds)
+            perl -e '
+              eval {
+                local $SIG{ALRM} = sub { die "timeout\n" };
+                alarm 540;
+                system "xcodebuild test -scheme \"ChronicleSync\" -destination \"platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder\" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt";
+                alarm 0;
+              };
+              if ($@ eq "timeout\n") {
+                print "Test timed out after 9 minutes\n";
+                exit 124;
+              }
+              exit $? >> 8;
+            '
+            TEST_EXIT_CODE=$?
           else
-            timeout 9m xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt
-            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            # Use perl to implement a timeout (9 minutes = 540 seconds)
+            perl -e '
+              eval {
+                local $SIG{ALRM} = sub { die "timeout\n" };
+                alarm 540;
+                system "xcodebuild test -scheme \"ChronicleSync\" -destination \"platform=iOS Simulator,id='$SIMULATOR_ID'\" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a test_log.txt";
+                alarm 0;
+              };
+              if ($@ eq "timeout\n") {
+                print "Test timed out after 9 minutes\n";
+                exit 124;
+              }
+              exit $? >> 8;
+            '
+            TEST_EXIT_CODE=$?
           fi
           
           # Check if tests were successful

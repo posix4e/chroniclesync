@@ -44,28 +44,54 @@ jobs:
         run: |
           cd extension/ios-tests/ChronicleSync
           
+          # Debug: List directory structure
+          echo "=== Directory Structure ===" | tee -a build_log.txt
+          find . -type f | sort | tee -a build_log.txt
+          
+          # Debug: Check Assets.xcassets
+          echo "=== Assets.xcassets Content ===" | tee -a build_log.txt
+          find ./ChronicleSync/Assets.xcassets -type f | sort | tee -a build_log.txt
+          
+          # Debug: Check Extension Resources
+          echo "=== Extension Resources ===" | tee -a build_log.txt
+          find ./ChronicleSync\ Extension/Resources -type f | sort | tee -a build_log.txt
+          
           # Try specific iPhone 16 Pro simulator first
-          if xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro" -resultBundlePath TestResults.xcresult; then
-            echo "Successfully built and tested with iPhone 16 Pro simulator"
+          echo "=== Running xcodebuild with iPhone 16 Pro simulator ===" | tee -a build_log.txt
+          if xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt; then
+            echo "Successfully built and tested with iPhone 16 Pro simulator" | tee -a build_log.txt
           else
-            echo "Failed with specific simulator, trying fallback options"
+            echo "Failed with specific simulator, trying fallback options" | tee -a build_log.txt
             
             # Find an available simulator
+            echo "=== Available Simulators ===" | tee -a build_log.txt
+            xcrun simctl list devices available | tee -a build_log.txt
+            
             SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true and (.name | contains("iPhone"))) | .udid' | head -n 1)
             
             if [ -z "$SIMULATOR_ID" ]; then
-              echo "No available iPhone simulator found, trying any simulator"
+              echo "No available iPhone simulator found, trying any simulator" | tee -a build_log.txt
               SIMULATOR_ID=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries[] | .value[] | select(.isAvailable == true) | .udid' | head -n 1)
             fi
             
             if [ -z "$SIMULATOR_ID" ]; then
-              echo "No available simulator found, using generic destination"
-              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult
+              echo "No available simulator found, using generic destination" | tee -a build_log.txt
+              echo "=== Running xcodebuild with generic destination ===" | tee -a build_log.txt
+              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt
             else
-              echo "Using simulator with ID: $SIMULATOR_ID"
-              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult
+              echo "Using simulator with ID: $SIMULATOR_ID" | tee -a build_log.txt
+              echo "=== Running xcodebuild with simulator ID: $SIMULATOR_ID ===" | tee -a build_log.txt
+              xcodebuild build test -scheme "ChronicleSync" -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath TestResults.xcresult -verbose 2>&1 | tee -a build_log.txt
             fi
           fi
+          
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-logs
+          path: extension/ios-tests/ChronicleSync/build_log.txt
+          retention-days: 30
       
       - name: Upload test results
         uses: actions/upload-artifact@v4

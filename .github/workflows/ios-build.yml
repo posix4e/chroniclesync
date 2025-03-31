@@ -1,0 +1,85 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
+            worker/package-lock.json
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+      
+      - name: Build Extension for Safari
+        working-directory: extension
+        run: |
+          npm run build
+          node ../scripts/build-safari-extension.cjs
+      
+      - name: Build iOS App
+        run: |
+          cd ios/ChronicleSync
+          xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Debug -sdk iphoneos -allowProvisioningUpdates CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      
+      - name: Create IPA
+        run: |
+          cd ios/ChronicleSync/build/Debug-iphoneos
+          mkdir Payload
+          cp -r ChronicleSync.app Payload
+          zip -r ChronicleSync.ipa Payload
+      
+      - name: Take Screenshots
+        run: |
+          mkdir -p screenshots
+          echo "Taking screenshots of the app would normally be done with Fastlane or XCUITest"
+          echo "This is a placeholder for the screenshot process"
+          echo "Screenshot 1: App Home Screen" > screenshots/screenshot1.txt
+          echo "Screenshot 2: Safari Extension Settings" > screenshots/screenshot2.txt
+      
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chroniclesync-ios
+          path: ios/ChronicleSync/build/Debug-iphoneos/ChronicleSync.ipa
+          retention-days: 14
+      
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots
+          retention-days: 14

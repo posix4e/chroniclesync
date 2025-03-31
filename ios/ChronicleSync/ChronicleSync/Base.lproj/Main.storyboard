@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="ChronicleSync" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ChronicleSync" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygd">
+                                <rect key="frame" x="20" y="79" width="353" height="36"/>
+                                <fontDescription key="fontDescription" style="UICTFontTextStyleTitle0"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Safari Extension" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Yge">
+                                <rect key="frame" x="20" y="123" width="353" height="21"/>
+                                <fontDescription key="fontDescription" style="UICTFontTextStyleHeadline"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygf">
+                                <rect key="frame" x="121.66666666666669" y="174" width="150" height="150"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="150" id="Ygd-Yd-Ygg"/>
+                                    <constraint firstAttribute="height" constant="150" id="Ygd-Yd-Ygh"/>
+                                </constraints>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Extension status: Not enabled" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygi">
+                                <rect key="frame" x="20" y="354" width="353" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygj">
+                                <rect key="frame" x="96.666666666666686" y="405" width="200" height="35"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="200" id="Ygd-Yd-Ygk"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Open Safari Settings"/>
+                                <connections>
+                                    <action selector="openSettings:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Ygd-Yd-Ygl"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygm">
+                                <rect key="frame" x="96.666666666666686" y="460" width="200" height="35"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="200" id="Ygd-Yd-Ygn"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Show Instructions"/>
+                                <connections>
+                                    <action selector="showInstructions:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Ygd-Yd-Ygo"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ygd-Yd-Ygp">
+                                <rect key="frame" x="20" y="525" width="353" height="61"/>
+                                <string key="text">To use ChronicleSync, enable the extension in Safari settings and grant the necessary permissions when prompted.</string>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="Ygd-Yd-Ygj" firstAttribute="top" secondItem="Ygd-Yd-Ygi" secondAttribute="bottom" constant="30" id="Ygd-Yd-Ygq"/>
+                            <constraint firstItem="Ygd-Yd-Ygf" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Ygd-Yd-Ygr"/>
+                            <constraint firstItem="Ygd-Yd-Ygd" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="Ygd-Yd-Ygs"/>
+                            <constraint firstItem="Ygd-Yd-Ygm" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Ygd-Yd-Ygt"/>
+                            <constraint firstItem="Ygd-Yd-Ygp" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="Ygd-Yd-Ygu"/>
+                            <constraint firstItem="Ygd-Yd-Yge" firstAttribute="top" secondItem="Ygd-Yd-Ygd" secondAttribute="bottom" constant="8" id="Ygd-Yd-Ygv"/>
+                            <constraint firstItem="Ygd-Yd-Ygj" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Ygd-Yd-Ygw"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ygd-Yd-Ygp" secondAttribute="trailing" constant="20" id="Ygd-Yd-Ygx"/>
+                            <constraint firstItem="Ygd-Yd-Ygi" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="Ygd-Yd-Ygy"/>
+                            <constraint firstItem="Ygd-Yd-Ygf" firstAttribute="top" secondItem="Ygd-Yd-Yge" secondAttribute="bottom" constant="30" id="Ygd-Yd-Ygz"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ygd-Yd-Yge" secondAttribute="trailing" constant="20" id="Ygd-Yd-Yg0"/>
+                            <constraint firstItem="Ygd-Yd-Yge" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="Ygd-Yd-Yg1"/>
+                            <constraint firstItem="Ygd-Yd-Ygp" firstAttribute="top" secondItem="Ygd-Yd-Ygm" secondAttribute="bottom" constant="30" id="Ygd-Yd-Yg2"/>
+                            <constraint firstItem="Ygd-Yd-Ygm" firstAttribute="top" secondItem="Ygd-Yd-Ygj" secondAttribute="bottom" constant="20" id="Ygd-Yd-Yg3"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ygd-Yd-Ygd" secondAttribute="trailing" constant="20" id="Ygd-Yd-Yg4"/>
+                            <constraint firstItem="Ygd-Yd-Ygd" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="20" id="Ygd-Yd-Yg5"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Ygd-Yd-Ygi" secondAttribute="trailing" constant="20" id="Ygd-Yd-Yg6"/>
+                            <constraint firstItem="Ygd-Yd-Ygi" firstAttribute="top" secondItem="Ygd-Yd-Ygf" secondAttribute="bottom" constant="30" id="Ygd-Yd-Yg7"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="enableExtensionButton" destination="Ygd-Yd-Ygj" id="Ygd-Yd-Yg8"/>
+                        <outlet property="statusLabel" destination="Ygd-Yd-Ygi" id="Ygd-Yd-Yg9"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="48" y="-2"/>
+        </scene>
+    </scenes>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

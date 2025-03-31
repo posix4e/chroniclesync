@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
+    "build:safari-extension": "node ../scripts/build-safari-extension.cjs",
+    "build:ios": "npm run build && npm run build:safari-extension",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,7 +19,10 @@
     "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "xcode:build": "cd ../ios/ChronicleSync && xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Debug -sdk iphoneos CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
+    "xcode:archive": "cd ../ios/ChronicleSync && xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Release -sdk iphoneos -archivePath ./build/ChronicleSync.xcarchive archive CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
+    "xcode:export-ipa": "cd ../ios/ChronicleSync/build/Debug-iphoneos && mkdir -p Payload && cp -r ChronicleSync.app Payload && zip -r ChronicleSync.ipa Payload"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

@@ -37,6 +37,9 @@ jobs:
     - name: Build Safari extension
       run: |
         chmod +x ./safari-ios/build-safari-extension.sh
+        # Create dist directory for the build script to find
+        mkdir -p ./extension/dist
+        # Run the build script
         ./safari-ios/build-safari-extension.sh
     
     - name: Set up Xcode

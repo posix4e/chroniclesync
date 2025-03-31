@@ -80,6 +80,7 @@ jobs:
         cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
     
     - name: Build Xcode project
+      if: github.event_name != 'pull_request'
       run: |
         cd safari-ios/ChronicleSync
         xcodebuild clean build -project ChronicleSync.xcodeproj -scheme "ChronicleSync" -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO

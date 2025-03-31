@@ -44,22 +44,55 @@ jobs:
         working-directory: extension
         run: npm ci
       
+      - name: Setup Apple Certificates
+        env:
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          # Create keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD="temporary"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          # Import certificate
+          echo "$APPLE_CERTIFICATE_CONTENT" | base64 --decode > certificate.p12
+          security import certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Set up provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+      
       - name: Build Extension for Safari
         working-directory: extension
         run: |
           npm run build
           node ../scripts/build-safari-extension.cjs
       
-      - name: Build iOS App
+      - name: Create Resources Directory
         run: |
-          cd ios/ChronicleSync
-          xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Debug -sdk iphoneos -allowProvisioningUpdates CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          mkdir -p ios/ChronicleSync/Extension/Resources
+          cp -r extension/dist/* ios/ChronicleSync/Extension/Resources/ || true
+      
+      - name: Build iOS App
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          cd ios
+          # For unsigned build (CI testing)
+          xcodebuild -project ChronicleSync.xcodeproj -scheme ChronicleSync -configuration Debug -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
       
       - name: Create IPA
         run: |
-          cd ios/ChronicleSync/build/Debug-iphoneos
-          mkdir Payload
-          cp -r ChronicleSync.app Payload
+          mkdir -p ios/build/Payload
+          cp -r ios/build/Debug-iphoneos/ChronicleSync.app ios/build/Payload/
+          cd ios/build
           zip -r ChronicleSync.ipa Payload
       
       - name: Take Screenshots
@@ -74,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chroniclesync-ios
-          path: ios/ChronicleSync/build/Debug-iphoneos/ChronicleSync.ipa
+          path: ios/build/ChronicleSync.ipa
           retention-days: 14
       
       - name: Upload Screenshots

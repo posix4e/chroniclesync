@@ -1,0 +1,600 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A1A1A1A1A1A1A1A1A1A1A1A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2A2A2A2A2A2A2A2A2A2A2A /* AppDelegate.swift */; };
+		3A3A3A3A3A3A3A3A3A3A3A3A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4A4A4A4A4A4A4A4A4A4A4A /* SceneDelegate.swift */; };
+		5A5A5A5A5A5A5A5A5A5A5A5A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6A6A6A6A6A6A6A6A6A6A6A /* ViewController.swift */; };
+		7A7A7A7A7A7A7A7A7A7A7A7A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8A8A8A8A8A8A8A8A8A8A8A8A /* Main.storyboard */; };
+		9A9A9A9A9A9A9A9A9A9A9A9A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAA /* Assets.xcassets */; };
+		BBBBBBBBBBBBBBBBBBBBBB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CCCCCCCCCCCCCCCCCCCCCC /* LaunchScreen.storyboard */; };
+		DDDDDDDDDDDDDDDDDDDDDD /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE /* SafariWebExtensionHandler.swift */; };
+		FFFFFFFFFFFFFFFFFFFFFFFF /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B1B1B1B1B1B1B1B1B1B1B1B /* background.js */; };
+		2B2B2B2B2B2B2B2B2B2B2B2B /* content-script.js in Resources */ = {isa = PBXBuildFile; fileRef = 3B3B3B3B3B3B3B3B3B3B3B3B /* content-script.js */; };
+		4B4B4B4B4B4B4B4B4B4B4B4B /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 5B5B5B5B5B5B5B5B5B5B5B5B /* popup.html */; };
+		6B6B6B6B6B6B6B6B6B6B6B6B /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 7B7B7B7B7B7B7B7B7B7B7B7B /* popup.js */; };
+		8B8B8B8B8B8B8B8B8B8B8B8B /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 9B9B9B9B9B9B9B9B9B9B9B9B /* popup.css */; };
+		ABABABABABABABABABABABAB /* settings.html in Resources */ = {isa = PBXBuildFile; fileRef = BCBCBCBCBCBCBCBCBCBCBCBC /* settings.html */; };
+		CDCDCDCDCDCDCDCDCDCDCDCD /* settings.js in Resources */ = {isa = PBXBuildFile; fileRef = DEDEDEDEDEDEDEDEDEDEDEDE /* settings.js */; };
+		EFEFEFEFEFEFEFEFEFEFEFEF /* settings.css in Resources */ = {isa = PBXBuildFile; fileRef = 1C1C1C1C1C1C1C1C1C1C1C1C /* settings.css */; };
+		2C2C2C2C2C2C2C2C2C2C2C2C /* history.html in Resources */ = {isa = PBXBuildFile; fileRef = 3C3C3C3C3C3C3C3C3C3C3C3C /* history.html */; };
+		4C4C4C4C4C4C4C4C4C4C4C4C /* history.js in Resources */ = {isa = PBXBuildFile; fileRef = 5C5C5C5C5C5C5C5C5C5C5C5C /* history.js */; };
+		6C6C6C6C6C6C6C6C6C6C6C6C /* history.css in Resources */ = {isa = PBXBuildFile; fileRef = 7C7C7C7C7C7C7C7C7C7C7C7C /* history.css */; };
+		8C8C8C8C8C8C8C8C8C8C8C8C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 9C9C9C9C9C9C9C9C9C9C9C9C /* manifest.json */; };
+		ACACACACACACACACACACACAC /* Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BDBDBDBDBDBDBDBDBDBDBDBD /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CECECECECECECECECECECECE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DFDFDFDFDFDFDFDFDFDFDFDF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EFEFEFEFEFEFEFEFEFEFEF;
+			remoteInfo = Extension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1D1D1D1D1D1D1D1D1D1D1D1D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				ACACACACACACACACACACACAC /* Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		2D2D2D2D2D2D2D2D2D2D2D2D /* ChronicleSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChronicleSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2A2A2A2A2A2A2A2A2A2A2A2A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4A4A4A4A4A4A4A4A4A4A4A4A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		6A6A6A6A6A6A6A6A6A6A6A6A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		8A8A8A8A8A8A8A8A8A8A8A8A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		AAAAAAAAAAAAAAAAAAAAAA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CCCCCCCCCCCCCCCCCCCCCC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		EEEEEEEEEEEEEEEEEEEEEE /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		1B1B1B1B1B1B1B1B1B1B1B1B /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = background.js; sourceTree = "<group>"; };
+		3B3B3B3B3B3B3B3B3B3B3B3B /* content-script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "content-script.js"; sourceTree = "<group>"; };
+		5B5B5B5B5B5B5B5B5B5B5B5B /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = popup.html; sourceTree = "<group>"; };
+		7B7B7B7B7B7B7B7B7B7B7B7B /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = popup.js; sourceTree = "<group>"; };
+		9B9B9B9B9B9B9B9B9B9B9B9B /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = popup.css; sourceTree = "<group>"; };
+		BCBCBCBCBCBCBCBCBCBCBCBC /* settings.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = settings.html; sourceTree = "<group>"; };
+		DEDEDEDEDEDEDEDEDEDEDEDE /* settings.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = settings.js; sourceTree = "<group>"; };
+		1C1C1C1C1C1C1C1C1C1C1C1C /* settings.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = settings.css; sourceTree = "<group>"; };
+		3C3C3C3C3C3C3C3C3C3C3C3C /* history.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = history.html; sourceTree = "<group>"; };
+		5C5C5C5C5C5C5C5C5C5C5C5C /* history.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = history.js; sourceTree = "<group>"; };
+		7C7C7C7C7C7C7C7C7C7C7C7C /* history.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = history.css; sourceTree = "<group>"; };
+		9C9C9C9C9C9C9C9C9C9C9C9C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		BDBDBDBDBDBDBDBDBDBDBDBD /* Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Extension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3D3D3D3D3D3D3D3D3D3D3D3D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D4D4D4D4D4D4D4D4D4D4D4D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5D5D5D5D5D5D5D5D5D5D5D5D /* ChronicleSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ChronicleSync.entitlements; sourceTree = "<group>"; };
+		6D6D6D6D6D6D6D6D6D6D6D6D /* Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Extension.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7D7D7D7D7D7D7D7D7D7D7D7D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8D8D8D8D8D8D8D8D8D8D8D8D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9D9D9D9D9D9D9D9D9D9D9D9D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2D2D2D2D2D2D2D2D2D2D2D2D /* ChronicleSync.app */,
+				BDBDBDBDBDBDBDBDBDBDBDBD /* Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		ADADADADADADADADADADAD /* ChronicleSync */ = {
+			isa = PBXGroup;
+			children = (
+				2A2A2A2A2A2A2A2A2A2A2A2A /* AppDelegate.swift */,
+				4A4A4A4A4A4A4A4A4A4A4A4A /* SceneDelegate.swift */,
+				6A6A6A6A6A6A6A6A6A6A6A6A /* ViewController.swift */,
+				8A8A8A8A8A8A8A8A8A8A8A8A /* Main.storyboard */,
+				AAAAAAAAAAAAAAAAAAAAAA /* Assets.xcassets */,
+				CCCCCCCCCCCCCCCCCCCCCC /* LaunchScreen.storyboard */,
+				3D3D3D3D3D3D3D3D3D3D3D3D /* Info.plist */,
+				5D5D5D5D5D5D5D5D5D5D5D5D /* ChronicleSync.entitlements */,
+			);
+			path = ChronicleSync;
+			sourceTree = "<group>";
+		};
+		BEBEBEBEBEBEBEBEBEBEBEBE /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				EEEEEEEEEEEEEEEEEEEEEE /* SafariWebExtensionHandler.swift */,
+				4D4D4D4D4D4D4D4D4D4D4D4D /* Info.plist */,
+				6D6D6D6D6D6D6D6D6D6D6D6D /* Extension.entitlements */,
+				CFCFCFCFCFCFCFCFCFCFCFCF /* Resources */,
+			);
+			path = Extension;
+			sourceTree = "<group>";
+		};
+		CFCFCFCFCFCFCFCFCFCFCFCF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1B1B1B1B1B1B1B1B1B1B1B1B /* background.js */,
+				3B3B3B3B3B3B3B3B3B3B3B3B /* content-script.js */,
+				5B5B5B5B5B5B5B5B5B5B5B5B /* popup.html */,
+				7B7B7B7B7B7B7B7B7B7B7B7B /* popup.js */,
+				9B9B9B9B9B9B9B9B9B9B9B9B /* popup.css */,
+				BCBCBCBCBCBCBCBCBCBCBCBC /* settings.html */,
+				DEDEDEDEDEDEDEDEDEDEDEDE /* settings.js */,
+				1C1C1C1C1C1C1C1C1C1C1C1C /* settings.css */,
+				3C3C3C3C3C3C3C3C3C3C3C3C /* history.html */,
+				5C5C5C5C5C5C5C5C5C5C5C5C /* history.js */,
+				7C7C7C7C7C7C7C7C7C7C7C7C /* history.css */,
+				9C9C9C9C9C9C9C9C9C9C9C9C /* manifest.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		DFDFDFDFDFDFDFDFDFDFDFDF = {
+			isa = PBXGroup;
+			children = (
+				ADADADADADADADADADADAD /* ChronicleSync */,
+				BEBEBEBEBEBEBEBEBEBEBEBE /* Extension */,
+				9D9D9D9D9D9D9D9D9D9D9D9D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EFEFEFEFEFEFEFEFEFEFEF /* Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E1E1E1E1E1E1E1E1E1E1E1E /* Build configuration list for PBXNativeTarget "Extension" */;
+			buildPhases = (
+				2E2E2E2E2E2E2E2E2E2E2E2E /* Sources */,
+				8D8D8D8D8D8D8D8D8D8D8D8D /* Frameworks */,
+				3E3E3E3E3E3E3E3E3E3E3E3E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Extension;
+			productName = Extension;
+			productReference = BDBDBDBDBDBDBDBDBDBDBDBD /* Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		4E4E4E4E4E4E4E4E4E4E4E4E /* ChronicleSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E5E5E5E5E5E5E5E5E5E5E5E /* Build configuration list for PBXNativeTarget "ChronicleSync" */;
+			buildPhases = (
+				6E6E6E6E6E6E6E6E6E6E6E6E /* Sources */,
+				7D7D7D7D7D7D7D7D7D7D7D7D /* Frameworks */,
+				7E7E7E7E7E7E7E7E7E7E7E7E /* Resources */,
+				1D1D1D1D1D1D1D1D1D1D1D1D /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8E8E8E8E8E8E8E8E8E8E8E8E /* PBXTargetDependency */,
+			);
+			name = ChronicleSync;
+			productName = ChronicleSync;
+			productReference = 2D2D2D2D2D2D2D2D2D2D2D2D /* ChronicleSync.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DFDFDFDFDFDFDFDFDFDFDFDF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					4E4E4E4E4E4E4E4E4E4E4E4E = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					EFEFEFEFEFEFEFEFEFEFEF = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 9E9E9E9E9E9E9E9E9E9E9E9E /* Build configuration list for PBXProject "ChronicleSync" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DFDFDFDFDFDFDFDFDFDFDFDF;
+			productRefGroup = 9D9D9D9D9D9D9D9D9D9D9D9D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4E4E4E4E4E4E4E4E4E4E4E4E /* ChronicleSync */,
+				EFEFEFEFEFEFEFEFEFEFEF /* Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7E7E7E7E7E7E7E7E7E7E7E7E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBBBBBBBBBBBBBBBBBBBBB /* LaunchScreen.storyboard in Resources */,
+				9A9A9A9A9A9A9A9A9A9A9A9A /* Assets.xcassets in Resources */,
+				7A7A7A7A7A7A7A7A7A7A7A7A /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3E3E3E3E3E3E3E3E3E3E3E3E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8C8C8C8C8C8C8C8C8C8C8C8C /* manifest.json in Resources */,
+				FFFFFFFFFFFFFFFFFFFFFFFF /* background.js in Resources */,
+				8B8B8B8B8B8B8B8B8B8B8B8B /* popup.css in Resources */,
+				ABABABABABABABABABABABAB /* settings.html in Resources */,
+				6B6B6B6B6B6B6B6B6B6B6B6B /* popup.js in Resources */,
+				2B2B2B2B2B2B2B2B2B2B2B2B /* content-script.js in Resources */,
+				4B4B4B4B4B4B4B4B4B4B4B4B /* popup.html in Resources */,
+				6C6C6C6C6C6C6C6C6C6C6C6C /* history.css in Resources */,
+				4C4C4C4C4C4C4C4C4C4C4C4C /* history.js in Resources */,
+				2C2C2C2C2C2C2C2C2C2C2C2C /* history.html in Resources */,
+				EFEFEFEFEFEFEFEFEFEFEFEF /* settings.css in Resources */,
+				CDCDCDCDCDCDCDCDCDCDCDCD /* settings.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6E6E6E6E6E6E6E6E6E6E6E6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A5A5A5A5A5A5A5A5A5A5A5A /* ViewController.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A1A /* AppDelegate.swift in Sources */,
+				3A3A3A3A3A3A3A3A3A3A3A3A /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2E2E2E2E2E2E2E2E2E2E2E2E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDDDDDDDDDDDDDDDDDDDDD /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8E8E8E8E8E8E8E8E8E8E8E8E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EFEFEFEFEFEFEFEFEFEFEF /* Extension */;
+			targetProxy = CECECECECECECECECECECECE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		8A8A8A8A8A8A8A8A8A8A8A8A /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				8A8A8A8A8A8A8A8A8A8A8A8A /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		CCCCCCCCCCCCCCCCCCCCCC /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CCCCCCCCCCCCCCCCCCCCCC /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		AFAFAFAFAFAFAFAFAFAFAFAF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BFBFBFBFBFBFBFBFBFBFBFBF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CFCFCFCFCFCFCFCFCFCFCFCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ChronicleSync/ChronicleSync.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ChronicleSync/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ChronicleSync;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APPLE_APP_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(APPLE_PROVISIONING_PROFILE)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DFDFDFDFDFDFDFDFDFDFDFDF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ChronicleSync/ChronicleSync.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ChronicleSync/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ChronicleSync;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APPLE_APP_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(APPLE_PROVISIONING_PROFILE)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EFEFEFEFEFEFEFEFEFEFEFEF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Extension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APPLE_APP_ID).Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(APPLE_PROVISIONING_PROFILE)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FFFFFFFFFFFFFFFFFFFF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Extension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APPLE_APP_ID).Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(APPLE_PROVISIONING_PROFILE)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9E9E9E9E9E9E9E9E9E9E9E9E /* Build configuration list for PBXProject "ChronicleSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AFAFAFAFAFAFAFAFAFAFAFAF /* Debug */,
+				BFBFBFBFBFBFBFBFBFBFBFBF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5E5E5E5E5E5E5E5E5E5E5E5E /* Build configuration list for PBXNativeTarget "ChronicleSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFCFCFCFCFCFCFCFCFCFCFCF /* Debug */,
+				DFDFDFDFDFDFDFDFDFDFDFDF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1E1E1E1E1E1E1E1E1E1E1E1E /* Build configuration list for PBXNativeTarget "Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EFEFEFEFEFEFEFEFEFEFEFEF /* Debug */,
+				FFFFFFFFFFFFFFFFFFFF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DFDFDFDFDFDFDFDFDFDFDFDF /* Project object */;
+}

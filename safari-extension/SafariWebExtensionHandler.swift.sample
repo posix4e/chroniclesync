@@ -1,0 +1,51 @@
+import SafariServices
+import os.log
+
+class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+    func beginRequest(with context: NSExtensionContext) {
+        let item = context.inputItems[0] as! NSExtensionItem
+        let message = item.userInfo?[SFExtensionMessageKey] as? [String: Any]
+        
+        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@", message ?? [:])
+        
+        // Handle messages from the extension
+        if let msg = message, let command = msg["command"] as? String {
+            switch command {
+            case "getHistory":
+                // Note: Direct history access is not available in iOS Safari extensions
+                // You would need to implement a workaround or alternative approach
+                let response = NSExtensionItem()
+                response.userInfo = [ SFExtensionMessageKey: [ 
+                    "status": "error",
+                    "message": "History API not available in Safari iOS extensions"
+                ]]
+                context.completeRequest(returningItems: [response], completionHandler: nil)
+                
+            case "getStorage":
+                // Return data from app group storage if needed
+                if let key = msg["key"] as? String {
+                    let userDefaults = UserDefaults(suiteName: "group.com.yourcompany.chroniclesync")
+                    let value = userDefaults?.object(forKey: key)
+                    
+                    let response = NSExtensionItem()
+                    response.userInfo = [ SFExtensionMessageKey: [ 
+                        "status": "success",
+                        "data": value ?? NSNull()
+                    ]]
+                    context.completeRequest(returningItems: [response], completionHandler: nil)
+                }
+                
+            default:
+                // Default response for unknown commands
+                let response = NSExtensionItem()
+                response.userInfo = [ SFExtensionMessageKey: [ "Response": "Unknown command" ] ]
+                context.completeRequest(returningItems: [response], completionHandler: nil)
+            }
+        } else {
+            // Default response
+            let response = NSExtensionItem()
+            response.userInfo = [ SFExtensionMessageKey: [ "Response": "Received" ] ]
+            context.completeRequest(returningItems: [response], completionHandler: nil)
+        }
+    }
+}

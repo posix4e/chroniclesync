@@ -1,0 +1,57 @@
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "safari")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 100, height: 100)
+                .foregroundColor(.blue)
+            
+            Text("ChronicleSync")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text("Safari Extension")
+                .font(.title2)
+            
+            Spacer().frame(height: 30)
+            
+            Text("To enable the extension:")
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("1. Open Settings app")
+                Text("2. Go to Safari > Extensions")
+                Text("3. Enable ChronicleSync Extension")
+                Text("4. Allow permissions when prompted")
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(10)
+            
+            Spacer().frame(height: 30)
+            
+            Text("About ChronicleSync")
+                .font(.headline)
+            
+            Text("ChronicleSync helps you synchronize your browsing history across devices securely.")
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Spacer()
+            
+            Text("© 2025 ChronicleSync")
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}

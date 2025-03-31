@@ -1,39 +1,49 @@
 // Platform adapter to handle differences between Chrome and Safari APIs
 
-// Detect platform
-const isSafari = typeof browser !== 'undefined' && 
-                 navigator.userAgent.includes('Safari') && 
-                 !navigator.userAgent.includes('Chrome');
+// Define browser type for Safari WebExtension API
+declare namespace browser {
+  const storage: typeof chrome.storage;
+  const tabs: typeof chrome.tabs;
+  const runtime: typeof chrome.runtime;
+}
+
+// Detect platform at runtime
+const detectSafari = (): boolean => {
+  return typeof window !== 'undefined' && 
+         navigator.userAgent.includes('Safari') && 
+         !navigator.userAgent.includes('Chrome') &&
+         typeof (window as any).browser !== 'undefined';
+};
 
 // Storage adapter
 export const storage = {
   get: async (keys: string | string[] | object) => {
-    if (isSafari) {
-      return browser.storage.local.get(keys);
+    if (detectSafari()) {
+      return (window as any).browser.storage.local.get(keys);
     } else {
       return chrome.storage.local.get(keys);
     }
   },
   
   set: async (items: object) => {
-    if (isSafari) {
-      return browser.storage.local.set(items);
+    if (detectSafari()) {
+      return (window as any).browser.storage.local.set(items);
     } else {
       return chrome.storage.local.set(items);
     }
   },
   
   remove: async (keys: string | string[]) => {
-    if (isSafari) {
-      return browser.storage.local.remove(keys);
+    if (detectSafari()) {
+      return (window as any).browser.storage.local.remove(keys);
     } else {
       return chrome.storage.local.remove(keys);
     }
   },
   
   clear: async () => {
-    if (isSafari) {
-      return browser.storage.local.clear();
+    if (detectSafari()) {
+      return (window as any).browser.storage.local.clear();
     } else {
       return chrome.storage.local.clear();
     }
@@ -43,32 +53,32 @@ export const storage = {
 // Tabs adapter
 export const tabs = {
   query: async (queryInfo: chrome.tabs.QueryInfo) => {
-    if (isSafari) {
-      return browser.tabs.query(queryInfo);
+    if (detectSafari()) {
+      return (window as any).browser.tabs.query(queryInfo);
     } else {
       return chrome.tabs.query(queryInfo);
     }
   },
   
   create: async (createProperties: chrome.tabs.CreateProperties) => {
-    if (isSafari) {
-      return browser.tabs.create(createProperties);
+    if (detectSafari()) {
+      return (window as any).browser.tabs.create(createProperties);
     } else {
       return chrome.tabs.create(createProperties);
     }
   },
   
   update: async (tabId: number, updateProperties: chrome.tabs.UpdateProperties) => {
-    if (isSafari) {
-      return browser.tabs.update(tabId, updateProperties);
+    if (detectSafari()) {
+      return (window as any).browser.tabs.update(tabId, updateProperties);
     } else {
       return chrome.tabs.update(tabId, updateProperties);
     }
   },
   
   sendMessage: async (tabId: number, message: any) => {
-    if (isSafari) {
-      return browser.tabs.sendMessage(tabId, message);
+    if (detectSafari()) {
+      return (window as any).browser.tabs.sendMessage(tabId, message);
     } else {
       return chrome.tabs.sendMessage(tabId, message);
     }
@@ -78,8 +88,8 @@ export const tabs = {
 // Runtime adapter
 export const runtime = {
   sendMessage: async (message: any) => {
-    if (isSafari) {
-      return browser.runtime.sendMessage(message);
+    if (detectSafari()) {
+      return (window as any).browser.runtime.sendMessage(message);
     } else {
       return chrome.runtime.sendMessage(message);
     }
@@ -87,16 +97,16 @@ export const runtime = {
   
   onMessage: {
     addListener: (callback: (message: any, sender: any, sendResponse: any) => void) => {
-      if (isSafari) {
-        browser.runtime.onMessage.addListener(callback);
+      if (detectSafari()) {
+        (window as any).browser.runtime.onMessage.addListener(callback);
       } else {
         chrome.runtime.onMessage.addListener(callback);
       }
     },
     
     removeListener: (callback: (message: any, sender: any, sendResponse: any) => void) => {
-      if (isSafari) {
-        browser.runtime.onMessage.removeListener(callback);
+      if (detectSafari()) {
+        (window as any).browser.runtime.onMessage.removeListener(callback);
       } else {
         chrome.runtime.onMessage.removeListener(callback);
       }
@@ -104,10 +114,15 @@ export const runtime = {
   }
 };
 
+// Define a type for URL details to fix the UrlDetails error
+interface UrlDetails {
+  url: string;
+}
+
 // History adapter (Safari has limited history API support)
 export const history = {
   search: async (query: chrome.history.HistoryQuery) => {
-    if (isSafari) {
+    if (detectSafari()) {
       // Safari doesn't have a direct equivalent, so we'll return an empty array
       // In a real implementation, you might use a different approach or store history in your own DB
       console.warn('History API not fully supported in Safari');
@@ -117,8 +132,8 @@ export const history = {
     }
   },
   
-  getVisits: async (details: chrome.history.UrlDetails) => {
-    if (isSafari) {
+  getVisits: async (details: UrlDetails) => {
+    if (detectSafari()) {
       // Safari doesn't have a direct equivalent
       console.warn('History API not fully supported in Safari');
       return [];
@@ -134,5 +149,5 @@ export default {
   tabs,
   runtime,
   history,
-  isSafari
+  isSafari: detectSafari()
 };

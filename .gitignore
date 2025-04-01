@@ -15,6 +15,11 @@ build/
 .wrangler/
 .cloudflare/
 
+# Safari extension generated files
+safari/Extension/Resources/*.js
+safari/Extension/Resources/assets/
+safari/package/
+
 # Environment files
 .env
 .env.local

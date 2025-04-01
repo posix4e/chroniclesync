@@ -1,0 +1,129 @@
+name: Safari Swift Code Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'safari/**'
+      - '.github/workflows/safari-extension-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'safari/**'
+      - '.github/workflows/safari-extension-test.yml'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test-safari-swift:
+    name: Test Safari Swift Code
+    runs-on: self-hosted
+    # Specify the self-hosted runner with macOS tag
+    # Make sure to add this tag when setting up your runner
+    # ./config.sh --url https://github.com/posix4e/chroniclesync --token YOUR_TOKEN --labels macos,safari
+    # If you've added specific tags to your runner, uncomment and modify the next line
+    # runs-on: [self-hosted, macos, safari]
+    
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create Safari project structure
+        run: |
+          chmod +x scripts/create_safari_project.sh
+          ./scripts/create_safari_project.sh
+          
+      - name: Copy extension resources
+        run: |
+          chmod +x scripts/copy_extension_resources.sh
+          ./scripts/copy_extension_resources.sh
+          
+      - name: List Xcode versions
+        if: ${{ github.event.inputs.debug == 'true' }}
+        run: |
+          ls -la /Applications/ | grep Xcode
+          xcodebuild -version
+          
+      - name: Generate Xcode project
+        run: |
+          cd safari
+          # Install xcodegen if not already installed
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen || (echo "Installing xcodegen with npm"; npm install -g xcodegen)
+          fi
+          xcodegen generate
+          
+      - name: Build for simulator
+        run: |
+          cd safari
+          # List available simulators
+          xcrun simctl list devices
+          
+          # Build for iPhone simulator
+          xcodebuild -project ChronicleSync.xcodeproj -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -configuration Debug \
+            build
+            
+      - name: Run Swift unit tests with code coverage
+        run: |
+          cd safari
+          # Create a simple test if none exists yet
+          mkdir -p ChronicleSync/Tests
+          
+          if [ ! -f "ChronicleSync/Tests/BasicTests.swift" ]; then
+            cat > ChronicleSync/Tests/BasicTests.swift << 'EOF'
+import XCTest
+@testable import ChronicleSync
+
+class BasicTests: XCTestCase {
+    func testExample() {
+        // This is a placeholder test
+        XCTAssertTrue(true)
+    }
+}
+EOF
+          fi
+          
+          # Run the tests with code coverage enabled
+          xcodebuild test -project ChronicleSync.xcodeproj -scheme "ChronicleSync" \
+            -destination "platform=iOS Simulator,name=iPhone 14" \
+            -configuration Debug \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult
+            
+      - name: Generate code coverage report
+        run: |
+          cd safari
+          # Install xcov if not already installed
+          if ! command -v xcov &> /dev/null; then
+            gem install xcov || sudo gem install xcov
+          fi
+          
+          # Generate HTML coverage report
+          xcov -p ChronicleSync.xcodeproj -s ChronicleSync -o coverage_report
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-swift-test-results
+          path: |
+            safari/TestResults.xcresult
+            safari/coverage_report
+          retention-days: 7
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-swift-build
+          path: |
+            safari/build/
+          retention-days: 7

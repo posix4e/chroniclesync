@@ -1,6 +1,9 @@
 name: ChronicleSync
 options:
   bundleIdPrefix: com.chroniclesync
+  deploymentTarget:
+    iOS: 14.0
+
 targets:
   ChronicleSync:
     type: application
@@ -14,6 +17,10 @@ targets:
         UILaunchStoryboardName: LaunchScreen
     dependencies:
       - target: Extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chroniclesync.app
+        
   Extension:
     type: app-extension
     platform: iOS
@@ -25,8 +32,39 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.Safari.web-extension
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
-    dependencies: []
     settings:
       base:
         INFOPLIST_FILE: Extension/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.chroniclesync.extension
+        
+  ExtensionTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources: [Extension/Tests]
+    dependencies:
+      - target: Extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chroniclesync.extension.tests
+        INFOPLIST_FILE: Extension/Tests/Info.plist
+
+schemes:
+  ChronicleSync:
+    build:
+      targets:
+        ChronicleSync: all
+        Extension: all
+        ExtensionTests: [test]
+    test:
+      targets:
+        - ExtensionTests
+      gatherCoverageData: true
+      coverageTargets:
+        - Extension
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,32 @@
+name: ChronicleSync
+options:
+  bundleIdPrefix: com.chroniclesync
+targets:
+  ChronicleSync:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources: [ChronicleSync]
+    info:
+      path: ChronicleSync/Info.plist
+      properties:
+        CFBundleDisplayName: ChronicleSync
+        UILaunchStoryboardName: LaunchScreen
+    dependencies:
+      - target: Extension
+  Extension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources: [Extension]
+    info:
+      path: Extension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    dependencies: []
+    settings:
+      base:
+        INFOPLIST_FILE: Extension/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.chroniclesync.extension

@@ -142,12 +142,13 @@ async function getDeviceInfo() {
   }
   
   // Generate or retrieve device ID
-  let deviceId = await browser.storage.local.get(['deviceId']);
-  if (!deviceId.deviceId) {
+  let deviceIdData = await browser.storage.local.get(['deviceId']);
+  let deviceId;
+  if (!deviceIdData.deviceId) {
     deviceId = 'ios_' + Math.random().toString(36).substring(2, 15);
     await browser.storage.local.set({ deviceId });
   } else {
-    deviceId = deviceId.deviceId;
+    deviceId = deviceIdData.deviceId;
   }
   
   return {
@@ -192,6 +193,36 @@ async function handleHistoryUpdate(details) {
     console.error('Error handling history update:', error);
   }
 }
+
+// Handle messages from content scripts
+browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  if (message.type === 'summarizeContent') {
+    try {
+      // Forward the summarization request to native code
+      // The native code will handle the actual summarization
+      browser.runtime.sendNativeMessage({
+        type: 'summarizeContent',
+        url: message.url
+      }, (response) => {
+        if (response.error) {
+          console.error('Native summarization failed:', response.error);
+        } else {
+          console.debug('Native summarization succeeded');
+          
+          // Notify the content script that summarization is complete
+          if (sender.tab) {
+            browser.tabs.sendMessage(sender.tab.id, {
+              type: 'summarizationComplete',
+              success: true
+            }).catch(err => console.error('Error sending message to content script:', err));
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error handling summarizeContent message:', error);
+    }
+  }
+});
 
 // Initialize extension and set up event listeners
 async function init() {

@@ -1,8 +1,10 @@
 import SafariServices
 import os.log
+import WebKit
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     let storageAdapter = StorageAdapter()
+    let contentSummarizer = ContentSummarizer()
     
     func beginRequest(with context: NSExtensionContext) {
         let item = context.inputItems[0] as! NSExtensionItem
@@ -63,6 +65,48 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             case "getDevices":
                 let devices = storageAdapter.getDevices()
                 sendResponse(context: context, response: ["devices": devices])
+                
+            case "summarizeContent":
+                if let url = message["url"] as? String {
+                    // Create a temporary WebView to load the page for native summarization
+                    let webView = WKWebView(frame: .zero)
+                    if let pageURL = URL(string: url) {
+                        webView.load(URLRequest(url: pageURL))
+                        
+                        // Wait for page to load
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                            guard let self = self else { return }
+                            
+                            // Use native iOS summarization
+                            self.contentSummarizer.summarizeWebContent(in: webView) { result in
+                                switch result {
+                                case .success(let summary):
+                                    // Store the content summary
+                                    self.storageAdapter.updatePageContent(
+                                        url: url,
+                                        content: summary.content,
+                                        summary: summary.summary
+                                    )
+                                    
+                                    // Send response with the summary
+                                    self.sendResponse(context: context, response: [
+                                        "success": true,
+                                        "summary": summary.toDictionary()
+                                    ])
+                                    
+                                case .failure(let error):
+                                    self.sendResponse(context: context, response: [
+                                        "error": "Failed to summarize content: \(error.localizedDescription)"
+                                    ])
+                                }
+                            }
+                        }
+                    } else {
+                        sendResponse(context: context, response: ["error": "Invalid URL"])
+                    }
+                } else {
+                    sendResponse(context: context, response: ["error": "URL is required for content summarization"])
+                }
                 
             case "updatePageContent":
                 if let url = message["url"] as? String,

@@ -1,9 +1,9 @@
 // Content script for iOS Safari extension
 // This script runs in the context of web pages
 
-// Extract page content
-function extractPageContent() {
-  // Don't extract content from certain pages
+// Request native content summarization
+function requestNativeSummarization() {
+  // Don't process certain pages
   const url = window.location.href;
   if (url.startsWith('about:') || 
       url.startsWith('chrome:') || 
@@ -15,54 +15,29 @@ function extractPageContent() {
   
   // Wait for page to fully load
   if (document.readyState !== 'complete') {
-    window.addEventListener('load', () => setTimeout(extractPageContent, 1000));
+    window.addEventListener('load', () => setTimeout(requestNativeSummarization, 1000));
     return;
   }
   
   try {
-    // Get page content
-    const title = document.title;
-    
-    // Get main content (prioritize article content)
-    let content = '';
-    const article = document.querySelector('article');
-    
-    if (article) {
-      content = article.innerText;
-    } else {
-      // Try to get main content
-      const main = document.querySelector('main');
-      if (main) {
-        content = main.innerText;
-      } else {
-        // Fall back to body content
-        content = document.body.innerText;
-      }
-    }
-    
-    // Limit content size
-    const maxContentLength = 50000;
-    if (content.length > maxContentLength) {
-      content = content.substring(0, maxContentLength);
-    }
-    
-    // Generate a simple summary (first 200 characters)
-    const summary = content.substring(0, 200).trim();
-    
-    // Send to background script
+    // Send request to native code for content summarization
     browser.runtime.sendMessage({
-      type: 'pageContent',
-      url: window.location.href,
-      title,
-      content,
-      summary
+      type: 'summarizeContent',
+      url: window.location.href
     });
     
-    console.debug('Sent page content to background script');
+    console.debug('Requested native content summarization');
   } catch (error) {
-    console.error('Error extracting page content:', error);
+    console.error('Error requesting content summarization:', error);
   }
 }
 
-// Start content extraction after a delay
-setTimeout(extractPageContent, 2000);
+// Start content summarization after a delay
+setTimeout(requestNativeSummarization, 2000);
+
+// Listen for messages from the background script
+browser.runtime.onMessage.addListener((message) => {
+  if (message.type === 'summarizationComplete') {
+    console.debug('Content summarization completed:', message.success);
+  }
+});

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "ChronicleSync",
+  "version": "1.0",
+  "description": "ChronicleSync Safari Extension for iOS",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["iOSStorageAdapter.js", "background.js"],
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage",
+    "webNavigation",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "http://localhost:*/*",
+    "https://api.chroniclesync.xyz/*",
+    "https://api-staging.chroniclesync.xyz/*"
+  ]
+}

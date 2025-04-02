@@ -122,7 +122,7 @@ describe('Worker API', () => {
     expect(postJson.message).toBe('Sync successful');
 
     // Verify the data was stored correctly
-    const storedData = await env.STORAGE.get(`${clientId}/data`);
+    const storedData = await env.STORAGE.get(`${clientId}/d`);
     const storedJson = JSON.parse(await storedData.text());
     expect(storedJson).toEqual(testData);
 
@@ -337,7 +337,7 @@ describe('Worker API', () => {
       const metadata = await env.METADATA.get(clientId);
       expect(metadata).toBeNull();
 
-      const data = await env.STORAGE.get(`${clientId}/data`);
+      const data = await env.STORAGE.get(`${clientId}/d`);
       expect(data).toBeNull();
     });
 

@@ -31,3 +31,14 @@ chroniclesync/
 ├── extension/      # Chrome extension
 └── worker/         # Cloudflare Worker backend
 ```
+
+### Administration
+
+#### Clearing KV Storage
+To clear out all keys in a KV namespace:
+
+```bash
+wrangler kv:key list --namespace-id=$NS | jq -r '.[] | .name' | while read key; do wrangler kv:key delete "$key" --namespace-id=$NS; done
+```
+
+Replace `$NS` with your namespace ID.

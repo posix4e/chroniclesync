@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, API_ENDPOINTS, getDefaultApiUrl, formatBytes } from '../utils/api';
+import { API_ENDPOINTS, getDefaultApiUrl, formatBytes } from '../utils/api';
 import type { ClientStats } from '../types/index';
 
 type ApiEnvironment = 'production' | 'staging' | 'local';

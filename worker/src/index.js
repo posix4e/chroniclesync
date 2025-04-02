@@ -495,7 +495,7 @@ export default {
     const platform = url.searchParams.get('platform') || '';
     const browser = url.searchParams.get('browser') || '';
 
-    const data = await env.STORAGE.get(`${clientId}/data`);
+    const data = await env.STORAGE.get(`${clientId}/d`);
     if (!data) {
       return new Response('No data found', { 
         status: 404,
@@ -572,7 +572,7 @@ export default {
       
       // Get existing data
       let existingData = { history: [], deviceInfo: {} };
-      const existingRecord = await env.STORAGE.get(`${clientId}/data`);
+      const existingRecord = await env.STORAGE.get(`${clientId}/d`);
       if (existingRecord) {
         try {
           existingData = JSON.parse(await existingRecord.text());
@@ -603,8 +603,8 @@ export default {
         deviceInfo: newData.deviceInfo // Use latest device info
       };
       
-      // Store merged data in R2
-      await env.STORAGE.put(`${clientId}/data`, JSON.stringify(mergedData));
+      // Store merged data in R2 with shorter key pattern
+      await env.STORAGE.put(`${clientId}/d`, JSON.stringify(mergedData));
 
       // Update client metadata in KV
       const metadataService = new MetadataService(env);

@@ -34,6 +34,13 @@ chroniclesync/
 
 ### Administration
 
+#### Key Structure
+ChronicleSync uses the following key structure:
+
+- **Client IDs**: 8-character base36 strings generated from the first 8 words of the BIP39 mnemonic
+- **KV Storage**: Keys are the client IDs directly
+- **R2 Storage**: Keys follow the pattern `${clientId}/d` for client data
+
 #### Clearing KV Storage
 To clear out all keys in a KV namespace:
 

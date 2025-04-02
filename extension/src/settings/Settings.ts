@@ -78,11 +78,29 @@ export class Settings {
   }
 
   private async generateClientId(mnemonic: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(mnemonic);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hash));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // Simple approach: Use first 8 words of the mnemonic
+    const words = mnemonic.trim().toLowerCase().split(/\s+/);
+    const firstWords = words.slice(0, 8);
+    
+    // Create a simple string from these words
+    const simpleString = firstWords.join('');
+    
+    // Use a simple hash function (FNV-1a)
+    const fnvHash = (str: string): number => {
+      let hash = 2166136261; // FNV offset basis
+      for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash *= 16777619; // FNV prime
+        hash >>>= 0; // Convert to unsigned 32-bit integer
+      }
+      return hash;
+    };
+    
+    // Generate a 32-bit hash
+    const hash = fnvHash(simpleString);
+    
+    // Convert to a shorter string (8 characters in base36)
+    return hash.toString(36).padStart(8, '0');
   }
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {

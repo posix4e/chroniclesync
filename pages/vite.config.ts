@@ -17,6 +17,11 @@ export default defineConfig({
     }
   },
   server: {
-    port: server.port
+    port: server.port,
+    host: '0.0.0.0',
+    cors: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
   }
 });

@@ -278,7 +278,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       historyStore.init().then(async () => {
         try {
           // We pass an empty string for content as we never store or sync content
-          await historyStore.updatePageContent(url, { content: "", summary });
+          await historyStore.updatePageContent(url, { content: '', summary });
           console.debug('Updated page summary for:', url);
           sendResponse({ success: true });
           

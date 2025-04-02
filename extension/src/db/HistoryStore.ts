@@ -306,7 +306,7 @@ export class HistoryStore {
           
           // Update the entry with ONLY the summary (not the content)
           mostRecentEntry.pageContent = {
-            content: "", // Never store content, only use it for summary generation
+            content: '', // Never store content, only use it for summary generation
             summary: pageContent.summary,
             extractedAt: Date.now()
           };

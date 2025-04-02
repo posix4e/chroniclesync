@@ -1,13 +1,13 @@
 // Utility to extract and summarize webpage content
 
 interface PageContent {
-  content: string;
-  summary: string;
+  content: string; // Only used locally for summary generation, never stored or synced
+  summary: string; // This is what gets stored and searched
 }
 
 /**
  * Extract the main content from the current webpage and generate a summary
- * Note: The content is only used for summary generation and is not stored or synced
+ * IMPORTANT: The content is ONLY used for summary generation and is NEVER stored or synced
  * @returns Object containing the extracted content (for summary generation only) and a summary
  */
 export function extractPageContent(): PageContent {
@@ -18,8 +18,8 @@ export function extractPageContent(): PageContent {
   const summary = generateSummary(content);
   
   return {
-    content, // This is only used for summary generation and will not be stored
-    summary
+    content, // This is ONLY used for summary generation and will NEVER be stored or synced
+    summary  // Only the summary is stored and used for searching
   };
 }
 

@@ -7,8 +7,8 @@ export interface DeviceInfo {
 }
 
 export interface PageContent {
-  content: string; // This will be empty in storage, only used for summary generation
-  summary: string;
+  content: string; // This will ALWAYS be empty in storage, NEVER stored or synced, only used locally for summary generation
+  summary: string; // Only the summary is stored and searched
   extractedAt: number;
 }
 

@@ -306,7 +306,7 @@ export class HistoryStore {
           
           // Update the entry with ONLY the summary (not the content)
           mostRecentEntry.pageContent = {
-            content: "", // Don't store content, only use it for summary generation
+            content: "", // Never store content, only use it for summary generation
             summary: pageContent.summary,
             extractedAt: Date.now()
           };
@@ -338,20 +338,16 @@ export class HistoryStore {
         const entries = request.result || [];
         const results: { entry: HistoryEntry, matches: { text: string, context: string }[] }[] = [];
         
-        // Filter entries with page content (summary) and not deleted
-        const entriesWithSummary = entries.filter(entry => 
-          !entry.deleted && 
-          entry.pageContent && 
-          entry.pageContent.summary
-        );
+        // Filter entries that are not deleted
+        const validEntries = entries.filter(entry => !entry.deleted);
         
         // Search for query in summary and history information (title, url)
         const lowerQuery = query.toLowerCase();
         
-        for (const entry of entriesWithSummary) {
+        for (const entry of validEntries) {
           const matches: { text: string, context: string }[] = [];
           
-          // Search in summary
+          // Search in summary (if available)
           if (entry.pageContent?.summary) {
             const summary = entry.pageContent.summary.toLowerCase();
             let startIndex = 0;

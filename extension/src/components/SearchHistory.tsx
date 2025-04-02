@@ -47,7 +47,7 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({ onSearchComplete }
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search summaries and history..."
+            placeholder="Search summaries and history information only..."
             className="search-input"
           />
           <button 

@@ -272,20 +272,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   } else if (request.type === 'pageContentExtracted') {
     // Handle page content extraction from content script
-    const { url, content, summary } = request.data;
-    if (url && (content || summary)) {
+    const { url, summary } = request.data;
+    if (url && summary) {
       const historyStore = new HistoryStore();
       historyStore.init().then(async () => {
         try {
-          await historyStore.updatePageContent(url, { content, summary });
-          console.debug('Updated page content for:', url);
+          // We pass an empty string for content as we never store or sync content
+          await historyStore.updatePageContent(url, { content: '', summary });
+          console.debug('Updated page summary for:', url);
           sendResponse({ success: true });
           
-          // Trigger a sync to send the updated content to the server
-          setTimeout(() => syncHistory(false), 1000);
+          // We never sync content, only summaries
+          // No need to trigger a sync here
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error('Error updating page content:', errorMessage);
+          console.error('Error updating page summary:', errorMessage);
           sendResponse({ error: errorMessage });
         }
       }).catch(error => {

@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-test.describe('Content Search', () => {
-  test('should extract and search webpage content', async ({ context, extensionId }) => {
+test.describe('Summary Search', () => {
+  test('should extract and search webpage summaries', async ({ context, extensionId }) => {
     test.setTimeout(120000); // Increase timeout to 2 minutes
     // First, set up a client ID through the settings page
     const settingsPage = await context.newPage();
@@ -100,11 +100,11 @@ test.describe('Content Search', () => {
     await historyPage.goto(getExtensionUrl(extensionId, 'history.html'));
     await historyPage.waitForTimeout(1000);
 
-    // Switch to content search tab
-    await historyPage.locator('.search-tab:text("Content Search")').click();
+    // Switch to summary search tab
+    await historyPage.locator('.search-tab:text("Summary Search")').click();
     await historyPage.waitForTimeout(500);
 
-    // Verify content search UI is visible
+    // Verify summary search UI is visible
     await expect(historyPage.locator('.search-input')).toBeVisible();
     await expect(historyPage.locator('.search-button')).toBeVisible();
 
@@ -189,10 +189,10 @@ test.describe('Content Search', () => {
     const blockchainResults = await historyPage.locator('.search-result-item').count();
     console.log(`Found ${blockchainResults} results for "blockchain technology"`);
     
-    // At least one of our content searches should return results
-    const totalContentSearchResults = phraseResults + quantumResults + blockchainResults;
-    console.log(`Total content search results across all queries: ${totalContentSearchResults}`);
-    expect(totalContentSearchResults).toBeGreaterThan(0);
+    // At least one of our summary searches should return results
+    const totalSummarySearchResults = phraseResults + quantumResults + blockchainResults;
+    console.log(`Total summary search results across all queries: ${totalSummarySearchResults}`);
+    expect(totalSummarySearchResults).toBeGreaterThan(0);
 
     // Test 8: Verify page summaries are displayed (if available)
     // Clear search results first
@@ -223,7 +223,7 @@ test.describe('Content Search', () => {
 
     // Take a screenshot of the final state
     await historyPage.screenshot({
-      path: 'test-results/content-search.png',
+      path: 'test-results/summary-search.png',
       fullPage: true
     });
 

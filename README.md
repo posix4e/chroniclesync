@@ -1,10 +1,12 @@
 # ChronicleSync
 
-Sync stuff across browsers
+Sync browsing history and summaries across browsers
 
 ## Features
 
 - **Offline-First**: Continue working without internet connection with automatic background sync
+- **Privacy-Focused**: Only syncs summaries and history information, never stores or syncs full page content
+- **Efficient Search**: Search through summaries and history information, not full content
 - **Not Secure**: I'm to lazy and the models suck too much for local encryption, but it's coming.
 - **Not Multiplatform**: We haven't added IOS support cause basic stuff still doesn't work.
 - **Real-time Monitoring**: Health monitoring and administrative dashboard

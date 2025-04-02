@@ -60,7 +60,7 @@ const HistoryView: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, filters, history, showingSearchResults]);
   
-  const handleContentSearchComplete = (results: SearchResult[]) => {
+  const handleSummarySearchComplete = (results: SearchResult[]) => {
     setSearchResults(results);
     setShowingSearchResults(true);
   };
@@ -109,13 +109,13 @@ const HistoryView: React.FC = () => {
           Basic Search
         </div>
         <div className={`search-tab ${showingSearchResults ? 'active' : ''}`} onClick={() => setShowingSearchResults(true)}>
-          Content Search
+          Summary Search
         </div>
       </div>
       
       {showingSearchResults ? (
-        <div className="content-search-container">
-          <SearchHistory onSearchComplete={handleContentSearchComplete} />
+        <div className="summary-search-container">
+          <SearchHistory onSearchComplete={handleSummarySearchComplete} />
           <SearchResults results={searchResults} onClearResults={handleClearSearchResults} />
         </div>
       ) : (

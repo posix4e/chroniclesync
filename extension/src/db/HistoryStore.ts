@@ -304,9 +304,9 @@ export class HistoryStore {
             return current.visitTime > latest.visitTime ? current : latest;
           }, entries[0]);
           
-          // Update the entry with page content
+          // Update the entry with ONLY the summary (not the content)
           mostRecentEntry.pageContent = {
-            content: pageContent.content,
+            content: '', // Never store content, only use it for summary generation
             summary: pageContent.summary,
             extractedAt: Date.now()
           };
@@ -338,37 +338,57 @@ export class HistoryStore {
         const entries = request.result || [];
         const results: { entry: HistoryEntry, matches: { text: string, context: string }[] }[] = [];
         
-        // Filter entries with page content and not deleted
-        const entriesWithContent = entries.filter(entry => 
-          !entry.deleted && 
-          entry.pageContent && 
-          entry.pageContent.content
-        );
+        // Filter entries that are not deleted
+        const validEntries = entries.filter(entry => !entry.deleted);
         
-        // Search for query in content
+        // Search for query in summary and history information (title, url)
         const lowerQuery = query.toLowerCase();
         
-        for (const entry of entriesWithContent) {
-          const content = entry.pageContent!.content.toLowerCase();
+        for (const entry of validEntries) {
           const matches: { text: string, context: string }[] = [];
           
-          let startIndex = 0;
-          while (startIndex < content.length) {
-            const foundIndex = content.indexOf(lowerQuery, startIndex);
-            if (foundIndex === -1) break;
+          // Search in summary (if available)
+          if (entry.pageContent?.summary) {
+            const summary = entry.pageContent.summary.toLowerCase();
+            let startIndex = 0;
             
-            // Get context around the match (100 chars before and after)
-            const contextStart = Math.max(0, foundIndex - 100);
-            const contextEnd = Math.min(content.length, foundIndex + query.length + 100);
-            const matchText = entry.pageContent!.content.substring(foundIndex, foundIndex + query.length);
-            const context = entry.pageContent!.content.substring(contextStart, contextEnd);
-            
-            matches.push({
-              text: matchText,
-              context: context
-            });
-            
-            startIndex = foundIndex + query.length;
+            while (startIndex < summary.length) {
+              const foundIndex = summary.indexOf(lowerQuery, startIndex);
+              if (foundIndex === -1) break;
+              
+              // Get context around the match (entire summary is the context)
+              const matchText = entry.pageContent.summary.substring(foundIndex, foundIndex + query.length);
+              const context = entry.pageContent.summary;
+              
+              matches.push({
+                text: matchText,
+                context: context
+              });
+              
+              startIndex = foundIndex + query.length;
+            }
+          }
+          
+          // Search in title
+          if (entry.title) {
+            const title = entry.title.toLowerCase();
+            if (title.includes(lowerQuery)) {
+              matches.push({
+                text: query,
+                context: `Title: ${entry.title}`
+              });
+            }
+          }
+          
+          // Search in URL
+          if (entry.url) {
+            const url = entry.url.toLowerCase();
+            if (url.includes(lowerQuery)) {
+              matches.push({
+                text: query,
+                context: `URL: ${entry.url}`
+              });
+            }
           }
           
           if (matches.length > 0) {

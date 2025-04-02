@@ -37,7 +37,7 @@ chroniclesync/
 #### Key Structure
 ChronicleSync uses the following key structure:
 
-- **Client IDs**: 8-character base36 strings generated from the first 8 words of the BIP39 mnemonic
+- **Client IDs**: Base64url-encoded SHA-256 hash of the BIP39 mnemonic (~43 characters)
 - **KV Storage**: Keys are the client IDs directly
 - **R2 Storage**: Keys follow the pattern `${clientId}/d` for client data
 

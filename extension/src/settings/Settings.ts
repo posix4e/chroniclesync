@@ -78,29 +78,24 @@ export class Settings {
   }
 
   private async generateClientId(mnemonic: string): Promise<string> {
-    // Simple approach: Use first 8 words of the mnemonic
-    const words = mnemonic.trim().toLowerCase().split(/\s+/);
-    const firstWords = words.slice(0, 8);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(mnemonic);
     
-    // Create a simple string from these words
-    const simpleString = firstWords.join('');
+    // Use SHA-256 for a full 256-bit hash
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hash));
     
-    // Use a simple hash function (FNV-1a)
-    const fnvHash = (str: string): number => {
-      let hash = 2166136261; // FNV offset basis
-      for (let i = 0; i < str.length; i++) {
-        hash ^= str.charCodeAt(i);
-        hash *= 16777619; // FNV prime
-        hash >>>= 0; // Convert to unsigned 32-bit integer
-      }
-      return hash;
-    };
+    // Convert to base64url encoding (approximately 43 characters)
+    // This is much shorter than the 64-character hex string
+    const base64 = btoa(String.fromCharCode(...hashArray))
+      .replace(/\+/g, '-')  // Replace + with - (URL safe)
+      .replace(/\//g, '_')  // Replace / with _ (URL safe)
+      .replace(/=+$/, '');  // Remove trailing = (padding)
     
-    // Generate a 32-bit hash
-    const hash = fnvHash(simpleString);
+    // For even shorter IDs, we could truncate, but this would reduce security
+    // return base64.substring(0, 22); // ~128 bits
     
-    // Convert to a shorter string (8 characters in base36)
-    return hash.toString(36).padStart(8, '0');
+    return base64; // Full 256-bit security
   }
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {

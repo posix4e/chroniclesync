@@ -28,47 +28,5 @@ window.addEventListener('load', () => {
   setTimeout(processPageContent, 1000);
 });
 
-// Listen for messages from the background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'searchPageContent') {
-    const { query } = request;
-    try {
-      const pageContent = extractPageContent();
-      const searchResults = searchContent(pageContent.content, query);
-      sendResponse({ success: true, results: searchResults });
-    } catch (error) {
-      sendResponse({ success: false, error: String(error) });
-    }
-    return true; // Will respond asynchronously
-  }
-});
-
-// Function to search content and return matches with context
-function searchContent(content: string, query: string): { text: string, context: string }[] {
-  if (!query || !content) return [];
-  
-  const results: { text: string, context: string }[] = [];
-  const lowerContent = content.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  
-  let startIndex = 0;
-  while (startIndex < lowerContent.length) {
-    const foundIndex = lowerContent.indexOf(lowerQuery, startIndex);
-    if (foundIndex === -1) break;
-    
-    // Get context around the match (100 chars before and after)
-    const contextStart = Math.max(0, foundIndex - 100);
-    const contextEnd = Math.min(content.length, foundIndex + query.length + 100);
-    const matchText = content.substring(foundIndex, foundIndex + query.length);
-    const context = content.substring(contextStart, contextEnd);
-    
-    results.push({
-      text: matchText,
-      context: context
-    });
-    
-    startIndex = foundIndex + query.length;
-  }
-  
-  return results;
-}
+// We no longer need to search page content directly
+// All searches will be done through the background script using stored summaries

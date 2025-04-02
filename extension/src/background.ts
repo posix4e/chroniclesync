@@ -281,8 +281,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.debug('Updated page content for:', url);
           sendResponse({ success: true });
           
-          // Trigger a sync to send the updated content to the server
-          setTimeout(() => syncHistory(false), 1000);
+          // We no longer sync content, only summaries
+          // No need to trigger a sync here
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error('Error updating page content:', errorMessage);

@@ -7,7 +7,7 @@ export interface DeviceInfo {
 }
 
 export interface PageContent {
-  content: string;
+  content: string; // This will be empty in storage, only used for summary generation
   summary: string;
   extractedAt: number;
 }

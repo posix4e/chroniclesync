@@ -6,8 +6,9 @@ interface PageContent {
 }
 
 /**
- * Extract the main content from the current webpage
- * @returns Object containing the extracted content and a summary
+ * Extract the main content from the current webpage and generate a summary
+ * Note: The content is only used for summary generation and is not stored or synced
+ * @returns Object containing the extracted content (for summary generation only) and a summary
  */
 export function extractPageContent(): PageContent {
   // Extract the main content from the page
@@ -17,7 +18,7 @@ export function extractPageContent(): PageContent {
   const summary = generateSummary(content);
   
   return {
-    content,
+    content, // This is only used for summary generation and will not be stored
     summary
   };
 }

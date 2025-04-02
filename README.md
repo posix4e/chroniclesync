@@ -41,11 +41,3 @@ ChronicleSync uses the following key structure:
 - **KV Storage**: Keys are the client IDs directly
 - **R2 Storage**: Keys follow the pattern `${clientId}/d` for client data
 
-#### Clearing KV Storage
-To clear out all keys in a KV namespace:
-
-```bash
-wrangler kv:key list --namespace-id=$NS | jq -r '.[] | .name' | while read key; do wrangler kv:key delete "$key" --namespace-id=$NS; done
-```
-
-Replace `$NS` with your namespace ID.

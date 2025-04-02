@@ -1,22 +1,31 @@
 import { HistoryResponse, HistoryFilters } from '../types/history';
 
-export const API_URL = (() => {
+export const API_ENDPOINTS = {
+  production: 'https://api.chroniclesync.xyz',
+  staging: 'https://api-staging.chroniclesync.xyz',
+  local: 'http://localhost:8787'
+};
+
+export const getDefaultApiUrl = (): string => {
   const hostname = window.location.hostname;
   
   if (hostname === 'chroniclesync.xyz') {
-    return 'https://api.chroniclesync.xyz';
+    return API_ENDPOINTS.production;
   }
   
   if (hostname.includes('chroniclesync-pages.pages.dev')) {
-    return 'https://api-staging.chroniclesync.xyz';
+    return API_ENDPOINTS.staging;
   }
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8787';
+    return API_ENDPOINTS.local;
   }
   
-  return 'https://api.chroniclesync.xyz';
-})();
+  return API_ENDPOINTS.production;
+};
+
+// Default API URL based on hostname
+export const API_URL = getDefaultApiUrl();
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';

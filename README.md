@@ -34,11 +34,10 @@ chroniclesync/
 
 ### Administration
 
-#### Clearing KV Storage
-To clear out all keys in a KV namespace:
+#### Key Structure
+ChronicleSync uses the following key structure:
 
-```bash
-wrangler kv:key list --namespace-id=$NS | jq -r '.[] | .name' | while read key; do wrangler kv:key delete "$key" --namespace-id=$NS; done
-```
+- **Client IDs**: Base64url-encoded SHA-256 hash of the BIP39 mnemonic (~43 characters)
+- **KV Storage**: Keys are the client IDs directly
+- **R2 Storage**: Keys follow the pattern `${clientId}/d` for client data
 
-Replace `$NS` with your namespace ID.

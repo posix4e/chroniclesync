@@ -80,9 +80,22 @@ export class Settings {
   private async generateClientId(mnemonic: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(mnemonic);
+    
+    // Use SHA-256 for a full 256-bit hash
     const hash = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hash));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Convert to base64url encoding (approximately 43 characters)
+    // This is much shorter than the 64-character hex string
+    const base64 = btoa(String.fromCharCode(...hashArray))
+      .replace(/\+/g, '-')  // Replace + with - (URL safe)
+      .replace(/\//g, '_')  // Replace / with _ (URL safe)
+      .replace(/=+$/, '');  // Remove trailing = (padding)
+    
+    // For even shorter IDs, we could truncate, but this would reduce security
+    // return base64.substring(0, 22); // ~128 bits
+    
+    return base64; // Full 256-bit security
   }
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {

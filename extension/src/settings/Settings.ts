@@ -279,12 +279,14 @@ export class Settings {
     this.showMessage('Settings saved successfully!', 'success');
     
     // Notify that storage type has changed
-    chrome.runtime.sendMessage({ 
-      type: 'storageTypeChanged',
-      storageType: newConfig.storageType
-    }).catch(() => {
-      // Ignore error when no receivers are present
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ 
+        type: 'storageTypeChanged',
+        storageType: newConfig.storageType
+      }).catch(() => {
+        // Ignore error when no receivers are present
+      });
+    }
   }
 
   private async handleReset(): Promise<void> {

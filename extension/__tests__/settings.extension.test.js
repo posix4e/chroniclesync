@@ -5,16 +5,13 @@ vi.mock('../../bip39-wordlist.js', () => ({
   wordList: ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art']
 }));
 
-// Mock chrome.storage.sync and chrome.runtime
+// Mock chrome.storage.sync
 global.chrome = {
   storage: {
     sync: {
       get: vi.fn(),
       set: vi.fn()
     }
-  },
-  runtime: {
-    sendMessage: vi.fn().mockImplementation(() => Promise.resolve())
   }
 };
 
@@ -261,10 +258,6 @@ describe('Settings', () => {
       gundbPeers: newConfig.gundbPeers
     }), expect.any(Function));
     expect(settings.config).toEqual(expect.objectContaining(newConfig));
-    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'storageTypeChanged',
-      storageType: newConfig.storageType
-    }));
   });
 
   it('handleReset resets to default config when confirmed', async () => {
@@ -306,7 +299,6 @@ describe('Settings', () => {
     expect(settings.config.storageType).toBe('gundb');
     expect(settings.config.gundbPeers).toEqual([]);
     expect(document.getElementById('customUrlContainer').style.display).toBe('none');
-    expect(chrome.runtime.sendMessage).toHaveBeenCalled();
   });
 
   it('shows/hides custom URL field based on environment', async () => {

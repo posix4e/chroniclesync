@@ -1,11 +1,17 @@
 import Gun from 'gun';
 import { HistoryEntry, DeviceInfo } from '../types';
 
+// Define types for GunDB
+interface GunAck {
+  err?: string;
+  ok?: boolean;
+}
+
 export class GunDBStore {
   private readonly DB_NAME = 'chroniclesync';
-  private gun: any;
-  private historyRef: any;
-  private devicesRef: any;
+  private gun: Gun;
+  private historyRef: Gun;
+  private devicesRef: Gun;
   private clientId: string;
 
   constructor(clientId: string, peers: string[] = []) {
@@ -23,7 +29,6 @@ export class GunDBStore {
   }
 
   async init(): Promise<void> {
-    console.log('Initializing GunDB...');
     // GunDB doesn't require explicit initialization like IndexedDB
     return Promise.resolve();
   }
@@ -37,9 +42,9 @@ export class GunDBStore {
       };
 
       // Store the entry using visitId as the key
-      this.historyRef.get(entry.visitId).put(fullEntry, (ack: any) => {
+      this.historyRef.get(entry.visitId).put(fullEntry, (ack: GunAck) => {
         if (ack.err) {
-          console.error('Error adding entry to GunDB:', ack.err);
+          // Handle error silently
         }
         resolve();
       });
@@ -51,7 +56,7 @@ export class GunDBStore {
     return Promise.resolve([]);
   }
 
-  async markAsSynced(visitId: string): Promise<void> {
+  async markAsSynced(_visitId: string): Promise<void> {
     // In GunDB, all data is automatically synced, so this is just for compatibility
     return Promise.resolve();
   }
@@ -60,7 +65,7 @@ export class GunDBStore {
     return new Promise((resolve) => {
       const entries: HistoryEntry[] = [];
       
-      this.historyRef.map().once((data: HistoryEntry, key: string) => {
+      this.historyRef.map().once((data: HistoryEntry, _key: string) => {
         if (!data) return;
         
         // Filter by device if specified
@@ -97,9 +102,9 @@ export class GunDBStore {
         lastSeen: Date.now()
       };
 
-      this.devicesRef.get(device.deviceId).put(deviceWithTimestamp, (ack: any) => {
+      this.devicesRef.get(device.deviceId).put(deviceWithTimestamp, (ack: GunAck) => {
         if (ack.err) {
-          console.error('Error updating device in GunDB:', ack.err);
+          // Handle error silently
         }
         resolve();
       });
@@ -110,7 +115,7 @@ export class GunDBStore {
     return new Promise((resolve) => {
       const devices: DeviceInfo[] = [];
       
-      this.devicesRef.map().once((data: DeviceInfo, key: string) => {
+      this.devicesRef.map().once((data: DeviceInfo, _key: string) => {
         if (!data) return;
         devices.push(data);
       });
@@ -138,9 +143,9 @@ export class GunDBStore {
           lastModified: Date.now()
         };
         
-        this.historyRef.get(visitId).put(updatedEntry, (ack: any) => {
+        this.historyRef.get(visitId).put(updatedEntry, (ack: GunAck) => {
           if (ack.err) {
-            console.error('Error deleting entry in GunDB:', ack.err);
+            // Handle error silently
           }
           resolve();
         });
@@ -153,9 +158,9 @@ export class GunDBStore {
       // Find entries with this URL
       const entries: HistoryEntry[] = [];
       
-      this.historyRef.map().once((data: HistoryEntry, key: string) => {
+      this.historyRef.map().once((data: HistoryEntry, _key: string) => {
         if (!data || data.url !== url) return;
-        entries.push({...data, key});
+        entries.push({...data});
       });
 
       // Give Gun some time to collect all the data
@@ -181,9 +186,9 @@ export class GunDBStore {
           lastModified: Date.now()
         };
         
-        this.historyRef.get(mostRecentEntry.visitId).put(updatedEntry, (ack: any) => {
+        this.historyRef.get(mostRecentEntry.visitId).put(updatedEntry, (ack: GunAck) => {
           if (ack.err) {
-            console.error('Error updating page content in GunDB:', ack.err);
+            // Handle error silently
           }
           resolve();
         });
@@ -197,7 +202,7 @@ export class GunDBStore {
     return new Promise((resolve) => {
       const entries: HistoryEntry[] = [];
       
-      this.historyRef.map().once((data: HistoryEntry, key: string) => {
+      this.historyRef.map().once((data: HistoryEntry, _key: string) => {
         if (!data || data.deleted) return;
         entries.push(data);
       });

@@ -1,6 +1,4 @@
 import { getConfig } from '../config';
-import { HistoryStore } from './db/HistoryStore';
-import { GunDBStore } from './db/GunDBStore';
 import { StoreFactory } from './db/StoreFactory';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';

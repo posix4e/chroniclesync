@@ -1,6 +1,5 @@
 import { test, expect, chromium } from '@playwright/test';
 import path from 'path';
-import fs from 'fs';
 
 // Path to the extension directory
 const extensionPath = path.join(__dirname, '..');

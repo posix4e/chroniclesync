@@ -7,11 +7,15 @@ interface GunAck {
   ok?: boolean;
 }
 
+// Using any for Gun types to avoid complex type definitions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GunInstance = any;
+
 export class GunDBStore {
   private readonly DB_NAME = 'chroniclesync';
-  private gun: Gun;
-  private historyRef: Gun;
-  private devicesRef: Gun;
+  private gun: GunInstance;
+  private historyRef: GunInstance;
+  private devicesRef: GunInstance;
   private clientId: string;
 
   constructor(clientId: string, peers: string[] = []) {

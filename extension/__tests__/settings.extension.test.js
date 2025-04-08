@@ -5,13 +5,16 @@ vi.mock('../../bip39-wordlist.js', () => ({
   wordList: ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art']
 }));
 
-// Mock chrome.storage.sync
+// Mock chrome.storage.sync and chrome.runtime
 global.chrome = {
   storage: {
     sync: {
       get: vi.fn(),
       set: vi.fn()
     }
+  },
+  runtime: {
+    sendMessage: vi.fn().mockImplementation(() => Promise.resolve())
   }
 };
 
@@ -162,7 +165,9 @@ describe('Settings', () => {
         clientId: 'test-client',
         environment: 'production',
         customApiUrl: null,
-        expirationDays: 7
+        expirationDays: 7,
+        storageType: 'gundb',
+        gundbPeers: []
       });
     });
 
@@ -186,7 +191,9 @@ describe('Settings', () => {
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      storageType: 'gundb',
+      gundbPeers: []
     };
 
     chrome.storage.sync.get.mockImplementation((keys, callback) => {
@@ -203,12 +210,26 @@ describe('Settings', () => {
   });
 
   it('handleSave updates config and shows success message', async () => {
+    // Create storage type and gundb peers elements
+    const storageTypeSelect = document.createElement('select');
+    storageTypeSelect.id = 'storageType';
+    const option = document.createElement('option');
+    option.value = 'gundb';
+    storageTypeSelect.appendChild(option);
+    document.body.appendChild(storageTypeSelect);
+    
+    const gundbPeersInput = document.createElement('textarea');
+    gundbPeersInput.id = 'gundbPeers';
+    document.body.appendChild(gundbPeersInput);
+    
     const newConfig = {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      storageType: 'gundb',
+      gundbPeers: []
     };
 
     // Mock generateClientId to return the expected client ID
@@ -220,6 +241,8 @@ describe('Settings', () => {
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('environment').value = newConfig.environment;
     document.getElementById('customApiUrl').value = newConfig.customApiUrl;
+    document.getElementById('storageType').value = newConfig.storageType;
+    document.getElementById('gundbPeers').value = '';
 
     const mockEvent = {
       preventDefault: vi.fn()
@@ -228,11 +251,40 @@ describe('Settings', () => {
     await settings.handleSave(mockEvent);
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
-    expect(chrome.storage.sync.set).toHaveBeenCalledWith(newConfig, expect.any(Function));
-    expect(settings.config).toEqual(newConfig);
+    expect(chrome.storage.sync.set).toHaveBeenCalledWith(expect.objectContaining({
+      mnemonic: newConfig.mnemonic,
+      clientId: newConfig.clientId,
+      customApiUrl: newConfig.customApiUrl,
+      environment: newConfig.environment,
+      expirationDays: newConfig.expirationDays,
+      storageType: newConfig.storageType,
+      gundbPeers: newConfig.gundbPeers
+    }), expect.any(Function));
+    expect(settings.config).toEqual(expect.objectContaining(newConfig));
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'storageTypeChanged',
+      storageType: newConfig.storageType
+    }));
   });
 
   it('handleReset resets to default config when confirmed', async () => {
+    // Make sure the storage type element exists
+    if (!document.getElementById('storageType')) {
+      const storageTypeSelect = document.createElement('select');
+      storageTypeSelect.id = 'storageType';
+      const option = document.createElement('option');
+      option.value = 'gundb';
+      storageTypeSelect.appendChild(option);
+      document.body.appendChild(storageTypeSelect);
+    }
+    
+    // Make sure the gundb peers element exists
+    if (!document.getElementById('gundbPeers')) {
+      const gundbPeersInput = document.createElement('textarea');
+      gundbPeersInput.id = 'gundbPeers';
+      document.body.appendChild(gundbPeersInput);
+    }
+    
     global.confirm = vi.fn(() => true);
     chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
@@ -240,7 +292,9 @@ describe('Settings', () => {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'custom-client',
       customApiUrl: 'http://custom-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      storageType: 'indexeddb',
+      gundbPeers: ['http://example.com/gun']
     };
 
     await settings.handleReset();
@@ -249,7 +303,10 @@ describe('Settings', () => {
     expect(chrome.storage.sync.set).toHaveBeenCalledWith(expect.any(Object), expect.any(Function));
     expect(settings.config.environment).toBe('production');
     expect(settings.config.customApiUrl).toBeNull();
+    expect(settings.config.storageType).toBe('gundb');
+    expect(settings.config.gundbPeers).toEqual([]);
     expect(document.getElementById('customUrlContainer').style.display).toBe('none');
+    expect(chrome.runtime.sendMessage).toHaveBeenCalled();
   });
 
   it('shows/hides custom URL field based on environment', async () => {
@@ -259,7 +316,9 @@ describe('Settings', () => {
         mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'custom',
-        customApiUrl: 'http://test-api.com'
+        customApiUrl: 'http://test-api.com',
+        storageType: 'gundb',
+        gundbPeers: []
       });
     });
 
@@ -275,7 +334,9 @@ describe('Settings', () => {
         mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
         clientId: 'test-client',
         environment: 'staging',
-        customApiUrl: null
+        customApiUrl: null,
+        storageType: 'gundb',
+        gundbPeers: []
       });
     });
 

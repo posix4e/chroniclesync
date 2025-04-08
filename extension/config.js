@@ -1,7 +1,8 @@
 const defaultConfig = {
   apiEndpoint: 'https://api.chroniclesync.xyz',  // Worker API endpoint
   pagesUrl: 'https://chroniclesync.pages.dev',   // Pages UI endpoint
-  clientId: 'extension-default'
+  clientId: 'extension-default',
+  storageType: 'gundb'  // Default to GunDB for storage
 };
 
 const STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
@@ -9,7 +10,15 @@ const STAGING_API_URL = 'https://api-staging.chroniclesync.xyz';
 // Load configuration from storage or use defaults
 async function getConfig() {
   try {
-    const result = await chrome.storage.sync.get(['apiEndpoint', 'pagesUrl', 'clientId', 'environment', 'customApiUrl']);
+    const result = await chrome.storage.sync.get([
+      'apiEndpoint', 
+      'pagesUrl', 
+      'clientId', 
+      'environment', 
+      'customApiUrl', 
+      'storageType',
+      'gundbPeers'
+    ]);
     
     // Determine API endpoint based on environment
     let apiEndpoint = defaultConfig.apiEndpoint;
@@ -22,7 +31,9 @@ async function getConfig() {
     return {
       apiEndpoint: apiEndpoint,
       pagesUrl: result.pagesUrl || defaultConfig.pagesUrl,
-      clientId: result.clientId || defaultConfig.clientId
+      clientId: result.clientId || defaultConfig.clientId,
+      storageType: result.storageType || defaultConfig.storageType,
+      gundbPeers: result.gundbPeers || []
     };
   } catch (error) {
     console.error('Error loading config:', error);
@@ -36,7 +47,9 @@ async function saveConfig(config) {
     await chrome.storage.sync.set({
       apiEndpoint: config.apiEndpoint,
       pagesUrl: config.pagesUrl,
-      clientId: config.clientId
+      clientId: config.clientId,
+      storageType: config.storageType || defaultConfig.storageType,
+      gundbPeers: config.gundbPeers || []
     });
     return true;
   } catch (error) {

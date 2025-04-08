@@ -4,6 +4,8 @@ interface SettingsConfig {
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  storageType: 'indexeddb' | 'gundb';
+  gundbPeers: string[];
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +21,9 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    storageType: 'gundb', // GunDB is now the default
+    gundbPeers: []
   };
 
   async init(): Promise<void> {
@@ -37,7 +41,9 @@ export class Settings {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment,
-      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+      storageType: result.storageType || this.DEFAULT_SETTINGS.storageType,
+      gundbPeers: result.gundbPeers || this.DEFAULT_SETTINGS.gundbPeers
     };
 
     // Generate initial mnemonic if needed
@@ -100,7 +106,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays', 'storageType', 'gundbPeers'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }
@@ -129,12 +135,24 @@ export class Settings {
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
+    const storageTypeSelect = document.getElementById('storageType') as HTMLSelectElement;
+    const gundbPeersContainer = document.getElementById('gundbPeersContainer') as HTMLDivElement;
+    const gundbPeersInput = document.getElementById('gundbPeers') as HTMLTextAreaElement;
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
     environmentSelect.value = this.config.environment;
     customApiUrlInput.value = this.config.customApiUrl || '';
     expirationDaysInput.value = this.config.expirationDays.toString();
+    
+    if (storageTypeSelect) {
+      storageTypeSelect.value = this.config.storageType;
+      
+      if (gundbPeersContainer && gundbPeersInput) {
+        gundbPeersContainer.style.display = this.config.storageType === 'gundb' ? 'block' : 'none';
+        gundbPeersInput.value = this.config.gundbPeers.join('\n');
+      }
+    }
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
   }
@@ -143,9 +161,19 @@ export class Settings {
     document.getElementById('saveSettings')?.addEventListener('click', (e) => this.handleSave(e));
     document.getElementById('resetSettings')?.addEventListener('click', () => this.handleReset());
     document.getElementById('environment')?.addEventListener('change', () => this.handleEnvironmentChange());
+    document.getElementById('storageType')?.addEventListener('change', () => this.handleStorageTypeChange());
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+  }
+  
+  private handleStorageTypeChange(): void {
+    const storageTypeSelect = document.getElementById('storageType') as HTMLSelectElement;
+    const gundbPeersContainer = document.getElementById('gundbPeersContainer') as HTMLDivElement;
+    
+    if (gundbPeersContainer) {
+      gundbPeersContainer.style.display = storageTypeSelect.value === 'gundb' ? 'block' : 'none';
+    }
   }
 
   private async handleMnemonicInput(): Promise<void> {
@@ -199,6 +227,8 @@ export class Settings {
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
+    const storageTypeSelect = document.getElementById('storageType') as HTMLSelectElement;
+    const gundbPeersInput = document.getElementById('gundbPeers') as HTMLTextAreaElement;
 
     const mnemonic = mnemonicInput.value.trim();
     if (!this.validateMnemonic(mnemonic)) {
@@ -215,12 +245,25 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Parse GunDB peers from textarea (one per line)
+    const gundbPeers = gundbPeersInput ? 
+      gundbPeersInput.value.split('\n')
+        .map(peer => peer.trim())
+        .filter(peer => peer.length > 0) : 
+      [];
+
+    const storageType = storageTypeSelect ? 
+      storageTypeSelect.value as SettingsConfig['storageType'] : 
+      this.DEFAULT_SETTINGS.storageType;
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
-      expirationDays
+      expirationDays,
+      storageType,
+      gundbPeers
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {
@@ -234,6 +277,14 @@ export class Settings {
 
     this.config = newConfig;
     this.showMessage('Settings saved successfully!', 'success');
+    
+    // Notify that storage type has changed
+    chrome.runtime.sendMessage({ 
+      type: 'storageTypeChanged',
+      storageType: newConfig.storageType
+    }).catch(() => {
+      // Ignore error when no receivers are present
+    });
   }
 
   private async handleReset(): Promise<void> {

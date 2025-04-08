@@ -1,5 +1,7 @@
 import { getConfig } from '../config';
 import { HistoryStore } from './db/HistoryStore';
+import { GunDBStore } from './db/GunDBStore';
+import { StoreFactory } from './db/StoreFactory';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
 
@@ -13,6 +15,7 @@ interface SyncStats {
   sent: number;
   received: number;
   devices: number;
+  p2pSync?: boolean;
 }
 
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -57,8 +60,8 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
     const startTime = forceFullSync ? 0 : storedLastSync;
 
-    const historyStore = new HistoryStore();
-    await historyStore.init();
+    // Get the appropriate store based on settings
+    const historyStore = await StoreFactory.getStore();
 
     await historyStore.updateDevice(systemInfo);
 
@@ -95,59 +98,90 @@ async function syncHistory(forceFullSync = false): Promise<void> {
       await historyStore.addEntry(entry);
     }
 
-    const unsyncedEntries = await historyStore.getUnsyncedEntries();
-
-    if (unsyncedEntries.length > 0) {
-      const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          history: unsyncedEntries,
-          deviceInfo: systemInfo,
-          lastSync: storedLastSync
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const syncResponse: SyncResponse = await response.json();
-
-      if (syncResponse.history && syncResponse.history.length > 0) {
-        await historyStore.mergeRemoteEntries(syncResponse.history);
-      }
-
-      if (syncResponse.devices) {
-        for (const device of syncResponse.devices) {
-          await historyStore.updateDevice(device);
-        }
-      }
-
-      for (const entry of unsyncedEntries) {
-        await historyStore.markAsSynced(entry.visitId);
-      }
-
-      const newLastSync = syncResponse.lastSyncTime || now;
+    // Check if we're using GunDB or IndexedDB
+    const settings = await chrome.storage.sync.get(['storageType']);
+    const isUsingGunDB = settings.storageType === 'gundb';
+    
+    if (isUsingGunDB) {
+      // When using GunDB, data is automatically synced P2P
+      // Just update the last sync time
+      const newLastSync = now;
       const lastSyncDate = new Date(newLastSync).toLocaleString();
       await chrome.storage.local.set({ lastSync: newLastSync });
       await chrome.storage.sync.set({ lastSync: lastSyncDate });
-
+      
       try {
         chrome.runtime.sendMessage({ 
           type: 'syncComplete',
           stats: {
-            sent: unsyncedEntries.length,
-            received: syncResponse.history?.length || 0,
-            devices: syncResponse.devices?.length || 0
+            sent: 0,
+            received: 0,
+            devices: 0,
+            p2pSync: true
           } as SyncStats
         }).catch(() => {
           // Ignore error when no receivers are present
         });
       } catch {
         // Catch any other messaging errors
+      }
+    } else {
+      // Using IndexedDB with worker API
+      const unsyncedEntries = await historyStore.getUnsyncedEntries();
+
+      if (unsyncedEntries.length > 0) {
+        const response = await fetch(`${config.apiEndpoint}?clientId=${encodeURIComponent(config.clientId)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            history: unsyncedEntries,
+            deviceInfo: systemInfo,
+            lastSync: storedLastSync
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const syncResponse: SyncResponse = await response.json();
+
+        if (syncResponse.history && syncResponse.history.length > 0) {
+          await historyStore.mergeRemoteEntries(syncResponse.history);
+        }
+
+        if (syncResponse.devices) {
+          for (const device of syncResponse.devices) {
+            await historyStore.updateDevice(device);
+          }
+        }
+
+        for (const entry of unsyncedEntries) {
+          await historyStore.markAsSynced(entry.visitId);
+        }
+
+        const newLastSync = syncResponse.lastSyncTime || now;
+        const lastSyncDate = new Date(newLastSync).toLocaleString();
+        await chrome.storage.local.set({ lastSync: newLastSync });
+        await chrome.storage.sync.set({ lastSync: lastSyncDate });
+
+        try {
+          chrome.runtime.sendMessage({ 
+            type: 'syncComplete',
+            stats: {
+              sent: unsyncedEntries.length,
+              received: syncResponse.history?.length || 0,
+              devices: syncResponse.devices?.length || 0,
+              p2pSync: false
+            } as SyncStats
+          }).catch(() => {
+            // Ignore error when no receivers are present
+          });
+        } catch {
+          // Catch any other messaging errors
+        }
       }
     }
 
@@ -217,44 +251,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
     const { deviceId, since, limit } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    StoreFactory.getStore().then(async (historyStore) => {
       try {
         const entries = await historyStore.getEntries(deviceId, since);
         const limitedEntries = limit ? entries.slice(0, limit) : entries;
         sendResponse(limitedEntries);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Error fetching history from IndexedDB:', errorMessage);
+        console.error('Error fetching history from store:', errorMessage);
         sendResponse({ error: errorMessage });
       }
     }).catch(error => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error initializing IndexedDB:', errorMessage);
+      console.error('Error initializing store:', errorMessage);
       sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'getDevices') {
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    StoreFactory.getStore().then(async (historyStore) => {
       try {
         const devices = await historyStore.getDevices();
         sendResponse(devices);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Error fetching devices from IndexedDB:', errorMessage);
+        console.error('Error fetching devices from store:', errorMessage);
         sendResponse({ error: errorMessage });
       }
     }).catch(error => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error initializing IndexedDB:', errorMessage);
+      console.error('Error initializing store:', errorMessage);
       sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'deleteHistory') {
     const { visitId } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    StoreFactory.getStore().then(async (historyStore) => {
       try {
         await historyStore.deleteEntry(visitId);
         await syncHistory(false);
@@ -266,7 +297,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }).catch(error => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error initializing IndexedDB:', errorMessage);
+      console.error('Error initializing store:', errorMessage);
       sendResponse({ error: errorMessage });
     });
     return true; // Will respond asynchronously
@@ -274,8 +305,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Handle page content extraction from content script
     const { url, summary } = request.data;
     if (url && summary) {
-      const historyStore = new HistoryStore();
-      historyStore.init().then(async () => {
+      StoreFactory.getStore().then(async (historyStore) => {
         try {
           // We pass an empty string for content as we never store or sync content
           await historyStore.updatePageContent(url, { content: '', summary });
@@ -291,15 +321,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }).catch(error => {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Error initializing IndexedDB:', errorMessage);
+        console.error('Error initializing store:', errorMessage);
         sendResponse({ error: errorMessage });
       });
       return true; // Will respond asynchronously
     }
   } else if (request.type === 'searchHistory') {
     const { query } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    StoreFactory.getStore().then(async (historyStore) => {
       try {
         const results = await historyStore.searchContent(query);
         
@@ -320,9 +349,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }).catch(error => {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error initializing IndexedDB:', errorMessage);
+      console.error('Error initializing store:', errorMessage);
       sendResponse({ error: errorMessage });
     });
+    return true; // Will respond asynchronously
+  } else if (request.type === 'storageTypeChanged') {
+    // Clear the store instance when storage type changes
+    StoreFactory.clearInstance();
+    // Trigger a full sync with the new storage type
+    syncHistory(true)
+      .then(() => {
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error syncing after storage type change:', errorMessage);
+        sendResponse({ error: errorMessage });
+      });
     return true; // Will respond asynchronously
   }
 });

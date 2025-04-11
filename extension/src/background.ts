@@ -1,5 +1,5 @@
 import { getConfig } from '../config';
-import { HistoryStore } from './db/HistoryStore';
+import { HistoryStoreFactory, IHistoryStore } from './db/HistoryStoreFactory';
 import { getSystemInfo } from './utils/system';
 import { HistoryEntry, DeviceInfo } from './types';
 
@@ -57,7 +57,7 @@ async function syncHistory(forceFullSync = false): Promise<void> {
 
     const startTime = forceFullSync ? 0 : storedLastSync;
 
-    const historyStore = new HistoryStore();
+    const historyStore = await HistoryStoreFactory.createHistoryStore();
     await historyStore.init();
 
     await historyStore.updateDevice(systemInfo);
@@ -217,8 +217,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   } else if (request.type === 'getHistory') {
     const { deviceId, since, limit } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    HistoryStoreFactory.createHistoryStore().then(async (historyStore) => {
+      await historyStore.init();
       try {
         const entries = await historyStore.getEntries(deviceId, since);
         const limitedEntries = limit ? entries.slice(0, limit) : entries;
@@ -235,8 +235,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true; // Will respond asynchronously
   } else if (request.type === 'getDevices') {
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    HistoryStoreFactory.createHistoryStore().then(async (historyStore) => {
+      await historyStore.init();
       try {
         const devices = await historyStore.getDevices();
         sendResponse(devices);
@@ -253,8 +253,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   } else if (request.type === 'deleteHistory') {
     const { visitId } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    HistoryStoreFactory.createHistoryStore().then(async (historyStore) => {
+      await historyStore.init();
       try {
         await historyStore.deleteEntry(visitId);
         await syncHistory(false);
@@ -274,8 +274,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Handle page content extraction from content script
     const { url, summary } = request.data;
     if (url && summary) {
-      const historyStore = new HistoryStore();
-      historyStore.init().then(async () => {
+      HistoryStoreFactory.createHistoryStore().then(async (historyStore) => {
+        await historyStore.init();
         try {
           // We pass an empty string for content as we never store or sync content
           await historyStore.updatePageContent(url, { content: '', summary });
@@ -298,8 +298,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   } else if (request.type === 'searchHistory') {
     const { query } = request;
-    const historyStore = new HistoryStore();
-    historyStore.init().then(async () => {
+    HistoryStoreFactory.createHistoryStore().then(async (historyStore) => {
+      await historyStore.init();
       try {
         const results = await historyStore.searchContent(query);
         

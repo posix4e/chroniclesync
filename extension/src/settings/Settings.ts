@@ -4,6 +4,8 @@ interface SettingsConfig {
   customApiUrl: string | null;
   environment: 'production' | 'staging' | 'custom';
   expirationDays: number;
+  useGunDB: boolean;
+  gunPeers: string[];
 }
 
 type StorageKeys = keyof SettingsConfig;
@@ -19,7 +21,9 @@ export class Settings {
     clientId: '',
     customApiUrl: null,
     environment: 'production',
-    expirationDays: 7
+    expirationDays: 7,
+    useGunDB: true, // Set GunDB as the default
+    gunPeers: []
   };
 
   async init(): Promise<void> {
@@ -37,7 +41,9 @@ export class Settings {
       clientId: result.clientId || this.DEFAULT_SETTINGS.clientId,
       customApiUrl: result.customApiUrl || this.DEFAULT_SETTINGS.customApiUrl,
       environment: result.environment || this.DEFAULT_SETTINGS.environment,
-      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays
+      expirationDays: result.expirationDays || this.DEFAULT_SETTINGS.expirationDays,
+      useGunDB: result.useGunDB !== undefined ? result.useGunDB : this.DEFAULT_SETTINGS.useGunDB,
+      gunPeers: result.gunPeers || this.DEFAULT_SETTINGS.gunPeers
     };
 
     // Generate initial mnemonic if needed
@@ -100,7 +106,7 @@ export class Settings {
 
   private async getStorageData(): Promise<Partial<SettingsConfig>> {
     return new Promise((resolve) => {
-      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays'];
+      const keys: StorageKeys[] = ['mnemonic', 'clientId', 'customApiUrl', 'environment', 'expirationDays', 'useGunDB', 'gunPeers'];
       chrome.storage.sync.get(keys, (result) => resolve(result as Partial<SettingsConfig>));
     });
   }
@@ -129,6 +135,9 @@ export class Settings {
     const customUrlContainer = document.getElementById('customUrlContainer') as HTMLDivElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
+    const useGunDBCheckbox = document.getElementById('useGunDB') as HTMLInputElement;
+    const gunPeersContainer = document.getElementById('gunPeersContainer') as HTMLDivElement;
+    const gunPeersInput = document.getElementById('gunPeers') as HTMLTextAreaElement;
 
     mnemonicInput.value = this.config.mnemonic;
     clientIdInput.value = this.config.clientId;
@@ -136,7 +145,19 @@ export class Settings {
     customApiUrlInput.value = this.config.customApiUrl || '';
     expirationDaysInput.value = this.config.expirationDays.toString();
     
+    if (useGunDBCheckbox) {
+      useGunDBCheckbox.checked = this.config.useGunDB;
+    }
+    
+    if (gunPeersInput) {
+      gunPeersInput.value = this.config.gunPeers.join('\n');
+    }
+    
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+    
+    if (gunPeersContainer) {
+      gunPeersContainer.style.display = this.config.useGunDB ? 'block' : 'none';
+    }
   }
 
   private setupEventListeners(): void {
@@ -146,6 +167,16 @@ export class Settings {
     document.getElementById('generateMnemonic')?.addEventListener('click', () => this.handleGenerateMnemonic());
     document.getElementById('showMnemonic')?.addEventListener('click', () => this.handleShowMnemonic());
     document.getElementById('mnemonic')?.addEventListener('input', () => this.handleMnemonicInput());
+    document.getElementById('useGunDB')?.addEventListener('change', () => this.handleUseGunDBChange());
+  }
+  
+  private handleUseGunDBChange(): void {
+    const useGunDBCheckbox = document.getElementById('useGunDB') as HTMLInputElement;
+    const gunPeersContainer = document.getElementById('gunPeersContainer') as HTMLDivElement;
+    
+    if (useGunDBCheckbox && gunPeersContainer) {
+      gunPeersContainer.style.display = useGunDBCheckbox.checked ? 'block' : 'none';
+    }
   }
 
   private async handleMnemonicInput(): Promise<void> {
@@ -199,6 +230,8 @@ export class Settings {
     const environmentSelect = document.getElementById('environment') as HTMLSelectElement;
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
+    const useGunDBCheckbox = document.getElementById('useGunDB') as HTMLInputElement;
+    const gunPeersInput = document.getElementById('gunPeers') as HTMLTextAreaElement;
 
     const mnemonic = mnemonicInput.value.trim();
     if (!this.validateMnemonic(mnemonic)) {
@@ -215,12 +248,21 @@ export class Settings {
     const clientId = await this.generateClientId(mnemonic);
     clientIdInput.value = clientId;
 
+    // Process gun peers (split by newlines and filter empty lines)
+    const gunPeers = gunPeersInput ? 
+      gunPeersInput.value.split('\n')
+        .map(peer => peer.trim())
+        .filter(peer => peer.length > 0) : 
+      [];
+
     const newConfig: SettingsConfig = {
       mnemonic,
       clientId,
       environment: environmentSelect.value as SettingsConfig['environment'],
       customApiUrl: environmentSelect.value === 'custom' ? customApiUrlInput.value.trim() : null,
-      expirationDays
+      expirationDays,
+      useGunDB: useGunDBCheckbox ? useGunDBCheckbox.checked : this.DEFAULT_SETTINGS.useGunDB,
+      gunPeers
     };
 
     if (newConfig.environment === 'custom' && !newConfig.customApiUrl) {

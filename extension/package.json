@@ -53,5 +53,8 @@
     "typescript": "^5.0.2",
     "vite": "^5.0.12",
     "vitest": "^3.0.4"
+  },
+  "dependencies": {
+    "gun": "^0.2020.1240"
   }
 }

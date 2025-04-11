@@ -41,6 +41,16 @@
                 <input type="number" id="expirationDays" min="1" placeholder="7" required>
                 <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
             </div>
+            <div class="setting-item">
+                <label for="useGunDB">Use GunDB for P2P Sync:</label>
+                <input type="checkbox" id="useGunDB">
+                <small class="help-text">Enable peer-to-peer synchronization using GunDB instead of the worker API</small>
+            </div>
+            <div id="gunPeersContainer" class="setting-item" style="display: none;">
+                <label for="gunPeers">GunDB Peers (one per line):</label>
+                <textarea id="gunPeers" placeholder="https://gun-server.example.com/gun" rows="3"></textarea>
+                <small class="help-text">Optional: List of GunDB peer servers to connect to (leave empty for local-only)</small>
+            </div>
         </section>
 
         <div class="settings-actions">

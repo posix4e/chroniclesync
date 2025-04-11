@@ -1,6 +1,7 @@
 import { HistoryEntry, DeviceInfo } from '../types';
+import { IHistoryStore } from './HistoryStoreFactory';
 
-export class HistoryStore {
+export class HistoryStore implements IHistoryStore {
   private readonly DB_NAME = 'chroniclesync';
   private readonly HISTORY_STORE = 'history';
   private readonly DEVICE_STORE = 'devices';

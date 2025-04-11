@@ -63,8 +63,7 @@ jobs:
       - name: Package Extensions
         working-directory: extension
         run: |
-          # Install zip utility
-          sudo apt-get update && sudo apt-get install -y zip
+          # macOS already has zip utility installed
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 
@@ -118,7 +117,7 @@ jobs:
       matrix:
         browser: [chrome, firefox]
         # Future platforms can be added here (e.g., ios, android)
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested

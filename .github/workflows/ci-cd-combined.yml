@@ -36,7 +36,7 @@ env:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     outputs:
       current_version: ${{ steps.deploy-worker.outputs.current_version }}

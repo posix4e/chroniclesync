@@ -263,24 +263,14 @@ jobs:
           
           # Install the IPA
           echo "Installing IPA to simulator..."
-          xcrun simctl install "$SIMULATOR_ID" "$IPA_PATH" || {
-            echo "Failed to install IPA. This might be expected if it's a dummy IPA from CI."
-            echo "Creating a screenshot of simulator home screen anyway..."
-            xcrun simctl io "$SIMULATOR_ID" screenshot "simulator-home-screen.png"
-            exit 0
-          }
+          xcrun simctl install "$SIMULATOR_ID" "$IPA_PATH"
           
           # Get the bundle ID from the IPA (if possible)
           BUNDLE_ID="com.chroniclesync.safari-extension"
           
           # Launch the app
           echo "Launching app with bundle ID: $BUNDLE_ID"
-          xcrun simctl launch "$SIMULATOR_ID" "$BUNDLE_ID" || {
-            echo "Failed to launch app. This might be expected if it's a dummy IPA."
-            echo "Creating a screenshot of simulator home screen anyway..."
-            xcrun simctl io "$SIMULATOR_ID" screenshot "simulator-home-screen.png"
-            exit 0
-          }
+          xcrun simctl launch "$SIMULATOR_ID" "$BUNDLE_ID"
           
           # Wait for app to load
           echo "Waiting for app to load..."

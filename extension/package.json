@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
     "build:safari-ipa": "node scripts/build-safari-extension.cjs",
+    "build:safari-ipa:improved": "node scripts/improved-safari-extension.cjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

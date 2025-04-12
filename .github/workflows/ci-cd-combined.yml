@@ -36,7 +36,7 @@ env:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     outputs:
       current_version: ${{ steps.deploy-worker.outputs.current_version }}
@@ -63,8 +63,7 @@ jobs:
       - name: Package Extensions
         working-directory: extension
         run: |
-          # Install zip utility
-          sudo apt-get update && sudo apt-get install -y zip
+          # macOS already has zip utility installed
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 

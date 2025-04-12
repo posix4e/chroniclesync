@@ -34,8 +34,7 @@ jobs:
             mkdir -p ipa-output/Payload/ChronicleSync.app
             
             # Create minimal required files for a valid app bundle
-            cat > ipa-output/Payload/ChronicleSync.app/Info.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
+            echo '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -65,14 +64,11 @@ jobs:
         <integer>2</integer>
     </array>
 </dict>
-</plist>
-EOF
+</plist>' > ipa-output/Payload/ChronicleSync.app/Info.plist
             
             # Create a dummy executable
-            cat > ipa-output/Payload/ChronicleSync.app/ChronicleSync << 'EOF'
-#!/bin/sh
-echo "ChronicleSync Safari Extension Dummy App"
-EOF
+            echo '#!/bin/sh
+echo "ChronicleSync Safari Extension Dummy App"' > ipa-output/Payload/ChronicleSync.app/ChronicleSync
             chmod +x ipa-output/Payload/ChronicleSync.app/ChronicleSync
             
             # Create a PkgInfo file (required for iOS apps)
@@ -270,13 +266,12 @@ EOF
             mkdir -p ipa-fixed/Payload/ChronicleSync.app
             
             # Create minimal required files for a valid app bundle
-            cat > ipa-fixed/Payload/ChronicleSync.app/Info.plist << EOF
-<?xml version="1.0" encoding="UTF-8"?>
+            echo '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>${BUNDLE_ID}</string>
+    <string>'"$BUNDLE_ID"'</string>
     <key>CFBundleExecutable</key>
     <string>ChronicleSync</string>
     <key>CFBundleName</key>
@@ -301,14 +296,11 @@ EOF
         <integer>2</integer>
     </array>
 </dict>
-</plist>
-EOF
+</plist>' > ipa-fixed/Payload/ChronicleSync.app/Info.plist
             
             # Create a dummy executable
-            cat > ipa-fixed/Payload/ChronicleSync.app/ChronicleSync << 'EOF'
-#!/bin/sh
-echo "ChronicleSync Safari Extension Dummy App"
-EOF
+            echo '#!/bin/sh
+echo "ChronicleSync Safari Extension Dummy App"' > ipa-fixed/Payload/ChronicleSync.app/ChronicleSync
             chmod +x ipa-fixed/Payload/ChronicleSync.app/ChronicleSync
             
             # Create a PkgInfo file

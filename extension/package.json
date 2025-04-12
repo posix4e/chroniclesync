@@ -9,6 +9,8 @@
     "build:extension": "node scripts/build-extension.cjs",
     "build:safari-ipa": "node scripts/build-safari-extension.cjs",
     "build:safari-ipa:improved": "node scripts/improved-safari-extension.cjs",
+    "create:test-ipa": "node scripts/create-test-ipa.js",
+    "test:ipa-in-simulator": "node scripts/test-ipa-in-simulator.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -18,6 +20,7 @@
     "test:e2e:firefox": "BROWSER=firefox xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test --project=firefox",
     "test:e2e:parallel": "npm run test:e2e:chrome & npm run test:e2e:firefox",
     "test:e2e:debug": "PWDEBUG=1 xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' playwright test",
+    "test:safari": "npm run create:test-ipa && npm run test:ipa-in-simulator",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

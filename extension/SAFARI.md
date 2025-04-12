@@ -41,6 +41,50 @@ The Safari extension is automatically built as part of the CI/CD pipeline on Git
 2. Converts the Chrome extension to a Safari extension
 3. Builds an IPA file for iOS
 4. Uploads the IPA file as an artifact
+5. Tests the IPA in an iOS simulator and captures screenshots
+
+## Testing in iOS Simulator
+
+The CI/CD pipeline includes automated testing of the Safari extension IPA in an iOS simulator. This helps verify that the app can be installed and basic functionality works correctly.
+
+### Automated Simulator Testing
+
+The GitHub Actions workflow:
+
+1. Creates and boots an iOS simulator (iPhone 16 with iOS 18.2, falling back to the latest available if not present)
+2. Installs the IPA file into the simulator
+3. Launches the app with the bundle identifier `com.chroniclesync.safari-extension`
+4. Takes screenshots at various stages of interaction
+5. Uploads the screenshots as artifacts for review
+
+### Viewing Test Results
+
+After the workflow completes, you can download and view the simulator screenshots from the GitHub Actions artifacts. These screenshots provide visual confirmation that the app loads correctly in the simulator.
+
+### Local Simulator Testing
+
+To test the IPA in a simulator locally:
+
+```bash
+# List available simulators and runtimes
+xcrun simctl list devices
+xcrun simctl list runtimes
+
+# Create a simulator with iOS 18.2 (if available)
+xcrun simctl create "ChronicleSync-Test" "com.apple.CoreSimulator.SimDeviceType.iPhone-16" "com.apple.CoreSimulator.SimRuntime.iOS-18-2"
+
+# Boot a simulator
+xcrun simctl boot "ChronicleSync-Test"
+
+# Install the IPA
+xcrun simctl install booted /path/to/ChronicleSync.ipa
+
+# Launch the app
+xcrun simctl launch booted com.chroniclesync.safari-extension
+
+# Take a screenshot
+xcrun simctl io booted screenshot screenshot.png
+```
 
 ## Customizing the Build
 

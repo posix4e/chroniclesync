@@ -225,22 +225,23 @@ jobs:
           echo "Available device types:"
           xcrun simctl list devicetypes | grep iPhone
           
-          # Use iOS 18.4 specifically (or fall back to latest if not available)
-          IOS_VERSION="18.4"
-          if xcrun simctl list runtimes | grep -q "iOS 18.4"; then
-            echo "Using iOS version 18.4"
+          # Use iOS 18.2 specifically (or fall back to latest if not available)
+          if xcrun simctl list runtimes | grep -q "iOS 18.2"; then
+            IOS_VERSION="com.apple.CoreSimulator.SimRuntime.iOS-18-2"
+            echo "Using iOS version 18.2"
           else
-            IOS_VERSION=$(xcrun simctl list runtimes | grep iOS | tail -1 | awk '{print $2}')
-            echo "iOS 18.4 not available, using latest: $IOS_VERSION"
+            # Get the latest runtime identifier instead of just the version number
+            IOS_VERSION=$(xcrun simctl list runtimes | grep iOS | tail -1 | awk '{print $NF}' | tr -d '()')
+            echo "iOS 18.2 not available, using latest runtime: $IOS_VERSION"
           fi
           
           # Create a new simulator (use iPhone 16 if available, otherwise fall back to iPhone 14)
           SIMULATOR_NAME="ChronicleSync-Test-Simulator"
           if xcrun simctl list devicetypes | grep -q "iPhone 16"; then
-            DEVICE_TYPE="iPhone 16"
+            DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
           else
-            DEVICE_TYPE="iPhone 14"
-            echo "iPhone 16 not available, using $DEVICE_TYPE instead"
+            DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-14"
+            echo "iPhone 16 not available, using iPhone 14 instead"
           fi
           
           DEVICE_ID=$(xcrun simctl create "$SIMULATOR_NAME" "$DEVICE_TYPE" $IOS_VERSION)

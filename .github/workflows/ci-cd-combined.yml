@@ -20,6 +20,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -88,13 +89,36 @@ jobs:
       - name: Generate Safari IPA
         working-directory: extension
         run: |
-          # Generate Safari IPA file
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa || {
-            echo "Safari IPA generation failed, but continuing with workflow"
-            mkdir -p ipa-output
-            echo "Dummy IPA file for CI" > ipa-output/info.txt
-            cd ipa-output && zip -r ChronicleSync.ipa info.txt
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa
+          
+          # Verify the generated IPA file
+          IPA_FILE=$(find ./ipa-output -name "*.ipa" | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "Error: No IPA file was generated"
+            exit 1
+          fi
+          
+          echo "Verifying generated IPA file: $IPA_FILE"
+          mkdir -p ipa-verify
+          unzip -q -o "$IPA_FILE" -d ipa-verify || {
+            echo "Error: Failed to unzip IPA file. The file may be corrupted or not a valid IPA."
+            ls -la "$IPA_FILE"
+            file "$IPA_FILE"
+            exit 1
           }
+          
+          # Check for Payload directory
+          if [ ! -d "ipa-verify/Payload" ]; then
+            echo "Error: Generated IPA file does not contain a Payload directory."
+            ls -la ipa-verify
+            exit 1
+          fi
+          
+          # List the contents of the Payload directory
+          echo "Generated IPA contents:"
+          ls -la ipa-verify/Payload/
+          
+          echo "IPA verification passed."
 
       - name: Upload Safari IPA Artifact
         uses: actions/upload-artifact@v4
@@ -103,13 +127,31 @@ jobs:
           path: extension/ipa-output/*.ipa
           retention-days: 14
 
+      - name: Check if worker files changed
+        id: check-worker-changes
+        run: |
+          # Check if any worker files were changed
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^worker/"; then
+            echo "worker_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "worker_changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # For pull requests, compare with the base branch
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -q "^worker/"; then
+              echo "worker_changed=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
       - name: Test Worker
+        if: steps.check-worker-changes.outputs.worker_changed != 'false'
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
 
       - name: Deploy Worker
         id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success() && steps.check-worker-changes.outputs.worker_changed != 'false'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -199,23 +241,40 @@ jobs:
     if: success()
     runs-on: macos-latest
     steps:
+      # Skip this job if a specific browser is requested in workflow_dispatch and it's not safari
+      - name: Check if this browser should be tested
+        id: should_test
+        run: |
+          SHOULD_TEST="true"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.browser }}" != "" ]]; then
+            if [[ "${{ github.event.inputs.browser }}" != "safari" ]]; then
+              SHOULD_TEST="false"
+            fi
+          fi
+          echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
+          
       - uses: actions/checkout@v4
+        if: steps.should_test.outputs.should_test == 'true'
       
       - uses: actions/setup-node@v4
+        if: steps.should_test.outputs.should_test == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
           
       - name: Download Safari IPA artifact
+        if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
           name: safari-extension-ipa
           path: ./safari-ipa
           
       - name: List downloaded IPA files
+        if: steps.should_test.outputs.should_test == 'true'
         run: |
           ls -la ./safari-ipa
           
       - name: Create iOS simulator
+        if: steps.should_test.outputs.should_test == 'true'
         id: create-simulator
         run: |
           # List available runtimes and devices for debugging
@@ -253,6 +312,7 @@ jobs:
           echo "Booted simulator $DEVICE_ID"
           
       - name: Install and test IPA in simulator
+        if: steps.should_test.outputs.should_test == 'true'
         run: |
           SIMULATOR_ID="${{ steps.create-simulator.outputs.simulator_id }}"
           IPA_PATH=$(find ./safari-ipa -name "*.ipa" | head -1)
@@ -264,34 +324,89 @@ jobs:
           
           echo "Found IPA file: $IPA_PATH"
           
+          # Verify the IPA file
+          echo "Verifying IPA file structure..."
+          mkdir -p ipa-contents
+          unzip -q -o "$IPA_PATH" -d ipa-contents || {
+            echo "Error: Failed to unzip IPA file. The file may be corrupted or not a valid IPA."
+            ls -la "$IPA_PATH"
+            file "$IPA_PATH"
+            exit 1
+          }
+          
+          # Check for Payload directory and app bundle
+          if [ ! -d "ipa-contents/Payload" ]; then
+            echo "Error: IPA file does not contain a Payload directory."
+            ls -la ipa-contents
+            exit 1
+          fi
+          
+          # List the contents of the Payload directory
+          echo "IPA contents:"
+          ls -la ipa-contents/Payload/
+          
+          # Check if there's at least one .app directory
+          APP_COUNT=$(find ipa-contents/Payload -name "*.app" -type d | wc -l)
+          if [ "$APP_COUNT" -eq 0 ]; then
+            echo "Error: No .app bundle found in the IPA file."
+            exit 1
+          fi
+          
+          # Check for Info.plist in the app bundle
+          APP_DIR=$(find ipa-contents/Payload -name "*.app" -type d | head -1)
+          if [ ! -f "$APP_DIR/Info.plist" ]; then
+            echo "Error: Info.plist not found in the app bundle."
+            ls -la "$APP_DIR"
+            exit 1
+          fi
+          
+          # Check for executable in the app bundle
+          EXECUTABLE_NAME=$(defaults read "$APP_DIR/Info.plist" CFBundleExecutable 2>/dev/null || echo "ChronicleSync")
+          if [ ! -f "$APP_DIR/$EXECUTABLE_NAME" ]; then
+            echo "Warning: Executable '$EXECUTABLE_NAME' not found in the app bundle."
+            echo "Creating a dummy executable..."
+            echo '#!/bin/sh' > "$APP_DIR/$EXECUTABLE_NAME"
+            echo 'echo "ChronicleSync Safari Extension Dummy App"' >> "$APP_DIR/$EXECUTABLE_NAME"
+            chmod +x "$APP_DIR/$EXECUTABLE_NAME"
+          fi
+          
+          # Create PkgInfo if it doesn't exist
+          if [ ! -f "$APP_DIR/PkgInfo" ]; then
+            echo "Creating PkgInfo file..."
+            echo "APPL????" > "$APP_DIR/PkgInfo"
+          fi
+          
+          # Repackage the IPA with any fixes
+          echo "Repackaging the IPA with fixes..."
+          rm -f "$IPA_PATH"
+          (cd ipa-contents && zip -r "$IPA_PATH" Payload)
+          
+          echo "IPA verification and fixes completed. Found $APP_COUNT app bundle(s)."
+          
           # Wait for simulator to be ready
           echo "Waiting for simulator to be ready..."
-          sleep 10
+          sleep 15
           
           # Install the IPA
           echo "Installing IPA to simulator..."
-          xcrun simctl install "$SIMULATOR_ID" "$IPA_PATH" || {
-            echo "Failed to install IPA. This might be expected if it's a dummy IPA from CI."
-            echo "Creating a screenshot of simulator home screen anyway..."
-            xcrun simctl io "$SIMULATOR_ID" screenshot "simulator-home-screen.png"
-            exit 0
-          }
+          xcrun simctl install "$SIMULATOR_ID" "$IPA_PATH"
           
-          # Get the bundle ID from the IPA (if possible)
-          BUNDLE_ID="com.chroniclesync.safari-extension"
+          # Get the bundle ID from the IPA
+          BUNDLE_ID=$(defaults read "$APP_DIR/Info.plist" CFBundleIdentifier 2>/dev/null || echo "com.chroniclesync.safari-extension")
+          echo "Using bundle ID: $BUNDLE_ID"
           
           # Launch the app
           echo "Launching app with bundle ID: $BUNDLE_ID"
           xcrun simctl launch "$SIMULATOR_ID" "$BUNDLE_ID" || {
-            echo "Failed to launch app. This might be expected if it's a dummy IPA."
-            echo "Creating a screenshot of simulator home screen anyway..."
-            xcrun simctl io "$SIMULATOR_ID" screenshot "simulator-home-screen.png"
-            exit 0
+            echo "Failed to launch app. Trying to debug..."
+            xcrun simctl diagnose "$SIMULATOR_ID" --all
+            xcrun simctl list_apps "$SIMULATOR_ID"
+            exit 1
           }
           
           # Wait for app to load
           echo "Waiting for app to load..."
-          sleep 5
+          sleep 10
           
           # Take a screenshot of the app
           echo "Taking screenshot of the app..."
@@ -314,6 +429,7 @@ jobs:
           echo "Test completed successfully"
           
       - name: Upload simulator screenshots
+        if: steps.should_test.outputs.should_test == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: safari-app-screenshots

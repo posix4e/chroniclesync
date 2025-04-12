@@ -87,7 +87,37 @@ jobs:
 
       - name: Generate Safari IPA
         working-directory: extension
-        run: NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa
+        run: |
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa
+          
+          # Verify the generated IPA file
+          IPA_FILE=$(find ./ipa-output -name "*.ipa" | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "Error: No IPA file was generated"
+            exit 1
+          fi
+          
+          echo "Verifying generated IPA file: $IPA_FILE"
+          mkdir -p ipa-verify
+          unzip -q -o "$IPA_FILE" -d ipa-verify || {
+            echo "Error: Failed to unzip IPA file. The file may be corrupted or not a valid IPA."
+            ls -la "$IPA_FILE"
+            file "$IPA_FILE"
+            exit 1
+          }
+          
+          # Check for Payload directory
+          if [ ! -d "ipa-verify/Payload" ]; then
+            echo "Error: Generated IPA file does not contain a Payload directory."
+            ls -la ipa-verify
+            exit 1
+          fi
+          
+          # List the contents of the Payload directory
+          echo "Generated IPA contents:"
+          ls -la ipa-verify/Payload/
+          
+          echo "IPA verification passed."
 
       - name: Upload Safari IPA Artifact
         uses: actions/upload-artifact@v4
@@ -256,6 +286,36 @@ jobs:
           fi
           
           echo "Found IPA file: $IPA_PATH"
+          
+          # Verify the IPA file
+          echo "Verifying IPA file structure..."
+          mkdir -p ipa-contents
+          unzip -q -o "$IPA_PATH" -d ipa-contents || {
+            echo "Error: Failed to unzip IPA file. The file may be corrupted or not a valid IPA."
+            ls -la "$IPA_PATH"
+            file "$IPA_PATH"
+            exit 1
+          }
+          
+          # Check for Payload directory and app bundle
+          if [ ! -d "ipa-contents/Payload" ]; then
+            echo "Error: IPA file does not contain a Payload directory."
+            ls -la ipa-contents
+            exit 1
+          fi
+          
+          # List the contents of the Payload directory
+          echo "IPA contents:"
+          ls -la ipa-contents/Payload/
+          
+          # Check if there's at least one .app directory
+          APP_COUNT=$(find ipa-contents/Payload -name "*.app" -type d | wc -l)
+          if [ "$APP_COUNT" -eq 0 ]; then
+            echo "Error: No .app bundle found in the IPA file."
+            exit 1
+          fi
+          
+          echo "IPA verification passed. Found $APP_COUNT app bundle(s)."
           
           # Wait for simulator to be ready
           echo "Waiting for simulator to be ready..."

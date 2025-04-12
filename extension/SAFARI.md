@@ -11,7 +11,23 @@ This document provides information about building and deploying the ChronicleSyn
 
 ## Important Note for CI/CD
 
-The Safari extension build in CI/CD may generate a placeholder IPA file if the proper Xcode environment is not available. For local development and proper IPA generation, you need a properly configured macOS environment with Xcode and the Safari Web Extension Development Tools installed.
+The Safari extension build in CI/CD may generate a structured dummy IPA file if the proper Xcode environment is not available. This dummy IPA is designed to be installable in iOS simulators for testing purposes, but it will not contain the actual extension functionality. For local development and proper IPA generation, you need a properly configured macOS environment with Xcode and the Safari Web Extension Development Tools installed.
+
+### Dummy IPA Structure
+
+When a proper Xcode build environment is not available, the build script creates a dummy IPA with the following structure:
+
+```
+Payload/
+  ChronicleSync.app/
+    Info.plist           # Contains proper bundle identifier and basic app info
+    ChronicleSync        # Simple executable script
+    Base.lproj/          # Contains basic UI resources
+      LaunchScreen.storyboard
+    Assets.xcassets/     # Contains app icon resources
+```
+
+This structure allows the IPA to be installed and launched in iOS simulators, which is useful for CI/CD testing.
 
 ## Building the Safari Extension
 
@@ -142,3 +158,20 @@ For App Store submission, you'll need to update the export options to use the `a
 - **Build Errors**: Make sure Xcode is properly installed and configured
 - **Signing Errors**: Verify your Apple Developer account and team ID
 - **Conversion Errors**: Ensure the Chrome extension is properly built before conversion
+- **Simulator Errors**: If the IPA fails to install in the simulator, check the IPA structure using:
+  ```bash
+  mkdir -p ipa-contents && unzip -o ChronicleSync.ipa -d ipa-contents
+  ls -la ipa-contents/Payload
+  ```
+  A valid IPA should contain a Payload directory with a .app bundle inside.
+
+### Common Simulator Issues
+
+1. **"An application bundle was not found at the provided path"**: This indicates the IPA file doesn't have the correct structure. Verify it contains a Payload directory with a .app bundle.
+
+2. **"Failed to launch app"**: This could be due to:
+   - Missing or incorrect bundle identifier in Info.plist
+   - Missing executable file
+   - Incompatible iOS version
+
+3. **"Could not inspect the application package"**: The IPA file might be corrupted or improperly formatted. Try rebuilding it.

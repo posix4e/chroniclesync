@@ -20,6 +20,7 @@ on:
           - ''
           - chromium
           - firefox
+          - safari
       api_endpoint:
         description: 'API endpoint to test against'
         required: false
@@ -52,8 +53,6 @@ jobs:
             extension/package-lock.json
             worker/package-lock.json
 
-
-
       - name: Build Extension
         working-directory: extension
         run: |
@@ -80,22 +79,51 @@ jobs:
           name: firefox-extension
           path: extension/firefox-extension.xpi
           retention-days: 14
-
+          
       - name: Test Extension
         working-directory: extension
         run: |
           npm run lint
           npm run test
 
+      - name: Generate Safari IPA
+        working-directory: extension
+        run: |
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run verify:ipa
+
+      - name: Upload Safari IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: extension/ipa-output/*.ipa
+          retention-days: 14
+
+      - name: Check if worker files changed
+        id: check-worker-changes
+        run: |
+          # Check if any worker files were changed
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^worker/"; then
+            echo "worker_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "worker_changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # For pull requests, compare with the base branch
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -q "^worker/"; then
+              echo "worker_changed=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
       - name: Test Worker
+        if: steps.check-worker-changes.outputs.worker_changed != 'false'
         working-directory: worker
         run: npm ci && npm run lint && npm run test:coverage
 
-
-
       - name: Deploy Worker
         id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success() && steps.check-worker-changes.outputs.worker_changed != 'false'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -179,3 +207,91 @@ jobs:
             extension/playwright-report/
             extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30
+          
+  test-safari-ipa:
+    needs: build-and-test
+    if: success()
+    runs-on: macos-latest
+    steps:
+      # Skip this job if a specific browser is requested in workflow_dispatch and it's not safari
+      - name: Check if this browser should be tested
+        id: should_test
+        run: |
+          SHOULD_TEST="true"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.browser }}" != "" ]]; then
+            if [[ "${{ github.event.inputs.browser }}" != "safari" ]]; then
+              SHOULD_TEST="false"
+            fi
+          fi
+          echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
+          
+      - uses: actions/checkout@v4
+        if: steps.should_test.outputs.should_test == 'true'
+      
+      - uses: actions/setup-node@v4
+        if: steps.should_test.outputs.should_test == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Download Safari IPA artifact
+        if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: ./safari-ipa
+          
+      - name: List downloaded IPA files
+        if: steps.should_test.outputs.should_test == 'true'
+        run: |
+          ls -la ./safari-ipa
+          
+      - name: Create iOS simulator
+        if: steps.should_test.outputs.should_test == 'true'
+        id: create-simulator
+        working-directory: extension
+        run: |
+          # Create iOS simulator using JavaScript
+          DEVICE_ID=$(NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run create:ios-simulator | grep "Created simulator with ID:" | awk '{print $5}')
+          echo "Created simulator with ID: $DEVICE_ID"
+          echo "simulator_id=$DEVICE_ID" >> $GITHUB_OUTPUT
+          
+      - name: Install and test IPA in simulator
+        if: steps.should_test.outputs.should_test == 'true'
+        working-directory: extension
+        run: |
+          SIMULATOR_ID="${{ steps.create-simulator.outputs.simulator_id }}"
+          
+          # List all files in the safari-ipa directory for debugging
+          echo "Contents of safari-ipa directory:"
+          ls -la ../safari-ipa/
+          
+          IPA_PATH=$(find ../safari-ipa -name "*.ipa" | head -1)
+          
+          if [ -z "$IPA_PATH" ]; then
+            echo "No IPA file found in the downloaded artifacts"
+            exit 1
+          fi
+          
+          # Use the JavaScript script to verify and test the IPA
+          npm run verify-and-test:ipa -- "$SIMULATOR_ID" "$IPA_PATH" 2>&1 | tee ipa-test-debug.log || true
+          
+      - name: Upload simulator screenshots
+        if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-app-screenshots
+          path: "*.png"
+          retention-days: 14
+          
+      - name: Upload debug logs and diagnostics
+        if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-ipa-test-logs
+          path: |
+            extension/ipa-test-debug.log
+            extension/simulator-diagnostics/**
+            extension/simulator-apps.txt
+            extension/ipa-details.txt
+            extension/*.log
+          retention-days: 14

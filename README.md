@@ -8,7 +8,7 @@ Sync browsing history and summaries across browsers
 - **Privacy-Focused**: Only syncs summaries and history information, never stores or syncs full page content
 - **Efficient Search**: Search through summaries and history information, not full content
 - **Not Secure**: I'm to lazy and the models suck too much for local encryption, but it's coming.
-- **Not Multiplatform**: We haven't added IOS support cause basic stuff still doesn't work.
+- **Multiplatform**: Support for Chrome, Firefox, and now Safari on iOS.
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
 ## Quick Start
@@ -28,9 +28,31 @@ Sync browsing history and summaries across browsers
 ```
 chroniclesync/
 ├── pages/          # Frontend React application
-├── extension/      # Chrome extension
+├── extension/      # Browser extensions (Chrome, Firefox, Safari)
 └── worker/         # Cloudflare Worker backend
 ```
+
+### Extension Builds
+
+The project supports building extensions for multiple browsers:
+
+- **Chrome**: Builds a `.zip` file that can be loaded into Chrome or uploaded to the Chrome Web Store
+- **Firefox**: Builds an `.xpi` file that can be loaded into Firefox or submitted to Mozilla Add-ons
+- **Safari**: Builds an `.ipa` file for iOS Safari using `xcrun safari-web-extension-converter`
+
+To build the extensions locally:
+
+```bash
+# Build Chrome and Firefox extensions
+cd extension
+npm run build:extension
+
+# Build Safari IPA for iOS
+cd extension
+npm run build:safari-ipa
+```
+
+The Safari IPA generation requires macOS with Xcode installed.
 
 ### Administration
 

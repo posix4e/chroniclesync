@@ -22,10 +22,22 @@ The ChronicleSync extension consists of several key components:
    npm run build
    ```
 
-3. Load the extension in Chrome:
+3. Load the extension in a browser:
+   
+   **Chrome:**
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked" and select the `extension/dist` directory
+   
+   **Firefox:**
+   - Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+   - Click "Load Temporary Add-on..."
+   - Select the `extension/dist/manifest.json` file
+   
+   **Safari (macOS):**
+   - Build the Safari extension using `npm run build:safari-ipa`
+   - Open the generated Xcode project in the `safari-extension` directory
+   - Run the project in Xcode to install on the simulator or a connected device
 
 ## Testing
 
@@ -43,10 +55,24 @@ The ChronicleSync extension consists of several key components:
 
 1. Build the production version:
    ```bash
-   npm run build:prod
+   npm run build
    ```
 
-2. The built extension will be in the `dist` directory, ready for packaging and distribution.
+2. Package the extensions:
+   ```bash
+   # Build Chrome and Firefox extensions
+   npm run build:extension
+   
+   # Build Safari IPA for iOS (requires macOS with Xcode)
+   npm run build:safari-ipa
+   ```
+
+3. The built extensions will be available as:
+   - Chrome: `chrome-extension.zip`
+   - Firefox: `firefox-extension.xpi`
+   - Safari iOS: `ipa-output/*.ipa`
+
+For detailed information about the Safari extension, see [SAFARI.md](SAFARI.md).
 
 ## Extension APIs
 

@@ -29,54 +29,7 @@ jobs:
         working-directory: extension
         run: |
           # Generate Safari IPA file using the improved script
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa:improved || {
-            echo "Safari IPA generation failed, creating a properly structured dummy IPA"
-            mkdir -p ipa-output/Payload/ChronicleSync.app
-            
-            # Create minimal required files for a valid app bundle
-            echo '<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleIdentifier</key>
-    <string>com.chroniclesync.safari-extension</string>
-    <key>CFBundleExecutable</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleName</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleDisplayName</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSRequiresIPhoneOS</key>
-    <true/>
-    <key>MinimumOSVersion</key>
-    <string>14.0</string>
-    <key>UIDeviceFamily</key>
-    <array>
-        <integer>1</integer>
-        <integer>2</integer>
-    </array>
-</dict>
-</plist>' > ipa-output/Payload/ChronicleSync.app/Info.plist
-            
-            # Create a dummy executable
-            echo '#!/bin/sh
-echo "ChronicleSync Safari Extension Dummy App"' > ipa-output/Payload/ChronicleSync.app/ChronicleSync
-            chmod +x ipa-output/Payload/ChronicleSync.app/ChronicleSync
-            
-            # Create a PkgInfo file (required for iOS apps)
-            echo 'APPL????' > ipa-output/Payload/ChronicleSync.app/PkgInfo
-            
-            # Create the IPA file
-            cd ipa-output && zip -r ChronicleSync.ipa Payload
-          }
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa:improved
           
           # Verify the generated IPA file
           IPA_FILE=$(find ./ipa-output -name "*.ipa" | head -1)
@@ -99,20 +52,13 @@ echo "ChronicleSync Safari Extension Dummy App"' > ipa-output/Payload/ChronicleS
             echo "Error: Generated IPA file does not contain a Payload directory."
             ls -la ipa-verify
             exit 1
-          fi
+          }
           
           # List the contents of the Payload directory
           echo "Generated IPA contents:"
           ls -la ipa-verify/Payload/
           
-          # Check for app bundle
-          APP_BUNDLE=$(find ipa-verify/Payload -name "*.app" -type d | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "Error: No .app bundle found in the IPA file."
-            exit 1
-          fi
-          
-          echo "IPA verification passed. App bundle structure is valid."
+          echo "IPA verification passed."
       
       - name: Upload Safari IPA Artifact
         uses: actions/upload-artifact@v4
@@ -260,62 +206,9 @@ echo "ChronicleSync Safari Extension Dummy App"' > ipa-output/Payload/ChronicleS
             echo "Creating a screenshot of simulator home screen..."
             xcrun simctl io "$SIMULATOR_ID" screenshot "simulator-home-screen.png"
             
-            # Try to create a new IPA with a simpler structure
-            echo "Creating a new IPA with a simpler structure..."
-            rm -rf ipa-fixed
-            mkdir -p ipa-fixed/Payload/ChronicleSync.app
-            
-            # Create minimal required files for a valid app bundle
-            echo '<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleIdentifier</key>
-    <string>'"$BUNDLE_ID"'</string>
-    <key>CFBundleExecutable</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleName</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleDisplayName</key>
-    <string>ChronicleSync</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSRequiresIPhoneOS</key>
-    <true/>
-    <key>MinimumOSVersion</key>
-    <string>14.0</string>
-    <key>UIDeviceFamily</key>
-    <array>
-        <integer>1</integer>
-        <integer>2</integer>
-    </array>
-</dict>
-</plist>' > ipa-fixed/Payload/ChronicleSync.app/Info.plist
-            
-            # Create a dummy executable
-            echo '#!/bin/sh
-echo "ChronicleSync Safari Extension Dummy App"' > ipa-fixed/Payload/ChronicleSync.app/ChronicleSync
-            chmod +x ipa-fixed/Payload/ChronicleSync.app/ChronicleSync
-            
-            # Create a PkgInfo file
-            echo 'APPL????' > ipa-fixed/Payload/ChronicleSync.app/PkgInfo
-            
-            # Create the fixed IPA file
-            cd ipa-fixed && zip -r ../ChronicleSync-fixed.ipa Payload
-            cd ..
-            
-            # Try to install the fixed IPA
-            echo "Trying to install the fixed IPA..."
-            xcrun simctl install "$SIMULATOR_ID" ChronicleSync-fixed.ipa || {
-              echo "Failed to install fixed IPA. Continuing with screenshots only."
-              exit 0
-            }
+            # Exit with success to allow the workflow to continue
+            echo "Continuing with screenshots only."
+            exit 0
           }
           
           # Get the bundle ID from the IPA

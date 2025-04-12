@@ -51,7 +51,7 @@ The CI/CD pipeline includes automated testing of the Safari extension IPA in an 
 
 The GitHub Actions workflow:
 
-1. Creates and boots an iOS simulator (iPhone 14 with the latest iOS version)
+1. Creates and boots an iOS simulator (iPhone 16 with iOS 18.4, falling back to the latest available if not present)
 2. Installs the IPA file into the simulator
 3. Launches the app with the bundle identifier `com.chroniclesync.safari-extension`
 4. Takes screenshots at various stages of interaction
@@ -66,11 +66,15 @@ After the workflow completes, you can download and view the simulator screenshot
 To test the IPA in a simulator locally:
 
 ```bash
-# List available simulators
+# List available simulators and runtimes
 xcrun simctl list devices
+xcrun simctl list runtimes
+
+# Create a simulator with iOS 18.4 (if available)
+xcrun simctl create "ChronicleSync-Test" "iPhone 16" "iOS 18.4"
 
 # Boot a simulator
-xcrun simctl boot "iPhone 14"
+xcrun simctl boot "ChronicleSync-Test"
 
 # Install the IPA
 xcrun simctl install booted /path/to/ChronicleSync.ipa

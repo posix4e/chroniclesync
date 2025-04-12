@@ -218,14 +218,33 @@ jobs:
       - name: Create iOS simulator
         id: create-simulator
         run: |
-          # Get the latest iOS version available
-          LATEST_IOS_VERSION=$(xcrun simctl list runtimes | grep iOS | tail -1 | awk '{print $2}')
-          echo "Using iOS version: $LATEST_IOS_VERSION"
+          # List available runtimes and devices for debugging
+          echo "Available iOS runtimes:"
+          xcrun simctl list runtimes | grep iOS
           
-          # Create a new simulator
+          echo "Available device types:"
+          xcrun simctl list devicetypes | grep iPhone
+          
+          # Use iOS 18.4 specifically (or fall back to latest if not available)
+          IOS_VERSION="18.4"
+          if xcrun simctl list runtimes | grep -q "iOS 18.4"; then
+            echo "Using iOS version 18.4"
+          else
+            IOS_VERSION=$(xcrun simctl list runtimes | grep iOS | tail -1 | awk '{print $2}')
+            echo "iOS 18.4 not available, using latest: $IOS_VERSION"
+          fi
+          
+          # Create a new simulator (use iPhone 16 if available, otherwise fall back to iPhone 14)
           SIMULATOR_NAME="ChronicleSync-Test-Simulator"
-          DEVICE_ID=$(xcrun simctl create "$SIMULATOR_NAME" "iPhone 14" $LATEST_IOS_VERSION)
-          echo "Created simulator with ID: $DEVICE_ID"
+          if xcrun simctl list devicetypes | grep -q "iPhone 16"; then
+            DEVICE_TYPE="iPhone 16"
+          else
+            DEVICE_TYPE="iPhone 14"
+            echo "iPhone 16 not available, using $DEVICE_TYPE instead"
+          fi
+          
+          DEVICE_ID=$(xcrun simctl create "$SIMULATOR_NAME" "$DEVICE_TYPE" $IOS_VERSION)
+          echo "Created simulator with ID: $DEVICE_ID using $DEVICE_TYPE with iOS $IOS_VERSION"
           echo "simulator_id=$DEVICE_ID" >> $GITHUB_OUTPUT
           
           # Boot the simulator

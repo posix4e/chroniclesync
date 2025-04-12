@@ -1,0 +1,140 @@
+name: Build Safari IPA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'pages/**'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  XCODE_VERSION: '15.2'
+  TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  BUNDLE_ID: 'com.chroniclesync.safari-extension'
+  APP_NAME: 'ChronicleSync'
+
+jobs:
+  build-safari-ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Build Extension
+        working-directory: extension
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package Extension for Safari
+        working-directory: extension
+        run: |
+          # Create a temporary directory for Safari extension
+          mkdir -p safari-package
+          
+          # Copy necessary files to the package directory
+          cp manifest.json safari-package/
+          cp popup.html safari-package/
+          cp popup.css safari-package/
+          cp settings.html safari-package/
+          cp settings.css safari-package/
+          cp history.html safari-package/
+          cp history.css safari-package/
+          cp devtools.html safari-package/
+          cp devtools.css safari-package/
+          cp bip39-wordlist.js safari-package/
+          cp -r dist/assets safari-package/
+          cp dist/popup.js safari-package/
+          cp dist/background.js safari-package/
+          cp dist/settings.js safari-package/
+          cp dist/history.js safari-package/
+          cp dist/devtools.js safari-package/
+          cp dist/devtools-page.js safari-package/
+          cp dist/content-script.js safari-package/
+          
+          # Create a zip file for the Safari extension converter
+          cd safari-package && zip -r ../safari-extension.zip ./* && cd ..
+
+      - name: Convert to Safari Extension
+        working-directory: extension
+        env:
+          DEVELOPER_ID: ${{ secrets.APPLE_DEVELOPER_ID }}
+          DEVELOPER_PASSWORD: ${{ secrets.APPLE_DEVELOPER_PASSWORD }}
+        run: |
+          # Convert the extension to a Safari App Extension project
+          xcrun safari-web-extension-converter safari-extension.zip \
+            --project-location ./safari-project \
+            --app-name "${{ env.APP_NAME }}" \
+            --bundle-identifier "${{ env.BUNDLE_ID }}" \
+            --team-id "${{ env.TEAM_ID }}" \
+            --no-open \
+            --force
+
+      - name: Build IPA
+        working-directory: extension/safari-project
+        run: |
+          # Build the project for iOS
+          xcodebuild -project "${{ env.APP_NAME }}.xcodeproj" \
+            -scheme "${{ env.APP_NAME }} (iOS)" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ./build/${{ env.APP_NAME }}.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            DEVELOPMENT_TEAM="${{ env.TEAM_ID }}"
+          
+          # Create IPA from archive
+          xcodebuild -exportArchive \
+            -archivePath ./build/${{ env.APP_NAME }}.xcarchive \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath ./build
+          
+          # Create exportOptions.plist if it doesn't exist
+          if [ ! -f "exportOptions.plist" ]; then
+            cat > exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>${{ env.TEAM_ID }}</string>
+              <key>compileBitcode</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+          fi
+          
+          # Try export again with the created plist
+          xcodebuild -exportArchive \
+            -archivePath ./build/${{ env.APP_NAME }}.xcarchive \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath ./build
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: extension/safari-project/build/${{ env.APP_NAME }}.ipa
+          retention-days: 14

@@ -8,7 +8,7 @@ Sync browsing history and summaries across browsers
 - **Privacy-Focused**: Only syncs summaries and history information, never stores or syncs full page content
 - **Efficient Search**: Search through summaries and history information, not full content
 - **Not Secure**: I'm to lazy and the models suck too much for local encryption, but it's coming.
-- **Not Multiplatform**: We haven't added IOS support cause basic stuff still doesn't work.
+- **Multiplatform**: Support for Chrome, Firefox, and now Safari on iOS
 - **Real-time Monitoring**: Health monitoring and administrative dashboard
 
 ## Quick Start
@@ -28,9 +28,16 @@ Sync browsing history and summaries across browsers
 ```
 chroniclesync/
 ├── pages/          # Frontend React application
-├── extension/      # Chrome extension
+├── extension/      # Chrome/Firefox/Safari extension
 └── worker/         # Cloudflare Worker backend
 ```
+
+### Build Artifacts
+
+The CI/CD pipeline generates the following artifacts:
+- **Chrome Extension**: `.zip` file for Chrome Web Store
+- **Firefox Extension**: `.xpi` file for Firefox Add-ons
+- **Safari iOS Extension**: `.ipa` file for iOS devices
 
 ### Administration
 

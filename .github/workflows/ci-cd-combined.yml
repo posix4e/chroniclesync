@@ -117,7 +117,7 @@ jobs:
       matrix:
         browser: [chrome, firefox]
         # Future platforms can be added here (e.g., ios, android)
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
       - name: Check if this browser should be tested

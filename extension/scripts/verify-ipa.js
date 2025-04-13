@@ -1,1 +1,0 @@
-safari-ipa-utils.js

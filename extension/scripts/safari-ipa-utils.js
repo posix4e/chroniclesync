@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-import { exec, execSync } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
 import { mkdir } from 'fs/promises';
@@ -382,31 +382,47 @@ async function verifyAndTestIpa(simulatorId, ipaPath) {
 
 // Command-line interface
 function handleCommandLine() {
-  const scriptName = fileURLToPath(import.meta.url).split('/').pop();
   const args = process.argv.slice(2);
+  const command = args[0];
+  const restArgs = args.slice(1);
   
-  switch (scriptName) {
-    case 'create-ios-simulator.js':
-      createIOSSimulator();
-      break;
-    case 'verify-ipa.js':
-      verifyIpaFile(args[0] || null);
-      break;
-    case 'test-ipa-in-simulator.js':
-      testIpaInSimulator(args[0] || null, args[1] || null);
-      break;
-    case 'verify-and-test-ipa.js':
-    case 'safari-ipa-utils.js':
-      if (args.length < 2) {
-        console.error('Usage: node safari-ipa-utils.js <simulator-id> <ipa-path>');
-        process.exit(1);
-      }
-      verifyAndTestIpa(args[0], args[1]);
-      break;
-    default:
-      console.error(`Unknown script name: ${scriptName}`);
-      console.error('Usage: node safari-ipa-utils.js <simulator-id> <ipa-path>');
+  switch (command) {
+  case 'create-simulator':
+    createIOSSimulator();
+    break;
+  case 'verify-ipa':
+    verifyIpaFile(restArgs[0] || null);
+    break;
+  case 'test-ipa':
+    testIpaInSimulator(restArgs[0] || null, restArgs[1] || null);
+    break;
+  case 'verify-and-test-ipa':
+    if (restArgs.length < 2) {
+      console.error('Usage: node safari-ipa-utils.js verify-and-test-ipa <simulator-id> <ipa-path>');
       process.exit(1);
+    }
+    verifyAndTestIpa(restArgs[0], restArgs[1]);
+    break;
+  default:
+    console.log(`
+Safari IPA Utilities
+====================
+
+Usage: node safari-ipa-utils.js <command> [arguments]
+
+Commands:
+  create-simulator                Create an iOS simulator for testing
+  verify-ipa [ipa-path]           Verify an IPA file
+  test-ipa [simulator-id] [ipa-path]  Test an IPA in a simulator
+  verify-and-test-ipa <simulator-id> <ipa-path>  Verify and test an IPA
+
+Examples:
+  node safari-ipa-utils.js create-simulator
+  node safari-ipa-utils.js verify-ipa ./output/app.ipa
+  node safari-ipa-utils.js test-ipa 1A2B3C4D-5E6F ./output/app.ipa
+  node safari-ipa-utils.js verify-and-test-ipa 1A2B3C4D-5E6F ./output/app.ipa
+      `);
+    process.exit(1);
   }
 }
 

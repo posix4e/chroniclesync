@@ -8,41 +8,41 @@ All Safari IPA generation and testing functionality has been consolidated into a
 
 - `safari-ipa-utils.js` - A consolidated script that contains all the functionality for creating iOS simulators, verifying IPA files, and testing IPAs in simulators.
 
-## Symbolic Links
-
-For backward compatibility, the following symbolic links are maintained:
-
-- `create-ios-simulator.js` → `safari-ipa-utils.js`
-- `verify-ipa.js` → `safari-ipa-utils.js`
-- `test-ipa-in-simulator.js` → `safari-ipa-utils.js`
-- `verify-and-test-ipa.js` → `safari-ipa-utils.js`
-
 ## Usage
 
-You can use the consolidated script directly:
+You can use the consolidated script directly with commands:
 
 ```bash
+# Show help
+node safari-ipa-utils.js
+
+# Create an iOS simulator
+node safari-ipa-utils.js create-simulator
+
+# Verify an IPA file
+node safari-ipa-utils.js verify-ipa [ipa-path]
+
+# Test an IPA in a simulator
+node safari-ipa-utils.js test-ipa [simulator-id] [ipa-path]
+
 # Verify and test an IPA file
-node safari-ipa-utils.js <simulator-id> <ipa-path>
+node safari-ipa-utils.js verify-and-test-ipa <simulator-id> <ipa-path>
 ```
 
 Or use the npm scripts defined in `package.json`:
 
 ```bash
 # Create an iOS simulator
-npm run create:ios-simulator
+npm run safari:create-simulator
 
 # Verify an IPA file
-npm run verify:ipa
+npm run safari:verify-ipa
 
 # Test an IPA in a simulator
-npm run test:ipa-in-simulator
+npm run safari:test-ipa
 
 # Verify and test an IPA
-npm run verify-and-test:ipa
-
-# Use the consolidated script directly
-npm run safari:ipa-utils -- <simulator-id> <ipa-path>
+npm run safari:verify-and-test-ipa
 ```
 
 ## Functions

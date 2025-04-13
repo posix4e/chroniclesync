@@ -1,17 +1,267 @@
+#!/usr/bin/env node
 /* eslint-disable no-console */
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const { join } = require('path');
-const { mkdir, rm, cp, readdir } = require('fs/promises');
-const fs = require('fs');
+
+// Import modules using ESM syntax
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { join } from 'path';
+import { mkdir, rm, readdir } from 'fs/promises';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 const execAsync = promisify(exec);
-const ROOT_DIR = join(__dirname, '..');  // Extension root directory
+const ROOT_DIR = process.cwd();
 const PACKAGE_DIR = join(ROOT_DIR, 'package');
 const SAFARI_DIR = join(ROOT_DIR, 'safari-extension');
 const IPA_OUTPUT_DIR = join(ROOT_DIR, 'ipa-output');
 
-async function main() {
+// ===== IPA VERIFICATION UTILITIES =====
+
+/**
+ * Verifies that the IPA file exists and has the correct structure
+ * @param {string} ipaPath - Path to the IPA file
+ * @returns {Promise<boolean>} - True if the IPA file is valid
+ */
+async function verifyIpaFile(ipaPath = null) {
+  try {
+    // If no IPA path is provided, look for the default one
+    if (!ipaPath) {
+      ipaPath = join(IPA_OUTPUT_DIR, 'ChronicleSync.ipa');
+      console.log(`No IPA path provided, using default: ${ipaPath}`);
+    }
+
+    // Check if the IPA file exists
+    if (!fs.existsSync(ipaPath)) {
+      console.error(`IPA file not found at ${ipaPath}`);
+      return false;
+    }
+
+    console.log(`Verifying IPA file: ${ipaPath}`);
+
+    // Create a temporary directory for extraction
+    const tempDir = join(ROOT_DIR, 'temp-ipa-verification');
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Extract the IPA file (which is just a zip file)
+      console.log('Extracting IPA file...');
+      await execAsync(`unzip -q "${ipaPath}" -d "${tempDir}"`);
+
+      // Check for the Payload directory
+      const payloadDir = join(tempDir, 'Payload');
+      if (!fs.existsSync(payloadDir)) {
+        console.error('Invalid IPA: Payload directory not found');
+        return false;
+      }
+
+      // Check for the app directory
+      const appDirs = fs.readdirSync(payloadDir).filter(dir => dir.endsWith('.app'));
+      if (appDirs.length === 0) {
+        console.error('Invalid IPA: No .app directory found in Payload');
+        return false;
+      }
+
+      const appDir = join(payloadDir, appDirs[0]);
+      console.log(`Found app directory: ${appDir}`);
+
+      // Check for Info.plist
+      const infoPlist = join(appDir, 'Info.plist');
+      if (!fs.existsSync(infoPlist)) {
+        console.error('Invalid IPA: Info.plist not found in app directory');
+        return false;
+      }
+
+      // Check for the executable
+      const executableName = appDirs[0].replace('.app', '');
+      const executable = join(appDir, executableName);
+      if (!fs.existsSync(executable)) {
+        console.error(`Invalid IPA: Executable ${executableName} not found in app directory`);
+        return false;
+      }
+
+      // Check for the Safari extension
+      const pluginsDir = join(appDir, 'PlugIns');
+      if (!fs.existsSync(pluginsDir)) {
+        console.warn('Warning: PlugIns directory not found in app directory');
+      } else {
+        const extensionDirs = fs.readdirSync(pluginsDir).filter(dir => dir.endsWith('.appex'));
+        if (extensionDirs.length === 0) {
+          console.warn('Warning: No Safari extension found in PlugIns directory');
+        } else {
+          console.log(`Found Safari extension: ${extensionDirs[0]}`);
+        }
+      }
+
+      console.log('IPA verification completed successfully');
+      return true;
+    } finally {
+      // Clean up the temporary directory
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  } catch (error) {
+    console.error('Error verifying IPA file:', error);
+    return false;
+  }
+}
+
+/**
+ * Creates an iOS simulator for testing
+ * @returns {Promise<string>} - The ID of the created simulator
+ */
+async function createIOSSimulator() {
+  try {
+    console.log('Creating iOS simulator...');
+
+    // List available simulator runtimes
+    const { stdout: runtimesOutput } = await execAsync('xcrun simctl list runtimes');
+    console.log('Available simulator runtimes:');
+    console.log(runtimesOutput);
+
+    // Find the latest iOS runtime
+    const runtimeLines = runtimesOutput.split('\n');
+    const iosRuntimes = runtimeLines.filter(line => line.includes('iOS') && line.includes('(com.apple.CoreSimulator.SimRuntime.iOS'));
+    
+    if (iosRuntimes.length === 0) {
+      console.error('No iOS runtimes found');
+      return null;
+    }
+
+    // Sort by version and get the latest
+    const latestRuntime = iosRuntimes.sort().pop();
+    const runtimeMatch = latestRuntime.match(/com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+/);
+    
+    if (!runtimeMatch) {
+      console.error('Could not parse runtime identifier');
+      return null;
+    }
+
+    const runtimeId = runtimeMatch[0];
+    console.log(`Using runtime: ${runtimeId}`);
+
+    // Create a new simulator
+    const deviceName = `ChronicleSync-Test-${Date.now()}`;
+    const { stdout: createOutput } = await execAsync(`xcrun simctl create "${deviceName}" "iPhone 13" "${runtimeId}"`);
+    const deviceId = createOutput.trim();
+    
+    console.log(`Created simulator: ${deviceName} (${deviceId})`);
+
+    // Boot the simulator
+    console.log('Booting simulator...');
+    await execAsync(`xcrun simctl boot "${deviceId}"`);
+
+    // Wait for the simulator to boot
+    console.log('Waiting for simulator to boot...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    console.log(`Simulator ${deviceId} is ready for testing`);
+    return deviceId;
+  } catch (error) {
+    console.error('Error creating iOS simulator:', error);
+    return null;
+  }
+}
+
+/**
+ * Tests the IPA file in a simulator
+ * @param {string} simulatorId - The ID of the simulator to use
+ * @param {string} ipaPath - Path to the IPA file
+ * @returns {Promise<boolean>} - True if the test was successful
+ */
+async function testIpaInSimulator(simulatorId = null, ipaPath = null) {
+  try {
+    // If no simulator ID is provided, create a new one
+    if (!simulatorId) {
+      console.log('No simulator ID provided, creating a new simulator...');
+      simulatorId = await createIOSSimulator();
+      if (!simulatorId) {
+        console.error('Failed to create simulator');
+        return false;
+      }
+    }
+
+    // If no IPA path is provided, look for the default one
+    if (!ipaPath) {
+      ipaPath = join(IPA_OUTPUT_DIR, 'ChronicleSync.ipa');
+      console.log(`No IPA path provided, using default: ${ipaPath}`);
+    }
+
+    // Check if the IPA file exists
+    if (!fs.existsSync(ipaPath)) {
+      console.error(`IPA file not found at ${ipaPath}`);
+      return false;
+    }
+
+    console.log(`Testing IPA file ${ipaPath} in simulator ${simulatorId}...`);
+
+    // Install the IPA file in the simulator
+    console.log('Installing IPA in simulator...');
+    await execAsync(`xcrun simctl install "${simulatorId}" "${ipaPath}"`);
+
+    // Launch the app
+    console.log('Launching app in simulator...');
+    await execAsync(`xcrun simctl launch "${simulatorId}" "com.chroniclesync.safari-extension"`);
+
+    // Wait for the app to launch
+    console.log('Waiting for app to launch...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    console.log('App launched successfully in simulator');
+    return true;
+  } catch (error) {
+    console.error('Error testing IPA in simulator:', error);
+    return false;
+  }
+}
+
+/**
+ * Verifies and tests an IPA file in a simulator
+ * @param {string} simulatorId - The ID of the simulator to use
+ * @param {string} ipaPath - Path to the IPA file
+ * @returns {Promise<boolean>} - True if the verification and test were successful
+ */
+async function verifyAndTestIpa(simulatorId, ipaPath) {
+  try {
+    if (!simulatorId) {
+      console.error('Simulator ID is required');
+      return false;
+    }
+
+    if (!ipaPath) {
+      console.error('IPA path is required');
+      return false;
+    }
+
+    console.log(`Verifying and testing IPA file ${ipaPath} in simulator ${simulatorId}...`);
+
+    // First verify the IPA file
+    const isValid = await verifyIpaFile(ipaPath);
+    if (!isValid) {
+      console.error('IPA verification failed');
+      return false;
+    }
+
+    // Then test it in the simulator
+    const testResult = await testIpaInSimulator(simulatorId, ipaPath);
+    if (!testResult) {
+      console.error('IPA testing failed');
+      return false;
+    }
+
+    console.log('IPA verification and testing completed successfully');
+    return true;
+  } catch (error) {
+    console.error('Error verifying and testing IPA:', error);
+    return false;
+  }
+}
+
+// ===== SAFARI EXTENSION BUILD UTILITIES =====
+
+/**
+ * Builds a Safari extension IPA file
+ * @returns {Promise<void>}
+ */
+async function buildSafariExtension() {
   try {
     // Clean up any existing directories
     await rm(PACKAGE_DIR, { recursive: true, force: true });
@@ -180,8 +430,8 @@ echo 'ChronicleSync Safari Extension App'`;
       fs.writeFileSync(join(appDir, 'embedded.mobileprovision'), '');
       
       // Create Safari extension structure
-      const extensionDir = join(appDir, 'Contents', 'PlugIns', 'ChronicleSync Extension.appex');
-      const extensionResourcesDir = join(extensionDir, 'Contents', 'Resources');
+      const extensionDir = join(appDir, 'PlugIns', 'ChronicleSync Extension.appex');
+      const extensionResourcesDir = join(extensionDir, 'Resources');
       
       await mkdir(extensionDir, { recursive: true });
       await mkdir(extensionResourcesDir, { recursive: true });
@@ -217,7 +467,7 @@ echo 'ChronicleSync Safari Extension App'`;
 </dict>
 </plist>`;
       
-      fs.writeFileSync(join(extensionDir, 'Contents', 'Info.plist'), extensionInfoPlist);
+      fs.writeFileSync(join(extensionDir, 'Info.plist'), extensionInfoPlist);
       
       // Copy Chrome extension files to Safari extension resources
       console.log('Copying Chrome extension files to Safari extension resources...');
@@ -270,12 +520,9 @@ echo 'ChronicleSync Safari Extension App'`;
       return;
     }
     
-    let xcodeProjectPath;
-    let projectName;
-    
     if (xcodeProjectDir) {
-      xcodeProjectPath = join(SAFARI_DIR, xcodeProjectDir);
-      projectName = xcodeProjectDir.replace('.xcodeproj', '');
+      // We found an Xcode project, but we're not using it in this script
+      console.log(`Found Xcode project: ${xcodeProjectDir}, but we're not using it in this script`);
     } else if (appDir) {
       // If we only have the app directory but no .xcodeproj, we'll create a properly structured IPA
       console.log('Found app directory but no .xcodeproj file. Creating a properly structured IPA from the app directory...');
@@ -325,7 +572,7 @@ echo 'ChronicleSync Safari Extension App'`;
       let extensionDir = null;
       
       // Check if the app has a PlugIns directory
-      const pluginsDir = join(ipaAppDir, 'Contents', 'PlugIns');
+      const pluginsDir = join(ipaAppDir, 'PlugIns');
       if (fs.existsSync(pluginsDir)) {
         try {
           const plugins = fs.readdirSync(pluginsDir);
@@ -342,7 +589,7 @@ echo 'ChronicleSync Safari Extension App'`;
       // If no extension directory found, create one
       if (!extensionDir) {
         console.log('No Safari extension found, creating one...');
-        extensionDir = join(ipaAppDir, 'Contents', 'PlugIns', 'ChronicleSync Extension.appex');
+        extensionDir = join(ipaAppDir, 'PlugIns', 'ChronicleSync Extension.appex');
         await mkdir(extensionDir, { recursive: true });
         
         // Create extension Info.plist
@@ -381,7 +628,7 @@ echo 'ChronicleSync Safari Extension App'`;
       }
       
       // Find or create the Resources directory
-      const extensionResourcesDir = join(extensionDir, 'Contents', 'Resources');
+      const extensionResourcesDir = join(extensionDir, 'Resources');
       await mkdir(extensionResourcesDir, { recursive: true });
       
       // Create a directory for the web extension
@@ -396,143 +643,16 @@ echo 'ChronicleSync Safari Extension App'`;
       console.log('Creating IPA file...');
       await execAsync(`cd "${IPA_OUTPUT_DIR}" && zip -r "ChronicleSync.ipa" Payload`);
       
-      console.log('Created properly structured IPA file from app directory with real extension content. Exiting with success.');
-      return;
-    }
-    
-    // First, find the web extension resources directory in the Xcode project
-    console.log('Looking for web extension resources directory in the Xcode project...');
-    
-    // Find the Resources directory in the Xcode project
-    const resourcesDir = join(SAFARI_DIR, projectName, 'Resources');
-    let webExtensionDir = null;
-    
-    if (fs.existsSync(resourcesDir)) {
-      try {
-        const resourceItems = fs.readdirSync(resourcesDir);
-        for (const item of resourceItems) {
-          const itemPath = join(resourcesDir, item);
-          if (fs.statSync(itemPath).isDirectory()) {
-            // Check if this directory contains manifest.json
-            const manifestPath = join(itemPath, 'manifest.json');
-            if (fs.existsSync(manifestPath)) {
-              webExtensionDir = itemPath;
-              console.log(`Found web extension directory: ${webExtensionDir}`);
-              break;
-            }
-          }
-        }
-      } catch (error) {
-        console.log(`Error finding web extension directory: ${error.message}`);
-      }
-    }
-    
-    // If we found the web extension directory, copy the Chrome extension files
-    if (webExtensionDir) {
-      console.log('Copying Chrome extension files to web extension directory...');
-      await execAsync(`cp -R "${join(ROOT_DIR, 'dist')}"/* "${webExtensionDir}/"`);
-    } else {
-      console.log('Web extension directory not found. The IPA will be built without the Chrome extension files.');
-    }
-    
-    // Build the IPA file
-    console.log('Building IPA file...');
-    
-    // First, archive the app
-    const archivePath = join(IPA_OUTPUT_DIR, `${projectName}.xcarchive`);
-    await execAsync(
-      `xcodebuild archive -project "${xcodeProjectPath}" -scheme "${projectName}" -configuration Release -archivePath "${archivePath}" -destination "generic/platform=iOS"`,
-      { cwd: ROOT_DIR }
-    );
-    
-    // Then, export the IPA
-    const exportOptionsPlist = join(ROOT_DIR, 'scripts', 'export-options.plist');
-    
-    // Create export options plist if it doesn't exist
-    if (!fs.existsSync(exportOptionsPlist)) {
-      fs.writeFileSync(exportOptionsPlist, `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>development</string>
-    <key>teamID</key>
-    <string>TEAM_ID</string>
-    <key>compileBitcode</key>
-    <false/>
-</dict>
-</plist>`);
-    }
-    
-    await execAsync(
-      `xcodebuild -exportArchive -archivePath "${archivePath}" -exportPath "${IPA_OUTPUT_DIR}" -exportOptionsPlist "${exportOptionsPlist}"`,
-      { cwd: ROOT_DIR }
-    );
-    
-    // After exporting, we need to check if we need to add the Chrome extension files to the IPA
-    if (!webExtensionDir) {
-      console.log('Attempting to add Chrome extension files to the exported IPA...');
+      // Verify the IPA file
+      console.log('Verifying IPA file...');
+      await execAsync(`unzip -t "${join(IPA_OUTPUT_DIR, 'ChronicleSync.ipa')}"`);
       
-      // Find the exported IPA file
-      const ipaFiles = fs.readdirSync(IPA_OUTPUT_DIR).filter(file => file.endsWith('.ipa'));
-      if (ipaFiles.length > 0) {
-        const ipaFile = join(IPA_OUTPUT_DIR, ipaFiles[0]);
-        console.log(`Found IPA file: ${ipaFile}`);
-        
-        // Create a temporary directory to extract the IPA
-        const tempDir = join(IPA_OUTPUT_DIR, 'temp');
-        await mkdir(tempDir, { recursive: true });
-        
-        // Extract the IPA
-        await execAsync(`unzip -q "${ipaFile}" -d "${tempDir}"`);
-        
-        // Find the app directory
-        const payloadDir = join(tempDir, 'Payload');
-        const appDirs = fs.readdirSync(payloadDir).filter(dir => dir.endsWith('.app'));
-        
-        if (appDirs.length > 0) {
-          const appDir = join(payloadDir, appDirs[0]);
-          console.log(`Found app directory: ${appDir}`);
-          
-          // Find the Safari extension directory
-          const pluginsDir = join(appDir, 'PlugIns');
-          if (fs.existsSync(pluginsDir)) {
-            const extensionDirs = fs.readdirSync(pluginsDir).filter(dir => dir.endsWith('.appex'));
-            
-            if (extensionDirs.length > 0) {
-              const extensionDir = join(pluginsDir, extensionDirs[0]);
-              console.log(`Found extension directory: ${extensionDir}`);
-              
-              // Find or create the Resources directory
-              const extensionResourcesDir = join(extensionDir, 'Resources');
-              await mkdir(extensionResourcesDir, { recursive: true });
-              
-              // Create a directory for the web extension
-              const webExtDir = join(extensionResourcesDir, 'web-extension');
-              await mkdir(webExtDir, { recursive: true });
-              
-              // Copy Chrome extension files to Safari extension resources
-              console.log('Copying Chrome extension files to Safari extension resources...');
-              await execAsync(`cp -R "${join(ROOT_DIR, 'dist')}"/* "${webExtDir}/"`);
-              
-              // Repackage the IPA
-              await execAsync(`cd "${tempDir}" && zip -qr "${ipaFile}" Payload`);
-              console.log('Successfully added Chrome extension files to the IPA');
-            } else {
-              console.log('No Safari extension found in the app');
-            }
-          } else {
-            console.log('No PlugIns directory found in the app');
-          }
-        } else {
-          console.log('No app directory found in the IPA');
-        }
-        
-        // Clean up the temporary directory
-        await rm(tempDir, { recursive: true, force: true });
-      } else {
-        console.log('No IPA file found in the output directory');
-      }
+      console.log('IPA file created successfully in the ipa-output directory');
+      
+      // Clean up temporary directories
+      await rm(PACKAGE_DIR, { recursive: true, force: true });
+      
+      return;
     }
     
     console.log('IPA file created successfully in the ipa-output directory');
@@ -546,4 +666,71 @@ echo 'ChronicleSync Safari Extension App'`;
   }
 }
 
-main();
+// ===== COMMAND-LINE INTERFACE =====
+
+/**
+ * Handles command-line arguments and executes the appropriate function
+ */
+function handleCommandLine() {
+  const args = process.argv.slice(2);
+  const command = args[0];
+  const restArgs = args.slice(1);
+  
+  switch (command) {
+  case 'build':
+    buildSafariExtension();
+    break;
+  case 'create-simulator':
+    createIOSSimulator();
+    break;
+  case 'verify-ipa':
+    verifyIpaFile(restArgs[0] || null);
+    break;
+  case 'test-ipa':
+    testIpaInSimulator(restArgs[0] || null, restArgs[1] || null);
+    break;
+  case 'verify-and-test-ipa':
+    if (restArgs.length < 2) {
+      console.error('Usage: node safari-tools.js verify-and-test-ipa <simulator-id> <ipa-path>');
+      process.exit(1);
+    }
+    verifyAndTestIpa(restArgs[0], restArgs[1]);
+    break;
+  default:
+    console.log(`
+Safari Tools
+===========
+
+Usage: node safari-tools.js <command> [arguments]
+
+Commands:
+  build                           Build Safari extension IPA
+  create-simulator                Create an iOS simulator for testing
+  verify-ipa [ipa-path]           Verify an IPA file
+  test-ipa [simulator-id] [ipa-path]  Test an IPA in a simulator
+  verify-and-test-ipa <simulator-id> <ipa-path>  Verify and test an IPA
+
+Examples:
+  node safari-tools.js build
+  node safari-tools.js create-simulator
+  node safari-tools.js verify-ipa ./ipa-output/ChronicleSync.ipa
+  node safari-tools.js test-ipa 1A2B3C4D-5E6F ./ipa-output/ChronicleSync.ipa
+  node safari-tools.js verify-and-test-ipa 1A2B3C4D-5E6F ./ipa-output/ChronicleSync.ipa
+      `);
+    process.exit(1);
+  }
+}
+
+// Export functions for use in other modules
+export {
+  buildSafariExtension,
+  createIOSSimulator,
+  verifyIpaFile,
+  testIpaInSimulator,
+  verifyAndTestIpa
+};
+
+// If this script is run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  handleCommandLine();
+}

@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:extension": "node scripts/build-extension.cjs",
     "build:safari-ipa": "node scripts/build-safari-extension.cjs",
+    "safari:ipa-utils": "node scripts/safari-ipa-utils.js",
     "verify:ipa": "node scripts/verify-ipa.js",
     "create:ios-simulator": "node scripts/create-ios-simulator.js",
     "test:ipa-in-simulator": "node scripts/test-ipa-in-simulator.js",

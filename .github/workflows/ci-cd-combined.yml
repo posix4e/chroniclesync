@@ -88,9 +88,14 @@ jobs:
 
       - name: Generate Safari IPA
         working-directory: extension
+        env:
+          APP_NAME: "ChronicleSync"
+          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:safari-ipa
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run verify:ipa
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run safari:verify-ipa
 
       - name: Upload Safari IPA Artifact
         uses: actions/upload-artifact@v4
@@ -249,15 +254,25 @@ jobs:
         if: steps.should_test.outputs.should_test == 'true'
         id: create-simulator
         working-directory: extension
+        env:
+          APP_NAME: "ChronicleSync"
+          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
           # Create iOS simulator using JavaScript
-          DEVICE_ID=$(NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run create:ios-simulator | grep "Created simulator with ID:" | awk '{print $5}')
+          DEVICE_ID=$(NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run safari:create-simulator | grep "Created simulator with ID:" | awk '{print $5}')
           echo "Created simulator with ID: $DEVICE_ID"
           echo "simulator_id=$DEVICE_ID" >> $GITHUB_OUTPUT
           
       - name: Install and test IPA in simulator
         if: steps.should_test.outputs.should_test == 'true'
         working-directory: extension
+        env:
+          APP_NAME: "ChronicleSync"
+          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
           SIMULATOR_ID="${{ steps.create-simulator.outputs.simulator_id }}"
           
@@ -273,7 +288,7 @@ jobs:
           fi
           
           # Use the JavaScript script to verify and test the IPA
-          npm run verify-and-test:ipa -- "$SIMULATOR_ID" "$IPA_PATH" 2>&1 | tee ipa-test-debug.log || true
+          npm run safari:verify-and-test-ipa -- "$SIMULATOR_ID" "$IPA_PATH" 2>&1 | tee ipa-test-debug.log || true
           
       - name: Upload simulator screenshots
         if: steps.should_test.outputs.should_test == 'true'

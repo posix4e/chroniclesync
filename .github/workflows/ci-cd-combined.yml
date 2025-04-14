@@ -89,8 +89,8 @@ jobs:
       - name: Generate Safari IPA
         working-directory: extension
         env:
-          APP_NAME: "ChronicleSync"
-          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APP_NAME: ${{ vars.SAFARI_APP_NAME || 'ChronicleSync' }}
+          BUNDLE_ID: ${{ vars.SAFARI_BUNDLE_ID || 'com.chroniclesync.safari-extension' }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
@@ -255,8 +255,8 @@ jobs:
         id: create-simulator
         working-directory: extension
         env:
-          APP_NAME: "ChronicleSync"
-          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APP_NAME: ${{ vars.SAFARI_APP_NAME || 'ChronicleSync' }}
+          BUNDLE_ID: ${{ vars.SAFARI_BUNDLE_ID || 'com.chroniclesync.safari-extension' }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
@@ -269,8 +269,8 @@ jobs:
         if: steps.should_test.outputs.should_test == 'true'
         working-directory: extension
         env:
-          APP_NAME: "ChronicleSync"
-          BUNDLE_ID: "com.chroniclesync.safari-extension"
+          APP_NAME: ${{ vars.SAFARI_APP_NAME || 'ChronicleSync' }}
+          BUNDLE_ID: ${{ vars.SAFARI_BUNDLE_ID || 'com.chroniclesync.safari-extension' }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |

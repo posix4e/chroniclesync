@@ -22,7 +22,7 @@ const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID || '';
 const APPLE_APP_ID = process.env.APPLE_APP_ID || '';
 
 // Paths
-const SCRIPTS_DIR = process.cwd();
+const SCRIPTS_DIR = join(process.cwd(), 'scripts');
 const TEMPLATES_DIR = join(SCRIPTS_DIR, 'templates');
 
 // Template files

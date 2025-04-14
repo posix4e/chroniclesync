@@ -1,0 +1,67 @@
+name: Safari IPA Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/safari-ipa-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/safari-ipa-build.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-safari-ipa:
+    runs-on: macos-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            extension/package-lock.json
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+
+      - name: Build Extension
+        working-directory: extension
+        run: npm run build
+
+      - name: Setup Safari Extension Environment
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          echo "Setting up Safari extension build environment"
+          echo "Using Apple Team ID: $APPLE_TEAM_ID"
+          echo "Using Apple App ID: $APPLE_APP_ID"
+          
+          # Create necessary configuration files for Safari extension
+          mkdir -p extension/safari-build
+
+      - name: Build Safari IPA
+        working-directory: extension
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: |
+          # Build Safari extension package using our script
+          ./scripts/build-safari-ipa.sh --team-id "$APPLE_TEAM_ID" --app-id "$APPLE_APP_ID"
+
+      - name: Upload Safari IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension-ipa
+          path: extension/safari-build/chroniclesync-safari.ipa
+          retention-days: 14

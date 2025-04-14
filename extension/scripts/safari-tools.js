@@ -15,6 +15,94 @@ const PACKAGE_DIR = join(ROOT_DIR, 'package');
 const SAFARI_DIR = join(ROOT_DIR, 'safari-extension');
 const IPA_OUTPUT_DIR = join(ROOT_DIR, 'ipa-output');
 
+// ===== APPLE SIGNING UTILITIES =====
+
+/**
+ * Checks if Apple signing secrets are available in the environment
+ * @returns {boolean} - True if all required secrets are available
+ */
+function hasAppleSigningSecrets() {
+  const requiredSecrets = [
+    'APPLE_API_KEY_CONTENT',
+    'APPLE_API_KEY_ID',
+    'APPLE_API_KEY_ISSUER_ID',
+    'APPLE_APP_ID',
+    'APPLE_CERTIFICATE_CONTENT',
+    'APPLE_CERTIFICATE_PASSWORD',
+    'APPLE_PROVISIONING_PROFILE',
+    'APPLE_TEAM_ID'
+  ];
+  
+  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+  
+  if (missingSecrets.length > 0) {
+    console.log(`Missing Apple signing secrets: ${missingSecrets.join(', ')}`);
+    return false;
+  }
+  
+  console.log('All Apple signing secrets are available');
+  return true;
+}
+
+/**
+ * Sets up Apple signing environment with the provided secrets
+ * @returns {Promise<boolean>} - True if setup was successful
+ */
+async function setupAppleSigning() {
+  try {
+    console.log('Setting up Apple signing environment...');
+    
+    // Create temporary directory for certificates and profiles
+    const tempSigningDir = join(ROOT_DIR, 'temp-signing');
+    await mkdir(tempSigningDir, { recursive: true });
+    
+    try {
+      // Write certificate to file
+      const certPath = join(tempSigningDir, 'certificate.p12');
+      fs.writeFileSync(certPath, Buffer.from(process.env.APPLE_CERTIFICATE_CONTENT, 'base64'));
+      console.log('Certificate written to file');
+      
+      // Write provisioning profile to file
+      const profilePath = join(tempSigningDir, 'profile.mobileprovision');
+      fs.writeFileSync(profilePath, Buffer.from(process.env.APPLE_PROVISIONING_PROFILE, 'base64'));
+      console.log('Provisioning profile written to file');
+      
+      // Write API key to file
+      const apiKeyPath = join(tempSigningDir, 'api_key.p8');
+      fs.writeFileSync(apiKeyPath, Buffer.from(process.env.APPLE_API_KEY_CONTENT, 'base64'));
+      console.log('API key written to file');
+      
+      // Create temporary keychain
+      const keychainName = 'safari-extension-keychain';
+      const keychainPassword = 'safari-extension-password';
+      
+      // Delete existing keychain if it exists
+      await execAsync(`security delete-keychain ${keychainName} || true`);
+      
+      // Create new keychain
+      await execAsync(`security create-keychain -p "${keychainPassword}" ${keychainName}`);
+      await execAsync(`security default-keychain -s ${keychainName}`);
+      await execAsync(`security unlock-keychain -p "${keychainPassword}" ${keychainName}`);
+      await execAsync(`security set-keychain-settings -t 3600 -l ${keychainName}`);
+      
+      // Import certificate to keychain
+      await execAsync(`security import "${certPath}" -k ${keychainName} -P "${process.env.APPLE_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign`);
+      
+      // Allow codesign to access the keychain
+      await execAsync(`security set-key-partition-list -S apple-tool:,apple: -s -k "${keychainPassword}" ${keychainName}`);
+      
+      console.log('Apple signing environment set up successfully');
+      return true;
+    } finally {
+      // Clean up temporary signing directory
+      await rm(tempSigningDir, { recursive: true, force: true });
+    }
+  } catch (error) {
+    console.error('Error setting up Apple signing:', error);
+    return false;
+  }
+}
+
 // ===== IPA VERIFICATION UTILITIES =====
 
 /**
@@ -261,18 +349,34 @@ async function verifyAndTestIpa(simulatorId, ipaPath) {
  * Builds a Safari extension IPA file
  * @returns {Promise<void>}
  */
+    
 async function buildSafariExtension() {
   try {
+    console.log('Starting Safari extension build process...');
+    
+    // Check if Apple signing secrets are available
+    const canSign = hasAppleSigningSecrets();
+    
     // Clean up any existing directories
     await rm(PACKAGE_DIR, { recursive: true, force: true });
     await rm(SAFARI_DIR, { recursive: true, force: true });
     await rm(IPA_OUTPUT_DIR, { recursive: true, force: true });
-    
+
     // Create necessary directories
     await mkdir(PACKAGE_DIR, { recursive: true });
     await mkdir(SAFARI_DIR, { recursive: true });
     await mkdir(IPA_OUTPUT_DIR, { recursive: true });
     
+    // Setup Apple signing if secrets are available
+    let signingSetup = false;
+    if (canSign) {
+      signingSetup = await setupAppleSigning();
+      if (signingSetup) {
+        console.log('Apple signing environment is ready');
+      } else {
+        console.log('Failed to set up Apple signing environment, will create unsigned IPA');
+      }
+    }
     // First, build the Chrome extension package
     console.log('Building Chrome extension package...');
     await execAsync('node scripts/build-extension.cjs', { cwd: ROOT_DIR });

@@ -10,6 +10,7 @@
  * 
  * Usage: node safari-tools.js <command> [arguments]
  */
+/* eslint-disable no-console */
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -46,17 +47,17 @@ function log(message, level = 'info') {
   const prefix = `[${timestamp}]`;
   
   switch (level) {
-    case 'warn':
-      console.warn(`${prefix} ⚠️  ${message}`);
-      break;
-    case 'error':
-      console.error(`${prefix} ❌ ${message}`);
-      break;
-    case 'success':
-      console.log(`${prefix} ✅ ${message}`);
-      break;
-    default:
-      console.log(`${prefix} ℹ️  ${message}`);
+  case 'warn':
+    console.warn(`${prefix} ⚠️  ${message}`);
+    break;
+  case 'error':
+    console.error(`${prefix} ❌ ${message}`);
+    break;
+  case 'success':
+    console.log(`${prefix} ✅ ${message}`);
+    break;
+  default:
+    console.log(`${prefix} ℹ️  ${message}`);
   }
 }
 
@@ -818,28 +819,28 @@ function handleCommandLine() {
   const restArgs = args.slice(1);
   
   switch (command) {
-    case 'build':
-      buildSafariExtension();
-      break;
-    case 'create-simulator':
-      createIOSSimulator();
-      break;
-    case 'verify-ipa':
-      verifyIpaFile(restArgs[0] || null);
-      break;
-    case 'test-ipa':
-      testIpaInSimulator(restArgs[0] || null, restArgs[1] || null);
-      break;
-    case 'verify-and-test-ipa':
-      if (restArgs.length < 2) {
-        log('Usage: node safari-tools.js verify-and-test-ipa <simulator-id> <ipa-path>', 'error');
-        process.exit(1);
-      }
-      verifyAndTestIpa(restArgs[0], restArgs[1]);
-      break;
-    default:
-      showHelp();
+  case 'build':
+    buildSafariExtension();
+    break;
+  case 'create-simulator':
+    createIOSSimulator();
+    break;
+  case 'verify-ipa':
+    verifyIpaFile(restArgs[0] || null);
+    break;
+  case 'test-ipa':
+    testIpaInSimulator(restArgs[0] || null, restArgs[1] || null);
+    break;
+  case 'verify-and-test-ipa':
+    if (restArgs.length < 2) {
+      log('Usage: node safari-tools.js verify-and-test-ipa <simulator-id> <ipa-path>', 'error');
       process.exit(1);
+    }
+    verifyAndTestIpa(restArgs[0], restArgs[1]);
+    break;
+  default:
+    showHelp();
+    process.exit(1);
   }
 }
 

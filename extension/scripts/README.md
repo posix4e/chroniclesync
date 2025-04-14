@@ -60,3 +60,24 @@ The consolidated script exports the following functions:
 - `verifyIpaFile(ipaPath)` - Verifies the generated IPA file
 - `testIpaInSimulator(simulatorId, ipaPath)` - Installs and tests the IPA file in a simulator
 - `verifyAndTestIpa(simulatorId, ipaPath)` - Verifies and tests an IPA file in a simulator
+- `hasAppleSigningSecrets()` - Checks if Apple signing secrets are available in the environment
+- `setupAppleSigning()` - Sets up Apple signing environment with the provided secrets
+
+## Apple Signing Support
+
+The script now includes support for properly signing Safari IPA files using Apple certificates and provisioning profiles. This is particularly useful for CI/CD pipelines where you want to generate properly signed IPAs.
+
+### Required Environment Variables
+
+To use the Apple signing functionality, the following environment variables must be set:
+
+- `APPLE_API_KEY_CONTENT` - Base64-encoded content of the Apple API key (.p8 file)
+- `APPLE_API_KEY_ID` - Apple API key ID
+- `APPLE_API_KEY_ISSUER_ID` - Apple API key issuer ID
+- `APPLE_APP_ID` - Apple app ID
+- `APPLE_CERTIFICATE_CONTENT` - Base64-encoded content of the Apple certificate (.p12 file)
+- `APPLE_CERTIFICATE_PASSWORD` - Password for the Apple certificate
+- `APPLE_PROVISIONING_PROFILE` - Base64-encoded content of the Apple provisioning profile (.mobileprovision file)
+- `APPLE_TEAM_ID` - Apple team ID
+
+If these environment variables are not set, the script will fall back to creating an unsigned IPA file, which is sufficient for testing purposes but not for distribution.

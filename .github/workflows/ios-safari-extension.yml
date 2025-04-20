@@ -76,6 +76,20 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO | xcbeautify
+            
+      - name: Run end-to-end tests
+        run: |
+          cd ios/ChronicleSync
+          xcodebuild test \
+            -project ChronicleSync.xcodeproj \
+            -scheme "ChronicleSync" \
+            -testPlan "EndToEndTests" \
+            -destination "platform=iOS Simulator,name=iPhone 15" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify
+        env:
+          CHRONICLESYNC_TEST_API_KEY: ${{ secrets.CHRONICLESYNC_TEST_API_KEY }}
       
       - name: Create IPA file
         run: |

@@ -1,6 +1,9 @@
 // Safari WebExtension popup script
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Add test identifier to body for UI testing
+  document.body.id = 'chroniclesync-popup';
+  
   const connectionStatus = document.getElementById('connection-status');
   const syncButton = document.getElementById('sync-button');
   const syncStatus = document.getElementById('sync-status');
@@ -12,6 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveApiKeyButton = document.getElementById('save-api-key');
   const settingsLink = document.getElementById('settings-link');
   const syncContainer = document.getElementById('sync-container');
+  
+  // Add accessibility identifiers for UI testing
+  if (syncStatus) syncStatus.setAttribute('id', 'sync-status');
+  if (syncButton) syncButton.setAttribute('id', 'sync-now');
   
   // Check if API key is set
   const { apiKey } = await browser.storage.local.get('apiKey');
@@ -120,6 +127,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       if (response.success) {
         entriesSynced.textContent = response.entries.length;
+        
+        // Create history list for UI testing if it doesn't exist
+        let historyList = document.getElementById('history-list');
+        if (!historyList && response.entries.length > 0) {
+          historyList = document.createElement('table');
+          historyList.id = 'history-list';
+          historyList.style.display = 'none'; // Hide it visually but make it available for testing
+          document.body.appendChild(historyList);
+          
+          // Add history items to the list
+          response.entries.forEach(entry => {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.textContent = entry.url;
+            row.appendChild(cell);
+            historyList.appendChild(row);
+          });
+        }
       }
       
       // Get connected devices (this would come from the server in a real implementation)
@@ -128,4 +153,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('Error loading sync stats:', error);
     }
   }
+  
+  // Add test hooks for automated testing
+  window.chronicleSyncTestHooks = {
+    getSyncStatus: function() {
+      return syncStatus ? syncStatus.textContent : null;
+    },
+    getHistoryItemCount: function() {
+      const historyList = document.getElementById('history-list');
+      return historyList ? historyList.querySelectorAll('tr').length : 0;
+    },
+    triggerSync: function() {
+      if (syncButton) {
+        syncButton.click();
+        return true;
+      }
+      return false;
+    },
+    getConnectionStatus: function() {
+      return connectionStatus ? connectionStatus.textContent : null;
+    }
+  };
 });

@@ -1,0 +1,43 @@
+{
+  "configurations" : [
+    {
+      "id" : "5F7A4D1F-8E9B-4A3C-B8D2-F8D5E8A6C0B1",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:ChronicleSync.xcodeproj",
+          "identifier" : "ChronicleSync",
+          "name" : "ChronicleSync"
+        },
+        {
+          "containerPath" : "container:ChronicleSync.xcodeproj",
+          "identifier" : "ChronicleSync Extension",
+          "name" : "ChronicleSync Extension"
+        }
+      ]
+    },
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:ChronicleSync.xcodeproj",
+      "identifier" : "ChronicleSync",
+      "name" : "ChronicleSync"
+    },
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ChronicleSync.xcodeproj",
+        "identifier" : "ChronicleSync UITests",
+        "name" : "ChronicleSync UITests"
+      }
+    }
+  ],
+  "version" : 1
+}

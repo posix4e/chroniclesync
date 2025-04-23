@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ChronicleSync</h1>
+    </div>
+    
+    <div class="status-section">
+      <div class="status-item">
+        <span class="label">Status:</span>
+        <span id="status" class="value">Initializing...</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Client ID:</span>
+        <span id="clientId" class="value">Not configured</span>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="syncNow" class="button primary">Sync Now</button>
+      <button id="openSettings" class="button secondary">Settings</button>
+      <button id="viewHistory" class="button secondary">View History</button>
+    </div>
+    
+    <div id="syncStats" class="sync-stats hidden">
+      <h3>Last Sync Stats</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-value" id="sentItems">0</span>
+          <span class="stat-label">Sent</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="receivedItems">0</span>
+          <span class="stat-label">Received</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="deviceCount">0</span>
+          <span class="stat-label">Devices</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

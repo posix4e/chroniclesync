@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ChronicleSync Settings</h1>
+    </div>
+    
+    <div class="settings-section">
+      <h2>Client Identification</h2>
+      <div class="form-group">
+        <label for="clientId">Client ID</label>
+        <input type="text" id="clientId" placeholder="Enter your client ID">
+        <button id="generateMnemonic" class="button secondary">Generate Mnemonic</button>
+        <p class="help-text">This ID is used to identify your device when syncing history.</p>
+      </div>
+      
+      <h2>API Configuration</h2>
+      <div class="form-group">
+        <label for="environment">Environment</label>
+        <select id="environment">
+          <option value="production">Production</option>
+          <option value="staging">Staging</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      
+      <div id="customApiUrlContainer" class="form-group hidden">
+        <label for="customApiUrl">Custom API URL</label>
+        <input type="text" id="customApiUrl" placeholder="https://api.example.com">
+      </div>
+      
+      <h2>Sync Settings</h2>
+      <div class="form-group">
+        <label for="syncInterval">Sync Interval (minutes)</label>
+        <input type="number" id="syncInterval" min="1" max="60" value="5">
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input type="checkbox" id="syncOnStartup" checked>
+        <label for="syncOnStartup">Sync on startup</label>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input type="checkbox" id="syncOnNavigation" checked>
+        <label for="syncOnNavigation">Sync on navigation</label>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="saveSettings" class="button primary">Save Settings</button>
+      <button id="resetSettings" class="button danger">Reset to Defaults</button>
+    </div>
+    
+    <div id="statusMessage" class="status-message hidden"></div>
+  </div>
+  
+  <script src="settings.js"></script>
+</body>
+</html>

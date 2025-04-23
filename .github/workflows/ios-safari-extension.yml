@@ -95,13 +95,9 @@ jobs:
           cd ios-safari-extension
           mkdir -p ChronicleSync\ UITests/Attachments
           
-          # Run UI tests if possible, otherwise create placeholder
-          if xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -testPlan UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES; then
-            echo "UI tests completed successfully"
-          else
-            echo "UI tests failed or not available, creating placeholder"
-            touch ChronicleSync\ UITests/Attachments/placeholder.png
-          fi
+          # Run UI tests - fail if they don't succeed
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -testPlan UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+          echo "UI tests completed successfully"
       
       - name: Archive screenshots
         uses: actions/upload-artifact@v4
@@ -142,13 +138,9 @@ jobs:
           cd ios-safari-extension
           mkdir -p test-reports
           
-          # Generate test report if possible, otherwise create placeholder
-          if xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES; then
-            echo "Test report generated successfully"
-          else
-            echo "Test report generation failed, creating placeholder"
-            echo "Test report placeholder" > test-reports/report.txt
-          fi
+          # Generate test report - fail if it doesn't succeed
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+          echo "Test report generated successfully"
       
       - name: Upload test report
         if: always()

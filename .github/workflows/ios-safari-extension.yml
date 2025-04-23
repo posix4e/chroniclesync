@@ -34,6 +34,12 @@ jobs:
           PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           KEYCHAIN_PASSWORD: ${{ github.run_id }}
         run: |
+          # Verify credentials are available
+          if [ -z "$CERTIFICATE_CONTENT" ] || [ -z "$CERTIFICATE_PASSWORD" ] || [ -z "$PROVISIONING_PROFILE" ]; then
+            echo "Error: Required Apple credentials are missing. Cannot proceed with code signing."
+            exit 1
+          fi
+          
           # Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
@@ -57,6 +63,12 @@ jobs:
           API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
         run: |
+          # Verify API credentials are available
+          if [ -z "$API_KEY_CONTENT" ] || [ -z "$API_KEY_ID" ] || [ -z "$API_KEY_ISSUER_ID" ]; then
+            echo "Error: Required App Store Connect API credentials are missing. Cannot proceed with App Store deployment."
+            exit 1
+          fi
+          
           mkdir -p ~/.appstoreconnect/private_keys/
           echo "$API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8
           echo "API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8" >> $GITHUB_ENV
@@ -113,15 +125,12 @@ jobs:
           
           # Export IPA
           xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/IPA -exportOptionsPlist ExportOptions.plist
-      
-      - name: Create placeholder IPA (for PR builds)
-        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
-        run: |
-          cd ios-safari-extension
-          mkdir -p build/IPA
-          echo "This is a placeholder IPA file for PR builds" > build/IPA/ChronicleSync.ipa
+          
+          # Upload IPA as artifact
+          echo "::set-output name=ipa_created::true"
       
       - name: Upload IPA
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: ChronicleSync-IPA
@@ -157,11 +166,6 @@ jobs:
         run: |
           cd ios-safari-extension
           
-          if [ -f "build/IPA/ChronicleSync.ipa" ]; then
-            # Use xcrun altool to upload to App Store Connect
-            xcrun altool --upload-app -f build/IPA/ChronicleSync.ipa --apiKey "$API_KEY_ID" --apiIssuer "$API_KEY_ISSUER_ID" --type ios
-            echo "Successfully uploaded to App Store Connect"
-          else
-            echo "IPA file not found, skipping upload to App Store Connect"
-            exit 1
-          fi
+          # Use xcrun altool to upload to App Store Connect
+          xcrun altool --upload-app -f build/IPA/ChronicleSync.ipa --apiKey "$API_KEY_ID" --apiIssuer "$API_KEY_ISSUER_ID" --type ios
+          echo "Successfully uploaded to App Store Connect"

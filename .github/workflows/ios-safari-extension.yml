@@ -46,7 +46,7 @@ jobs:
           xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 14,OS=latest" -testPlan UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       
       - name: Archive screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: ios-safari-extension/ChronicleSync UITests/Attachments
@@ -59,7 +59,7 @@ jobs:
           xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/IPA -exportOptionsPlist ExportOptions.plist
       
       - name: Upload IPA
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ChronicleSync-IPA
           path: ios-safari-extension/build/IPA
@@ -73,7 +73,7 @@ jobs:
       
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: ios-safari-extension/test-reports

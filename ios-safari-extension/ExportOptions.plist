@@ -3,17 +3,25 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>development</string>
+    <string>app-store</string>
     <key>teamID</key>
     <string>XXXXXXXXXX</string>
     <key>signingStyle</key>
-    <string>automatic</string>
+    <string>manual</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
     <key>provisioningProfiles</key>
     <dict>
         <key>xyz.chroniclesync.ios</key>
-        <string>ChronicleSync Development</string>
+        <string>ChronicleSync Distribution</string>
         <key>xyz.chroniclesync.ios.extension</key>
-        <string>ChronicleSync Extension Development</string>
+        <string>ChronicleSync Extension Distribution</string>
     </dict>
+    <key>destination</key>
+    <string>upload</string>
 </dict>
 </plist>

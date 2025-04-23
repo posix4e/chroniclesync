@@ -29,13 +29,13 @@ jobs:
       - name: Install the Apple certificate and provisioning profile
         if: github.event_name != 'pull_request'
         env:
-          CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_CERTIFICATE_CONTENT: ${{ secrets.APPLE_CERTIFICATE_CONTENT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           KEYCHAIN_PASSWORD: ${{ github.run_id }}
         run: |
           # Verify credentials are available
-          if [ -z "$CERTIFICATE_CONTENT" ] || [ -z "$CERTIFICATE_PASSWORD" ] || [ -z "$PROVISIONING_PROFILE" ]; then
+          if [ -z "$APPLE_CERTIFICATE_CONTENT" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_PROVISIONING_PROFILE" ]; then
             echo "Error: Required Apple credentials are missing. Cannot proceed with code signing."
             exit 1
           fi
@@ -47,33 +47,31 @@ jobs:
           security set-keychain-settings -t 3600 -u build.keychain
           
           # Import certificate to keychain
-          echo "$CERTIFICATE_CONTENT" | base64 --decode > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          echo "$APPLE_CERTIFICATE_CONTENT" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
           
           # Create provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
       
       # Setup App Store Connect API
       - name: Setup App Store Connect API Key
         if: github.event_name != 'pull_request'
         env:
-          API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
-          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
         run: |
           # Verify API credentials are available
-          if [ -z "$API_KEY_CONTENT" ] || [ -z "$API_KEY_ID" ] || [ -z "$API_KEY_ISSUER_ID" ]; then
+          if [ -z "$APPLE_API_KEY_CONTENT" ] || [ -z "$APPLE_API_KEY_ID" ] || [ -z "$APPLE_API_KEY_ISSUER_ID" ]; then
             echo "Error: Required App Store Connect API credentials are missing. Cannot proceed with App Store deployment."
             exit 1
           fi
           
           mkdir -p ~/.appstoreconnect/private_keys/
-          echo "$API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8
-          echo "API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_$API_KEY_ID.p8" >> $GITHUB_ENV
-          echo "API_KEY_ID=$API_KEY_ID" >> $GITHUB_ENV
-          echo "API_KEY_ISSUER_ID=$API_KEY_ISSUER_ID" >> $GITHUB_ENV
+          echo "$APPLE_API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8
+          echo "APPLE_API_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY_ID.p8" >> $GITHUB_ENV
       
       - name: Install dependencies
         run: |
@@ -108,22 +106,25 @@ jobs:
       - name: Build and archive for App Store (Signed)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APP_ID: ${{ secrets.APPLE_APP_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
         run: |
           cd ios-safari-extension
           
+          # Verify team ID is available
+          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_APP_ID" ]; then
+            echo "Error: Required Apple Team ID or App ID is missing. Cannot proceed with app archiving."
+            exit 1
+          fi
+          
           # Update ExportOptions.plist with correct team ID
-          sed -i '' "s/XXXXXXXXXX/$TEAM_ID/g" ExportOptions.plist
+          sed -i '' "s/XXXXXXXXXX/$APPLE_TEAM_ID/g" ExportOptions.plist
           
           # Archive the app
-          xcodebuild archive -scheme "ChronicleSync" -archivePath build/ChronicleSync.xcarchive -destination "generic/platform=iOS" DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_IDENTITY="Apple Distribution" CODE_SIGN_STYLE="Manual" PROVISIONING_PROFILE_SPECIFIER="ChronicleSync Distribution"
+          xcodebuild archive -scheme "ChronicleSync" -archivePath build/ChronicleSync.xcarchive -destination "generic/platform=iOS" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Distribution" CODE_SIGN_STYLE="Manual" PROVISIONING_PROFILE_SPECIFIER="ChronicleSync Distribution"
           
           # Export IPA
           xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/IPA -exportOptionsPlist ExportOptions.plist
-          
-          # Upload IPA as artifact
-          echo "::set-output name=ipa_created::true"
       
       - name: Upload IPA
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -152,12 +153,12 @@ jobs:
       - name: Upload to App Store Connect
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          APP_ID: ${{ secrets.APPLE_APP_ID }}
-          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+          APPLE_APP_ID: ${{ secrets.APPLE_APP_ID }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
         run: |
           cd ios-safari-extension
           
           # Use xcrun altool to upload to App Store Connect
-          xcrun altool --upload-app -f build/IPA/ChronicleSync.ipa --apiKey "$API_KEY_ID" --apiIssuer "$API_KEY_ISSUER_ID" --type ios
+          xcrun altool --upload-app -f build/IPA/ChronicleSync.ipa --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_KEY_ISSUER_ID" --type ios
           echo "Successfully uploaded to App Store Connect"

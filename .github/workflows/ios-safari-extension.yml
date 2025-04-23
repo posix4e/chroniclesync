@@ -1,0 +1,79 @@
+name: iOS Safari Extension CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ios-safari-extension/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ios-safari-extension/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Install dependencies
+        run: |
+          cd ios-safari-extension
+          xcodebuild -resolvePackageDependencies
+      
+      - name: Build for iOS
+        run: |
+          cd ios-safari-extension
+          xcodebuild clean build -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      
+      - name: Run unit tests
+        run: |
+          cd ios-safari-extension
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      
+      - name: Run UI tests and capture screenshots
+        run: |
+          cd ios-safari-extension
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -testPlan UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      
+      - name: Archive screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: ios-safari-extension/ChronicleSync UITests/Attachments
+      
+      - name: Build IPA
+        run: |
+          cd ios-safari-extension
+          mkdir -p build
+          xcodebuild archive -scheme "ChronicleSync" -archivePath build/ChronicleSync.xcarchive -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          xcodebuild -exportArchive -archivePath build/ChronicleSync.xcarchive -exportPath build/IPA -exportOptionsPlist ExportOptions.plist
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChronicleSync-IPA
+          path: ios-safari-extension/build/IPA
+      
+      - name: Generate test report
+        if: always()
+        run: |
+          cd ios-safari-extension
+          mkdir -p test-reports
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: ios-safari-extension/test-reports

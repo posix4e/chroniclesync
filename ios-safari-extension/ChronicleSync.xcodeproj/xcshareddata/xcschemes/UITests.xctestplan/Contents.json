@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "5F7A6B8C-9D0E-1F2A-3B4C-5D6E7F8A9B0C",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:ChronicleSync.xcodeproj",
+      "identifier" : "1A2B3C4D5E6F7A8B9C0D1E66",
+      "name" : "ChronicleSync"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ChronicleSync.xcodeproj",
+        "identifier" : "1A2B3C4D5E6F7A8B9C0D1E87",
+        "name" : "ChronicleSync UITests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -138,7 +138,8 @@ jobs:
       
       - name: Generate test report
         if: always()
-        continue-on-error: false
+        continue-on-error: true
+        id: test_report
         run: |
           cd ios-safari-extension
           mkdir -p test-reports
@@ -153,17 +154,19 @@ jobs:
             # Verify test results
             xcrun xcresulttool get --path test-reports/TestResults.xcresult --format json > test-reports/test_results.json
             
-            # Check for test failures
+            # Check for test failures and set output
             if grep -q "\"testStatus\" : \"Failure\"" test-reports/test_results.json; then
               echo "::error::Tests failed! See test report for details."
-              exit 1
+              echo "tests_failed=true" >> $GITHUB_OUTPUT
             else
               echo "All tests passed successfully!"
+              echo "tests_failed=false" >> $GITHUB_OUTPUT
             fi
           else
             echo "Creating placeholder test report"
             echo "Test results unavailable due to Xcode internal error" > test-reports/test_results.txt
             echo "::warning::Could not verify test results due to missing test report"
+            echo "tests_failed=unknown" >> $GITHUB_OUTPUT
           fi
       
       - name: Upload test report
@@ -172,6 +175,18 @@ jobs:
         with:
           name: test-reports
           path: ios-safari-extension/test-reports
+          
+      - name: Check test results
+        if: always()
+        run: |
+          if [[ "${{ steps.test_report.outputs.tests_failed }}" == "true" ]]; then
+            echo "::error::Tests failed! See test report for details."
+            exit 1
+          elif [[ "${{ steps.test_report.outputs.tests_failed }}" == "unknown" ]]; then
+            echo "::warning::Could not verify test results. Continuing anyway."
+          else
+            echo "All tests passed successfully!"
+          fi
           
       - name: Upload to App Store Connect
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

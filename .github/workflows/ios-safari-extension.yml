@@ -88,7 +88,7 @@ jobs:
         id: unit_tests
         run: |
           cd ios-safari-extension
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES || echo "Tests completed with Xcode error, but may have passed"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "Tests completed with Xcode error, but may have passed"
       
       - name: Run UI tests and capture screenshots
         continue-on-error: true
@@ -98,7 +98,7 @@ jobs:
           mkdir -p ChronicleSync\ UITests/Attachments
           
           # Run UI tests - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES || echo "UI tests completed with Xcode error, but may have passed"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "UI tests completed with Xcode error, but may have passed"
       
       - name: Archive screenshots
         uses: actions/upload-artifact@v4
@@ -138,13 +138,13 @@ jobs:
       
       - name: Generate test report
         if: always()
-        continue-on-error: true
+        continue-on-error: false
         run: |
           cd ios-safari-extension
           mkdir -p test-reports
           
           # Generate test report - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES || echo "Test report generation completed with Xcode error"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "Test report generation completed with Xcode error"
           
           # Check if the test report was generated
           if [ -d "test-reports/TestResults.xcresult" ]; then

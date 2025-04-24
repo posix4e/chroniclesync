@@ -98,7 +98,7 @@ jobs:
           mkdir -p ChronicleSync\ UITests/Attachments
           
           # Run UI tests - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -testPlan UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES || echo "UI tests completed with Xcode error, but may have passed"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES || echo "UI tests completed with Xcode error, but may have passed"
       
       - name: Archive screenshots
         uses: actions/upload-artifact@v4
@@ -149,9 +149,21 @@ jobs:
           # Check if the test report was generated
           if [ -d "test-reports/TestResults.xcresult" ]; then
             echo "Test report generated successfully"
+            
+            # Verify test results
+            xcrun xcresulttool get --path test-reports/TestResults.xcresult --format json > test-reports/test_results.json
+            
+            # Check for test failures
+            if grep -q "\"testStatus\" : \"Failure\"" test-reports/test_results.json; then
+              echo "::error::Tests failed! See test report for details."
+              exit 1
+            else
+              echo "All tests passed successfully!"
+            fi
           else
             echo "Creating placeholder test report"
             echo "Test results unavailable due to Xcode internal error" > test-reports/test_results.txt
+            echo "::warning::Could not verify test results due to missing test report"
           fi
       
       - name: Upload test report

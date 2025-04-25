@@ -88,7 +88,19 @@ jobs:
         id: unit_tests
         run: |
           cd ios-safari-extension
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "Tests completed with Xcode error, but may have passed"
+          mkdir -p test-reports
+          
+          # Run unit tests and capture output
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/unit_test_results.txt || echo "Tests completed with Xcode error, but may have passed"
+          
+          # Check for failures in unit tests
+          if grep -q -E "Test Case.*failed|.*[0-9]+ failures" test-reports/unit_test_results.txt; then
+            echo "::error::Unit tests failed! See logs for details."
+            echo "unit_tests_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Unit tests completed without detected failures."
+            echo "unit_tests_failed=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Run UI tests and capture screenshots
         continue-on-error: true
@@ -96,9 +108,19 @@ jobs:
         run: |
           cd ios-safari-extension
           mkdir -p ChronicleSync\ UITests/Attachments
+          mkdir -p test-reports
           
           # Run UI tests - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "UI tests completed with Xcode error, but may have passed"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/ui_test_results.txt || echo "UI tests completed with Xcode error, but may have passed"
+          
+          # Check for failures in UI tests
+          if grep -q -E "Test Case.*failed|.*[0-9]+ failures" test-reports/ui_test_results.txt; then
+            echo "::error::UI tests failed! See logs for details."
+            echo "ui_tests_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "UI tests completed without detected failures."
+            echo "ui_tests_failed=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Archive screenshots
         uses: actions/upload-artifact@v4
@@ -145,10 +167,15 @@ jobs:
           mkdir -p test-reports
           
           # Generate test report - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 || echo "Test report generation completed with Xcode error"
+          # Capture test output to both the result bundle and a text file
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/test_results.txt || echo "Test report generation completed with Xcode error"
           
-          # Check if the test report was generated
-          if [ -d "test-reports/TestResults.xcresult" ]; then
+          # First check for failures in the raw test output
+          if grep -q "Test Case.*failed" test-reports/test_results.txt; then
+            echo "::error::Found test failures in raw test output!"
+            echo "tests_failed=true" >> $GITHUB_OUTPUT
+          # Then check if the test report was generated
+          elif [ -d "test-reports/TestResults.xcresult" ]; then
             echo "Test report generated successfully"
             
             # Verify test results
@@ -179,11 +206,41 @@ jobs:
       - name: Check test results
         if: always()
         run: |
-          if [[ "${{ steps.test_report.outputs.tests_failed }}" == "true" ]]; then
-            echo "::error::Tests failed! See test report for details."
+          # Check if unit tests failed directly
+          if [[ "${{ steps.unit_tests.outputs.unit_tests_failed }}" == "true" ]]; then
+            echo "::error::Unit tests failed! See logs for details."
             exit 1
+          fi
+          
+          # Check if UI tests failed
+          if [[ "${{ steps.ui_tests.outputs.ui_tests_failed }}" == "true" ]]; then
+            echo "::error::UI tests failed! See logs for details."
+            exit 1
+          fi
+          
+          # Force test failure if test report indicates failures
+          if [[ "${{ steps.test_report.outputs.tests_failed }}" == "true" ]]; then
+            echo "::error::Tests failed according to test report! See test report for details."
+            exit 1
+          # Force test failure if we couldn't verify results but want to be strict
           elif [[ "${{ steps.test_report.outputs.tests_failed }}" == "unknown" ]]; then
-            echo "::warning::Could not verify test results. Continuing anyway."
+            echo "::warning::Could not verify test results from test report."
+            
+            # Check if we have any test output at all
+            if [ -s "ios-safari-extension/test-reports/test_results.txt" ]; then
+              # Look for any indication of test failures in the raw output
+              if grep -q -E "Test Case.*failed|.*[0-9]+ failures" ios-safari-extension/test-reports/test_results.txt; then
+                echo "::error::Found test failures in logs!"
+                exit 1
+              else
+                echo "No test failures found in logs. Continuing."
+              fi
+            else
+              echo "::warning::No test output available from test report. Cannot verify test status."
+              # Uncomment to make the workflow fail when we can't verify tests at all
+              # echo "::error::No test output available. Failing for safety."
+              # exit 1
+            fi
           else
             echo "All tests passed successfully!"
           fi

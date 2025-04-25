@@ -94,8 +94,8 @@ jobs:
           xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/unit_test_results.txt || echo "Tests completed with Xcode error, but may have passed"
           
           # Check for failures in unit tests
-          if grep -q -E "Test Case.*failed|.*[0-9]+ failures" test-reports/unit_test_results.txt; then
-            echo "::error::Unit tests failed! See logs for details."
+          if grep -q -E "Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: " test-reports/unit_test_results.txt; then
+            echo "::error::Unit tests failed or encountered build errors! See logs for details."
             echo "unit_tests_failed=true" >> $GITHUB_OUTPUT
           else
             echo "Unit tests completed without detected failures."
@@ -111,11 +111,11 @@ jobs:
           mkdir -p test-reports
           
           # Run UI tests - continue even if Xcode has internal errors
-          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:ChronicleSync_UITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/ui_test_results.txt || echo "UI tests completed with Xcode error, but may have passed"
+          xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:"ChronicleSync UITests/ChronicleSync_UITests" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/ui_test_results.txt || echo "UI tests completed with Xcode error, but may have passed"
           
           # Check for failures in UI tests
-          if grep -q -E "Test Case.*failed|.*[0-9]+ failures" test-reports/ui_test_results.txt; then
-            echo "::error::UI tests failed! See logs for details."
+          if grep -q -E "Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: " test-reports/ui_test_results.txt; then
+            echo "::error::UI tests failed or encountered build errors! See logs for details."
             echo "ui_tests_failed=true" >> $GITHUB_OUTPUT
           else
             echo "UI tests completed without detected failures."
@@ -171,8 +171,8 @@ jobs:
           xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/test_results.txt || echo "Test report generation completed with Xcode error"
           
           # First check for failures in the raw test output
-          if grep -q "Test Case.*failed" test-reports/test_results.txt; then
-            echo "::error::Found test failures in raw test output!"
+          if grep -q -E "Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: " test-reports/test_results.txt; then
+            echo "::error::Found test failures or build errors in raw test output!"
             echo "tests_failed=true" >> $GITHUB_OUTPUT
           # Then check if the test report was generated
           elif [ -d "test-reports/TestResults.xcresult" ]; then
@@ -216,6 +216,18 @@ jobs:
           if [[ "${{ steps.ui_tests.outputs.ui_tests_failed }}" == "true" ]]; then
             echo "::error::UI tests failed! See logs for details."
             exit 1
+          fi
+          
+          # Check for specific error messages in UI test logs
+          if [ -s "ios-safari-extension/test-reports/ui_test_results.txt" ]; then
+            if grep -q "error: Failed to build" ios-safari-extension/test-reports/ui_test_results.txt; then
+              echo "::error::UI tests failed to build! See logs for details."
+              exit 1
+            fi
+            if grep -q "isn't a member of the specified test plan or scheme" ios-safari-extension/test-reports/ui_test_results.txt; then
+              echo "::error::UI test target not found in scheme! Check the test target name."
+              exit 1
+            fi
           fi
           
           # Force test failure if test report indicates failures

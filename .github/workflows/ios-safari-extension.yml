@@ -179,7 +179,7 @@ jobs:
             echo "Test report generated successfully"
             
             # Verify test results
-            xcrun xcresulttool get --path test-reports/TestResults.xcresult --format json > test-reports/test_results.json
+            xcrun xcresulttool get object --legacy --path test-reports/TestResults.xcresult --format json > test-reports/test_results.json
             
             # Check for test failures and set output
             if grep -q "\"testStatus\" : \"Failure\"" test-reports/test_results.json; then

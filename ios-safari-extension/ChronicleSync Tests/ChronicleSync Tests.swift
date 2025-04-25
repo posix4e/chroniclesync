@@ -21,4 +21,11 @@ class ChronicleSync_Tests: XCTestCase {
         let contentView = ContentView()
         XCTAssertNotNil(contentView)
     }
+    
+    // This test is intentionally failing to verify our workflow changes
+    // Comment out this test to make the workflow pass
+    func testIntentionallyFailing() throws {
+        // This test will fail to verify our workflow changes
+        XCTFail("This test is intentionally failing to verify that the workflow fails when tests fail")
+    }
 }

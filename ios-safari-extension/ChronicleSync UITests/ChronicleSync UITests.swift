@@ -72,6 +72,7 @@ class ChronicleSync_UITests: XCTestCase {
     
     // This test is intentionally failing to verify our workflow changes
     // Comment out this test to make the workflow pass
+    /*
     func testIntentionallyFailingUITest() throws {
         // Take a screenshot before failing
         let screenshot = app.screenshot()
@@ -83,4 +84,5 @@ class ChronicleSync_UITests: XCTestCase {
         // This test will fail to verify our workflow changes
         XCTFail("This UI test is intentionally failing to verify that the workflow fails when UI tests fail")
     }
+    */
 }

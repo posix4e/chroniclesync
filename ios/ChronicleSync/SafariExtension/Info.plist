@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.Safari.web-extension</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>$(PRODUCT_MODULE_NAME).SafariWebExtensionHandler</string>
+    </dict>
+    <key>CFBundleDisplayName</key>
+    <string>ChronicleSync</string>
+    <key>CFBundleIdentifier</key>
+    <string>dev.all-hands.ChronicleSync.SafariExtension</string>
+    <key>CFBundleName</key>
+    <string>ChronicleSync Safari Extension</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 All Hands. All rights reserved.</string>
+    <key>NSHumanReadableDescription</key>
+    <string>Sync browsing history and summaries across browsers</string>
+</dict>
+</plist>

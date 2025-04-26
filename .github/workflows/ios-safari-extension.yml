@@ -113,13 +113,19 @@ jobs:
           # Run UI tests - continue even if Xcode has internal errors
           xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -only-testing:"ChronicleSync UITests/ChronicleSync_UITests" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/ui_test_results.txt || echo "UI tests completed with Xcode error, but may have passed"
           
-          # Check for failures in UI tests
-          if grep -q -E "Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: " test-reports/ui_test_results.txt; then
+          # Check for failures in UI tests - improved pattern matching
+          if grep -q -E "Test case.*failed|Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: |** TEST FAILED **" test-reports/ui_test_results.txt; then
             echo "::error::UI tests failed or encountered build errors! See logs for details."
             echo "ui_tests_failed=true" >> $GITHUB_OUTPUT
           else
-            echo "UI tests completed without detected failures."
-            echo "ui_tests_failed=false" >> $GITHUB_OUTPUT
+            # Double-check for failing tests with a more specific pattern
+            if grep -q -E "testIntentionallyFailingUITest.*failed" test-reports/ui_test_results.txt; then
+              echo "::error::Found failing test: testIntentionallyFailingUITest"
+              echo "ui_tests_failed=true" >> $GITHUB_OUTPUT
+            else
+              echo "UI tests completed without detected failures."
+              echo "ui_tests_failed=false" >> $GITHUB_OUTPUT
+            fi
           fi
       
       - name: Archive screenshots
@@ -170,9 +176,13 @@ jobs:
           # Capture test output to both the result bundle and a text file
           xcodebuild test -scheme "ChronicleSync" -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" -resultBundlePath test-reports/TestResults.xcresult CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 60 | tee test-reports/test_results.txt || echo "Test report generation completed with Xcode error"
           
-          # First check for failures in the raw test output
-          if grep -q -E "Test Case.*failed|.*[0-9]+ failures|error: Failed to build|error: " test-reports/test_results.txt; then
+          # First check for failures in the raw test output with improved pattern matching
+          if grep -q -E "Test [Cc]ase.*failed|.*[0-9]+ failures|error: Failed to build|error: |** TEST FAILED **" test-reports/test_results.txt; then
             echo "::error::Found test failures or build errors in raw test output!"
+            echo "tests_failed=true" >> $GITHUB_OUTPUT
+          # Check specifically for the intentionally failing test
+          elif grep -q -E "testIntentionallyFailingUITest.*failed" test-reports/test_results.txt; then
+            echo "::error::Found failing test: testIntentionallyFailingUITest"
             echo "tests_failed=true" >> $GITHUB_OUTPUT
           # Then check if the test report was generated
           elif [ -d "test-reports/TestResults.xcresult" ]; then
@@ -186,8 +196,19 @@ jobs:
               echo "::error::Tests failed! See test report for details."
               echo "tests_failed=true" >> $GITHUB_OUTPUT
             else
-              echo "All tests passed successfully!"
-              echo "tests_failed=false" >> $GITHUB_OUTPUT
+              # Double-check for failing tests in the JSON
+              if grep -q -E "\"testName\" : \"testIntentionallyFailingUITest" test-reports/test_results.json; then
+                if grep -q -E "\"testStatus\" : \"Success\"" test-reports/test_results.json; then
+                  echo "All tests passed successfully!"
+                  echo "tests_failed=false" >> $GITHUB_OUTPUT
+                else
+                  echo "::error::Found failing test in JSON: testIntentionallyFailingUITest"
+                  echo "tests_failed=true" >> $GITHUB_OUTPUT
+                fi
+              else
+                echo "All tests passed successfully!"
+                echo "tests_failed=false" >> $GITHUB_OUTPUT
+              fi
             fi
           else
             echo "Creating placeholder test report"
@@ -228,6 +249,16 @@ jobs:
               echo "::error::UI test target not found in scheme! Check the test target name."
               exit 1
             fi
+            # Check specifically for the intentionally failing test
+            if grep -q -E "testIntentionallyFailingUITest.*failed|Test case.*testIntentionallyFailingUITest.*failed" ios-safari-extension/test-reports/ui_test_results.txt; then
+              echo "::error::Found failing test: testIntentionallyFailingUITest"
+              exit 1
+            fi
+            # Check for any test failures with improved pattern matching
+            if grep -q -E "Test [Cc]ase.*failed|.*[0-9]+ failures|** TEST FAILED **" ios-safari-extension/test-reports/ui_test_results.txt; then
+              echo "::error::UI tests failed! See logs for details."
+              exit 1
+            fi
           fi
           
           # Force test failure if test report indicates failures
@@ -240,9 +271,13 @@ jobs:
             
             # Check if we have any test output at all
             if [ -s "ios-safari-extension/test-reports/test_results.txt" ]; then
-              # Look for any indication of test failures in the raw output
-              if grep -q -E "Test Case.*failed|.*[0-9]+ failures" ios-safari-extension/test-reports/test_results.txt; then
+              # Look for any indication of test failures in the raw output with improved pattern matching
+              if grep -q -E "Test [Cc]ase.*failed|.*[0-9]+ failures|** TEST FAILED **" ios-safari-extension/test-reports/test_results.txt; then
                 echo "::error::Found test failures in logs!"
+                exit 1
+              # Check specifically for the intentionally failing test
+              elif grep -q -E "testIntentionallyFailingUITest.*failed|Test case.*testIntentionallyFailingUITest.*failed" ios-safari-extension/test-reports/test_results.txt; then
+                echo "::error::Found failing test: testIntentionallyFailingUITest"
                 exit 1
               else
                 echo "No test failures found in logs. Continuing."

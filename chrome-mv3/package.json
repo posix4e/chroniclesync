@@ -1,0 +1,25 @@
+{
+  "name": "p2p-history-sync",
+  "version": "1.0.0",
+  "description": "P2P History Sync Chrome Extension",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node build.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@automerge/automerge": "^2.1.10",
+    "hyperswarm-web": "^2.2.0",
+    "idb-keyval": "^6.2.1",
+    "simple-peer": "^9.11.1",
+    "timeago.js": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/simple-peer": "^9.11.8",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vite-plugin-chrome-extension": "^0.0.7"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "P2P History Sync",
+  "version": "1.0.0",
+  "description": "Sync browser history across devices using P2P WebRTC",
+  "background": {
+    "service_worker": "sw.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "history",
+    "storage",
+    "alarms",
+    "offscreen"
+  ]
+}

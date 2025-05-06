@@ -21,9 +21,19 @@ const copyFiles = () => ({
       'devtools.css'
     ];
 
+    // Get the current mode from the command line arguments
+    const args = process.argv.slice(2);
+    const modeIndex = args.findIndex(arg => arg === '--mode');
+    const mode = modeIndex !== -1 && modeIndex + 1 < args.length ? args[modeIndex + 1] : null;
+    
+    // Determine the output directory based on the mode
+    const outDir = mode === 'firefox' ? 'dist-firefox' : 'dist';
+    console.log(`Copying files to ${outDir} directory (mode: ${mode || 'default'})`);
+
     for (const file of files) {
       try {
-        copyFileSync(resolve(__dirname, file), resolve(__dirname, 'dist', file));
+        copyFileSync(resolve(__dirname, file), resolve(__dirname, outDir, file));
+        console.log(`Copied ${file} to ${outDir}`);
       } catch (error) {
         console.warn(`Warning: Could not copy ${file}: ${error}`);
       }
@@ -31,32 +41,38 @@ const copyFiles = () => ({
   }
 });
 
-export default defineConfig({
-  plugins: [react(), copyFiles()],
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        popup: resolve(__dirname, 'src/popup.tsx'),
-        background: resolve(__dirname, 'src/background.ts'),
-        settings: resolve(__dirname, 'src/settings/index.ts'),
-        history: resolve(__dirname, 'src/history.tsx'),
-        devtools: resolve(__dirname, 'src/devtools.tsx'),
-        'devtools-page': resolve(__dirname, 'src/devtools-page.ts'),
-        'content-script': resolve(__dirname, 'src/content-script.ts')
-      },
-      output: {
-        format: 'es',
-        entryFileNames: '[name].js',
-        assetFileNames: 'assets/[name].[ext]',
-        inlineDynamicImports: false
+export default defineConfig(({ mode }) => {
+  const isFirefox = mode === 'firefox';
+  
+  return {
+    plugins: [react(), copyFiles()],
+    build: {
+      outDir: isFirefox ? 'dist-firefox' : 'dist',
+      emptyOutDir: true,
+      target: isFirefox ? 'es2015' : 'esnext',
+      rollupOptions: {
+        input: {
+          popup: resolve(__dirname, 'src/popup.tsx'),
+          background: resolve(__dirname, 'src/background.ts'),
+          settings: resolve(__dirname, 'src/settings/index.ts'),
+          history: resolve(__dirname, 'src/history.tsx'),
+          devtools: resolve(__dirname, 'src/devtools.tsx'),
+          'devtools-page': resolve(__dirname, 'src/devtools-page.ts'),
+          'content-script': resolve(__dirname, 'src/content-script.ts')
+        },
+        output: {
+          format: 'es' as const,
+          entryFileNames: '[name].js',
+          assetFileNames: 'assets/[name].[ext]',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          inlineDynamicImports: false
+        }
       }
+    },
+    server: {
+      port: 54512,
+      host: '0.0.0.0',
+      cors: true
     }
-  },
-  server: {
-    port: 54512,
-    host: '0.0.0.0',
-    cors: true
-  }
+  };
 });

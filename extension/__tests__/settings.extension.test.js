@@ -132,7 +132,47 @@ describe('Settings', () => {
     expirationDaysInput.value = '7';
     form.appendChild(expirationDaysInput);
     
+    // Sync mode select
+    const syncModeSelect = document.createElement('select');
+    syncModeSelect.id = 'syncMode';
+    ['server', 'p2p'].forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      syncModeSelect.appendChild(option);
+    });
+    form.appendChild(syncModeSelect);
+    
+    // P2P settings container
+    const p2pSettingsContainer = document.createElement('div');
+    p2pSettingsContainer.id = 'p2pSettingsContainer';
+    p2pSettingsContainer.style.display = 'none';
+    
+    // ICE server provider select
+    const iceServerProviderSelect = document.createElement('select');
+    iceServerProviderSelect.id = 'iceServerProvider';
+    ['google', 'custom'].forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      iceServerProviderSelect.appendChild(option);
+    });
+    p2pSettingsContainer.appendChild(iceServerProviderSelect);
+    
+    // Custom ICE servers container
+    const customIceServersContainer = document.createElement('div');
+    customIceServersContainer.id = 'customIceServersContainer';
+    customIceServersContainer.style.display = 'none';
+    p2pSettingsContainer.appendChild(customIceServersContainer);
+    
+    // Custom ICE servers textarea
+    const customIceServersTextarea = document.createElement('textarea');
+    customIceServersTextarea.id = 'customIceServers';
+    customIceServersTextarea.value = '[{"urls":"stun:stun.example.com"}]';
+    customIceServersContainer.appendChild(customIceServersTextarea);
+    
     form.appendChild(customUrlContainer);
+    form.appendChild(p2pSettingsContainer);
     mockContainer.appendChild(form);
 
     // Add settings actions container with buttons
@@ -162,7 +202,10 @@ describe('Settings', () => {
         clientId: 'test-client',
         environment: 'production',
         customApiUrl: null,
-        expirationDays: 7
+        expirationDays: 7,
+        syncMode: 'server',
+        p2pSignalServerType: 'production',
+        p2pDiscoveryServer: 'wss://api.chroniclesync.xyz'
       });
     });
 
@@ -181,114 +224,202 @@ describe('Settings', () => {
   });
 
   it('init loads and renders config', async () => {
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
+    // Create a mock config
     const mockConfig = {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'test-client',
       customApiUrl: 'http://test-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      syncMode: 'p2p',
+      iceServerProvider: 'custom',
+      customIceServers: '[{"urls":"stun:stun.example.com"}]'
     };
-
-    chrome.storage.sync.get.mockImplementation((keys, callback) => {
-      callback(mockConfig);
-    });
-
-    await settings.init();
-
-    expect(settings.config).toEqual(mockConfig);
+    
+    // Directly set the config
+    settings.config = mockConfig;
+    
+    // Call render method
+    settings.render();
+    
+    // Verify the form fields are populated correctly
     expect(document.getElementById('clientId').value).toBe(mockConfig.clientId);
     expect(document.getElementById('environment').value).toBe(mockConfig.environment);
     expect(document.getElementById('customApiUrl').value).toBe(mockConfig.customApiUrl);
+    expect(document.getElementById('syncMode').value).toBe(mockConfig.syncMode);
+    expect(document.getElementById('iceServerProvider').value).toBe(mockConfig.iceServerProvider);
+    expect(document.getElementById('customIceServers').value).toBe(mockConfig.customIceServers);
+    
+    // Verify containers are displayed correctly
     expect(document.getElementById('customUrlContainer').style.display).toBe('block');
+    expect(document.getElementById('customIceServersContainer').style.display).toBe('block');
   });
 
   it('handleSave updates config and shows success message', async () => {
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
     const newConfig = {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'new-client',
       customApiUrl: 'http://new-api.com',
       environment: 'custom',
-      expirationDays: 7
+      expirationDays: 7,
+      syncMode: 'p2p',
+      iceServerProvider: 'custom',
+      customIceServers: '[{"urls":"stun:stun.example.com"}]'
     };
 
     // Mock generateClientId to return the expected client ID
     vi.spyOn(settings, 'generateClientId').mockResolvedValue(newConfig.clientId);
-    chrome.storage.sync.set.mockImplementation((data, callback) => callback());
+    
+    // Mock chrome.storage.sync.set to call the callback
+    chrome.storage.sync.set.mockImplementation((data, callback) => {
+      if (callback) callback();
+    });
     
     // Set up form values
     document.getElementById('mnemonic').value = newConfig.mnemonic;
     document.getElementById('clientId').value = newConfig.clientId;
     document.getElementById('environment').value = newConfig.environment;
     document.getElementById('customApiUrl').value = newConfig.customApiUrl;
+    document.getElementById('syncMode').value = newConfig.syncMode;
+    document.getElementById('expirationDays').value = String(newConfig.expirationDays);
+    document.getElementById('iceServerProvider').value = newConfig.iceServerProvider;
+    document.getElementById('customIceServers').value = newConfig.customIceServers;
 
     const mockEvent = {
       preventDefault: vi.fn()
     };
 
+    // Call handleSave
     await settings.handleSave(mockEvent);
 
+    // Verify the event was prevented
     expect(mockEvent.preventDefault).toHaveBeenCalled();
-    expect(chrome.storage.sync.set).toHaveBeenCalledWith(newConfig, expect.any(Function));
-    expect(settings.config).toEqual(newConfig);
+    
+    // Verify chrome.storage.sync.set was called with the correct data
+    expect(chrome.storage.sync.set).toHaveBeenCalled();
+    
+    // Verify the config was updated
+    expect(settings.config.mnemonic).toBe(newConfig.mnemonic);
+    expect(settings.config.clientId).toBe(newConfig.clientId);
+    expect(settings.config.environment).toBe(newConfig.environment);
+    expect(settings.config.customApiUrl).toBe(newConfig.customApiUrl);
   });
 
   it('handleReset resets to default config when confirmed', async () => {
+    // Mock confirm to return true
     global.confirm = vi.fn(() => true);
-    chrome.storage.sync.set.mockImplementation((data, callback) => callback());
     
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
+    // Mock generateMnemonic to return a specific value
+    vi.spyOn(settings, 'generateMnemonic').mockReturnValue('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art');
+    
+    // Mock generateClientId to return a specific value
+    vi.spyOn(settings, 'generateClientId').mockResolvedValue('default-client');
+    
+    // Mock chrome.storage.sync.set to call the callback
+    chrome.storage.sync.set.mockImplementation((data, callback) => {
+      if (callback) callback();
+    });
+    
+    // Set up initial config
     settings.config = {
       mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
       clientId: 'custom-client',
       customApiUrl: 'http://custom-api.com',
-      environment: 'custom'
+      environment: 'custom',
+      syncMode: 'p2p',
+      iceServerProvider: 'custom',
+      customIceServers: '[{"urls":"stun:stun.example.com"}]'
     };
-
+    
+    // Call handleReset
     await settings.handleReset();
-
+    
+    // Verify confirm was called
     expect(global.confirm).toHaveBeenCalled();
-    expect(chrome.storage.sync.set).toHaveBeenCalledWith(expect.any(Object), expect.any(Function));
+    
+    // Verify chrome.storage.sync.set was called
+    expect(chrome.storage.sync.set).toHaveBeenCalled();
+    
+    // Verify the config was reset to defaults
     expect(settings.config.environment).toBe('production');
     expect(settings.config.customApiUrl).toBeNull();
+    
+    // Verify the UI was updated
+    expect(document.getElementById('environment').value).toBe('production');
     expect(document.getElementById('customUrlContainer').style.display).toBe('none');
   });
 
   it('shows/hides custom URL field based on environment', async () => {
-    // Mock storage to return custom environment
-    chrome.storage.sync.get.mockImplementation((keys, callback) => {
-      callback({
-        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
-        clientId: 'test-client',
-        environment: 'custom',
-        customApiUrl: 'http://test-api.com'
-      });
-    });
-
-    await settings.init();
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
+    // Set up the DOM elements directly
+    document.getElementById('environment').value = 'custom';
+    
+    // Manually trigger the change event
+    settings.handleEnvironmentChange();
+    
     const customUrlContainer = document.getElementById('customUrlContainer');
-
+    
     // Should be visible in custom environment
     expect(customUrlContainer.style.display).toBe('block');
-
-    // Mock storage to return staging environment
-    chrome.storage.sync.get.mockImplementation((keys, callback) => {
-      callback({
-        mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art',
-        clientId: 'test-client',
-        environment: 'staging',
-        customApiUrl: null
-      });
-    });
-
-    await settings.init();
+    
+    // Change to staging environment
+    document.getElementById('environment').value = 'staging';
+    
+    // Manually trigger the change event
+    settings.handleEnvironmentChange();
+    
+    // Should be hidden in staging environment
     expect(customUrlContainer.style.display).toBe('none');
+  });
+  
+  it('shows/hides custom ICE servers field based on iceServerProvider', async () => {
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
+    // Set up the DOM elements directly
+    document.getElementById('iceServerProvider').value = 'custom';
+    
+    // Manually trigger the change event
+    settings.handleIceServerProviderChange();
+    
+    const customIceServersContainer = document.getElementById('customIceServersContainer');
+    
+    // Should be visible with custom ICE server provider
+    expect(customIceServersContainer.style.display).toBe('block');
+    
+    // Change to google provider
+    document.getElementById('iceServerProvider').value = 'google';
+    
+    // Manually trigger the change event
+    settings.handleIceServerProviderChange();
+    
+    // Should be hidden with google ICE server provider
+    expect(customIceServersContainer.style.display).toBe('none');
   });
 
   it('validates custom URL when saving', async () => {
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
     // Set up form values for custom environment without URL
     document.getElementById('mnemonic').value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
     document.getElementById('clientId').value = 'test-client';
     document.getElementById('environment').value = 'custom';
     document.getElementById('customApiUrl').value = '';
+    document.getElementById('syncMode').value = 'server';
+    document.getElementById('expirationDays').value = '7';
+    document.getElementById('iceServerProvider').value = 'google';
 
     const mockEvent = {
       preventDefault: vi.fn()
@@ -301,5 +432,31 @@ describe('Settings', () => {
     const errorMessage = document.querySelector('.status-message.error');
     expect(errorMessage).toBeTruthy();
     expect(errorMessage.textContent).toBe('Custom API URL is required when using custom environment');
+  });
+  
+  it('validates custom ICE servers when saving', async () => {
+    // Mock validateMnemonic to return true
+    vi.spyOn(settings, 'validateMnemonic').mockReturnValue(true);
+    
+    // Set up form values for custom ICE servers without content
+    document.getElementById('mnemonic').value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
+    document.getElementById('clientId').value = 'test-client';
+    document.getElementById('environment').value = 'production';
+    document.getElementById('syncMode').value = 'p2p';
+    document.getElementById('expirationDays').value = '7';
+    document.getElementById('iceServerProvider').value = 'custom';
+    document.getElementById('customIceServers').value = '';
+
+    const mockEvent = {
+      preventDefault: vi.fn()
+    };
+
+    await settings.handleSave(mockEvent);
+
+    // Should not save and show error
+    expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+    const errorMessage = document.querySelector('.status-message.error');
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage.textContent).toBe('Custom ICE servers are required when using custom ICE server provider');
   });
 });

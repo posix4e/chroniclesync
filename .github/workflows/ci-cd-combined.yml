@@ -63,7 +63,15 @@ jobs:
       - name: Package Extensions
         working-directory: extension
         run: |
-          # macOS already has zip utility installed
+          # Ensure zip utility is installed
+          if ! command -v zip &> /dev/null; then
+            echo "Installing zip utility..."
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              sudo apt-get update && sudo apt-get install -y zip
+            elif [[ "$RUNNER_OS" == "Windows" ]]; then
+              choco install zip
+            fi
+          fi
           # Run build script with ESM support
           NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
 

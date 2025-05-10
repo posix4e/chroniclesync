@@ -19,5 +19,6 @@
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*", "e2e/**/*", "__tests__/**/*", "scripts/**/*", "*.ts", "*.tsx"]
+  "include": ["src/**/*", "e2e/**/*", "scripts/**/*", "*.ts", "*.tsx"],
+  "exclude": ["test/**/*", "__tests__/**/*"]
 }

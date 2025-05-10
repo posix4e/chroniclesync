@@ -41,6 +41,29 @@
                 <input type="number" id="expirationDays" min="1" placeholder="7" required>
                 <small class="help-text">Number of days to keep history before expiring (minimum 1 day)</small>
             </div>
+            <div class="setting-item">
+                <label for="syncMode">Sync Mode:</label>
+                <select id="syncMode" required>
+                    <option value="server">Server-based Sync</option>
+                    <option value="p2p">Peer-to-Peer Sync</option>
+                </select>
+                <small class="help-text">P2P sync uses direct device-to-device communication without a central server</small>
+            </div>
+            <div class="setting-item">
+                <label for="iceServerProvider">ICE Server Provider:</label>
+                <select id="iceServerProvider" required>
+                    <option value="google">Google STUN Servers</option>
+                    <option value="twilio">Twilio STUN/TURN Servers</option>
+                    <option value="metered">Metered STUN/TURN Servers</option>
+                    <option value="custom">Custom Servers</option>
+                </select>
+                <div id="customIceServersContainer" style="display: none; margin-top: 10px;">
+                    <label for="customIceServers">Custom ICE Servers (JSON):</label>
+                    <textarea id="customIceServers" rows="4" placeholder='[{"urls":"stun:stun.example.com:19302"},{"urls":"turn:turn.example.com:3478","username":"user","credential":"pass"}]'></textarea>
+                    <small class="help-text">Enter ICE servers in JSON format</small>
+                </div>
+                <small class="help-text">ICE servers are used for NAT traversal in WebRTC connections</small>
+            </div>
         </section>
 
         <div class="settings-actions">
@@ -48,6 +71,6 @@
             <button id="resetSettings" class="reset-settings">Reset to Default</button>
         </div>
     </div>
-    <script type="module" src="settings.js"></script>
+    <script src="settings.js"></script>
 </body>
 </html>

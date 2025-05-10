@@ -4,10 +4,10 @@
  */
 export class P2PSync {
   constructor(
-    clientId: string,
-    discoveryServer: string,
-    mnemonic: string,
-    iceServers?: RTCIceServer[]
+    _clientId: string,
+    _discoveryServer: string,
+    _mnemonic: string,
+    _iceServers?: RTCIceServer[]
   ) {
     // Mock implementation
   }

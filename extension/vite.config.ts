@@ -28,13 +28,16 @@ const copyFiles = () => ({
     
     // Determine the output directory based on the mode
     const outDir = mode === 'firefox' ? 'dist-firefox' : 'dist';
+    // eslint-disable-next-line no-console
     console.log(`Copying files to ${outDir} directory (mode: ${mode || 'default'})`);
 
     for (const file of files) {
       try {
         copyFileSync(resolve(__dirname, file), resolve(__dirname, outDir, file));
+        // eslint-disable-next-line no-console
         console.log(`Copied ${file} to ${outDir}`);
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn(`Warning: Could not copy ${file}: ${error}`);
       }
     }

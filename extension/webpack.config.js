@@ -10,7 +10,8 @@ export default {
     history: './src/history.tsx',
     devtools: './src/devtools.tsx',
     'devtools-page': './src/devtools-page.ts',
-    'content-script': './src/content-script.ts'
+    'content-script': './src/content-script.ts',
+    settings: './src/settings.ts'
   },
   output: {
     path: resolve(__dirname, 'dist'),

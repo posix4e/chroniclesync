@@ -141,13 +141,15 @@ button {
     }
 }
 
-#customUrlContainer {
+#customUrlContainer,
+#p2pSettingsContainer {
     transition: all 0.3s ease;
     overflow: hidden;
     opacity: 1;
 }
 
-#customUrlContainer[style*="display: none"] {
+#customUrlContainer[style*="display: none"],
+#p2pSettingsContainer[style*="display: none"] {
     opacity: 0;
     margin-top: -20px;
 }

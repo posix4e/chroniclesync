@@ -69,15 +69,21 @@
       }
     },
     {
-      "files": ["server.js"],
+      "files": ["server.js", "playwright.config.ts"],
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["background.js"],
+      "files": ["background.js", "background.ts"],
       "rules": {
-        "no-console": ["error", { "allow": ["debug"] }]
+        "no-console": ["error", { "allow": ["debug", "log", "info", "warn", "error"] }]
+      }
+    },
+    {
+      "files": ["**/p2p/**/*.ts", "**/p2p/**/*.js", "**/db/**/*.ts", "**/db/**/*.js"],
+      "rules": {
+        "no-console": "off"
       }
     }
   ]

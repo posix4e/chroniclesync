@@ -10,7 +10,6 @@ const PACKAGE_DIR = join(ROOT_DIR, 'package');
 
 /** @type {[string, string][]} File copy specifications [source, destination] */
 const filesToCopy = [
-  ['manifest.json', 'manifest.json'],
   ['popup.html', 'popup.html'],
   ['popup.css', 'popup.css'],
   ['settings.html', 'settings.html'],
@@ -54,28 +53,24 @@ async function main() {
       });
     }
     
-    // Create Chrome zip file
+    // Copy Chrome manifest
     console.log('Creating Chrome extension zip file...');
+    await cp(
+      join(ROOT_DIR, 'manifest.json'),
+      join(PACKAGE_DIR, 'manifest.json')
+    );
+    
+    // Create Chrome zip file
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../chrome-extension.zip ./*`);
     
-    // Create Firefox XPI file with Firefox-specific modifications
+    // Create Firefox XPI file with Firefox-specific manifest
     console.log('Creating Firefox extension XPI file...');
     
-    // Read the manifest
-    const fs = require('fs');
-    const manifestPath = join(PACKAGE_DIR, 'manifest.json');
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    
-    // Add Firefox-specific settings
-    manifest.browser_specific_settings = {
-      "gecko": {
-        "id": "chroniclesync@example.com",
-        "strict_min_version": "109.0"
-      }
-    };
-    
-    // Write the updated manifest
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    // Copy Firefox manifest
+    await cp(
+      join(ROOT_DIR, 'manifest.firefox.json'),
+      join(PACKAGE_DIR, 'manifest.json')
+    );
     
     // Create the XPI file
     await execAsync(`cd "${PACKAGE_DIR}" && zip -r ../firefox-extension.xpi ./*`);

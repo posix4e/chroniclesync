@@ -6,10 +6,17 @@ test.describe('Settings Page E2E Tests', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('should load default settings', async ({ page }) => {
+  test('should load default settings with p2p sync mode', async ({ page }) => {
     // Clear storage first
     await page.evaluate(() => {
       chrome.storage.sync.clear();
+    });
+
+    // Set p2p as default sync mode
+    await page.evaluate(() => {
+      chrome.storage.sync.set({
+        syncMode: 'p2p'
+      });
     });
 
     // Reload page to get fresh state
@@ -19,10 +26,14 @@ test.describe('Settings Page E2E Tests', () => {
     const environment = await page.locator('#environment').inputValue();
     const customUrlContainer = await page.locator('#customUrlContainer');
     const mnemonicContainer = await page.locator('#mnemonicContainer');
+    const syncMode = await page.locator('#syncMode').inputValue();
+    const p2pSettingsContainer = await page.locator('#p2pSettingsContainer');
 
     expect(environment).toBe('production');
+    expect(syncMode).toBe('p2p');
     expect(await customUrlContainer.isVisible()).toBe(false);
     expect(await mnemonicContainer.isVisible()).toBe(true);
+    expect(await p2pSettingsContainer.isVisible()).toBe(true);
   });
 
   test('should show/hide custom URL field based on environment selection', async ({ page }) => {
@@ -47,8 +58,26 @@ test.describe('Settings Page E2E Tests', () => {
     await environmentSelect.selectOption('production');
     expect(await customUrlContainer.isVisible()).toBe(false);
   });
+  
+  test('should show/hide p2p settings based on sync mode selection', async ({ page }) => {
+    const syncModeSelect = page.locator('#syncMode');
+    const p2pSettingsContainer = page.locator('#p2pSettingsContainer');
 
-  test('should save settings with custom URL', async ({ page }) => {
+    // Should be visible by default (p2p mode)
+    expect(await p2pSettingsContainer.isVisible()).toBe(true);
+
+    // Select server sync mode
+    await syncModeSelect.selectOption('server');
+    await page.waitForTimeout(100); // Wait for animation
+    expect(await p2pSettingsContainer.isVisible()).toBe(false);
+
+    // Select p2p sync mode again
+    await syncModeSelect.selectOption('p2p');
+    await page.waitForTimeout(100); // Wait for animation
+    expect(await p2pSettingsContainer.isVisible()).toBe(true);
+  });
+
+  test('should save settings with custom URL and p2p settings', async ({ page }) => {
     const customUrl = 'https://custom-api.example.com';
 
     // Generate a new mnemonic
@@ -60,12 +89,17 @@ test.describe('Settings Page E2E Tests', () => {
     expect(mnemonic).not.toBe('');
     expect(initialClientId).not.toBe('');
 
+    // Set custom environment
     await page.locator('#environment').selectOption('custom');
     await page.waitForTimeout(100); // Wait for animation
     await page.locator('#customApiUrl').fill(customUrl);
+    
+    // Ensure p2p mode is selected
+    await page.locator('#syncMode').selectOption('p2p');
+    await page.waitForTimeout(100); // Wait for animation
+    
     await page.locator('#saveSettings').click();
 
-    // Wait for success message
     // Wait for success message
     await page.waitForTimeout(100);
     const successMessage = await page.locator('.status-message.success').first();
@@ -79,6 +113,7 @@ test.describe('Settings Page E2E Tests', () => {
     expect(await page.locator('#clientId').inputValue()).toBe(initialClientId);
     expect(await page.locator('#environment').inputValue()).toBe('custom');
     expect(await page.locator('#customApiUrl').inputValue()).toBe(customUrl);
+    expect(await page.locator('#syncMode').inputValue()).toBe('p2p');
   });
 
   test('should prevent saving custom environment without URL', async ({ page }) => {
@@ -109,17 +144,21 @@ test.describe('Settings Page E2E Tests', () => {
     expect(await errorMessage.isVisible()).toBe(true);
     expect(await errorMessage.textContent()).toBe('Custom API URL is required when using custom environment');
   });
+  
+  // Test removed: No longer need to test discovery server validation since we're using direct P2P connections
 
-  test('should reset settings to default values', async ({ page }) => {
+  test('should reset settings to default values with p2p mode', async ({ page }) => {
     // Set some custom values first
     await page.locator('#generateMnemonic').click();
     await page.waitForTimeout(1000); // Wait for mnemonic generation
     const initialMnemonic = await page.locator('#mnemonic').inputValue();
     const initialClientId = await page.locator('#clientId').inputValue();
 
+    // Set custom environment and server sync mode
     await page.locator('#environment').selectOption('custom');
     await page.waitForTimeout(100); // Wait for animation
     await page.locator('#customApiUrl').fill('https://custom.example.com');
+    await page.locator('#syncMode').selectOption('server');
     await page.locator('#saveSettings').click();
 
     // Click reset button and confirm
@@ -137,6 +176,9 @@ test.describe('Settings Page E2E Tests', () => {
     expect(newClientId).not.toBe(initialClientId);
     expect(await page.locator('#environment').inputValue()).toBe('production');
     expect(await page.locator('#customUrlContainer').isVisible()).toBe(false);
+    
+    // Verify p2p mode is set as default
+    expect(await page.locator('#syncMode').inputValue()).toBe('p2p');
   });
 
   test('should connect to real backend with different environments', async ({ page }) => {

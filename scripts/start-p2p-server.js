@@ -37,5 +37,6 @@ app.get('*', (req, res) => {
 
 // Start the server
 app.listen(PORT, '0.0.0.0', () => {
+  // eslint-disable-next-line no-console
   console.log(`P2P test server running on http://localhost:${PORT}`);
 });

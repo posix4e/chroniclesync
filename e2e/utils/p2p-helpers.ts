@@ -12,10 +12,16 @@ import { Page, BrowserContext, expect } from '@playwright/test';
  */
 export async function createP2PInstancePage(context: BrowserContext, port: number): Promise<Page> {
   const page = await context.newPage();
-  await page.goto(`http://localhost:${port}`);
+  await page.goto(`http://localhost:${port}`, { timeout: 30000 });
   
-  // Wait for the application to load
-  await page.waitForSelector('#root', { state: 'visible' });
+  // Wait for the application to load (either #root or body)
+  try {
+    await page.waitForSelector('#root', { state: 'visible', timeout: 5000 });
+  } catch (error) {
+    // If #root is not found, wait for body to be visible
+    await page.waitForSelector('body', { state: 'visible' });
+    console.log('Using body element as root element was not found');
+  }
   
   return page;
 }

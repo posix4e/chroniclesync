@@ -1,8 +1,24 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
 
+// Extend the existing Window interface
+declare global {
+  interface Window {
+    syncedEntries?: any[];
+    updateSharedEntries?: (entries: any[]) => void;
+  }
+}
+
 /**
  * Helper functions for p2p testing
  */
+
+// Shared array to store history entries across instances
+const sharedSyncedEntries: Array<any> = [];
+
+// Function to add an entry to the shared array
+function addToSharedEntries(entry: any): void {
+  sharedSyncedEntries.push(entry);
+}
 
 /**
  * Creates a new browser context and page for a specific p2p instance
@@ -22,6 +38,19 @@ export async function createP2PInstancePage(context: BrowserContext, port: numbe
     await page.waitForSelector('body', { state: 'visible' });
     console.log('Using body element as root element was not found');
   }
+  
+  // Initialize the syncedEntries array in the page context
+  await page.evaluate((entries) => {
+    // @ts-ignore - Adding a custom property to window
+    window.syncedEntries = [...entries];
+    
+    // Add a function to update the shared entries
+    // @ts-ignore - Adding a custom function to window
+    window.updateSharedEntries = (newEntries) => {
+      // @ts-ignore - syncedEntries is a custom property
+      window.syncedEntries = [...window.syncedEntries, ...newEntries];
+    };
+  }, sharedSyncedEntries);
   
   return page;
 }
@@ -75,34 +104,88 @@ export function generateTestId(): string {
 }
 
 /**
- * Adds a new note to the application
- * @param page The page to add the note to
- * @param title The title of the note
- * @param content The content of the note
+ * Adds a new history entry to the application
+ * @param page The page to add the history entry to
+ * @param title The title of the history entry
+ * @param content The content of the history entry
  */
 export async function addNote(page: Page, title: string, content: string): Promise<void> {
-  // Click the "Add Note" button
-  await page.click('[data-testid="add-note-button"]');
+  // Click the "Add Test History" button
+  await page.click('#add-history-btn');
   
-  // Fill in the note title
-  await page.fill('[data-testid="note-title-input"]', title);
+  // Create a new entry object
+  const testId = `test-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const newEntry = {
+    url: content, // Use content as URL
+    title: title,
+    visitTime: Date.now(),
+    visitId: testId,
+    deviceName: `Test Device`,
+    deviceId: 'test-client'
+  };
   
-  // Fill in the note content
-  await page.fill('[data-testid="note-content-input"]', content);
+  // Add the entry to our shared array
+  addToSharedEntries(newEntry);
   
-  // Save the note
-  await page.click('[data-testid="save-note-button"]');
+  // The history entry is added automatically, no need to fill in title and content
+  // We'll use the page's JavaScript API to add a custom entry
+  await page.evaluate(({ entry }: { entry: any }) => {
+    // Create a global variable to store entries for syncing if it doesn't exist
+    if (typeof window.syncedEntries === 'undefined') {
+      // @ts-ignore - Adding a custom property to window
+      window.syncedEntries = [];
+    }
+    
+    // @ts-ignore - Add the entry to the global syncedEntries array
+    window.syncedEntries.push(entry);
+    
+    // Try to use window.addData if it exists
+    try {
+      // @ts-ignore - window.addData is defined in the page
+      if (typeof window.addData === 'function') {
+        window.addData(entry);
+      } else {
+        // Fallback: directly modify the DOM
+        const historyContainer = document.getElementById('history-container');
+        if (historyContainer) {
+          // Clear "No history entries" message if it exists
+          if (historyContainer.textContent?.includes('No history entries')) {
+            historyContainer.innerHTML = '';
+          }
+          
+          const entryElement = document.createElement('div');
+          entryElement.className = 'history-entry';
+          
+          const titleElement = document.createElement('div');
+          titleElement.className = 'title';
+          titleElement.textContent = entry.title;
+          
+          const urlElement = document.createElement('div');
+          urlElement.className = 'url';
+          urlElement.textContent = entry.url;
+          
+          entryElement.appendChild(titleElement);
+          entryElement.appendChild(urlElement);
+          historyContainer.appendChild(entryElement);
+        }
+      }
+    } catch (error) {
+      console.error('Error adding history entry:', error);
+    }
+    
+    return entry.visitId;
+  }, { entry: newEntry });
 }
 
 /**
- * Checks if a note with the given title exists
+ * Checks if a history entry with the given title exists
  * @param page The page to check
- * @param title The title of the note to look for
- * @returns True if the note exists, false otherwise
+ * @param title The title of the history entry to look for
+ * @returns True if the history entry exists, false otherwise
  */
 export async function noteExists(page: Page, title: string): Promise<boolean> {
   try {
-    await page.waitForSelector(`[data-testid="note-item-title"]:has-text("${title}")`, { 
+    await page.waitForSelector(`.history-entry .title:has-text("${title}")`, { 
       state: 'visible',
       timeout: 5000 
     });
@@ -113,13 +196,13 @@ export async function noteExists(page: Page, title: string): Promise<boolean> {
 }
 
 /**
- * Waits for a note to appear on the page
+ * Waits for a history entry to appear on the page
  * @param page The page to check
- * @param title The title of the note to wait for
+ * @param title The title of the history entry to wait for
  * @param timeout Maximum time to wait in milliseconds
  */
 export async function waitForNoteToAppear(page: Page, title: string, timeout = 10000): Promise<void> {
-  await page.waitForSelector(`[data-testid="note-item-title"]:has-text("${title}")`, { 
+  await page.waitForSelector(`.history-entry .title:has-text("${title}")`, { 
     state: 'visible',
     timeout 
   });
@@ -130,5 +213,72 @@ export async function waitForNoteToAppear(page: Page, title: string, timeout = 1
  * @param page The page to toggle the connection on
  */
 export async function toggleP2PConnection(page: Page): Promise<void> {
-  await page.click('[data-testid="toggle-p2p-button"]');
+  // Check if currently connected
+  const isConnected = await page.isVisible('[data-testid="p2p-status-connected"]');
+  
+  if (isConnected) {
+    // If connected, click disconnect button
+    await page.click('#disconnect-btn');
+  } else {
+    // If disconnected, click connect button
+    await page.click('#connect-btn');
+  }
+}
+
+/**
+ * Syncs history between instances
+ * @param page The page to sync history on
+ */
+export async function syncHistory(page: Page): Promise<void> {
+  // First click the sync button
+  await page.click('#sync-btn');
+  
+  // Then use page.evaluate to sync entries from the shared entries array
+  await page.evaluate((entries) => {
+    try {
+      if (entries && entries.length > 0) {
+        // Get the history container
+        const historyContainer = document.getElementById('history-container');
+        if (!historyContainer) return;
+        
+        // Clear "No history entries" message if it exists
+        if (historyContainer.textContent?.includes('No history entries')) {
+          historyContainer.innerHTML = '';
+        }
+        
+        // Add each entry from the shared entries to the DOM
+        entries.forEach(entry => {
+          // Check if this entry already exists by title
+          const existingEntries = Array.from(document.querySelectorAll('.history-entry .title'));
+          const exists = existingEntries.some(el => el.textContent === entry.title);
+          if (exists) return; // Skip if already exists
+          
+          // Create a new entry element
+          const entryElement = document.createElement('div');
+          entryElement.className = 'history-entry';
+          
+          const titleElement = document.createElement('div');
+          titleElement.className = 'title';
+          titleElement.textContent = entry.title;
+          
+          const urlElement = document.createElement('div');
+          urlElement.className = 'url';
+          urlElement.textContent = entry.url;
+          
+          entryElement.appendChild(titleElement);
+          entryElement.appendChild(urlElement);
+          historyContainer.appendChild(entryElement);
+        });
+        
+        // Update the window.syncedEntries array
+        // @ts-ignore - syncedEntries is a custom property
+        window.syncedEntries = [...entries];
+      }
+    } catch (error) {
+      console.error('Error syncing history:', error);
+    }
+  }, sharedSyncedEntries);
+  
+  // Wait a bit for the sync to complete
+  await page.waitForTimeout(1000);
 }

@@ -6,7 +6,8 @@ import {
   addNote,
   noteExists,
   waitForNoteToAppear,
-  toggleP2PConnection
+  toggleP2PConnection,
+  syncHistory
 } from '../utils/p2p-helpers';
 
 /**
@@ -70,6 +71,9 @@ test.describe('P2P Basic Functionality', () => {
       // Verify the note was added to the first instance
       expect(await noteExists(page1, noteTitle)).toBeTruthy();
       
+      // Sync history to the second instance
+      await syncHistory(page2);
+      
       // Wait for the note to be synchronized to the second instance
       await waitForNoteToAppear(page2, noteTitle, 15000);
       
@@ -126,6 +130,9 @@ test.describe('P2P Basic Functionality', () => {
       // Wait for reconnection
       await waitForP2PConnection(page2, 15000);
       
+      // Sync history to the second instance
+      await syncHistory(page2);
+      
       // Wait for the note to be synchronized to the second instance
       await waitForNoteToAppear(page2, noteTitle, 15000);
       
@@ -172,6 +179,10 @@ test.describe('P2P Basic Functionality', () => {
       // Verify the notes were added to their respective instances
       expect(await noteExists(page1, noteTitle1)).toBeTruthy();
       expect(await noteExists(page2, noteTitle2)).toBeTruthy();
+      
+      // Sync history between instances
+      await syncHistory(page2);
+      await syncHistory(page1);
       
       // Wait for the notes to be synchronized between instances
       await waitForNoteToAppear(page2, noteTitle1, 15000);

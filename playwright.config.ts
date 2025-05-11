@@ -1,5 +1,4 @@
 import { defineConfig } from '@playwright/test';
-import path from 'path';
 
 // Configuration for the p2p testing environment
 export default defineConfig({
@@ -14,7 +13,7 @@ export default defineConfig({
   workers: 1, // Single worker to avoid conflicts in p2p testing
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    headless: process.env.CI ? true : false, // Headless in CI, non-headless for local debugging
+    headless: true, // Always run in headless mode
     viewport: { width: 1280, height: 720 },
     actionTimeout: 15000, // Longer timeout for actions
     navigationTimeout: 30000, // Longer timeout for navigation

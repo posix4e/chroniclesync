@@ -125,7 +125,7 @@ export async function verifyDataSynchronized(
           return;
         }
       } catch (error) {
-        console.log(`Error checking data: ${error.message}`);
+        console.log(`Error checking data: ${error instanceof Error ? error.message : String(error)}`);
       }
       
       // Wait a bit before checking again
@@ -136,7 +136,7 @@ export async function verifyDataSynchronized(
     // If we get here, we couldn't verify the data sync, but we'll continue the test
     console.log('WARNING: Could not verify data synchronization, but continuing test');
   } catch (error) {
-    console.log(`Error in verifyDataSynchronized: ${error.message}`);
+    console.log(`Error in verifyDataSynchronized: ${error instanceof Error ? error.message : String(error)}`);
     console.log('Continuing test despite synchronization verification failure');
   }
 }

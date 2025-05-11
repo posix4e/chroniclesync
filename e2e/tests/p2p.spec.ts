@@ -161,7 +161,7 @@ test.describe('P2P Data Synchronization', () => {
           console.log('WARNING: Data may not have been added to source instance');
         }
       } catch (error) {
-        console.log(`Error verifying data in source: ${error.message}`);
+        console.log(`Error verifying data in source: ${error instanceof Error ? error.message : String(error)}`);
       }
       
       // Try to verify data is synchronized to instance 2
@@ -191,10 +191,10 @@ test.describe('P2P Data Synchronization', () => {
           expect(dataFromTarget.id).toBe(dataFromSource.id);
         }
       } catch (error) {
-        console.log(`Error comparing data: ${error.message}`);
+        console.log(`Error comparing data: ${error instanceof Error ? error.message : String(error)}`);
       }
     } catch (error) {
-      console.log(`Test error: ${error.message}`);
+      console.log(`Test error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       // Take screenshots for debugging
       await page1.screenshot({ path: 'test-results/sync-page1.png' });

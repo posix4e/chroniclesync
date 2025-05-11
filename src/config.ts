@@ -12,6 +12,10 @@ export const paths = {
 
 // Configuration settings for the application
 const config = {
+  // Client identification
+  clientId: 'extension-default',
+  apiEndpoint: 'https://api.chroniclesync.com/v1',
+  
   // P2P configuration
   p2p: {
     enabled: true,

@@ -32,6 +32,17 @@ body {
   color: #666;
 }
 
+.p2p-status {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.p2p-status p {
+  margin: 5px 0;
+  font-size: 0.85em;
+}
+
 .action-buttons button {
   background-color: #f0f0f0;
   border: 1px solid #ccc;

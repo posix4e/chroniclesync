@@ -1,4 +1,5 @@
-export const wordList = `abandon
+// Support both ES modules and regular scripts
+const wordList = `abandon
 ability
 able
 about
@@ -2046,3 +2047,13 @@ zebra
 zero
 zone
 zoo`.split('\n');
+
+// Export for ES modules
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { wordList };
+} else {
+  // For browser/ES modules
+  window.wordList = wordList;
+}
+
+// Remove ES module export for Firefox compatibility

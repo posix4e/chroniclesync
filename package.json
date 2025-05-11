@@ -1,0 +1,32 @@
+{
+  "name": "chroniclesync",
+  "version": "1.0.0",
+  "description": "ChronicleSync - P2P Synchronization Tests",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:extension && npm run build:pages",
+    "build:extension": "cd extension && npm run build",
+    "build:pages": "cd pages && npm run build",
+    "start:p2p": "cd pages && npm run start:p2p",
+    "test": "playwright test",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:connection": "playwright test p2p-connection",
+    "test:sync": "playwright test p2p-data-sync",
+    "test:conflict": "playwright test p2p-conflict-resolution",
+    "test:performance": "playwright test p2p-performance",
+    "test:security": "playwright test p2p-security"
+  },
+  "keywords": [
+    "p2p",
+    "sync",
+    "testing",
+    "playwright"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0"
+  }
+}

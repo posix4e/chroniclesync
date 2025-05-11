@@ -78,6 +78,7 @@ jobs:
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
         run: |
+          apt install xvfb -y
           npm ci
           # Install Playwright browsers
           npx playwright install --with-deps

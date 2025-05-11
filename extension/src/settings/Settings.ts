@@ -310,6 +310,7 @@ export class Settings {
     const customApiUrlInput = document.getElementById('customApiUrl') as HTMLInputElement;
     const expirationDaysInput = document.getElementById('expirationDays') as HTMLInputElement;
     const syncModeSelect = document.getElementById('syncMode') as HTMLSelectElement;
+    const p2pSettingsContainer = document.getElementById('p2pSettingsContainer') as HTMLDivElement;
     const iceServerProviderSelect = document.getElementById('iceServerProvider') as HTMLSelectElement;
     const customIceServersContainer = document.getElementById('customIceServersContainer') as HTMLDivElement;
     const customIceServersInput = document.getElementById('customIceServers') as HTMLTextAreaElement;
@@ -324,6 +325,9 @@ export class Settings {
     customIceServersInput.value = this.config.customIceServers || '';
     
     customUrlContainer.style.display = this.config.environment === 'custom' ? 'block' : 'none';
+    if (p2pSettingsContainer) {
+      p2pSettingsContainer.style.display = this.config.syncMode === 'p2p' ? 'block' : 'none';
+    }
     customIceServersContainer.style.display = this.config.iceServerProvider === 'custom' ? 'block' : 'none';
   }
 
@@ -382,7 +386,12 @@ export class Settings {
   }
 
   private handleSyncModeChange(): void {
-    // No longer need to toggle p2pSettingsContainer visibility
+    const syncModeSelect = document.getElementById('syncMode') as HTMLSelectElement;
+    const p2pSettingsContainer = document.getElementById('p2pSettingsContainer') as HTMLDivElement;
+    
+    if (p2pSettingsContainer) {
+      p2pSettingsContainer.style.display = syncModeSelect.value === 'p2p' ? 'block' : 'none';
+    }
   }
   
   private handleIceServerProviderChange(): void {

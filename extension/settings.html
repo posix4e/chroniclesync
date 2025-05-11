@@ -3,7 +3,7 @@
 <head>
     <title>ChronicleSync Settings</title>
     <link rel="stylesheet" type="text/css" href="settings.css">
-    <script src="bip39-wordlist.js"></script>
+    <script type="text/javascript" src="bip39-wordlist.js"></script>
 </head>
 <body>
     <div class="settings-container">
@@ -50,20 +50,22 @@
                 </select>
                 <small class="help-text">P2P sync uses direct device-to-device communication without a central server</small>
             </div>
-            <div class="setting-item">
-                <label for="iceServerProvider">ICE Server Provider:</label>
-                <select id="iceServerProvider" required>
-                    <option value="google">Google STUN Servers</option>
-                    <option value="twilio">Twilio STUN/TURN Servers</option>
-                    <option value="metered">Metered STUN/TURN Servers</option>
-                    <option value="custom">Custom Servers</option>
-                </select>
-                <div id="customIceServersContainer" style="display: none; margin-top: 10px;">
-                    <label for="customIceServers">Custom ICE Servers (JSON):</label>
-                    <textarea id="customIceServers" rows="4" placeholder='[{"urls":"stun:stun.example.com:19302"},{"urls":"turn:turn.example.com:3478","username":"user","credential":"pass"}]'></textarea>
-                    <small class="help-text">Enter ICE servers in JSON format</small>
+            <div id="p2pSettingsContainer">
+                <div class="setting-item">
+                    <label for="iceServerProvider">ICE Server Provider:</label>
+                    <select id="iceServerProvider" required>
+                        <option value="google">Google STUN Servers</option>
+                        <option value="twilio">Twilio STUN/TURN Servers</option>
+                        <option value="metered">Metered STUN/TURN Servers</option>
+                        <option value="custom">Custom Servers</option>
+                    </select>
+                    <div id="customIceServersContainer" style="display: none; margin-top: 10px;">
+                        <label for="customIceServers">Custom ICE Servers (JSON):</label>
+                        <textarea id="customIceServers" rows="4" placeholder='[{"urls":"stun:stun.example.com:19302"},{"urls":"turn:turn.example.com:3478","username":"user","credential":"pass"}]'></textarea>
+                        <small class="help-text">Enter ICE servers in JSON format</small>
+                    </div>
+                    <small class="help-text">ICE servers are used for NAT traversal in WebRTC connections</small>
                 </div>
-                <small class="help-text">ICE servers are used for NAT traversal in WebRTC connections</small>
             </div>
         </section>
 

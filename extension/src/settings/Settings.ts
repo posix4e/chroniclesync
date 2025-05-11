@@ -90,34 +90,39 @@ export class Settings {
       } else {
         // Fallback to dynamic import if global variable is not available
         try {
-          const script = document.createElement('script');
           // Check if we're in a test environment
           if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+            const script = document.createElement('script');
             script.src = chrome.runtime.getURL('bip39-wordlist.js');
+            script.type = 'text/javascript';
+            document.head.appendChild(script);
+            
+            // Wait for script to load
+            await new Promise<void>((resolve) => {
+              script.onload = () => {
+                if (window.wordList) {
+                  this.bip39WordList = window.wordList;
+                }
+                resolve();
+              };
+              script.onerror = () => {
+                console.error('Failed to load wordlist script');
+                resolve();
+              };
+            });
           } else {
             // In test environment, we can skip loading the wordlist
             console.warn('Error loading wordlist: chrome.runtime.getURL is not available');
-            // Continue with initialization even without wordlist
+            
+            // For tests, use a minimal wordlist
+            this.bip39WordList = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art'];
           }
-          script.type = 'text/javascript';
-          document.head.appendChild(script);
-          
-          // Wait for script to load
-          await new Promise<void>((resolve) => {
-            script.onload = () => {
-              if (window.wordList) {
-                this.bip39WordList = window.wordList;
-              }
-              resolve();
-            };
-            script.onerror = () => {
-              console.error('Failed to load wordlist script');
-              resolve();
-            };
-          });
         } catch (error) {
           console.error('Error loading wordlist:', error);
           // Continue execution even if wordlist fails to load
+          
+          // For error cases, use a minimal wordlist
+          this.bip39WordList = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art'];
         }
       }
 

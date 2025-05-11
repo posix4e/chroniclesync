@@ -106,12 +106,13 @@ export async function verifyDataSynchronized(
   try {
     // Wait for the data to appear in the target page
     const startTime = Date.now();
+    let dataExists = false;
     
     // Try to find the data for a limited time
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         // Check if the data exists in the target page
-        const dataExists = await targetPage.evaluate((id) => {
+        dataExists = await targetPage.evaluate((id) => {
           // This assumes there's a window.checkDataExists function exposed by the application
           if (typeof window.checkDataExists !== 'function') {
             console.log('checkDataExists function not found');
@@ -133,11 +134,15 @@ export async function verifyDataSynchronized(
       console.log(`Data sync attempt ${attempt + 1} failed, retrying...`);
     }
     
-    // If we get here, we couldn't verify the data sync, but we'll continue the test
+    // If we get here, we couldn't verify the data sync
     console.log('WARNING: Could not verify data synchronization, but continuing test');
+    
+    // Add an assertion that will fail the test if data synchronization couldn't be verified
+    expect(dataExists).toBeTruthy('Data synchronization failed: Data was not synchronized between instances');
   } catch (error) {
     console.log(`Error in verifyDataSynchronized: ${error instanceof Error ? error.message : String(error)}`);
-    console.log('Continuing test despite synchronization verification failure');
+    // Fail the test with a clear error message
+    expect(false).toBeTruthy(`Data synchronization verification failed with error: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

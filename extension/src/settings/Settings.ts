@@ -88,10 +88,11 @@ export class Settings {
       if (typeof window.wordList !== 'undefined' && window.wordList) {
         this.bip39WordList = window.wordList;
       } else {
-        // Fallback to dynamic import if global variable is not available
+        // Fallback to loading wordlist
         try {
-          // Check if we're in a test environment
-          if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+          // Check if we're in a browser environment with chrome.runtime.getURL available
+          if (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.getURL === 'function') {
+            // Use script tag to load the wordlist
             const script = document.createElement('script');
             script.src = chrome.runtime.getURL('bip39-wordlist.js');
             script.type = 'text/javascript';
@@ -111,8 +112,8 @@ export class Settings {
               };
             });
           } else {
-            // In test environment, we can skip loading the wordlist
-            console.warn('Error loading wordlist: chrome.runtime.getURL is not available');
+            // In test environment or when chrome.runtime.getURL is not available
+            console.warn('Using fallback wordlist: chrome.runtime.getURL is not available');
             
             // For tests, use a minimal wordlist
             this.bip39WordList = ['abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'art'];

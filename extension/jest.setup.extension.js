@@ -10,7 +10,8 @@ global.chrome = {
     sendMessage: vi.fn(),
     onMessage: {
       addListener: vi.fn()
-    }
+    },
+    getURL: vi.fn((path) => `chrome-extension://mock-extension-id/${path}`)
   },
   tabs: {
     query: vi.fn(),
@@ -20,6 +21,10 @@ global.chrome = {
     local: {
       get: vi.fn(),
       set: vi.fn()
+    },
+    sync: {
+      get: vi.fn((keys, callback) => callback({})),
+      set: vi.fn((data, callback) => callback())
     }
   }
 };

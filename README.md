@@ -15,20 +15,67 @@ Sync browsing history and summaries across browsers
 ## Quick Start
 
 ### Prerequisites
-- GitHub CI/CD
-- Cloudflare account for deployments
-- Node.js ... Just read the github actions
+- Node.js 18+ (LTS recommended)
+- Chrome or Firefox browser for extension development
 
-### Developer Documentation
-- [Extension Developer Guide](extension/DEVELOPER.md) - Detailed guide for Chrome extension development
-- [Web Application Developer Guide](pages/DEVELOPER.md) - Complete documentation for the React web application
+### Development Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+### Building the Extension
+
+There are two ways to build the extension:
+
+1. Development build (outputs to `dist/`):
+```bash
+npm run build
+```
+
+2. Production package (creates `chrome-extension.zip`):
+```bash
+npm run build:extension
+```
+
+For Firefox:
+```bash
+npm run build:firefox-extension
+```
+
+### Testing
+
+```bash
+# Install Playwright browsers
+npx playwright install --with-deps chromium
+
+# Run unit tests
+npm run test
+
+# Run E2E tests
+npm run test:e2e
+
+# Run E2E tests with debugging
+npm run test:e2e:debug
+```
 
 ### Project Structure
 
 ```
 chroniclesync/
-├── pages/               # Frontend React application
-└── extension/           # Chrome extension
+├── src/                 # Source code
+│   ├── background.ts    # Background script
+│   ├── popup.tsx        # Popup UI
+│   ├── p2p/             # P2P synchronization
+│   ├── db/              # Database and storage
+│   └── utils/           # Utility functions
+├── e2e/                 # End-to-end tests
+├── __tests__/           # Unit tests
+└── scripts/             # Build scripts
 ```
 
 ### Administration

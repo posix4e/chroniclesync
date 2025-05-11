@@ -38,8 +38,6 @@ jobs:
   build-and-test:
     runs-on: macos-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    outputs:
-      current_version: ${{ steps.deploy-worker.outputs.current_version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +48,6 @@ jobs:
           cache-dependency-path: |
             pages/package-lock.json
             extension/package-lock.json
-            worker/package-lock.json
 
 
 
@@ -94,28 +91,6 @@ jobs:
         run: |
           npm run lint
           npm run test
-
-      - name: Test Worker
-        working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
-
-
-
-      - name: Deploy Worker
-        id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            npm run deploy -- --env production
-          else
-            npm run deploy -- --env staging
-          fi
 
   playwright-extension-tests:
     needs: build-and-test

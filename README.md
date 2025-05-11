@@ -22,15 +22,13 @@ Sync browsing history and summaries across browsers
 ### Developer Documentation
 - [Extension Developer Guide](extension/DEVELOPER.md) - Detailed guide for Chrome extension development
 - [Web Application Developer Guide](pages/DEVELOPER.md) - Complete documentation for the React web application
-- [Worker Developer Guide](worker/DEVELOPER.md) - Comprehensive guide for the Cloudflare Worker backend
 
 ### Project Structure
 
 ```
 chroniclesync/
 ├── pages/               # Frontend React application
-├── extension/           # Chrome extension
-└── worker/              # Cloudflare Worker backend with integrated P2P discovery
+└── extension/           # Chrome extension
 ```
 
 ### Administration
@@ -39,8 +37,6 @@ chroniclesync/
 ChronicleSync uses the following key structure:
 
 - **Client IDs**: Base64url-encoded SHA-256 hash of the BIP39 mnemonic (~43 characters)
-- **KV Storage**: Keys are the client IDs directly
-- **R2 Storage**: Keys follow the pattern `${clientId}/d` for client data
 
 ### P2P Synchronization
 
@@ -48,8 +44,8 @@ ChronicleSync supports peer-to-peer synchronization using WebRTC, allowing direc
 
 #### How P2P Sync Works
 
-1. **Discovery**: Devices connect to the integrated WebSocket discovery service in the Cloudflare Worker
-2. **Connection**: WebRTC establishes a direct connection between devices using the worker for signaling
+1. **Discovery**: Devices connect to a WebSocket discovery service
+2. **Connection**: WebRTC establishes a direct connection between devices
 3. **Authentication**: Devices authenticate each other using a shared mnemonic phrase
 4. **Encryption**: All data is encrypted end-to-end using keys derived from the shared mnemonic
 5. **Synchronization**: History entries and device information are exchanged directly between devices
@@ -65,7 +61,7 @@ ChronicleSync supports peer-to-peer synchronization using WebRTC, allowing direc
 
 1. Enable P2P sync mode in the extension settings
 2. Enter the same mnemonic phrase on all devices you want to sync
-3. The extension will automatically use the integrated discovery service in the Cloudflare Worker
+3. The extension will automatically connect to the discovery service
 4. Start syncing directly between your devices
 
 For iOS devices, implement a WebRTC client that:

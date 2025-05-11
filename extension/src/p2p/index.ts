@@ -1,1 +1,0 @@
-export { DirectP2PSync } from './DirectP2PSync';

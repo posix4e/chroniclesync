@@ -782,6 +782,7 @@ test.describe('P2P Performance', () => {
     // Check memory usage if the application exposes this information
     try {
       const memoryUsage1 = await page1.evaluate(() => {
+        // @ts-ignore - getMemoryUsage might not exist on window
         return window.getMemoryUsage ? window.getMemoryUsage() : null;
       });
       

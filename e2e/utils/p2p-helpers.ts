@@ -38,7 +38,7 @@ export async function waitForP2PConnection(page: Page, timeout = 30000): Promise
     // Wait for the p2p connection indicator to show connected status
     await page.waitForSelector('[data-testid="p2p-status-connected"]', { 
       state: 'visible',
-      timeout: 5000
+      timeout
     });
     
     console.log('P2P connection established (found status indicator)');
@@ -75,130 +75,60 @@ export function generateTestId(): string {
 }
 
 /**
- * Adds test data to a p2p instance
- * @param page The page to add data to
- * @param data The data to add
+ * Adds a new note to the application
+ * @param page The page to add the note to
+ * @param title The title of the note
+ * @param content The content of the note
  */
-export async function addTestData(page: Page, data: any): Promise<void> {
-  // Use the page's evaluate function to call the app's API for adding data
-  await page.evaluate((testData) => {
-    // This assumes there's a window.addData function exposed by the application
-    // You'll need to adjust this based on your actual application's API
-    return window.addData(testData);
-  }, data);
+export async function addNote(page: Page, title: string, content: string): Promise<void> {
+  // Click the "Add Note" button
+  await page.click('[data-testid="add-note-button"]');
+  
+  // Fill in the note title
+  await page.fill('[data-testid="note-title-input"]', title);
+  
+  // Fill in the note content
+  await page.fill('[data-testid="note-content-input"]', content);
+  
+  // Save the note
+  await page.click('[data-testid="save-note-button"]');
 }
 
 /**
- * Verifies that data has been synchronized between p2p instances
- * @param sourcePage The page that originated the data
- * @param targetPage The page that should receive the data via p2p
- * @param testId The unique identifier for the test data
- * @param timeout Maximum time to wait for synchronization in milliseconds
+ * Checks if a note with the given title exists
+ * @param page The page to check
+ * @param title The title of the note to look for
+ * @returns True if the note exists, false otherwise
  */
-export async function verifyDataSynchronized(
-  sourcePage: Page, 
-  targetPage: Page, 
-  testId: string,
-  timeout = 10000
-): Promise<void> {
-  console.log(`Verifying data synchronization for test ID: ${testId}`);
-  
+export async function noteExists(page: Page, title: string): Promise<boolean> {
   try {
-    // Wait for the data to appear in the target page
-    const startTime = Date.now();
-    
-    // Try to find the data for a limited time
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        // Check if the data exists in the target page
-        const dataExists = await targetPage.evaluate((id) => {
-          // This assumes there's a window.checkDataExists function exposed by the application
-          if (typeof window.checkDataExists !== 'function') {
-            console.log('checkDataExists function not found');
-            return false;
-          }
-          return window.checkDataExists(id);
-        }, testId);
-        
-        if (dataExists) {
-          console.log('Data successfully synchronized');
-          return;
-        }
-      } catch (error) {
-        console.log(`Error checking data: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      
-      // Wait a bit before checking again
-      await targetPage.waitForTimeout(1000);
-      console.log(`Data sync attempt ${attempt + 1} failed, retrying...`);
-    }
-    
-    // If we get here, we couldn't verify the data sync, but we'll continue the test
-    console.log('WARNING: Could not verify data synchronization, but continuing test');
-  } catch (error) {
-    console.log(`Error in verifyDataSynchronized: ${error instanceof Error ? error.message : String(error)}`);
-    console.log('Continuing test despite synchronization verification failure');
-  }
-}
-
-/**
- * Disconnects a p2p instance from the network
- * @param page The page to disconnect
- */
-export async function disconnectP2PInstance(page: Page, timeout = 10000): Promise<void> {
-  // Use the page's evaluate function to call the app's API for disconnecting
-  await page.evaluate(() => {
-    // This assumes there's a window.disconnectP2P function exposed by the application
-    // You'll need to adjust this based on your actual application's API
-    return window.disconnectP2P();
-  });
-  
-  try {
-    // Wait for the disconnected status to appear
-    await page.waitForSelector('[data-testid="p2p-status-disconnected"]', { 
+    await page.waitForSelector(`[data-testid="note-item-title"]:has-text("${title}")`, { 
       state: 'visible',
-      timeout: 5000
+      timeout: 5000 
     });
-    
-    console.log('P2P instance disconnected (found status indicator)');
-    return;
+    return true;
   } catch (error) {
-    console.log('Could not find p2p-status-disconnected element, checking alternative indicators...');
+    return false;
   }
-  
-  // If the status indicator is not found, check for other signs of disconnection
-  // For example, check if the peer count is 0
-  try {
-    await page.waitForFunction(() => {
-      const peerCountElement = document.querySelector('[data-testid="peer-count"]');
-      return peerCountElement && parseInt(peerCountElement.textContent || '0', 10) === 0;
-    }, { timeout: timeout - 5000 });
-    
-    console.log('P2P instance disconnected (peer count = 0)');
-    return;
-  } catch (error) {
-    console.log('Could not verify peer count, assuming disconnected after timeout');
-  }
-  
-  // As a last resort, just wait for a reasonable time and assume disconnection
-  await page.waitForTimeout(2000);
-  console.log('Assuming P2P instance is disconnected after timeout');
 }
 
 /**
- * Reconnects a p2p instance to the network
- * @param page The page to reconnect
+ * Waits for a note to appear on the page
+ * @param page The page to check
+ * @param title The title of the note to wait for
+ * @param timeout Maximum time to wait in milliseconds
  */
-export async function reconnectP2PInstance(page: Page, timeout = 30000): Promise<void> {
-  // Use the page's evaluate function to call the app's API for reconnecting
-  await page.evaluate(() => {
-    // This assumes there's a window.reconnectP2P function exposed by the application
-    // You'll need to adjust this based on your actual application's API
-    return window.reconnectP2P();
+export async function waitForNoteToAppear(page: Page, title: string, timeout = 10000): Promise<void> {
+  await page.waitForSelector(`[data-testid="note-item-title"]:has-text("${title}")`, { 
+    state: 'visible',
+    timeout 
   });
-  
-  // Use the same connection detection logic as waitForP2PConnection
-  await waitForP2PConnection(page, timeout);
-  
-  console.log('P2P instance reconnected');
+}
+
+/**
+ * Toggles the P2P connection on/off
+ * @param page The page to toggle the connection on
+ */
+export async function toggleP2PConnection(page: Page): Promise<void> {
+  await page.click('[data-testid="toggle-p2p-button"]');
 }

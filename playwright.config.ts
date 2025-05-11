@@ -5,13 +5,13 @@ export default defineConfig({
   testDir: './e2e/tests',
   timeout: 60000, // Longer timeout for p2p operations
   expect: {
-    timeout: 10000, // Longer timeout for expectations
+    timeout: 15000, // Longer timeout for expectations
   },
   fullyParallel: false, // Run tests sequentially for p2p testing
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Single worker to avoid conflicts in p2p testing
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: process.env.CI ? 'github' : 'html',
   use: {
     headless: true, // Always run in headless mode
     viewport: { width: 1280, height: 720 },
@@ -33,6 +33,7 @@ export default defineConfig({
             '--disable-setuid-sandbox',
             '--disable-web-security', // Allow cross-origin requests for p2p
             '--allow-insecure-localhost',
+            '--headless=new', // Use the new headless mode
           ],
         },
       },

@@ -18,7 +18,8 @@ const copyFiles = () => ({
       'history.html',
       'history.css',
       'devtools.html',
-      'devtools.css'
+      'devtools.css',
+      'index.html'
     ];
 
     // Get the current mode from the command line arguments

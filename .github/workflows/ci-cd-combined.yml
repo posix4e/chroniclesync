@@ -45,120 +45,50 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
 
 
-      - name: Build Extension
-        working-directory: extension
+      - name: Build Application
         run: |
           npm ci
           npm run build
 
-      - name: Package Extensions
-        working-directory: extension
-        run: |
-          # Ensure zip utility is installed
-          if ! command -v zip &> /dev/null; then
-            echo "Installing zip utility..."
-            if [[ "$RUNNER_OS" == "Linux" ]]; then
-              sudo apt-get update && sudo apt-get install -y zip
-            elif [[ "$RUNNER_OS" == "Windows" ]]; then
-              choco install zip
-            fi
-          fi
-          # Run build script with ESM support
-          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
-
-      - name: Upload Chrome Extension Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chrome-extension
-          path: extension/chrome-extension.zip
-          retention-days: 14
-          
-      - name: Upload Firefox Extension Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: firefox-extension
-          path: extension/firefox-extension.xpi
-          retention-days: 14
-
-      - name: Test Extension
-        working-directory: extension
+      - name: Run Tests
         run: |
           npm run lint
           npm run test
 
-  playwright-extension-tests:
+  playwright-tests:
     needs: build-and-test
     if: success()
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chrome, firefox]
-        # Future platforms can be added here (e.g., ios, android)
     runs-on: ubuntu-latest
     steps:
-      # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
-      - name: Check if this browser should be tested
-        id: should_test
-        run: |
-          SHOULD_TEST="true"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.browser }}" != "" ]]; then
-            if [[ "${{ matrix.browser }}" == "chrome" && "${{ github.event.inputs.browser }}" != "chromium" ]]; then
-              SHOULD_TEST="false"
-            fi
-            if [[ "${{ matrix.browser }}" == "firefox" && "${{ github.event.inputs.browser }}" != "firefox" ]]; then
-              SHOULD_TEST="false"
-            fi
-          fi
-          echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
-        if: steps.should_test.outputs.should_test == 'true'
 
       - uses: actions/setup-node@v4
-        if: steps.should_test.outputs.should_test == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Download extension artifacts
-        if: steps.should_test.outputs.should_test == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
-          path: extension/dist
-
-      - name: Install dependencies and run extension tests
-        if: steps.should_test.outputs.should_test == 'true'
-        working-directory: extension
+      - name: Install dependencies and run Playwright tests
         env:
-          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
-          PORT: 3000
-          BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
         run: |
           npm ci
-          # Install all browsers to ensure dependencies are available
+          # Install Playwright browsers
           npx playwright install --with-deps
-          # Ensure the specific browser is installed properly
-          npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
-          # Run browser-specific e2e tests with frame buffer
-          npm run test:e2e:${{ matrix.browser }}
+          # Run e2e tests
+          npm run test:e2e
 
       - name: Upload test results
-        if: steps.should_test.outputs.should_test == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports-extension-${{ matrix.browser }}
+          name: playwright-reports
           path: |
-            extension/playwright-report/
-            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+            test-results/
+            playwright-report/
           retention-days: 30

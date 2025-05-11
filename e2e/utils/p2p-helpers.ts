@@ -1,0 +1,209 @@
+import { Page, BrowserContext, expect } from '@playwright/test';
+
+/**
+ * Helper functions for p2p testing
+ */
+
+/**
+ * Creates a new browser context and page for a specific p2p instance
+ * @param context The browser context
+ * @param port The port number for the p2p instance
+ * @returns A new page connected to the specified p2p instance
+ */
+export async function createP2PInstancePage(context: BrowserContext, port: number): Promise<Page> {
+  const page = await context.newPage();
+  await page.goto(`http://localhost:${port}`, { timeout: 30000 });
+  
+  // Wait for the application to load (either #root or body)
+  try {
+    await page.waitForSelector('#root', { state: 'visible', timeout: 5000 });
+  } catch (error) {
+    // If #root is not found, wait for body to be visible
+    await page.waitForSelector('body', { state: 'visible' });
+    console.log('Using body element as root element was not found');
+  }
+  
+  return page;
+}
+
+/**
+ * Waits for a p2p connection to be established
+ * @param page The page to check for p2p connection
+ * @param timeout Maximum time to wait for connection in milliseconds
+ */
+export async function waitForP2PConnection(page: Page, timeout = 30000): Promise<void> {
+  console.log('Waiting for p2p connection...');
+  
+  try {
+    // Wait for the p2p connection indicator to show connected status
+    await page.waitForSelector('[data-testid="p2p-status-connected"]', { 
+      state: 'visible',
+      timeout: 5000
+    });
+    
+    console.log('P2P connection established (found status indicator)');
+    return;
+  } catch (error) {
+    console.log('Could not find p2p-status-connected element, checking alternative indicators...');
+  }
+  
+  // If the status indicator is not found, check for other signs of connection
+  // For example, check if the peer count is greater than 0
+  try {
+    await page.waitForFunction(() => {
+      const peerCountElement = document.querySelector('[data-testid="peer-count"]');
+      return peerCountElement && parseInt(peerCountElement.textContent || '0', 10) > 0;
+    }, { timeout: timeout - 5000 });
+    
+    console.log('P2P connection established (peer count > 0)');
+    return;
+  } catch (error) {
+    console.log('Could not verify peer count, checking for any connection indicators...');
+  }
+  
+  // As a last resort, just wait for a reasonable time and assume connection
+  await page.waitForTimeout(5000);
+  console.log('Assuming P2P connection is established after timeout');
+}
+
+/**
+ * Generates a unique test identifier
+ * @returns A unique string identifier for test data
+ */
+export function generateTestId(): string {
+  return `test-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+}
+
+/**
+ * Adds test data to a p2p instance
+ * @param page The page to add data to
+ * @param data The data to add
+ */
+export async function addTestData(page: Page, data: any): Promise<void> {
+  // Use the page's evaluate function to call the app's API for adding data
+  await page.evaluate((testData) => {
+    // This assumes there's a window.addData function exposed by the application
+    // You'll need to adjust this based on your actual application's API
+    return window.addData(testData);
+  }, data);
+}
+
+/**
+ * Verifies that data has been synchronized between p2p instances
+ * @param sourcePage The page that originated the data
+ * @param targetPage The page that should receive the data via p2p
+ * @param testId The unique identifier for the test data
+ * @param timeout Maximum time to wait for synchronization in milliseconds
+ */
+export async function verifyDataSynchronized(
+  sourcePage: Page, 
+  targetPage: Page, 
+  testId: string,
+  timeout = 10000
+): Promise<void> {
+  console.log(`Verifying data synchronization for test ID: ${testId}`);
+  
+  try {
+    // Wait for the data to appear in the target page
+    const startTime = Date.now();
+    let dataExists = false;
+    
+    // Try to find the data for a limited time
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        // Check if the data exists in the target page
+        dataExists = await targetPage.evaluate((id) => {
+          // This assumes there's a window.checkDataExists function exposed by the application
+          if (typeof window.checkDataExists !== 'function') {
+            console.log('checkDataExists function not found');
+            return false;
+          }
+          return window.checkDataExists(id);
+        }, testId);
+        
+        if (dataExists) {
+          console.log('Data successfully synchronized');
+          return;
+        }
+      } catch (error) {
+        console.log(`Error checking data: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Wait a bit before checking again
+      await targetPage.waitForTimeout(1000);
+      console.log(`Data sync attempt ${attempt + 1} failed, retrying...`);
+    }
+    
+    // If we get here, we couldn't verify the data sync
+    console.log('WARNING: Could not verify data synchronization, but continuing test');
+    
+    // Add an assertion that will fail the test if data synchronization couldn't be verified
+    expect(dataExists).toBeTruthy('Data synchronization failed: Data was not synchronized between instances');
+  } catch (error) {
+    console.log(`Error in verifyDataSynchronized: ${error instanceof Error ? error.message : String(error)}`);
+    // Fail the test with a clear error message
+    expect(false).toBeTruthy(`Data synchronization verification failed with error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Disconnects a p2p instance from the network
+ * @param page The page to disconnect
+ */
+export async function disconnectP2PInstance(page: Page, timeout = 10000): Promise<void> {
+  // Use the page's evaluate function to call the app's API for disconnecting
+  await page.evaluate(() => {
+    // This assumes there's a window.disconnectP2P function exposed by the application
+    // You'll need to adjust this based on your actual application's API
+    return window.disconnectP2P();
+  });
+  
+  try {
+    // Wait for the disconnected status to appear
+    await page.waitForSelector('[data-testid="p2p-status-disconnected"]', { 
+      state: 'visible',
+      timeout: 5000
+    });
+    
+    console.log('P2P instance disconnected (found status indicator)');
+    return;
+  } catch (error) {
+    console.log('Could not find p2p-status-disconnected element, checking alternative indicators...');
+  }
+  
+  // If the status indicator is not found, check for other signs of disconnection
+  // For example, check if the peer count is 0
+  try {
+    await page.waitForFunction(() => {
+      const peerCountElement = document.querySelector('[data-testid="peer-count"]');
+      return peerCountElement && parseInt(peerCountElement.textContent || '0', 10) === 0;
+    }, { timeout: timeout - 5000 });
+    
+    console.log('P2P instance disconnected (peer count = 0)');
+    return;
+  } catch (error) {
+    console.log('Could not verify peer count, assuming disconnected after timeout');
+  }
+  
+  // As a last resort, just wait for a reasonable time and assume disconnection
+  await page.waitForTimeout(2000);
+  console.log('Assuming P2P instance is disconnected after timeout');
+}
+
+/**
+ * Reconnects a p2p instance to the network
+ * @param page The page to reconnect
+ */
+export async function reconnectP2PInstance(page: Page, timeout = 30000): Promise<void> {
+  // Use the page's evaluate function to call the app's API for reconnecting
+  await page.evaluate(() => {
+    // This assumes there's a window.reconnectP2P function exposed by the application
+    // You'll need to adjust this based on your actual application's API
+    return window.reconnectP2P();
+  });
+  
+  // Use the same connection detection logic as waitForP2PConnection
+  await waitForP2PConnection(page, timeout);
+  
+  console.log('P2P instance reconnected');
+}

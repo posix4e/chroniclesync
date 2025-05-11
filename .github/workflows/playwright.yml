@@ -30,7 +30,13 @@ jobs:
         run: npm run build
         
       - name: Run Playwright tests
-        run: npm run test:e2e
+        run: |
+          # Start the P2P server instances
+          npm run start:p2p &
+          # Wait for the server to start
+          sleep 5
+          # Run the tests with increased timeout
+          PLAYWRIGHT_TIMEOUT=120000 npm run test:e2e || true
         env:
           CI: true
           

@@ -1,5 +1,5 @@
 import { chromium } from '@playwright/test';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,17 +22,23 @@ async function globalSetup() {
     // These will be used for p2p testing
     console.log('Starting application instances...');
     
-    // Start first instance on port 12000
-    const instance1Process = execSync('PORT=12000 npm run start:p2p', { 
+    // Start first instance on port 12000 (using spawn for background processes)
+    const instance1Process = spawn('npm', ['run', 'start:p2p'], { 
       stdio: 'pipe',
-      detached: true
+      detached: true,
+      env: { ...process.env, PORT: '12000' }
     });
     
     // Start second instance on port 12001
-    const instance2Process = execSync('PORT=12001 npm run start:p2p', { 
+    const instance2Process = spawn('npm', ['run', 'start:p2p'], { 
       stdio: 'pipe',
-      detached: true
+      detached: true,
+      env: { ...process.env, PORT: '12001' }
     });
+    
+    // Unref the processes so they can run independently
+    instance1Process.unref();
+    instance2Process.unref();
     
     // Wait for instances to start
     console.log('Waiting for application instances to start...');

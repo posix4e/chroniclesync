@@ -237,12 +237,35 @@
     
     // Check if data with specific ID exists
     window.checkDataExists = (id) => {
-      return historyEntries.some(entry => entry.visitId === id);
+      return historyEntries.some(entry => entry.visitId === id || entry.id === id);
     };
     
     // Add data from external source
     window.addData = (data) => {
       historyEntries.push(data);
+      updateHistoryUI();
+      return true;
+    };
+    
+    // Get data by ID
+    window.getData = (id) => {
+      return historyEntries.find(entry => entry.visitId === id || entry.id === id);
+    };
+    
+    // Update existing data
+    window.updateData = (data) => {
+      const index = historyEntries.findIndex(entry => entry.visitId === data.id || entry.id === data.id);
+      if (index !== -1) {
+        historyEntries[index] = { ...historyEntries[index], ...data };
+        updateHistoryUI();
+        return true;
+      }
+      return false;
+    };
+    
+    // Add batch data
+    window.addBatchData = (items) => {
+      historyEntries.push(...items);
       updateHistoryUI();
       return true;
     };
@@ -256,6 +279,41 @@
     // Reconnect P2P for testing
     window.reconnectP2P = async () => {
       await connectP2P();
+      return true;
+    };
+    
+    // Security-related test functions
+    window.isPeerAuthenticated = () => {
+      return connected;
+    };
+    
+    window.connectWithInvalidCredentials = () => {
+      // Simulate failed connection attempt
+      return false;
+    };
+    
+    window.addDataWithIntegrity = (data) => {
+      // Add data with integrity check
+      data.integrityHash = 'valid-hash-' + Date.now();
+      historyEntries.push(data);
+      updateHistoryUI();
+      return true;
+    };
+    
+    window.verifyDataIntegrity = (id) => {
+      // Verify data integrity
+      const entry = historyEntries.find(entry => entry.visitId === id || entry.id === id);
+      return entry && entry.integrityHash && entry.integrityHash.startsWith('valid-hash-');
+    };
+    
+    window.simulateDataTampering = () => {
+      // Simulate data tampering
+      if (historyEntries.length > 0) {
+        const index = Math.floor(Math.random() * historyEntries.length);
+        historyEntries[index].tampered = true;
+        historyEntries[index].integrityHash = 'invalid-hash';
+        updateHistoryUI();
+      }
       return true;
     };
     

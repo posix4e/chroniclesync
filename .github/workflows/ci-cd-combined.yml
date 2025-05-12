@@ -38,6 +38,8 @@ jobs:
   build-and-test:
     runs-on: macos-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    outputs:
+      current_version: ${{ steps.deploy-worker.outputs.current_version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,28 +47,75 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
+            worker/package-lock.json
 
 
 
-      - name: Build Application
+      - name: Build Extension
+        working-directory: extension
         run: |
           npm ci
           npm run build
 
-      - name: Run Tests
+      - name: Package Extensions
+        working-directory: extension
         run: |
-          # Skip linting for now as it might be failing
-          # npm run lint
+          # macOS already has zip utility installed
+          # Run build script with ESM support
+          NODE_OPTIONS="--experimental-vm-modules --no-warnings" npm run build:extension
+
+      - name: Upload Chrome Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/chrome-extension.zip
+          retention-days: 14
+          
+      - name: Upload Firefox Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: extension/firefox-extension.xpi
+          retention-days: 14
+
+      - name: Test Extension
+        working-directory: extension
+        run: |
+          npm run lint
           npm run test
 
-  playwright-tests:
+      - name: Test Worker
+        working-directory: worker
+        run: npm ci && npm run lint && npm run test:coverage
+
+
+      - name: Deploy Worker
+        id: deploy-worker
+        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            npm run deploy -- --env production
+          else
+            npm run deploy -- --env staging
+          fi
+
+  playwright-extension-tests:
     needs: build-and-test
     if: success()
     strategy:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
+        # Future platforms can be added here (e.g., ios, android)
     runs-on: ubuntu-latest
     steps:
       # Skip this job if a specific browser is requested in workflow_dispatch and it's not this one
@@ -83,7 +132,6 @@ jobs:
             fi
           fi
           echo "should_test=${SHOULD_TEST}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
         if: steps.should_test.outputs.should_test == 'true'
 
@@ -92,31 +140,41 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            pages/package-lock.json
+            extension/package-lock.json
 
-      - name: Install dependencies and run Playwright tests
+      - name: Download extension artifacts
         if: steps.should_test.outputs.should_test == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
+          path: extension/dist
+
+      - name: Install dependencies and run extension tests
+        if: steps.should_test.outputs.should_test == 'true'
+        working-directory: extension
         env:
+          API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
           PWDEBUG: ${{ github.event.inputs.debug && '1' || '' }}
+          PORT: 3000
           BROWSER: ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb xauth
           npm ci
           # Install all browsers to ensure dependencies are available
           npx playwright install --with-deps
           # Ensure the specific browser is installed properly
           npx playwright install --with-deps ${{ matrix.browser == 'chrome' && 'chromium' || 'firefox' }}
-          # Run browser-specific e2e tests
+          # Run browser-specific e2e tests with frame buffer
           npm run test:e2e:${{ matrix.browser }}
 
       - name: Upload test results
         if: steps.should_test.outputs.should_test == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports-${{ matrix.browser }}
+          name: playwright-reports-extension-${{ matrix.browser }}
           path: |
-            test-results/
-            playwright-report/
+            extension/playwright-report/
+            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30

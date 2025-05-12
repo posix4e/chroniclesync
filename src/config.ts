@@ -41,6 +41,25 @@ const config = {
  * Get the application configuration
  * @returns The application configuration
  */
-export function getConfig() {
+export async function getConfig() {
+  // Check if we're in a browser environment with chrome.storage
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    try {
+      // Try to get clientId from sync storage first
+      const syncResult = await chrome.storage.sync.get(['clientId']);
+      if (syncResult.clientId) {
+        config.clientId = syncResult.clientId;
+      } else {
+        // If not in sync storage, try local storage
+        const localResult = await chrome.storage.local.get(['clientId']);
+        if (localResult.clientId) {
+          config.clientId = localResult.clientId;
+        }
+      }
+    } catch (error) {
+      console.error('Error retrieving clientId from storage:', error);
+    }
+  }
+  
   return config;
 }

@@ -97,6 +97,7 @@ export async function cleanup(): Promise<void> {
 async function initializeExtension(): Promise<boolean> {
   try {
     await chrome.storage.local.get(['initialized']);
+    // getConfig is now async, but we don't need to store the result here
     await getConfig();
     await chrome.storage.local.set({ initialized: true });
     return true;

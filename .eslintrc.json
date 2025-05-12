@@ -23,9 +23,7 @@
     "sourceType": "module",
     "ecmaFeatures": {
       "jsx": true
-    },
-    "project": ["./tsconfig.json"],
-    "tsconfigRootDir": "."
+    }
   },
   "plugins": [
     "@typescript-eslint",
@@ -61,7 +59,7 @@
       "files": ["*.js", "*.jsx"],
       "parser": "espree",
       "parserOptions": {
-        "ecmaVersion": "latest",
+        "ecmaVersion": 2021,
         "sourceType": "module",
         "ecmaFeatures": {
           "jsx": true

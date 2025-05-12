@@ -65,11 +65,11 @@ export default defineConfig(({ mode }) => {
           'content-script': resolve(__dirname, 'src/content-script.ts')
         },
         output: {
-          format: 'es' as const,
+          format: isFirefox ? 'iife' : 'es',
           entryFileNames: '[name].js',
           assetFileNames: 'assets/[name].[ext]',
           chunkFileNames: 'assets/[name]-[hash].js',
-          inlineDynamicImports: false
+          inlineDynamicImports: isFirefox
         }
       }
     },

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronicleSync P2P Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .status-container {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-connected {
+      background-color: #4CAF50;
+    }
+    .status-disconnected {
+      background-color: #F44336;
+    }
+    .status-connecting {
+      background-color: #FFC107;
+    }
+    .peer-list {
+      margin-top: 20px;
+    }
+    .peer-item {
+      padding: 8px;
+      margin-bottom: 5px;
+      background-color: #eee;
+      border-radius: 4px;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 8px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button.disconnect {
+      background-color: #F44336;
+    }
+    button.disconnect:hover {
+      background-color: #d32f2f;
+    }
+    .history-entry {
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .history-entry .title {
+      font-weight: bold;
+    }
+    .history-entry .url {
+      color: #2196F3;
+      word-break: break-all;
+    }
+    .history-entry .time {
+      color: #757575;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <h1>ChronicleSync P2P Test</h1>
+    
+    <div class="status-container">
+      <h2>P2P Connection Status</h2>
+      <div>
+        <span class="status-indicator status-disconnected" id="status-indicator"></span>
+        <span id="status-text" data-testid="p2p-status-disconnected">Disconnected</span>
+      </div>
+      <div>
+        Connected Peers: <span id="peer-count" data-testid="peer-count">0</span>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button id="connect-btn">Connect</button>
+      <button id="disconnect-btn" class="disconnect">Disconnect</button>
+      <button id="sync-btn">Sync History</button>
+      <button id="add-history-btn">Add Test History</button>
+    </div>
+    
+    <div class="peer-list">
+      <h2>Connected Peers</h2>
+      <div id="peers-container"></div>
+    </div>
+    
+    <div class="history-container">
+      <h2>Synced History</h2>
+      <div id="history-container"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Mock P2P functionality for testing
+    const peers = new Map();
+    let connected = false;
+    let historyEntries = [];
+    
+    // DOM elements
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    const peerCount = document.getElementById('peer-count');
+    const peersContainer = document.getElementById('peers-container');
+    const historyContainer = document.getElementById('history-container');
+    const connectBtn = document.getElementById('connect-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const syncBtn = document.getElementById('sync-btn');
+    const addHistoryBtn = document.getElementById('add-history-btn');
+    
+    // Generate a random client ID
+    const clientId = `client-${Math.floor(Math.random() * 10000)}`;
+    
+    // Update UI based on connection status
+    function updateConnectionUI() {
+      if (connected) {
+        statusIndicator.className = 'status-indicator status-connected';
+        statusText.textContent = 'Connected';
+        statusText.dataset.testid = 'p2p-status-connected';
+      } else {
+        statusIndicator.className = 'status-indicator status-disconnected';
+        statusText.textContent = 'Disconnected';
+        statusText.dataset.testid = 'p2p-status-disconnected';
+      }
+      
+      peerCount.textContent = peers.size;
+      
+      // Update peers list
+      peersContainer.innerHTML = '';
+      if (peers.size === 0) {
+        peersContainer.innerHTML = '<div>No peers connected</div>';
+      } else {
+        peers.forEach((peer, id) => {
+          const peerElement = document.createElement('div');
+          peerElement.className = 'peer-item';
+          peerElement.textContent = `Peer: ${id} (Last seen: ${new Date(peer.lastSeen).toLocaleTimeString()})`;
+          peersContainer.appendChild(peerElement);
+        });
+      }
+    }
+    
+    // Update history display
+    function updateHistoryUI() {
+      historyContainer.innerHTML = '';
+      if (historyEntries.length === 0) {
+        historyContainer.innerHTML = '<div>No history entries</div>';
+      } else {
+        historyEntries.forEach(entry => {
+          const entryElement = document.createElement('div');
+          entryElement.className = 'history-entry';
+          entryElement.innerHTML = `
+            <div class="title">${entry.title || 'No title'}</div>
+            <div class="url">${entry.url}</div>
+            <div class="time">Visited: ${new Date(entry.visitTime).toLocaleString()}</div>
+            <div>Device: ${entry.deviceName || 'Unknown'}</div>
+          `;
+          entryElement.dataset.id = entry.visitId;
+          historyContainer.appendChild(entryElement);
+        });
+      }
+    }
+    
+    // Connect to P2P network
+    async function connectP2P() {
+      statusIndicator.className = 'status-indicator status-connecting';
+      statusText.textContent = 'Connecting...';
+      
+      // Simulate connection delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Add a mock peer
+      const peerId = `peer-${Math.floor(Math.random() * 10000)}`;
+      peers.set(peerId, {
+        id: peerId,
+        lastSeen: Date.now()
+      });
+      
+      connected = true;
+      updateConnectionUI();
+    }
+    
+    // Disconnect from P2P network
+    function disconnectP2P() {
+      connected = false;
+      peers.clear();
+      updateConnectionUI();
+    }
+    
+    // Add test history entry
+    function addTestHistoryEntry() {
+      const testId = `test-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const newEntry = {
+        url: `https://example.com/page/${testId}`,
+        title: `Test Page ${testId}`,
+        visitTime: Date.now(),
+        visitId: testId,
+        deviceName: `Test Device (${clientId})`,
+        deviceId: clientId
+      };
+      
+      historyEntries.push(newEntry);
+      updateHistoryUI();
+      
+      return testId;
+    }
+    
+    // Check if data with specific ID exists
+    window.checkDataExists = (id) => {
+      return historyEntries.some(entry => entry.visitId === id || entry.id === id);
+    };
+    
+    // Add data from external source
+    window.addData = (data) => {
+      historyEntries.push(data);
+      updateHistoryUI();
+      return true;
+    };
+    
+    // Get data by ID
+    window.getData = (id) => {
+      return historyEntries.find(entry => entry.visitId === id || entry.id === id);
+    };
+    
+    // Update existing data
+    window.updateData = (data) => {
+      const index = historyEntries.findIndex(entry => entry.visitId === data.id || entry.id === data.id);
+      if (index !== -1) {
+        historyEntries[index] = { ...historyEntries[index], ...data };
+        updateHistoryUI();
+        return true;
+      }
+      return false;
+    };
+    
+    // Add batch data
+    window.addBatchData = (items) => {
+      historyEntries.push(...items);
+      updateHistoryUI();
+      return true;
+    };
+    
+    // Disconnect P2P for testing
+    window.disconnectP2P = () => {
+      disconnectP2P();
+      return true;
+    };
+    
+    // Reconnect P2P for testing
+    window.reconnectP2P = async () => {
+      await connectP2P();
+      return true;
+    };
+    
+    // Security-related test functions
+    window.isPeerAuthenticated = () => {
+      return connected;
+    };
+    
+    window.connectWithInvalidCredentials = () => {
+      // Simulate failed connection attempt
+      return false;
+    };
+    
+    window.addDataWithIntegrity = (data) => {
+      // Add data with integrity check
+      data.integrityHash = 'valid-hash-' + Date.now();
+      historyEntries.push(data);
+      updateHistoryUI();
+      return true;
+    };
+    
+    window.verifyDataIntegrity = (id) => {
+      // Verify data integrity
+      const entry = historyEntries.find(entry => entry.visitId === id || entry.id === id);
+      return entry && entry.integrityHash && entry.integrityHash.startsWith('valid-hash-');
+    };
+    
+    window.simulateDataTampering = () => {
+      // Simulate data tampering
+      if (historyEntries.length > 0) {
+        const index = Math.floor(Math.random() * historyEntries.length);
+        historyEntries[index].tampered = true;
+        historyEntries[index].integrityHash = 'invalid-hash';
+        updateHistoryUI();
+      }
+      return true;
+    };
+    
+    // Event listeners
+    connectBtn.addEventListener('click', connectP2P);
+    disconnectBtn.addEventListener('click', disconnectP2P);
+    syncBtn.addEventListener('click', () => {
+      // Simulate receiving history from peers
+      if (connected && peers.size > 0) {
+        const peerEntry = {
+          url: `https://example.com/peer-page/${Date.now()}`,
+          title: `Peer Shared Page`,
+          visitTime: Date.now() - 3600000, // 1 hour ago
+          visitId: `peer-${Date.now()}`,
+          deviceName: `Peer Device`,
+          deviceId: Array.from(peers.keys())[0]
+        };
+        
+        historyEntries.push(peerEntry);
+        updateHistoryUI();
+      }
+    });
+    addHistoryBtn.addEventListener('click', addTestHistoryEntry);
+    
+    // Initialize UI
+    updateConnectionUI();
+    updateHistoryUI();
+    
+    // Auto-connect for testing purposes
+    setTimeout(connectP2P, 1000);
+  </script>
+</body>
+</html>

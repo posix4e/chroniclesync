@@ -1,0 +1,5 @@
+dist/
+node_modules/
+test/
+__tests__/
+e2e/

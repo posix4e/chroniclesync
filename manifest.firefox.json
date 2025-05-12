@@ -22,8 +22,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content-script.js"],
-      "run_at": "document_idle",
-      "type": "module"
+      "run_at": "document_idle"
     }
   ],
   "permissions": [

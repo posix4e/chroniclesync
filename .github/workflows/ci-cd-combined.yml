@@ -47,21 +47,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
-            worker/package-lock.json
+          cache-dependency-path: package-lock.json
 
 
 
       - name: Build Extension
-        working-directory: extension
         run: |
           npm ci
           npm run build
 
       - name: Package Extensions
-        working-directory: extension
         run: |
           # macOS already has zip utility installed
           # Run build script with ESM support
@@ -71,42 +66,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chrome-extension
-          path: extension/chrome-extension.zip
+          path: chrome-extension.zip
           retention-days: 14
           
       - name: Upload Firefox Extension Artifact
         uses: actions/upload-artifact@v4
         with:
           name: firefox-extension
-          path: extension/firefox-extension.xpi
+          path: firefox-extension.xpi
           retention-days: 14
 
       - name: Test Extension
-        working-directory: extension
         run: |
           npm run lint
           npm run test
-
-      - name: Test Worker
-        working-directory: worker
-        run: npm ci && npm run lint && npm run test:coverage
-
-
-      - name: Deploy Worker
-        id: deploy-worker
-        if: (github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main') && success()
-        working-directory: worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            CURRENT_VERSION=$(wrangler version show --json | jq -r '.version')
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            npm run deploy -- --env production
-          else
-            npm run deploy -- --env staging
-          fi
 
   playwright-extension-tests:
     needs: build-and-test
@@ -140,20 +113,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: |
-            pages/package-lock.json
-            extension/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Download extension artifacts
         if: steps.should_test.outputs.should_test == 'true'
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.browser == 'chrome' && 'chrome-extension' || 'firefox-extension' }}
-          path: extension/dist
+          path: dist
 
       - name: Install dependencies and run extension tests
         if: steps.should_test.outputs.should_test == 'true'
-        working-directory: extension
         env:
           API_URL: ${{ github.event.inputs.api_endpoint || (github.ref == 'refs/heads/main' && 'https://api.chroniclesync.xyz' || 'https://api-staging.chroniclesync.xyz') }}
           DEBUG: ${{ github.event.inputs.debug && 'pw:api' || '' }}
@@ -175,6 +145,6 @@ jobs:
         with:
           name: playwright-reports-extension-${{ matrix.browser }}
           path: |
-            extension/playwright-report/
-            extension/test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
+            playwright-report/
+            test-results/${{ matrix.browser == 'chrome' && 'chrome' || 'firefox' }}/
           retention-days: 30

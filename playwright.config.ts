@@ -38,6 +38,21 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: 'firefox',
+      use: {
+        browserName: 'firefox',
+        launchOptions: {
+          args: [
+            '--headless',
+          ],
+          firefoxUserPrefs: {
+            'security.fileuri.strict_origin_policy': false,
+            'browser.tabs.remote.autostart': false,
+          },
+        },
+      },
+    },
   ],
   outputDir: 'test-results/',
   globalSetup: './e2e/global-setup.ts',

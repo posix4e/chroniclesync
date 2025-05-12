@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test p2p.spec.ts",
     "test:e2e:chrome": "xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' playwright test p2p.spec.ts --project=chromium",
+    "test:e2e:firefox": "xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' playwright test p2p.spec.ts --project=firefox",
     "test:e2e:debug": "PWDEBUG=1 playwright test p2p.spec.ts",
     "test:p2p": "xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' playwright test p2p.spec.ts",
     "test:basic": "xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' playwright test p2p.spec.ts --grep \"P2P Basic Functionality\"",
